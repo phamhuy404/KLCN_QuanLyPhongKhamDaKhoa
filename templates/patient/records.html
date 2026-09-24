@@ -1,0 +1,224 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Hồ sơ bệnh án - H2T Healthcare{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-medium">Hồ sơ bệnh án</span>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900">Hồ sơ bệnh án điện tử (EMR)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Theo dõi lịch sử khám bệnh, chẩn đoán của bác sĩ và các toa thuốc điều trị</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="showToast('Đang tạo file PDF trích xuất toàn bộ hồ sơ...', 'info')" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2">
+                <i class="fa-solid fa-file-pdf text-rose-500"></i> Xuất toàn bộ EMR
+            </button>
+        </div>
+    </div>
+
+    <!-- Health Summary Overview Banner -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base">
+                <i class="fa-solid fa-droplet"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400">Nhóm máu</span>
+                <h4 class="font-bold text-slate-800 text-sm">O+ (Rh+)</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400">Dị ứng thuốc</span>
+                <h4 class="font-bold text-slate-800 text-sm">Penicillin (Nhẹ)</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base">
+                <i class="fa-solid fa-notes-medical"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400">Tổng đợt khám</span>
+                <h4 class="font-bold text-slate-800 text-sm">5 đợt (2025 - 2026)</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base">
+                <i class="fa-solid fa-shield-virus"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400">BHYT có hiệu lực</span>
+                <h4 class="font-bold text-emerald-700 text-sm">Đến 12/2026</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button class="px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-semibold text-xs transition-all">Tất cả đợt khám</button>
+            <button class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2026</button>
+            <button class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2025</button>
+        </div>
+        <div class="relative w-full sm:w-64">
+            <input type="text" placeholder="Tìm theo bệnh, bác sĩ, ngày..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+        </div>
+    </div>
+
+    <!-- Danh sách chi tiết các đợt khám bệnh -->
+    <div class="space-y-6">
+        
+        <!-- Đợt khám 1: Viêm họng cấp / Viêm phế quản (Gần nhất) -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <!-- Header đợt khám -->
+            <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-medical-500 text-white flex flex-col items-center justify-center font-bold text-center shrink-0 shadow-md shadow-medical-500/20">
+                        <span class="text-xs uppercase">Th 8</span>
+                        <span class="text-base leading-none">10</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h3 class="font-bold text-base text-slate-900">Đợt khám: Viêm phế quản cấp & Viêm họng</h3>
+                            <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Đã hoàn thành</span>
+                            <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Mã đợt: KB-2026-0810</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Bác sĩ khám: <strong class="text-slate-700">BS.CKII Trần Minh Quân</strong> • Chuyên khoa Nội tổng quát • Phòng khám số 04
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="showToast('Đang tải toa thuốc điện tử...', 'success')" class="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-print"></i> In toa thuốc
+                    </button>
+                    <a href="{{ url_for('patient_lab_results') }}" class="bg-medical-50 hover:bg-medical-100 text-medical-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-flask"></i> Xem kết quả xét nghiệm
+                    </a>
+                </div>
+            </div>
+
+            <!-- Nội dung chi tiết chẩn đoán -->
+            <div class="p-6 space-y-6">
+                <!-- Chẩn đoán & Triệu chứng -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Triệu chứng & Lý do khám</span>
+                        <p class="text-xs text-slate-700 leading-relaxed">Bệnh nhân ho đờm nhiều, rát họng, mệt mỏi, sốt nhẹ 38°C trong 2 ngày trước khám.</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-medical-50/50 border border-medical-100 space-y-1.5">
+                        <span class="text-xs font-bold text-medical-800 uppercase tracking-wider">Chẩn đoán xác định (ICD-10)</span>
+                        <p class="text-xs font-bold text-slate-900 leading-relaxed">J20.9 - Viêm phế quản cấp không đặc hiệu / Kèm viêm họng cấp</p>
+                    </div>
+                </div>
+
+                <!-- Đơn thuốc điện tử -->
+                <div>
+                    <h4 class="font-bold text-sm text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-pills text-medical-600"></i> Toa thuốc điều trị (03 loại thuốc)
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-400 font-semibold uppercase tracking-wider border-y border-slate-100">
+                                    <th class="py-2.5 px-4">#</th>
+                                    <th class="py-2.5 px-4">Tên thuốc & Hoạt chất</th>
+                                    <th class="py-2.5 px-4">Số lượng</th>
+                                    <th class="py-2.5 px-4">Liều dùng & Hướng dẫn sử dụng</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <tr>
+                                    <td class="py-3 px-4 font-bold text-medical-600">1</td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-slate-900">Augmentin 1g</div>
+                                        <span class="text-[11px] text-slate-400">Amoxicillin + Acid Clavulanic</span>
+                                    </td>
+                                    <td class="py-3 px-4 font-semibold">14 Viên</td>
+                                    <td class="py-3 px-4">Uống 1 viên x 2 lần/ngày (sáng - tối sau ăn 30 phút), uống đều trong 7 ngày.</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 px-4 font-bold text-medical-600">2</td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-slate-900">Efferalgan 500mg</div>
+                                        <span class="text-[11px] text-slate-400">Paracetamol viên sủi</span>
+                                    </td>
+                                    <td class="py-3 px-4 font-semibold">10 Viên</td>
+                                    <td class="py-3 px-4">Hòa tan 1 viên vào 150ml nước khi sốt trên 38.5°C hoặc đau rát nhiều (cách nhau ít nhất 4-6 giờ).</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 px-4 font-bold text-medical-600">3</td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-bold text-slate-900">Acemuc 200mg</div>
+                                        <span class="text-[11px] text-slate-400">Acetylcysteine gói bột</span>
+                                    </td>
+                                    <td class="py-3 px-4 font-semibold">20 Gói</td>
+                                    <td class="py-3 px-4">Uống 1 gói x 3 lần/ngày, hòa tan vào nước đun sôi để nguội.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Lời dặn của bác sĩ -->
+                <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-3">
+                    <i class="fa-solid fa-user-doctor text-base mt-0.5 text-amber-700"></i>
+                    <div>
+                        <span class="font-bold block">Lời dặn & Hẹn tái khám của bác sĩ:</span>
+                        <p class="mt-0.5 leading-relaxed">
+                            Uống nhiều nước ấm, giữ ấm vùng cổ ngực, súc họng bằng nước muối sinh lý hàng ngày. Nếu sau 5 ngày còn sốt hoặc ho khan dữ dội, vui lòng tái khám ngay.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Đợt khám 2: Khám Tiêu hóa -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-slate-200 text-slate-700 flex flex-col items-center justify-center font-bold text-center shrink-0">
+                        <span class="text-xs uppercase">Th 5</span>
+                        <span class="text-base leading-none">15</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h3 class="font-bold text-base text-slate-900">Đợt khám: Viêm loét dạ dày - tá tràng nhẹ</h3>
+                            <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">Đã khỏi bệnh</span>
+                            <span class="bg-slate-100 text-slate-600 text-xs font-semibold px-2.5 py-0.5 rounded-full">Mã đợt: KB-2026-0515</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">
+                            Bác sĩ khám: <strong class="text-slate-700">ThS.BS Lê Hoàng Long</strong> • Chuyên khoa Tiêu hóa
+                        </p>
+                    </div>
+                </div>
+
+                <button onclick="showToast('Đang mở chi tiết hồ sơ cũ...', 'info')" class="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm">
+                    Xem chi tiết hồ sơ
+                </button>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

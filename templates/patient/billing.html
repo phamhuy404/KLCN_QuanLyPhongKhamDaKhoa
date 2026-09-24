@@ -1,0 +1,225 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Hóa đơn & Viện phí - H2T Healthcare{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-medium">Hóa đơn & Viện phí</span>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900">Quản lý Hóa đơn & Viện phí</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Tra cứu chi phí khám chữa bệnh, bảo hiểm y tế và thanh toán trực tuyến nhanh chóng</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="showToast('Đang xuất bảng kê chi phí viện phí toàn năm...', 'info')" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-2">
+                <i class="fa-solid fa-file-invoice"></i> Xuất bảng kê chi phí
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <span class="text-xs text-slate-400 font-medium">Tổng viện phí (Năm 2026)</span>
+            <p class="text-2xl font-bold text-slate-800 mt-1">3.250.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
+                <i class="fa-solid fa-clock-rotate-left"></i> 4 đợt khám & xét nghiệm
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <span class="text-xs text-slate-400 font-medium">BHYT đồng chi trả</span>
+            <p class="text-2xl font-bold text-emerald-600 mt-1">1.625.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <div class="mt-2 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                <i class="fa-solid fa-shield-halved"></i> Giảm 50% theo thẻ BHYT
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <span class="text-xs text-slate-400 font-medium">Đã thanh toán</span>
+            <p class="text-2xl font-bold text-blue-600 mt-1">1.225.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <div class="mt-2 text-[11px] text-blue-600 flex items-center gap-1">
+                <i class="fa-solid fa-check-circle"></i> Đã xuất hóa đơn điện tử
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-5 rounded-2xl shadow-lg shadow-amber-500/20">
+            <span class="text-xs text-amber-100 font-medium">Cần thanh toán ngay</span>
+            <p class="text-2xl font-bold mt-1">400.000 <span class="text-xs font-normal text-amber-100">đ</span></p>
+            <div class="mt-2 text-[11px] text-white/90 flex items-center gap-1 font-semibold">
+                <i class="fa-solid fa-circle-exclamation"></i> 01 đợt khám chờ xác nhận
+            </div>
+        </div>
+    </div>
+
+    <!-- Hóa Đơn Đang Chờ Thanh Toán (Unpaid Invoice Box) -->
+    <div class="bg-white rounded-2xl border border-amber-200/80 shadow-md p-6 bg-gradient-to-r from-amber-50/30 to-white">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Chờ thanh toán</span>
+                    <h3 class="font-bold text-base text-slate-900">Hóa đơn đợt khám ngày 18/09/2026</h3>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Mã hóa đơn: <span class="font-mono font-semibold text-slate-700">HD-20260918-024</span> • Khoa Khám bệnh Ngoại trú</p>
+            </div>
+            
+            <div class="text-left md:text-right">
+                <span class="text-xs text-slate-400 block">Số tiền cần thanh toán</span>
+                <span class="text-2xl font-extrabold text-amber-600">400.000 đ</span>
+            </div>
+        </div>
+
+        <!-- Chi tiết các khoản mục -->
+        <div class="py-4 space-y-2.5 text-xs text-slate-700">
+            <div class="flex justify-between py-1 border-b border-slate-100/60">
+                <span>1. Tiền công khám bệnh Nội tổng quát (BS. Quân)</span>
+                <span class="font-semibold text-slate-800">200.000 đ</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100/60">
+                <span>2. Tiền thuốc điều trị theo toa (Augmentin, Efferalgan, Acemuc)</span>
+                <span class="font-semibold text-slate-800">200.000 đ</span>
+            </div>
+        </div>
+
+        <div class="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs text-slate-500 flex items-center gap-1.5">
+                <i class="fa-solid fa-lock text-medical-600"></i> Hỗ trợ thanh toán bảo mật chuẩn VietQR, VNPay, MoMo, Visa/MasterCard.
+            </span>
+            <button onclick="openPaymentModal()" class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-medical-600 to-teal-600 hover:from-medical-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-medical-600/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-qrcode"></i> Thanh toán bằng QR Code / Thẻ
+            </button>
+        </div>
+    </div>
+
+    <!-- Lịch sử hóa đơn điện tử đã thanh toán -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Lịch sử hóa đơn & Biên lai viện phí
+            </h3>
+            <span class="text-xs text-slate-400">Đã cập nhật hóa đơn điện tử VAT</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3 px-5">Mã HĐ</th>
+                        <th class="py-3 px-5">Ngày thanh toán</th>
+                        <th class="py-3 px-5">Nội dung chi phí</th>
+                        <th class="py-3 px-5">Tổng viện phí</th>
+                        <th class="py-3 px-5">BHYT trả</th>
+                        <th class="py-3 px-5">Thực thu</th>
+                        <th class="py-3 px-5 text-center">Trạng thái</th>
+                        <th class="py-3 px-5 text-right">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-5 font-bold font-mono text-slate-900">HD-20260810-011</td>
+                        <td class="py-3.5 px-5 text-slate-500">10/08/2026</td>
+                        <td class="py-3.5 px-5">
+                            <span class="font-medium text-slate-800">Khám Nội + XN Máu + X-Quang</span>
+                        </td>
+                        <td class="py-3.5 px-5 font-medium">1.450.000 đ</td>
+                        <td class="py-3.5 px-5 text-emerald-600 font-medium">-725.000 đ</td>
+                        <td class="py-3.5 px-5 font-bold text-slate-900">725.000 đ</td>
+                        <td class="py-3.5 px-5 text-center">
+                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
+                        </td>
+                        <td class="py-3.5 px-5 text-right">
+                            <button onclick="showToast('Đang tải hóa đơn điện tử e-Invoice...', 'success')" class="text-medical-600 hover:text-medical-800 font-semibold hover:underline">
+                                Tải hóa đơn VAT
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-5 font-bold font-mono text-slate-900">HD-20260515-082</td>
+                        <td class="py-3.5 px-5 text-slate-500">15/05/2026</td>
+                        <td class="py-3.5 px-5">
+                            <span class="font-medium text-slate-800">Khám Tiêu hóa + Thuốc dạ dày</span>
+                        </td>
+                        <td class="py-3.5 px-5 font-medium">1.000.000 đ</td>
+                        <td class="py-3.5 px-5 text-emerald-600 font-medium">-500.000 đ</td>
+                        <td class="py-3.5 px-5 font-bold text-slate-900">500.000 đ</td>
+                        <td class="py-3.5 px-5 text-center">
+                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
+                        </td>
+                        <td class="py-3.5 px-5 text-right">
+                            <button onclick="showToast('Đang tải hóa đơn điện tử e-Invoice...', 'success')" class="text-medical-600 hover:text-medical-800 font-semibold hover:underline">
+                                Tải hóa đơn VAT
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Thanh Toán VietQR / MoMo (Hidden by default) -->
+    <div id="payment-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-qrcode text-medical-600"></i> Thanh toán viện phí VietQR
+                </h3>
+                <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="text-center py-2 space-y-3">
+                <!-- Giả lập VietQR Code -->
+                <div class="w-48 h-48 mx-auto p-3 bg-white border-2 border-medical-500 rounded-2xl shadow-md flex flex-col items-center justify-center">
+                    <div class="w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center text-white p-4">
+                        <i class="fa-solid fa-qrcode text-6xl text-white"></i>
+                        <span class="text-[11px] font-mono mt-2 text-medical-300">VietQR Pro • 24/7</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs text-slate-400">Số tiền thanh toán</span>
+                    <h2 class="text-2xl font-extrabold text-medical-600 mt-0.5">400.000 VNĐ</h2>
+                    <p class="text-xs text-slate-500 mt-1">Nội dung CK: <strong class="font-mono text-slate-800">BN00291 HD20260918</strong></p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50 text-left text-xs space-y-1 text-slate-600">
+                    <p><strong>Ngân hàng:</strong> TMCP Ngoại Thương (Vietcombank)</p>
+                    <p><strong>Số tài khoản:</strong> 10123456789</p>
+                    <p><strong>Chủ tài khoản:</strong> PHONG KHAM DA KHOA H2T HEALTHCARE</p>
+                </div>
+            </div>
+
+            <button onclick="confirmPaymentMock()" class="w-full py-3 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-medical-600/30 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i> Tôi đã hoàn tất chuyển khoản
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function openPaymentModal() {
+            document.getElementById('payment-modal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+        }
+
+        function confirmPaymentMock() {
+            closePaymentModal();
+            showToast('Hệ thống đã ghi nhận thanh toán thành công! Biên lai điện tử đã được cập nhật.', 'success');
+        }
+    </script>
+{% endblock %}

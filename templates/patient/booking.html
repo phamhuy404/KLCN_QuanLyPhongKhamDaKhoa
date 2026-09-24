@@ -1,0 +1,286 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Đặt lịch khám bệnh - H2T Healthcare{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-medium">Đặt lịch khám</span>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-900">Đặt lịch khám trực tuyến</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Chọn chuyên khoa, bác sĩ và thời gian khám phù hợp chỉ trong vài bước</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-medical-50 text-medical-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-medical-200/60">
+                <i class="fa-solid fa-tag mr-1"></i> Ưu đãi -20% khi đặt qua cổng web
+            </span>
+        </div>
+    </div>
+
+    <!-- Booking Form & Summary Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Form Cột Trái (2 cột) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Bước 1: Chọn Chuyên khoa -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+                        Chọn chuyên khoa khám
+                    </h3>
+                    <span class="text-xs text-slate-400">Bắt buộc</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="specialty-selector">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="specialty" value="Nội tổng quát" checked class="peer sr-only" onchange="updateSummary('specialty', 'Nội tổng quát')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-stethoscope"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-800">Nội tổng quát</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="specialty" value="Tim mạch" class="peer sr-only" onchange="updateSummary('specialty', 'Tim mạch')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-heart-pulse"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-800">Tim mạch</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="specialty" value="Tai Mũi Họng" class="peer sr-only" onchange="updateSummary('specialty', 'Tai Mũi Họng')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-head-side-cough"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-800">Tai Mũi Họng</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="specialty" value="Nhi khoa" class="peer sr-only" onchange="updateSummary('specialty', 'Nhi khoa')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-baby"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-800">Nhi khoa</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Bước 2: Chọn Bác sĩ -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">2</span>
+                        Chọn bác sĩ phụ trách
+                    </h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="doctor" value="BS.CKII Trần Minh Quân" checked class="peer sr-only" onchange="updateSummary('doctor', 'BS.CKII Trần Minh Quân')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
+                            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=120" alt="Doctor" class="w-12 h-12 rounded-xl object-cover">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-800">BS.CKII Trần Minh Quân</h4>
+                                <span class="text-xs text-medical-600 block">Trưởng khoa Nội tổng quát</span>
+                                <span class="text-[11px] text-slate-400 mt-0.5 block">15 năm kinh nghiệm • ★ 4.9</span>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="doctor" value="ThS.BS Lê Hoàng Long" class="peer sr-only" onchange="updateSummary('doctor', 'ThS.BS Lê Hoàng Long')">
+                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
+                            <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=120" alt="Doctor" class="w-12 h-12 rounded-xl object-cover">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-800">ThS.BS Lê Hoàng Long</h4>
+                                <span class="text-xs text-medical-600 block">Chuyên khoa Cấp cứu & Nội khoa</span>
+                                <span class="text-[11px] text-slate-400 mt-0.5 block">10 năm kinh nghiệm • ★ 4.8</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Bước 3: Chọn Ngày & Giờ khám -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">3</span>
+                        Chọn ngày & khung giờ khám
+                    </h3>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám dự kiến</label>
+                        <input type="date" id="booking-date" value="2026-09-26" min="2026-09-24"
+                            class="w-full sm:w-64 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
+                            onchange="updateSummary('date', this.value)">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Khung giờ còn trống</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="08:00 AM" class="peer sr-only" onchange="updateSummary('time', '08:00 AM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:00 AM</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="08:30 AM" class="peer sr-only" onchange="updateSummary('time', '08:30 AM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:30 AM</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="09:00 AM" checked class="peer sr-only" onchange="updateSummary('time', '09:00 AM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:00 AM</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="09:30 AM" class="peer sr-only" onchange="updateSummary('time', '09:30 AM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:30 AM</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="14:00 PM" class="peer sr-only" onchange="updateSummary('time', '14:00 PM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">14:00 PM</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="time_slot" value="15:30 PM" class="peer sr-only" onchange="updateSummary('time', '15:30 PM')">
+                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:30 PM</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bước 4: Triệu chứng -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">4</span>
+                        Mô tả triệu chứng & Ghi chú
+                    </h3>
+                </div>
+
+                <div class="space-y-3">
+                    <textarea rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó nuốt...)"
+                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"></textarea>
+                    
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span>Bạn có thể mang theo kết quả xét nghiệm hoặc sổ khám cũ khi đến phòng khám.</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Cột Phải: Tóm tắt thông tin đặt lịch & Xác nhận (1 cột) -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sticky top-24">
+                <h3 class="font-bold text-base text-slate-900 pb-4 border-b border-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-receipt text-medical-600"></i> Thông tin phiếu hẹn
+                </h3>
+
+                <div class="py-4 space-y-3.5 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Người khám:</span>
+                        <span class="font-semibold text-slate-800">Nguyễn Văn An</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Mã bệnh nhân:</span>
+                        <span class="font-mono font-medium text-slate-700">BN00291</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Chuyên khoa:</span>
+                        <span id="sum-specialty" class="font-semibold text-slate-800">Nội tổng quát</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Bác sĩ khám:</span>
+                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">BS. Trần Minh Quân</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Thời gian khám:</span>
+                        <span id="sum-time" class="font-semibold text-slate-800 text-right">09:00 AM • 26/09/2026</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Địa điểm:</span>
+                        <span class="font-semibold text-slate-700 text-right text-xs">Cơ sở 1 - H2T Healthcare</span>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 space-y-2">
+                    <div class="flex justify-between text-xs text-slate-400">
+                        <span>Giá khám gốc:</span>
+                        <span class="line-through">250.000 đ</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-emerald-600 font-medium">
+                        <span>Ưu đãi đặt trực tuyến:</span>
+                        <span>-20% (-50.000 đ)</span>
+                    </div>
+                    <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
+                        <span class="font-bold text-slate-800">Tạm tính phí khám:</span>
+                        <span class="text-xl font-bold text-medical-600">200.000 đ</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán trước hoặc tại quầy thu ngân khi đến nơi.</p>
+                </div>
+
+                <button type="button" onclick="confirmBooking()" 
+                    class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Xác nhận Đặt Lịch
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script xử lý tóm tắt -->
+    <script>
+        let currentSpecialty = "Nội tổng quát";
+        let currentDoctor = "BS.CKII Trần Minh Quân";
+        let currentDate = "26/09/2026";
+        let currentTime = "09:00 AM";
+
+        function updateSummary(type, value) {
+            if (type === 'specialty') {
+                document.getElementById('sum-specialty').textContent = value;
+            } else if (type === 'doctor') {
+                document.getElementById('sum-doctor').textContent = value;
+            } else if (type === 'date') {
+                const parts = value.split('-');
+                if (parts.length === 3) currentDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
+            } else if (type === 'time') {
+                currentTime = value;
+                document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
+            }
+        }
+
+        function confirmBooking() {
+            showToast("Đặt lịch khám thành công! Tin nhắn xác nhận đã gửi đến SĐT của bạn.", "success");
+            setTimeout(() => {
+                window.location.href = "{{ url_for('patient_dashboard') }}";
+            }, 1500);
+        }
+    </script>
+{% endblock %}
