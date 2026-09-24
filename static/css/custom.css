@@ -24,25 +24,103 @@ html {
     background: #94a3b8;
 }
 
-/* Sidebar Item Highlight & Animations */
+/* ==========================================================================
+   HỆ THỐNG SIDEBAR TỰ ĐỘNG THÒ THỤT (AUTO HOVER-EXPAND) HOÀN TOÀN MƯỢT MÀ
+   ========================================================================== */
+
+/* Trạng thái mặc định: Chiều rộng cố định 5rem (80px), tự nở ra 16.5rem (264px) khi hover */
+.sidebar-auto-expand {
+    width: 5rem; /* 80px */
+    min-width: 5rem;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    will-change: width;
+}
+
+/* Tự động thò ra khi đưa chuột vào (Hover-to-expand) */
+.sidebar-auto-expand:hover {
+    width: 16.5rem; /* 264px */
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Trạng thái ghim (Pinned) nếu người dùng muốn cố định menu luôn mở rộng */
+.sidebar-auto-expand.is-pinned {
+    width: 16.5rem !important;
+}
+
+/* 
+ * PHẦN CHỮ (TEXT LABELS): 
+ * Tuyệt đối không bao giờ bị rớt dòng (white-space: nowrap).
+ * Khi sidebar thu gọn: Chữ mờ đi (opacity: 0) và trượt nhẹ vào trong.
+ * Khi sidebar mở ra: Chữ hiện dần (fade-in) êm ái, KHÔNG bị co méo kích thước.
+ */
+.sidebar-text-fade {
+    white-space: nowrap !important;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-8px);
+    transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s ease;
+    pointer-events: none;
+    display: inline-block;
+}
+
+.sidebar-auto-expand:hover .sidebar-text-fade,
+.sidebar-auto-expand.is-pinned .sidebar-text-fade {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    pointer-events: auto;
+    transition-delay: 0.06s; /* Chờ sidebar mở được 1 phần rồi chữ mới hiện ra -> Rất êm */
+}
+
+/* Khung bọc biểu tượng icon cố định kích thước -> Icon tuyệt đối không bị dịch chuyển */
+.sidebar-icon-box {
+    width: 2.75rem; /* 44px */
+    min-width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Khối nội dung phụ (như Hotline, thông tin chi tiết bác sĩ) khi co lại */
+.sidebar-extra-content {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, max-height 0.25s ease;
+}
+
+.sidebar-auto-expand:hover .sidebar-extra-content,
+.sidebar-auto-expand.is-pinned .sidebar-extra-content {
+    opacity: 1;
+    max-height: 120px;
+    transition-delay: 0.08s;
+}
+
+/* ==========================================================================
+   HIỆU ỨNG HIGHLIGHT KHI HOVER CÁC MỤC MENU (LIGHT & DARK THEMES)
+   ========================================================================== */
+
 .nav-item {
     position: relative;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 0.75rem;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
 }
 
-/* Khi mục KHÔNG được chọn mà đưa chuột vào (Hover Highlight) */
+/* Mục KHÔNG được chọn - Theme sáng (Patient Portal) */
 .nav-item-inactive {
     color: #64748b;
     border: 1px solid transparent;
 }
 
 .nav-item-inactive:hover {
-    background: linear-gradient(90deg, rgba(238, 252, 246, 0.9) 0%, rgba(212, 248, 232, 0.4) 100%);
+    background: linear-gradient(90deg, rgba(238, 252, 246, 0.95) 0%, rgba(212, 248, 232, 0.45) 100%);
     color: #047857;
-    border-color: rgba(16, 185, 129, 0.2);
-    transform: translateX(4px);
+    border-color: rgba(16, 185, 129, 0.25);
     box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.12);
 }
 
@@ -51,20 +129,20 @@ html {
     transform: scale(1.15);
 }
 
-/* Vạch highlight bên trái mượt mà khi hover */
+/* Vạch chỉ báo màu xanh y tế bên trái khi hover */
 .nav-item-inactive::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 20%;
-    bottom: 20%;
+    top: 18%;
+    bottom: 18%;
     width: 3.5px;
     background-color: #10b981;
     border-top-right-radius: 4px;
     border-bottom-right-radius: 4px;
     opacity: 0;
-    transform: scaleY(0.4);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scaleY(0.3);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item-inactive:hover::before {
@@ -72,35 +150,29 @@ html {
     transform: scaleY(1);
 }
 
-/* Icon transition inside nav items */
-.nav-icon {
-    transition: transform 0.25s ease, color 0.25s ease;
-}
-
-/* Active Nav Item */
+/* Mục ĐANG ĐƯỢC CHỌN (Active) - Theme sáng */
 .nav-item-active {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #ffffff !important;
     font-weight: 600;
-    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.25), 0 4px 6px -4px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 8px 16px -2px rgba(16, 185, 129, 0.3);
 }
 
 .nav-item-active .nav-icon {
     color: #ffffff !important;
 }
 
-/* Dark theme for Admin Sidebar */
+/* Mục KHÔNG được chọn - Theme tối (Admin Portal) */
 .nav-item-dark-inactive {
     color: #94a3b8;
     border: 1px solid transparent;
 }
 
 .nav-item-dark-inactive:hover {
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(30, 41, 59, 0.85);
     color: #34d399;
-    border-color: rgba(52, 211, 153, 0.2);
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+    border-color: rgba(52, 211, 153, 0.25);
+    box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.35);
 }
 
 .nav-item-dark-inactive:hover .nav-icon {
@@ -112,15 +184,15 @@ html {
     content: '';
     position: absolute;
     left: 0;
-    top: 20%;
-    bottom: 20%;
+    top: 18%;
+    bottom: 18%;
     width: 3.5px;
     background-color: #34d399;
     border-top-right-radius: 4px;
     border-bottom-right-radius: 4px;
     opacity: 0;
-    transform: scaleY(0.4);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scaleY(0.3);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item-dark-inactive:hover::before {
@@ -128,9 +200,9 @@ html {
     transform: scaleY(1);
 }
 
-/* Sidebar auto-hover collapse transition */
-.sidebar-collapsible {
-    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s ease;
+/* Icon transition inside nav items */
+.nav-icon {
+    transition: transform 0.22s ease, color 0.22s ease;
 }
 
 /* Form focus ring */

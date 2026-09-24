@@ -30,60 +30,42 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
     setInterval(updateDateTime, 30000);
 
-    // 2. Quản lý trạng thái thu gọn / mở rộng Sidebar & hiệu ứng Hover
+    // 2. Quản lý trạng thái Ghim (Pin / Unpin) Sidebar nếu người dùng muốn cố định
     const sidebar = document.getElementById('app-sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle-btn');
-    const sidebarTexts = document.querySelectorAll('.sidebar-text');
-    const brandText = document.getElementById('sidebar-brand-text');
-    const supportBox = document.getElementById('sidebar-support-box');
+    const pinBtn = document.getElementById('sidebar-pin-btn');
 
-    let isCollapsed = false;
+    if (sidebar && pinBtn) {
+        // Kiểm tra tùy chọn đã lưu trong LocalStorage
+        const isPinned = localStorage.getItem('h2t_sidebar_pinned') === 'true';
+        if (isPinned) {
+            sidebar.classList.add('is-pinned');
+            updatePinIcon(true);
+        }
 
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-            isCollapsed = !isCollapsed;
-            applySidebarState();
-        });
-
-        // Tự động bung rộng khi rê chuột vào nếu đang ở trạng thái thu gọn
-        sidebar.addEventListener('mouseenter', () => {
-            if (isCollapsed) {
-                sidebar.classList.remove('w-20');
-                sidebar.classList.add('w-64');
-                sidebarTexts.forEach(el => el.classList.remove('hidden'));
-                if (brandText) brandText.classList.remove('hidden');
-                if (supportBox) supportBox.classList.remove('hidden');
-            }
-        });
-
-        sidebar.addEventListener('mouseleave', () => {
-            if (isCollapsed) {
-                sidebar.classList.remove('w-64');
-                sidebar.classList.add('w-20');
-                sidebarTexts.forEach(el => el.classList.add('hidden'));
-                if (brandText) brandText.classList.add('hidden');
-                if (supportBox) supportBox.classList.add('hidden');
-            }
+        pinBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const nowPinned = sidebar.classList.toggle('is-pinned');
+            localStorage.setItem('h2t_sidebar_pinned', nowPinned);
+            updatePinIcon(nowPinned);
+            window.showToast(nowPinned ? 'Đã ghim mở rộng menu' : 'Đã bật chế độ tự động thò thụt khi rê chuột', 'info');
         });
     }
 
-    function applySidebarState() {
-        if (isCollapsed) {
-            sidebar.classList.remove('w-64');
-            sidebar.classList.add('w-20');
-            sidebarTexts.forEach(el => el.classList.add('hidden'));
-            if (brandText) brandText.classList.add('hidden');
-            if (supportBox) supportBox.classList.add('hidden');
-        } else {
-            sidebar.classList.remove('w-20');
-            sidebar.classList.add('w-64');
-            sidebarTexts.forEach(el => el.classList.remove('hidden'));
-            if (brandText) brandText.classList.remove('hidden');
-            if (supportBox) supportBox.classList.remove('hidden');
+    function updatePinIcon(pinned) {
+        if (!pinBtn) return;
+        const icon = pinBtn.querySelector('i');
+        if (icon) {
+            if (pinned) {
+                icon.className = 'fa-solid fa-thumbtack text-medical-600 rotate-45';
+                pinBtn.title = 'Bỏ ghim (chuyển sang tự động thò thụt)';
+            } else {
+                icon.className = 'fa-solid fa-thumbtack text-slate-400';
+                pinBtn.title = 'Ghim cố định menu mở rộng';
+            }
         }
     }
 
-    // 3. Giả lập thông báo / Toast popup
+    // 3. Hệ thống thông báo Toast popup mượt mà
     window.showToast = (message, type = 'success') => {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {

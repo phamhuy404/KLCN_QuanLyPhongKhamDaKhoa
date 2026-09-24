@@ -55,9 +55,14 @@
             {% block header %}{% endblock %}
 
             <!-- Main Content Body -->
-            <main class="p-6 space-y-6 max-w-7xl mx-auto w-full">
+            <main class="p-6 space-y-6 max-w-7xl mx-auto w-full flex-1">
                 {% block content %}{% endblock %}
             </main>
+
+            <!-- Footer Hệ thống -->
+            {% block footer %}
+                {% include "layouts/footer.html" %}
+            {% endblock %}
         </div>
     </div>
 

@@ -1,72 +1,107 @@
-<!-- SIDEBAR (Dành cho Admin / Nhân viên phòng khám - Hỗ trợ Hover Highlight) -->
-<aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex transition-all duration-300 shadow-xl shrink-0">
+<!-- SIDEBAR (Dành cho Admin / Bác sĩ - Tự Động Thò Thụt Hoàn Toàn & Fade-in Chữ Không Co Méo) -->
+<aside class="sidebar-auto-expand bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex shrink-0 shadow-xl z-30 select-none">
     <div>
-        <!-- Logo & Brand -->
-        <div class="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/30">
-                <i class="fa-solid fa-hospital-user text-xl"></i>
+        <!-- Logo & Brand (Bấm vào icon sẽ về trang home) -->
+        <div class="flex items-center h-20 px-3 border-b border-slate-800 overflow-hidden">
+            <div class="sidebar-icon-box">
+                <a href="{{ url_for('home') }}" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/30 shrink-0 hover:scale-105 transition-transform" title="Về trang chủ bệnh viện">
+                    <i class="fa-solid fa-hospital-user text-lg"></i>
+                </a>
             </div>
-            <div>
-                <h1 class="font-bold text-white text-lg tracking-wide">H2T Healthcare<span class="text-medical-500">+</span></h1>
-                <span class="text-xs text-slate-400">Đa khoa Quốc tế</span>
+            
+            <div class="sidebar-text-fade ml-2 flex-1 overflow-hidden pr-2">
+                <a href="{{ url_for('home') }}" class="block hover:opacity-80 transition-opacity" title="Về trang chủ bệnh viện">
+                    <h1 class="font-bold text-white text-base leading-tight truncate">H2T Care<span class="text-medical-400">+</span></h1>
+                    <span class="text-[11px] text-slate-400 block truncate">Quản Trị Phòng Khám</span>
+                </a>
             </div>
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="px-3 py-6 space-y-1.5">
-            <a href="{{ url_for('admin_dashboard') }}" class="nav-item nav-item-active flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-medium transition-all group">
-                <i class="fa-solid fa-chart-pie w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Tổng quan</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-calendar-check w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Lịch hẹn khám</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-user-plus w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Tiếp nhận / Lễ tân</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-stethoscope w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Khám bệnh (EMR)</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-flask-vial w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Cận lâm sàng</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-pills w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Kho dược & Nhà thuốc</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-file-invoice-dollar w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Viện phí & Thu ngân</span>
-            </a>
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all group">
-                <i class="fa-solid fa-chart-line w-5 text-center nav-icon"></i> 
-                <span class="text-sm">Báo cáo thống kê</span>
+        <nav class="px-2.5 py-4 space-y-1.5 overflow-hidden">
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-item nav-item-active flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tổng quan">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-chart-pie nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Tổng quan</span>
             </a>
 
-            <div class="pt-4 mt-2 border-t border-slate-800 space-y-1">
-                <a href="{{ url_for('patient_dashboard') }}" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all text-xs group">
-                    <i class="fa-solid fa-arrow-up-right-from-square w-5 text-center nav-icon"></i> 
-                    <span>Xem Cổng Bệnh nhân</span>
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Lịch hẹn khám">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-calendar-check nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Lịch hẹn khám</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tiếp nhận / Lễ tân">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-user-plus nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Tiếp nhận / Lễ tân</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Khám bệnh (EMR)">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-stethoscope nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Khám bệnh (EMR)</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Cận lâm sàng">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-flask-vial nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Cận lâm sàng</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Kho dược & Nhà thuốc">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-pills nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Kho dược & Nhà thuốc</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Viện phí & Thu ngân">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-file-invoice-dollar nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Viện phí & Thu ngân</span>
+            </a>
+
+            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Báo cáo thống kê">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-chart-line nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm">Báo cáo thống kê</span>
+            </a>
+
+            <div class="pt-3 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
+                <a href="{{ url_for('patient_dashboard') }}" class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs" title="Cổng Bệnh nhân">
+                    <div class="sidebar-icon-box">
+                        <i class="fa-solid fa-arrow-up-right-from-square nav-icon text-sm"></i>
+                    </div>
+                    <span class="sidebar-text-fade">Xem Cổng Bệnh nhân</span>
                 </a>
-                <a href="{{ url_for('login') }}" class="nav-item nav-item-dark-inactive flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl transition-all text-xs text-rose-400 hover:text-rose-300 group">
-                    <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center nav-icon text-rose-400"></i> 
-                    <span>Đăng xuất</span>
+
+                <a href="{{ url_for('login') }}" class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs text-rose-400 hover:text-rose-300" title="Đăng xuất">
+                    <div class="sidebar-icon-box">
+                        <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm text-rose-400"></i>
+                    </div>
+                    <span class="sidebar-text-fade font-semibold">Đăng xuất</span>
                 </a>
             </div>
         </nav>
     </div>
 
-    <!-- User profile footer inside sidebar -->
-    <div class="p-4 border-t border-slate-800">
-        <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-800/50">
-            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=100" alt="Avatar" class="w-10 h-10 rounded-lg object-cover">
-            <div class="overflow-hidden">
-                <h4 class="text-sm font-medium text-white truncate">Dr. Trần Minh Quân</h4>
-                <span class="text-xs text-medical-500 flex items-center gap-1">● Trực ca sáng</span>
+    <!-- Doctor Profile Footer (Hiển thị avatar, hover sẽ mở rộng tên bác sĩ mượt mà) -->
+    <div class="p-2 m-2 rounded-2xl bg-slate-800/60 border border-slate-800 overflow-hidden">
+        <div class="flex items-center">
+            <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
+                <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=100" alt="Avatar" class="w-9 h-9 rounded-xl object-cover ring-1 ring-medical-500/30 shrink-0">
+            </div>
+            <div class="sidebar-text-fade ml-2 overflow-hidden">
+                <h4 class="text-xs font-semibold text-white leading-tight truncate">Dr. Trần Minh Quân</h4>
+                <span class="text-[11px] text-medical-400 flex items-center gap-1 mt-0.5">● Trực ca sáng</span>
             </div>
         </div>
     </div>

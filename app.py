@@ -2,10 +2,16 @@ from flask import Flask, render_template, redirect, url_for, request
 
 app = Flask(__name__)
 
-# ==================== ĐIỀU HƯỚNG TRANG CHỦ ====================
+# ==================== TRANG CHỦ & BÀI VIẾT CÔNG KHAI ====================
 @app.route('/')
-def index():
-    return redirect(url_for('patient_dashboard'))
+@app.route('/home')
+def home():
+    return render_template('home.html')
+
+@app.route('/articles')
+@app.route('/tin-tuc')
+def articles():
+    return render_template('articles.html')
 
 # ==================== XÁC THỰC TÀI KHOẢN (AUTH) ====================
 @app.route('/login', methods=['GET', 'POST'])

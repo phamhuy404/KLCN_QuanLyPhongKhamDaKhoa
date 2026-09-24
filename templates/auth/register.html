@@ -37,15 +37,15 @@
         
         <!-- Header -->
         <div class="flex items-center justify-between pb-6 border-b border-slate-100">
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-medical-500 flex items-center justify-center text-white shadow-lg shadow-medical-500/20">
+            <a href="{{ url_for('home') }}" class="flex items-center gap-3 group cursor-pointer" title="Về trang chủ">
+                <div class="w-11 h-11 rounded-2xl bg-medical-500 flex items-center justify-center text-white shadow-lg shadow-medical-500/20 group-hover:scale-105 transition-transform">
                     <i class="fa-solid fa-heart-pulse text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-slate-900 text-lg">H2T Healthcare<span class="text-medical-500">+</span></h1>
+                    <h1 class="font-bold text-slate-900 text-lg group-hover:text-medical-600 transition-colors">H2T Healthcare<span class="text-medical-500">+</span></h1>
                     <span class="text-xs text-slate-400">Đăng ký Hồ sơ Bệnh nhân Mới</span>
                 </div>
-            </div>
+            </a>
             <a href="{{ url_for('login') }}" class="text-xs text-medical-600 font-semibold hover:underline flex items-center gap-1">
                 <i class="fa-solid fa-arrow-left"></i> Đăng nhập
             </a>
