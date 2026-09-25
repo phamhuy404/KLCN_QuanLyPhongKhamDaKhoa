@@ -1,0 +1,1307 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quản lý Danh sách Bệnh nhân{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Danh sách bệnh nhân</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </span>
+                Quản lý & Thống kê Danh sách Bệnh nhân
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Theo dõi hồ sơ y tế, thông tin định danh, tài khoản người dùng và xuất nhập dữ liệu theo chuẩn Bộ Y Tế.
+            </p>
+        </div>
+
+        <!-- Các nút thao tác xuất nhập và thêm mới -->
+        <div class="flex items-center flex-wrap gap-2.5">
+            <!-- Nút Nhập file (CSV / JSON) -->
+            <input type="file" id="import-file-input" accept=".csv, .json" class="hidden" onchange="handleFileImport(event)">
+            <button type="button" onclick="document.getElementById('import-file-input').click()" 
+                    class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Nhập danh sách từ CSV hoặc JSON">
+                <i class="fa-solid fa-file-import text-slate-500"></i>
+                <span>Nhập File</span>
+            </button>
+
+            <!-- Dropdown Xuất file -->
+            <div class="relative inline-block text-left" id="export-dropdown-container">
+                <button type="button" onclick="toggleExportMenu()" 
+                        class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-export text-slate-500"></i>
+                    <span>Xuất Dữ Liệu</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] ml-0.5"></i>
+                </button>
+                <div id="export-menu" class="hidden absolute right-0 mt-2 w-44 rounded-xl bg-white shadow-xl border border-slate-100 py-1.5 z-30">
+                    <a href="javascript:void(0)" onclick="exportToCSV()" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:bg-medical-50 hover:text-medical-700 font-medium">
+                        <i class="fa-solid fa-file-csv text-emerald-600 text-sm"></i>
+                        <span>Xuất file CSV (Excel)</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="exportToJSON()" class="flex items-center gap-2.5 px-3.5 py-2 text-xs text-slate-700 hover:bg-medical-50 hover:text-medical-700 font-medium">
+                        <i class="fa-solid fa-file-code text-amber-600 text-sm"></i>
+                        <span>Xuất file JSON</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Nút Thêm bệnh nhân mới -->
+            <button type="button" onclick="openAddPatientModal()" 
+                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Thêm Bệnh Nhân</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê nhanh tổng quan số lượng -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Tổng số bệnh nhân</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5" id="stat-total">10</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-id-card"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Có thẻ BHYT</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5" id="stat-bhyt">8 <span class="text-xs font-normal text-slate-400">(80%)</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đã có tài khoản</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5" id="stat-account">8 <span class="text-xs font-normal text-slate-400">(80%)</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Bệnh nhân vãng lai</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5" id="stat-guest">2 <span class="text-xs font-normal text-slate-400">(Chưa có TK)</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Thanh tìm kiếm, Bộ lọc & Sắp xếp -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            
+            <!-- Ô tìm kiếm tức thì -->
+            <div class="sm:col-span-6 relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-input" onkeyup="applyFilterAndSort()" 
+                       placeholder="Tìm theo Mã BN, Họ tên, SĐT, CCCD, BHYT, Tên tài khoản..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
+            </div>
+
+            <!-- Menu Bộ Lọc Nâng Cao (Nhóm Máu, BHYT, Giới Tính, Tài Khoản) -->
+            <div class="sm:col-span-3 relative" id="filter-dropdown-container">
+                <button type="button" onclick="toggleFilterMenu()" id="filter-menu-btn" 
+                        class="w-full py-2.5 px-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold flex items-center justify-between transition-all">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-filter text-medical-600"></i>
+                        <span>Bộ Lọc Y Tế</span>
+                        <span id="active-filter-badge" class="hidden px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-medical-600 text-white">0</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+                </button>
+
+                <!-- Panel Menu Lọc Popover -->
+                <div id="filter-dropdown-panel" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-40 space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-medical-600"></i> Bộ Lọc Nâng Cao
+                        </h5>
+                        <button type="button" onclick="resetFilters()" class="text-[11px] text-medical-600 hover:underline font-semibold">
+                            Đặt lại
+                        </button>
+                    </div>
+
+                    <!-- 1. Lọc Giới tính -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Giới tính</label>
+                        <select id="filter-gender" onchange="applyFilterAndSort()" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                            <option value="">Tất cả Giới tính</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. Lọc Nhóm máu -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nhóm máu</label>
+                        <select id="filter-blood" onchange="applyFilterAndSort()" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                            <option value="">Tất cả Nhóm máu</option>
+                            <option value="O+">Nhóm máu O+</option>
+                            <option value="A+">Nhóm máu A+</option>
+                            <option value="B+">Nhóm máu B+</option>
+                            <option value="AB+">Nhóm máu AB+</option>
+                            <option value="O-">Nhóm máu O-</option>
+                            <option value="B-">Nhóm máu B-</option>
+                        </select>
+                    </div>
+
+                    <!-- 3. Lọc Có BHYT hay không -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Bảo hiểm y tế (BHYT)</label>
+                        <select id="filter-bhyt" onchange="applyFilterAndSort()" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                            <option value="">Tất cả (Có hoặc Không BHYT)</option>
+                            <option value="has_bhyt">Có thẻ BHYT</option>
+                            <option value="no_bhyt">Không có BHYT (Khám Dịch vụ)</option>
+                        </select>
+                    </div>
+
+                    <!-- 4. Lọc Trạng thái tài khoản -->
+                    <div>
+                        <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tài khoản Portal</label>
+                        <select id="filter-account" onchange="applyFilterAndSort()" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                            <option value="">Tất cả Tài khoản</option>
+                            <option value="has_account">Đã có tài khoản</option>
+                            <option value="no_account">Bệnh nhân vãng lai</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex justify-end">
+                        <button type="button" onclick="toggleFilterMenu()" class="px-3.5 py-1.5 bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs rounded-xl shadow-sm">
+                            Đóng & Áp Dụng
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lựa chọn Sắp xếp -->
+            <div class="sm:col-span-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 shrink-0"><i class="fa-solid fa-arrow-down-wide-short"></i> Xếp:</span>
+                    <select id="sort-select" onchange="applyFilterAndSort()" 
+                            class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all font-medium">
+                        <option value="id_desc">Mới nhất (Mã giảm dần)</option>
+                        <option value="id_asc">Cũ nhất (Mã tăng dần)</option>
+                        <option value="name_asc">Tên bệnh nhân (A -> Z)</option>
+                        <option value="name_desc">Tên bệnh nhân (Z -> A)</option>
+                        <option value="age_asc">Tuổi tăng dần</option>
+                        <option value="age_desc">Tuổi giảm dần</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Đếm số lượng kết quả & Nút xóa lọc -->
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
+            <div>
+                Đang hiển thị <span class="font-bold text-slate-800" id="filtered-count">10</span> / <span id="total-count">10</span> bệnh nhân
+            </div>
+            <button type="button" onclick="resetFilters()" class="text-medical-600 hover:text-medical-800 font-medium hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-rotate-left text-[11px]"></i> Đặt lại bộ lọc
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. Bảng danh sách bệnh nhân chi tiết toàn bộ các cột -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4 cursor-pointer hover:text-medical-700" onclick="sortByColumn('id')">
+                            Mã BN <i class="fa-solid fa-sort text-[10px] ml-1"></i>
+                        </th>
+                        <th class="py-3.5 px-4 cursor-pointer hover:text-medical-700" onclick="sortByColumn('name')">
+                            Họ & Tên <i class="fa-solid fa-sort text-[10px] ml-1"></i>
+                        </th>
+                        <th class="py-3.5 px-4">Tài Khoản & Mật Khẩu</th>
+                        <th class="py-3.5 px-4 cursor-pointer hover:text-medical-700" onclick="sortByColumn('age')">
+                            Ngày Sinh / Tuổi <i class="fa-solid fa-sort text-[10px] ml-1"></i>
+                        </th>
+                        <th class="py-3.5 px-4">Giới Tính</th>
+                        <th class="py-3.5 px-4">Liên Hệ (SĐT / Email)</th>
+                        <th class="py-3.5 px-4">Định Danh (CCCD / BHYT)</th>
+                        <th class="py-3.5 px-4">Hồ Sơ Y Tế (Máu / Dị ứng / Bệnh sử)</th>
+                        <th class="py-3.5 px-4">Người Thân Liên Hệ</th>
+                        <th class="py-3.5 px-4">Địa Chỉ</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="patient-table-body" class="divide-y divide-slate-100">
+                    <!-- Dữ liệu render bằng JavaScript từ biến PATIENTS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Trạng thái không có dữ liệu -->
+        <div id="no-data-msg" class="hidden p-12 text-center space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-user-slash"></i>
+            </div>
+            <h4 class="font-bold text-slate-700 text-sm">Không tìm thấy bệnh nhân nào</h4>
+            <p class="text-xs text-slate-400">Vui lòng thay đổi từ khóa tìm kiếm hoặc điều chỉnh lại bộ lọc.</p>
+        </div>
+
+        <!-- Phân trang đơn giản -->
+        <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Dữ liệu được cập nhật từ hệ thống hồ sơ bệnh án H2T Care</span>
+            <div class="flex items-center gap-1.5">
+                <button type="button" class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-50" disabled>
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                </button>
+                <span class="px-2.5 py-1 rounded-lg bg-medical-600 text-white font-bold">1</span>
+                <button type="button" class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-50" disabled>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL 1: XEM CHI TIẾT HỒ SƠ BỆNH NHÂN 360 ĐỘ -->
+<div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 space-y-6">
+        
+        <!-- Header modal -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+                <div id="modal-avatar" class="w-12 h-12 rounded-2xl bg-medical-50 text-medical-700 flex items-center justify-center text-xl font-bold">
+                    BN
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900" id="modal-name">Hoàng Bảo Nam</h3>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-xs font-mono font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded" id="modal-code">BN2609001</span>
+                        <span class="text-xs text-slate-400" id="modal-gender-age">Nam • 36 tuổi</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Khối 1: Thông tin tài khoản đăng nhập -->
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+            <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-user-lock text-medical-600"></i> Tài Khoản Cổng Bệnh Nhân
+            </h4>
+            <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                    <span class="text-slate-400 block">Tên đăng nhập (Username):</span>
+                    <span class="font-semibold text-slate-800" id="modal-username">0901234567</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Mật khẩu:</span>
+                    <div class="flex items-center gap-2 font-mono text-slate-500 mt-0.5">
+                        <span id="modal-password">••••••••</span>
+                        <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Đã mã hóa</span>
+                        <button type="button" onclick="openResetPasswordModal(activeModalPatient ? activeModalPatient.id : 1)" class="text-[10px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-2 py-0.5 rounded font-bold transition-colors ml-1">
+                            <i class="fa-solid fa-key mr-1"></i> Cấp Lại MK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khối 2: Thông tin định danh & liên hệ -->
+        <div class="space-y-3">
+            <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-teal-600"></i> Định Danh & Liên Hệ
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-xs bg-white p-4 rounded-2xl border border-slate-100">
+                <div>
+                    <span class="text-slate-400 block">Số điện thoại:</span>
+                    <span class="font-semibold text-slate-800" id="modal-phone">0901234567</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Email:</span>
+                    <span class="font-semibold text-slate-800" id="modal-email">baonam@gmail.com</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Ngày sinh:</span>
+                    <span class="font-semibold text-slate-800" id="modal-dob">12/05/1990</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Số CCCD / CMND:</span>
+                    <span class="font-semibold text-slate-800 font-mono" id="modal-cccd">079090000001</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Mã thẻ BHYT:</span>
+                    <span class="font-semibold text-teal-700 font-mono" id="modal-bhyt">GD4797931100001</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Địa chỉ:</span>
+                    <span class="font-semibold text-slate-800" id="modal-address">Quận 1, TP.HCM</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khối 3: Hồ sơ sức khỏe & Y khoa -->
+        <div class="space-y-3">
+            <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-heart-pulse text-rose-500"></i> Hồ Sơ Y Khoa
+            </h4>
+            <div class="grid grid-cols-3 gap-3.5 text-xs bg-white p-4 rounded-2xl border border-slate-100">
+                <div>
+                    <span class="text-slate-400 block">Nhóm máu:</span>
+                    <span class="inline-block mt-1 font-bold text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700" id="modal-blood">O+</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Tiền sử dị ứng:</span>
+                    <span class="font-semibold text-slate-800" id="modal-allergy">Không</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Bệnh sử / Bệnh mãn tính:</span>
+                    <span class="font-semibold text-slate-800" id="modal-history">Không có</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khối 4: Người thân liên hệ khẩn cấp -->
+        <div class="space-y-3">
+            <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-people-roof text-blue-600"></i> Người Thân Khẩn Cấp
+            </h4>
+            <div class="grid grid-cols-3 gap-3.5 text-xs bg-white p-4 rounded-2xl border border-slate-100">
+                <div>
+                    <span class="text-slate-400 block">Họ tên người thân:</span>
+                    <span class="font-semibold text-slate-800" id="modal-rel-name">Hoàng Tuấn Kiệt</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Số điện thoại:</span>
+                    <span class="font-semibold text-slate-800" id="modal-rel-phone">0909111222</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block">Mối quan hệ:</span>
+                    <span class="font-semibold text-slate-800" id="modal-rel-type">Bố</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer modal -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" onclick="closeDetailModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
+                Đóng
+            </button>
+            <button type="button" onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-print"></i> In Nhanh
+            </button>
+            <a id="modal-dossier-btn" href="#" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-medical-600/20">
+                <i class="fa-solid fa-file-medical"></i> Xem Bệnh Án Chuyên Sâu
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: THÊM BỆNH NHÂN MỚI -->
+<div id="add-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-medical-600"></i> Tiếp Nhận / Thêm Bệnh Nhân Mới
+            </h3>
+            <button onclick="closeAddPatientModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="add-patient-form" onsubmit="saveNewPatient(event)" class="space-y-4 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Họ và tên <span class="text-rose-500">*</span></label>
+                    <input type="text" id="add-name" required placeholder="Nguyễn Văn A" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Số điện thoại <span class="text-rose-500">*</span></label>
+                    <input type="tel" id="add-phone" required placeholder="090xxxxxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Ngày sinh <span class="text-rose-500">*</span></label>
+                    <input type="date" id="add-dob" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Giới tính <span class="text-rose-500">*</span></label>
+                    <select id="add-gender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Nhóm máu</label>
+                    <select id="add-blood" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        <option value="Chưa rõ">Chưa rõ</option>
+                        <option value="O+">O+</option>
+                        <option value="A+">A+</option>
+                        <option value="B+">B+</option>
+                        <option value="AB+">AB+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Số CCCD / CMND</label>
+                    <input type="text" id="add-cccd" placeholder="0790xxxxxxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Số thẻ BHYT</label>
+                    <input type="text" id="add-bhyt" placeholder="GD479xxxxxxxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Email</label>
+                <input type="email" id="add-email" placeholder="example@email.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Địa chỉ thường trú</label>
+                <input type="text" id="add-address" placeholder="Số nhà, đường, phường, quận/huyện..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Dị ứng</label>
+                    <input type="text" id="add-allergy" placeholder="Hải sản, kháng sinh,..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Tiền sử bệnh</label>
+                    <input type="text" id="add-history" placeholder="Huyết áp, tim mạch,..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <!-- Tự động tạo tài khoản -->
+            <div class="p-3 bg-medical-50/70 border border-medical-200 rounded-xl space-y-2">
+                <label class="flex items-center gap-2 font-semibold text-medical-800 cursor-pointer">
+                    <input type="checkbox" id="add-create-account" checked class="rounded text-medical-600 focus:ring-medical-500">
+                    <span>Tự động tạo tài khoản cổng bệnh nhân (Tài khoản = SĐT, Mật khẩu mặc định: 123456)</span>
+                </label>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeAddPatientModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold">
+                    Hủy bỏ
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold">
+                    Lưu Bệnh Nhân
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 3: CẤP LẠI MẬT KHẨU TÀI KHOẢN BỆNH NHÂN -->
+<div id="reset-pwd-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-key text-medical-600"></i> Cấp Mật Khẩu Mới
+            </h3>
+            <button onclick="closeResetPasswordModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+            <div><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="reset-pwd-name">Hoàng Bảo Nam</strong></div>
+            <div><span class="text-slate-400">Tên đăng nhập (SĐT):</span> <span class="font-mono font-bold text-medical-700" id="reset-pwd-user">0901234567</span></div>
+        </div>
+
+        <div class="space-y-3 text-xs">
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="font-semibold text-slate-700">Mật khẩu mới</label>
+                    <button type="button" onclick="generateRandomPassword()" class="text-medical-600 hover:underline font-bold text-[11px]">
+                        <i class="fa-solid fa-arrows-rotate mr-0.5"></i> Sinh ngẫu nhiên
+                    </button>
+                </div>
+                <input type="text" id="reset-pwd-input" value="H2T@2026" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                <span class="text-[10px] text-slate-400 block mt-1">Mật khẩu mới sẽ được mã hóa và kích hoạt ngay cho bệnh nhân.</span>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button type="button" onclick="closeResetPasswordModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+                Hủy bỏ
+            </button>
+            <button type="button" onclick="saveNewPassword()" class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">
+                Lưu Mật Khẩu
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST THÔNG BÁO TÁC VỤ -->
+<div id="toast-notify" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs shadow-2xl flex items-center gap-3 border border-slate-700">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toast-icon"></i>
+        <span id="toast-text" class="font-medium">Thao tác thành công!</span>
+    </div>
+</div>
+
+<!-- JAVASCRIPT XỬ LÝ TÌM KIẾM, SẮP XẾP, IMPORT & EXPORT CSV / JSON -->
+<script>
+    // Dữ liệu bệnh nhân khởi tạo từ backend
+    let patients = {{ patients | tojson | safe }};
+    let currentFiltered = [...patients];
+    let activeModalPatient = null;
+    let modalPasswordVisible = false;
+
+    // Toast helper
+    function showAdminToast(msg, isSuccess = true) {
+        const toast = document.getElementById('toast-notify');
+        const icon = document.getElementById('toast-icon');
+        const text = document.getElementById('toast-text');
+        
+        text.innerText = msg;
+        icon.className = isSuccess ? 'fa-solid fa-circle-check text-emerald-400 text-base' : 'fa-solid fa-circle-exclamation text-amber-400 text-base';
+        toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+        
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        }, 3200);
+    }
+
+    // Toggle Dropdown Xuất dữ liệu
+    function toggleExportMenu() {
+        const menu = document.getElementById('export-menu');
+        menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('export-dropdown-container');
+        if (container && !container.contains(e.target)) {
+            const menu = document.getElementById('export-menu');
+            if (menu) menu.classList.add('hidden');
+        }
+    });
+
+    // Toggle Dropdown Menu Bộ Lọc Nâng Cao
+    function toggleFilterMenu() {
+        const panel = document.getElementById('filter-dropdown-panel');
+        if (panel) panel.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+        const filterContainer = document.getElementById('filter-dropdown-container');
+        if (filterContainer && !filterContainer.contains(e.target)) {
+            const panel = document.getElementById('filter-dropdown-panel');
+            if (panel) panel.classList.add('hidden');
+        }
+    });
+
+    // Render bảng bệnh nhân
+    function renderTable(dataList) {
+        const tbody = document.getElementById('patient-table-body');
+        const noData = document.getElementById('no-data-msg');
+        tbody.innerHTML = '';
+
+        if (!dataList || dataList.length === 0) {
+            noData.classList.remove('hidden');
+            document.getElementById('filtered-count').innerText = '0';
+            return;
+        }
+
+        noData.classList.add('hidden');
+        document.getElementById('filtered-count').innerText = dataList.length;
+
+        dataList.forEach((p, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80 transition-colors group';
+
+            // Xử lý thông tin tài khoản & mật khẩu bảo mật (Không hiện mật khẩu thô cho bác sĩ)
+            let accountHtml = '';
+            if (p.username) {
+                accountHtml = `
+                    <div>
+                        <span class="font-bold text-slate-800 text-[11px] block">${p.username}</span>
+                        <div class="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 mt-0.5">
+                            <span>••••••••</span>
+                            <button type="button" onclick="openResetPasswordModal(${p.id})" class="text-[9px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-1 py-0.2 rounded font-semibold transition-colors" title="Cấp lại mật khẩu mới">
+                                <i class="fa-solid fa-key text-[8px] mr-0.5"></i> Cấp lại MK
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                accountHtml = `<span class="text-slate-300 italic text-[11px]">Chưa tạo TK</span>`;
+            }
+
+            // Xử lý BHYT & CCCD (để trống nếu không có)
+            const cccdText = p.cccd || '<span class="text-slate-300">-</span>';
+            const bhytText = p.bhyt ? `<span class="font-mono text-teal-700 font-semibold">${p.bhyt}</span>` : '<span class="text-slate-300">-</span>';
+
+            // Xử lý dị ứng & bệnh sử
+            const allergyText = p.di_ung ? `<span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-semibold text-[10px] block w-max">${p.di_ung}</span>` : '<span class="text-slate-300">-</span>';
+            const historyText = p.tien_su_benh ? `<span class="text-slate-600 block mt-0.5 truncate max-w-[140px]" title="${p.tien_su_benh}">${p.tien_su_benh}</span>` : '<span class="text-slate-300">-</span>';
+
+            // Người thân
+            const relativeText = p.nguoi_than_ho_ten ? `
+                <div>
+                    <span class="font-semibold text-slate-800 block">${p.nguoi_than_ho_ten} (${p.nguoi_than_quan_he || 'Người thân'})</span>
+                    <span class="text-[10px] text-slate-400 font-mono">${p.nguoi_than_sdt || ''}</span>
+                </div>
+            ` : '<span class="text-slate-300">-</span>';
+
+            tr.innerHTML = `
+                <td class="py-3.5 px-4 font-mono font-bold text-medical-700">
+                    <a href="/admin/patients/${p.id}" class="hover:underline flex items-center gap-1 text-medical-700">
+                        ${p.ma_benh_nhan}
+                    </a>
+                </td>
+                <td class="py-3.5 px-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-medical-50 text-medical-700 font-bold flex items-center justify-center text-xs shrink-0">
+                            ${p.ho_ten.charAt(0)}
+                        </div>
+                        <div>
+                            <a href="/admin/patients/${p.id}" class="font-bold text-slate-900 block group-hover:text-medical-700 transition-colors">${p.ho_ten}</a>
+                            <span class="text-[10px] text-slate-400">ID: #${p.id}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="py-3.5 px-4">
+                    ${accountHtml}
+                </td>
+                <td class="py-3.5 px-4">
+                    <span class="font-semibold text-slate-800 block">${p.ngay_sinh}</span>
+                    <span class="text-[10px] text-slate-400 block">${p.tuoi || ''} tuổi</span>
+                </td>
+                <td class="py-3.5 px-4">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${p.gioi_tinh === 'Nam' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}">
+                        ${p.gioi_tinh}
+                    </span>
+                </td>
+                <td class="py-3.5 px-4">
+                    <span class="font-mono text-slate-800 block font-semibold">${p.sdt || ''}</span>
+                    <span class="text-[10px] text-slate-400 block truncate max-w-[130px]">${p.email || ''}</span>
+                </td>
+                <td class="py-3.5 px-4 font-mono text-[11px]">
+                    <div class="space-y-0.5">
+                        <div><span class="text-slate-400 text-[10px]">CCCD:</span> ${cccdText}</div>
+                        <div><span class="text-slate-400 text-[10px]">BHYT:</span> ${bhytText}</div>
+                    </div>
+                </td>
+                <td class="py-3.5 px-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] text-slate-400">Máu:</span>
+                            <span class="font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded text-[10px]">${p.nhom_mau || 'Chưa rõ'}</span>
+                        </div>
+                        <div><span class="text-[10px] text-slate-400">Dị ứng:</span> ${allergyText}</div>
+                    </div>
+                </td>
+                <td class="py-3.5 px-4">
+                    ${relativeText}
+                </td>
+                <td class="py-3.5 px-4 text-slate-600 truncate max-w-[140px]" title="${p.dia_chi || ''}">
+                    ${p.dia_chi || '<span class="text-slate-300">-</span>'}
+                </td>
+                <td class="py-3.5 px-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <a href="/admin/patients/${p.id}" 
+                           class="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center justify-center transition-colors" title="Xem Bệnh Án Điện Tử (EMR)">
+                            <i class="fa-solid fa-file-medical text-xs"></i>
+                        </a>
+                        <button type="button" onclick="viewPatientDetail(${p.id})" 
+                                class="w-8 h-8 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Xem nhanh hồ sơ 360">
+                            <i class="fa-solid fa-id-card text-xs"></i>
+                        </button>
+                        <button type="button" onclick="deletePatient(${p.id})" 
+                                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors" title="Xóa bệnh nhân">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Lọc và Sắp xếp với Bộ Lọc Y Tế Nâng Cao
+    function applyFilterAndSort() {
+        const query = document.getElementById('search-input').value.trim().toLowerCase();
+        const genderFilter = document.getElementById('filter-gender').value;
+        const bloodFilter = document.getElementById('filter-blood').value;
+        const bhytFilter = document.getElementById('filter-bhyt').value;
+        const accountFilter = document.getElementById('filter-account').value;
+        const sortMode = document.getElementById('sort-select').value;
+
+        // Cập nhật số lượng tiêu chí đang lọc
+        let activeCount = 0;
+        if (genderFilter) activeCount++;
+        if (bloodFilter) activeCount++;
+        if (bhytFilter) activeCount++;
+        if (accountFilter) activeCount++;
+
+        const badge = document.getElementById('active-filter-badge');
+        if (badge) {
+            if (activeCount > 0) {
+                badge.innerText = activeCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        currentFiltered = patients.filter(p => {
+            // Match search
+            const matchSearch = !query || 
+                (p.ma_benh_nhan && p.ma_benh_nhan.toLowerCase().includes(query)) ||
+                (p.ho_ten && p.ho_ten.toLowerCase().includes(query)) ||
+                (p.sdt && p.sdt.toLowerCase().includes(query)) ||
+                (p.cccd && p.cccd.toLowerCase().includes(query)) ||
+                (p.bhyt && p.bhyt.toLowerCase().includes(query)) ||
+                (p.email && p.email.toLowerCase().includes(query)) ||
+                (p.username && p.username.toLowerCase().includes(query)) ||
+                (p.dia_chi && p.dia_chi.toLowerCase().includes(query));
+
+            // Match gender
+            const matchGender = !genderFilter || p.gioi_tinh === genderFilter;
+
+            // Match blood type
+            const matchBlood = !bloodFilter || (p.nhom_mau && p.nhom_mau.trim().toLowerCase() === bloodFilter.trim().toLowerCase());
+
+            // Match BHYT
+            let matchBhyt = true;
+            if (bhytFilter === 'has_bhyt') {
+                matchBhyt = Boolean(p.bhyt && p.bhyt.trim() !== '');
+            } else if (bhytFilter === 'no_bhyt') {
+                matchBhyt = !p.bhyt || p.bhyt.trim() === '';
+            }
+
+            // Match account
+            const matchAccount = !accountFilter || 
+                (accountFilter === 'has_account' && p.username && p.username !== '') ||
+                (accountFilter === 'no_account' && (!p.username || p.username === ''));
+
+            return matchSearch && matchGender && matchBlood && matchBhyt && matchAccount;
+        });
+
+        // Sắp xếp
+        currentFiltered.sort((a, b) => {
+            if (sortMode === 'id_desc') return b.id - a.id;
+            if (sortMode === 'id_asc') return a.id - b.id;
+            if (sortMode === 'name_asc') return a.ho_ten.localeCompare(b.ho_ten, 'vi');
+            if (sortMode === 'name_desc') return b.ho_ten.localeCompare(a.ho_ten, 'vi');
+            if (sortMode === 'age_asc') return (a.tuoi || 0) - (b.tuoi || 0);
+            if (sortMode === 'age_desc') return (b.tuoi || 0) - (a.tuoi || 0);
+            return 0;
+        });
+
+        renderTable(currentFiltered);
+        updateStats();
+    }
+
+    // Sort by click header
+    let sortColumnDirection = {};
+    function sortByColumn(col) {
+        const currentDir = sortColumnDirection[col] || 'asc';
+        const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+        sortColumnDirection[col] = newDir;
+
+        const sortSelect = document.getElementById('sort-select');
+        if (col === 'id') {
+            sortSelect.value = newDir === 'asc' ? 'id_asc' : 'id_desc';
+        } else if (col === 'name') {
+            sortSelect.value = newDir === 'asc' ? 'name_asc' : 'name_desc';
+        } else if (col === 'age') {
+            sortSelect.value = newDir === 'asc' ? 'age_asc' : 'age_desc';
+        }
+        applyFilterAndSort();
+    }
+
+    function resetFilters() {
+        document.getElementById('search-input').value = '';
+        document.getElementById('filter-gender').value = '';
+        document.getElementById('filter-blood').value = '';
+        document.getElementById('filter-bhyt').value = '';
+        document.getElementById('filter-account').value = '';
+        document.getElementById('sort-select').value = 'id_desc';
+        applyFilterAndSort();
+        showAdminToast('Đã đặt lại toàn bộ bộ lọc!');
+    }
+
+    // Cập nhật thẻ thống kê
+    function updateStats() {
+        const total = patients.length;
+        const bhytCount = patients.filter(p => p.bhyt && p.bhyt !== '').length;
+        const accountCount = patients.filter(p => p.username && p.username !== '').length;
+        const guestCount = total - accountCount;
+
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-bhyt').innerHTML = `${bhytCount} <span class="text-xs font-normal text-slate-400">(${total ? Math.round((bhytCount/total)*100) : 0}%)</span>`;
+        document.getElementById('stat-account').innerHTML = `${accountCount} <span class="text-xs font-normal text-slate-400">(${total ? Math.round((accountCount/total)*100) : 0}%)</span>`;
+        document.getElementById('stat-guest').innerHTML = `${guestCount} <span class="text-xs font-normal text-slate-400">(Chưa có TK)</span>`;
+        document.getElementById('total-count').innerText = total;
+    }
+
+    // Xem Modal chi tiết 360
+    function viewPatientDetail(id) {
+        const p = patients.find(x => x.id === id);
+        if (!p) return;
+        activeModalPatient = p;
+
+        document.getElementById('modal-avatar').innerText = p.ho_ten ? p.ho_ten.charAt(0) : 'BN';
+        document.getElementById('modal-name').innerText = p.ho_ten;
+        document.getElementById('modal-code').innerText = p.ma_benh_nhan;
+        document.getElementById('modal-gender-age').innerText = `${p.gioi_tinh || 'Chưa rõ'} • ${p.tuoi || ''} tuổi`;
+
+        document.getElementById('modal-username').innerText = p.username || 'Chưa tạo tài khoản';
+        document.getElementById('modal-password').innerText = '••••••••';
+
+        document.getElementById('modal-phone').innerText = p.sdt || '-';
+        document.getElementById('modal-email').innerText = p.email || '-';
+        document.getElementById('modal-dob').innerText = p.ngay_sinh || '-';
+        document.getElementById('modal-cccd').innerText = p.cccd || '-';
+        document.getElementById('modal-bhyt').innerText = p.bhyt || '-';
+        document.getElementById('modal-address').innerText = p.dia_chi || '-';
+
+        document.getElementById('modal-blood').innerText = p.nhom_mau || 'Chưa rõ';
+        document.getElementById('modal-allergy').innerText = p.di_ung || 'Không';
+        document.getElementById('modal-history').innerText = p.tien_su_benh || 'Không có';
+
+        document.getElementById('modal-rel-name').innerText = p.nguoi_than_ho_ten || '-';
+        document.getElementById('modal-rel-phone').innerText = p.nguoi_than_sdt || '-';
+        document.getElementById('modal-rel-type').innerText = p.nguoi_than_quan_he || '-';
+
+        const dossierBtn = document.getElementById('modal-dossier-btn');
+        if (dossierBtn) {
+            dossierBtn.href = `/admin/patients/${p.id}`;
+        }
+
+        document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // Modal thêm bệnh nhân
+    function openAddPatientModal() {
+        document.getElementById('add-modal').classList.remove('hidden');
+    }
+
+    function closeAddPatientModal() {
+        document.getElementById('add-modal').classList.add('hidden');
+    }
+
+    function saveNewPatient(e) {
+        e.preventDefault();
+        const nextId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
+        const codeNum = String(nextId).padStart(3, '0');
+        const maBN = `BN2609${codeNum}`;
+
+        const name = document.getElementById('add-name').value.trim();
+        const phone = document.getElementById('add-phone').value.trim();
+        const dob = document.getElementById('add-dob').value;
+        const gender = document.getElementById('add-gender').value;
+        const blood = document.getElementById('add-blood').value;
+        const cccd = document.getElementById('add-cccd').value.trim();
+        const bhyt = document.getElementById('add-bhyt').value.trim();
+        const email = document.getElementById('add-email').value.trim();
+        const address = document.getElementById('add-address').value.trim();
+        const allergy = document.getElementById('add-allergy').value.trim();
+        const history = document.getElementById('add-history').value.trim();
+        const createAccount = document.getElementById('add-create-account').checked;
+
+        let age = 30;
+        if (dob) {
+            const birthYear = new Date(dob).getFullYear();
+            age = 2026 - birthYear;
+        }
+
+        const newPatient = {
+            id: nextId,
+            ma_benh_nhan: maBN,
+            ho_ten: name,
+            username: createAccount ? phone : '',
+            password: createAccount ? 'hashed_default' : '',
+            ngay_sinh: dob,
+            tuoi: age,
+            gioi_tinh: gender,
+            sdt: phone,
+            email: email,
+            cccd: cccd,
+            bhyt: bhyt,
+            dia_chi: address,
+            nhom_mau: blood,
+            di_ung: allergy,
+            tien_su_benh: history,
+            nguoi_than_ho_ten: '',
+            nguoi_than_sdt: '',
+            nguoi_than_quan_he: '',
+            co_tai_khoan: createAccount,
+            ngay_tao: '2026-09-25'
+        };
+
+        patients.unshift(newPatient);
+        applyFilterAndSort();
+        closeAddPatientModal();
+        e.target.reset();
+        showAdminToast(`Đã thêm thành công bệnh nhân ${name} (${maBN})!`);
+    }
+
+    function deletePatient(id) {
+        if (!confirm('Bạn có chắc chắn muốn xóa hồ sơ bệnh nhân này?')) return;
+        patients = patients.filter(p => p.id !== id);
+        applyFilterAndSort();
+        showAdminToast('Đã xóa hồ sơ bệnh nhân thành công!');
+    }
+
+    // 5. CHỨC NĂNG XUẤT FILE CSV (Kèm UTF-8 BOM chuẩn hiển thị Tiếng Việt trong Excel)
+    function exportToCSV() {
+        if (!patients || patients.length === 0) {
+            alert('Không có dữ liệu bệnh nhân để xuất!');
+            return;
+        }
+
+        const headers = [
+            'ID', 'Mã Bệnh Nhân', 'Họ Và Tên', 'Tên Tài Khoản', 'Mật Khẩu',
+            'Ngày Sinh', 'Tuổi', 'Giới Tính', 'Số Điện Thoại', 'Email',
+            'Số CCCD', 'Mã Thẻ BHYT', 'Nhóm Máu', 'Dị Ứng', 'Tiền Sử Bệnh',
+            'Người Thân Họ Tên', 'Người Thân SĐT', 'Người Thân Quan Hệ', 'Địa Chỉ'
+        ];
+
+        let csvContent = '\uFEFF'; // UTF-8 BOM
+        csvContent += headers.map(h => `"${h}"`).join(',') + '\r\n';
+
+        patients.forEach(p => {
+            const row = [
+                p.id || '',
+                p.ma_benh_nhan || '',
+                p.ho_ten || '',
+                p.username || '',
+                p.username ? '•••••••• (Bảo mật)' : '',
+                p.ngay_sinh || '',
+                p.tuoi || '',
+                p.gioi_tinh || '',
+                p.sdt || '',
+                p.email || '',
+                p.cccd || '',
+                p.bhyt || '',
+                p.nhom_mau || '',
+                p.di_ung || '',
+                p.tien_su_benh || '',
+                p.nguoi_than_ho_ten || '',
+                p.nguoi_than_sdt || '',
+                p.nguoi_than_quan_he || '',
+                p.dia_chi || ''
+            ];
+            csvContent += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\r\n';
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `danh_sach_benh_nhan_${now}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showAdminToast('Đã xuất thành công file CSV (Mật khẩu được bảo mật)!');
+    }
+
+    // 6. CHỨC NĂNG XUẤT FILE JSON
+    function exportToJSON() {
+        if (!patients || patients.length === 0) {
+            alert('Không có dữ liệu bệnh nhân để xuất!');
+            return;
+        }
+
+        // Tạo bản sao an toàn bảo vệ mật khẩu
+        const sanitizedPatients = patients.map(p => {
+            const copy = { ...p };
+            delete copy.raw_password;
+            if (copy.password) copy.password = '•••••••• (Đã bảo mật)';
+            return copy;
+        });
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sanitizedPatients, null, 2));
+        const link = document.createElement('a');
+        const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        link.setAttribute('href', dataStr);
+        link.setAttribute('download', `danh_sach_benh_nhan_${now}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showAdminToast('Đã xuất thành công file JSON (Mật khẩu được bảo mật)!');
+    }
+
+    // 7. CHỨC NĂNG CẤP LẠI MẬT KHẨU CHO BỆNH NHÂN (DÀNH CHO ADMIN / BÁC SĨ)
+    let resetTargetPatientId = null;
+
+    function openResetPasswordModal(id) {
+        const p = patients.find(x => x.id === id);
+        if (!p) return;
+        resetTargetPatientId = id;
+
+        document.getElementById('reset-pwd-name').innerText = p.ho_ten;
+        document.getElementById('reset-pwd-user').innerText = p.username || p.sdt || 'Chưa có username';
+        generateRandomPassword();
+
+        document.getElementById('reset-pwd-modal').classList.remove('hidden');
+    }
+
+    function closeResetPasswordModal() {
+        document.getElementById('reset-pwd-modal').classList.add('hidden');
+    }
+
+    function generateRandomPassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        let randStr = '';
+        for (let i = 0; i < 6; i++) {
+            randStr += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('reset-pwd-input').value = `H2T@${randStr}`;
+    }
+
+    function saveNewPassword() {
+        if (!resetTargetPatientId) return;
+        const p = patients.find(x => x.id === resetTargetPatientId);
+        if (!p) return;
+
+        const newPwd = document.getElementById('reset-pwd-input').value.trim();
+        if (!newPwd) {
+            alert('Vui lòng nhập mật khẩu mới!');
+            return;
+        }
+
+        // Nếu bệnh nhân chưa có username thì lấy SĐT làm username
+        if (!p.username) {
+            p.username = p.sdt;
+            p.co_tai_khoan = true;
+        }
+
+        p.password = 'hashed_' + newPwd;
+        closeResetPasswordModal();
+        applyFilterAndSort();
+        showAdminToast(`Đã cấp mật khẩu mới (${newPwd}) cho bệnh nhân ${p.ho_ten}!`);
+    }
+
+    // 8. CHỨC NĂNG NHẬP FILE CSV HOẶC JSON THÔNG MINH
+    function handleFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        const fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.json')) {
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        let updatedCount = 0;
+                        let addedCount = 0;
+
+                        importedData.forEach(item => {
+                            // Kiểm tra trùng lặp theo Mã BN, CCCD hoặc ID
+                            const existingIndex = patients.findIndex(p => 
+                                (item.ma_benh_nhan && p.ma_benh_nhan === item.ma_benh_nhan) ||
+                                (item.cccd && p.cccd === item.cccd) ||
+                                (item.id && p.id === item.id)
+                            );
+
+                            if (existingIndex !== -1) {
+                                // CẬP NHẬT: Giữ nguyên mật khẩu cũ nếu trong file là bảo mật hoặc để trống
+                                const existing = patients[existingIndex];
+                                const preservedPwd = existing.password;
+                                patients[existingIndex] = { ...existing, ...item };
+                                if (!item.password || item.password.includes('•') || item.password.includes('*')) {
+                                    patients[existingIndex].password = preservedPwd;
+                                }
+                                updatedCount++;
+                            } else {
+                                // THÊM MỚI
+                                const maxId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) : 0;
+                                item.id = maxId + 1;
+                                if (!item.ma_benh_nhan) {
+                                    item.ma_benh_nhan = `BN2609${String(item.id).padStart(3, '0')}`;
+                                }
+                                // Nếu có username mà không có mật khẩu rõ ràng, cấp mật khẩu mặc định
+                                if (item.username && (!item.password || item.password.includes('•') || item.password.includes('*'))) {
+                                    item.password = 'H2T@123456';
+                                    item.co_tai_khoan = true;
+                                }
+                                patients.unshift(item);
+                                addedCount++;
+                            }
+                        });
+                        applyFilterAndSort();
+                        showAdminToast(`Nhập JSON thành công: Đã cập nhật ${updatedCount}, thêm mới ${addedCount} bệnh nhân!`);
+                    } else {
+                        alert('Định dạng file JSON phải là một mảng danh sách bệnh nhân.');
+                    }
+                } catch (err) {
+                    alert('Lỗi đọc file JSON: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        } else if (fileName.endsWith('.csv')) {
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                    if (lines.length <= 1) {
+                        alert('File CSV rỗng hoặc chỉ có dòng tiêu đề.');
+                        return;
+                    }
+
+                    let updatedCount = 0;
+                    let addedCount = 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i];
+                        const values = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
+                        const cleanValues = values.map(v => v.replace(/^"|"$/g, '').trim());
+
+                        if (cleanValues.length >= 3 && cleanValues[2]) {
+                            const maBN = cleanValues[1];
+                            const hoTen = cleanValues[2];
+                            const username = cleanValues[3];
+                            const pwdValue = cleanValues[4];
+                            const dob = cleanValues[5];
+                            const age = parseInt(cleanValues[6]) || 30;
+                            const gender = cleanValues[7] || 'Nam';
+                            const phone = cleanValues[8];
+                            const email = cleanValues[9];
+                            const cccd = cleanValues[10];
+                            const bhyt = cleanValues[11];
+                            const blood = cleanValues[12];
+                            const allergy = cleanValues[13];
+                            const history = cleanValues[14];
+                            const relName = cleanValues[15];
+                            const relPhone = cleanValues[16];
+                            const relType = cleanValues[17];
+                            const address = cleanValues[18];
+
+                            // Kiểm tra bệnh nhân đã tồn tại
+                            const existingIndex = patients.findIndex(p => 
+                                (maBN && p.ma_benh_nhan === maBN) || 
+                                (cccd && p.cccd === cccd) ||
+                                (phone && p.sdt === phone)
+                            );
+
+                            if (existingIndex !== -1) {
+                                // Cập nhật thông tin bệnh nhân đã có, bảo toàn mật khẩu cũ
+                                const existing = patients[existingIndex];
+                                existing.ho_ten = hoTen || existing.ho_ten;
+                                existing.ngay_sinh = dob || existing.ngay_sinh;
+                                existing.tuoi = age || existing.tuoi;
+                                existing.gioi_tinh = gender || existing.gioi_tinh;
+                                existing.sdt = phone || existing.sdt;
+                                existing.email = email || existing.email;
+                                existing.cccd = cccd || existing.cccd;
+                                existing.bhyt = bhyt || existing.bhyt;
+                                existing.nhom_mau = blood || existing.nhom_mau;
+                                existing.di_ung = allergy || existing.di_ung;
+                                existing.tien_su_benh = history || existing.tien_su_benh;
+                                existing.nguoi_than_ho_ten = relName || existing.nguoi_than_ho_ten;
+                                existing.nguoi_than_sdt = relPhone || existing.nguoi_than_sdt;
+                                existing.nguoi_than_quan_he = relType || existing.nguoi_than_quan_he;
+                                existing.dia_chi = address || existing.dia_chi;
+
+                                // Nếu có nhập mật khẩu mới rõ ràng (không phải ••••••••):
+                                if (pwdValue && !pwdValue.includes('•') && !pwdValue.includes('*')) {
+                                    existing.password = pwdValue;
+                                }
+                                updatedCount++;
+                            } else {
+                                // Thêm mới bệnh nhân
+                                const nextId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
+                                let assignedPwd = '';
+                                if (username) {
+                                    if (pwdValue && !pwdValue.includes('•') && !pwdValue.includes('*')) {
+                                        assignedPwd = pwdValue;
+                                    } else {
+                                        assignedPwd = 'H2T@123456'; // Mật khẩu mặc định hệ thống tự cấp
+                                    }
+                                }
+
+                                const newP = {
+                                    id: nextId,
+                                    ma_benh_nhan: maBN || `BN2609${String(nextId).padStart(3, '0')}`,
+                                    ho_ten: hoTen,
+                                    username: username || '',
+                                    password: assignedPwd,
+                                    ngay_sinh: dob || '1995-01-01',
+                                    tuoi: age,
+                                    gioi_tinh: gender,
+                                    sdt: phone || '',
+                                    email: email || '',
+                                    cccd: cccd || '',
+                                    bhyt: bhyt || '',
+                                    nhom_mau: blood || 'Chưa rõ',
+                                    di_ung: allergy || '',
+                                    tien_su_benh: history || '',
+                                    nguoi_than_ho_ten: relName || '',
+                                    nguoi_than_sdt: relPhone || '',
+                                    nguoi_than_quan_he: relType || '',
+                                    dia_chi: address || '',
+                                    co_tai_khoan: Boolean(username),
+                                    ngay_tao: '2026-09-25'
+                                };
+                                patients.unshift(newP);
+                                addedCount++;
+                            }
+                        }
+                    }
+
+                    applyFilterAndSort();
+                    showAdminToast(`Nhập CSV thành công: Đã cập nhật ${updatedCount}, thêm mới ${addedCount} bệnh nhân!`);
+                } catch (err) {
+                    alert('Lỗi đọc file CSV: ' + err.message);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        } else {
+            alert('Vui lòng chọn file có định dạng .csv hoặc .json');
+        }
+
+        // Reset file input
+        event.target.value = '';
+    }
+
+    // Khởi chạy ban đầu
+    document.addEventListener('DOMContentLoaded', () => {
+        applyFilterAndSort();
+    });
+</script>
+{% endblock %}

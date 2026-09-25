@@ -1,0 +1,481 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quản lý Lịch Hẹn Khám Bệnh{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Lịch hẹn khám bệnh</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </span>
+                Quản Lý & Điều Phối Lịch Hẹn Khám
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Theo dõi ca khám, khung giờ hẹn, phân luồng phòng khám và điều phối lượt khám của các bác sĩ.
+            </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <button type="button" onclick="openNewAppointmentModal()" 
+                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-calendar-plus"></i>
+                <span>Đặt Lịch Tại Quầy</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê nhanh lượt hẹn hôm nay -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-calendar-day"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Lịch hẹn hôm nay</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">24 <span class="text-xs font-normal text-slate-400">lượt</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Chờ khám / Đã đến</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">14 <span class="text-xs font-normal text-amber-600 font-semibold">(Đang đợi)</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đã khám hoàn tất</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">8 <span class="text-xs font-normal text-emerald-600 font-semibold">(Hoàn tất)</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đã hủy / Vắng mặt</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-slate-400">(8%)</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Thanh lọc tìm kiếm & Lọc trạng thái -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            
+            <div class="sm:col-span-5 relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-appointment" onkeyup="filterAppointments()" 
+                       placeholder="Tìm theo Mã hẹn, Tên BN, Số điện thoại..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
+            </div>
+
+            <div class="sm:col-span-3">
+                <select id="filter-doctor" onchange="filterAppointments()" 
+                        class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+                    <option value="">Tất cả Bác sĩ phụ trách</option>
+                    <option value="Trần Minh Quân">BS. CKII. Trần Minh Quân</option>
+                    <option value="Đỗ Hoàng Yến">BS. CKI. Đỗ Hoàng Yến</option>
+                    <option value="Phan Thu Trang">BS. CKI. Phan Thu Trang</option>
+                    <option value="Nguyễn Trọng Nghĩa">BS. CKI. Nguyễn Trọng Nghĩa</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <select id="filter-status" onchange="filterAppointments()" 
+                        class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all font-medium">
+                    <option value="">Tất cả Trạng thái</option>
+                    <option value="waiting">Chờ khám / Đã đến</option>
+                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="completed">Đã khám xong</option>
+                    <option value="cancelled">Đã hủy hẹn</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <input type="date" id="filter-date" value="2026-09-25" onchange="filterAppointments()" 
+                       class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. Bảng danh sách lịch hẹn -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4">Mã Hẹn</th>
+                        <th class="py-3.5 px-4">Giờ Khám & Ngày</th>
+                        <th class="py-3.5 px-4">Bệnh Nhân</th>
+                        <th class="py-3.5 px-4">Bác Sĩ Phụ Trách</th>
+                        <th class="py-3.5 px-4">Chuyên Khoa / Dịch Vụ</th>
+                        <th class="py-3.5 px-4">Lý Do Khám</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="appointment-table-body" class="divide-y divide-slate-100">
+                    <!-- Dữ liệu render bằng JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Đặt lịch hẹn mới tại quầy -->
+<div id="new-appointment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-plus text-medical-600"></i> Đặt Lịch Hẹn Khám Mới Tại Quầy
+            </h3>
+            <button onclick="closeNewAppointmentModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form id="new-appointment-form" onsubmit="saveNewAppointment(event)" class="space-y-3.5 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Chọn bệnh nhân <span class="text-rose-500">*</span></label>
+                <select id="app-patient" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                    <option value="">-- Chọn bệnh nhân trong hệ thống --</option>
+                    {% for p in patients %}
+                    <option value="{{ p.id }}">{{ p.ho_ten }} - {{ p.ma_benh_nhan }} ({{ p.sdt }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Bác sĩ phụ trách <span class="text-rose-500">*</span></label>
+                    <select id="app-doctor" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        <option value="BS. CKII. Trần Minh Quân">BS. CKII. Trần Minh Quân</option>
+                        <option value="BS. CKI. Đỗ Hoàng Yến">BS. CKI. Đỗ Hoàng Yến</option>
+                        <option value="BS. CKI. Phan Thu Trang">BS. CKI. Phan Thu Trang</option>
+                        <option value="BS. CKI. Nguyễn Trọng Nghĩa">BS. CKI. Nguyễn Trọng Nghĩa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Chuyên khoa</label>
+                    <select id="app-dept" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        <option value="Nội Tổng Quát">Nội Tổng Quát</option>
+                        <option value="Tim Mạch">Tim Mạch</option>
+                        <option value="Nhi Khoa">Nhi Khoa</option>
+                        <option value="Tai Mũi Họng">Tai Mũi Họng</option>
+                        <option value="Tiêu Hóa">Tiêu Hóa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Ngày hẹn khám <span class="text-rose-500">*</span></label>
+                    <input type="date" id="app-date" required value="2026-09-25" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Khung giờ hẹn <span class="text-rose-500">*</span></label>
+                    <select id="app-time" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        <option value="08:00 - 08:30">08:00 - 08:30</option>
+                        <option value="08:30 - 09:00">08:30 - 09:00</option>
+                        <option value="09:00 - 09:30">09:00 - 09:30</option>
+                        <option value="09:30 - 10:00">09:30 - 10:00</option>
+                        <option value="14:00 - 14:30">14:00 - 14:30</option>
+                        <option value="14:30 - 15:00">14:30 - 15:00</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Lý do khám / Triệu chứng</label>
+                <textarea id="app-reason" rows="2" placeholder="Ví dụ: Đau đầu tái phát, tái khám huyết áp..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500"></textarea>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeNewAppointmentModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">
+                    Hủy bỏ
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20">
+                    Lưu & Xác Nhận Hẹn
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu mẫu danh sách lịch hẹn
+    let appointments = [
+        {
+            id: 1,
+            ma_hen: "LH260901",
+            gio_hen: "08:00 - 08:30",
+            ngay_hen: "2026-09-25",
+            patient_id: 1,
+            benh_nhan: "Hoàng Bảo Nam",
+            ma_bn: "BN2609001",
+            sdt: "0901234567",
+            bac_si: "BS. CKII. Trần Minh Quân",
+            khoa: "Tiêu Hóa - Nội Khoa",
+            ly_do: "Tái khám theo dõi viêm dạ dày mạn tính",
+            trang_thai: "waiting" // waiting, confirmed, completed, cancelled
+        },
+        {
+            id: 2,
+            ma_hen: "LH260902",
+            gio_hen: "08:30 - 09:00",
+            ngay_hen: "2026-09-25",
+            patient_id: 2,
+            benh_nhan: "Lê Ngọc Trâm",
+            ma_bn: "BN2609002",
+            sdt: "0912345678",
+            bac_si: "BS. CKI. Phan Thu Trang",
+            khoa: "Tai Mũi Họng",
+            ly_do: "Nghẹt mũi, kiểm tra viêm xoang dị ứng",
+            trang_thai: "waiting"
+        },
+        {
+            id: 3,
+            ma_hen: "LH260903",
+            gio_hen: "09:00 - 09:30",
+            ngay_hen: "2026-09-25",
+            patient_id: 3,
+            benh_nhan: "Trần Văn Quyết",
+            ma_bn: "BN2609003",
+            sdt: "0923456789",
+            bac_si: "BS. CKII. Trần Minh Quân",
+            khoa: "Tim Mạch",
+            ly_do: "Đo lại huyết áp và đánh giá phác đồ Amlodipine",
+            trang_thai: "confirmed"
+        },
+        {
+            id: 4,
+            ma_hen: "LH260904",
+            gio_hen: "09:30 - 10:00",
+            ngay_hen: "2026-09-25",
+            patient_id: 4,
+            benh_nhan: "Phạm Thảo My",
+            ma_bn: "BN2609004",
+            sdt: "0934567890",
+            bac_si: "BS. CKI. Đỗ Hoàng Yến",
+            khoa: "Nhi Khoa",
+            ly_do: "Khám định kỳ quản lý hen phế quản",
+            trang_thai: "confirmed"
+        },
+        {
+            id: 5,
+            ma_hen: "LH260905",
+            gio_hen: "07:30 - 08:00",
+            ngay_hen: "2026-09-25",
+            patient_id: 5,
+            benh_nhan: "Đinh Trọng Thắng",
+            ma_bn: "BN2609005",
+            sdt: "0945678901",
+            bac_si: "BS. CKII. Trần Minh Quân",
+            khoa: "Nội Tiết",
+            ly_do: "Kiểm tra đường huyết đói và nhận thuốc tiểu đường",
+            trang_thai: "completed"
+        },
+        {
+            id: 6,
+            ma_hen: "LH260906",
+            gio_hen: "10:00 - 10:30",
+            ngay_hen: "2026-09-25",
+            patient_id: 6,
+            benh_nhan: "Võ Thanh Trúc",
+            ma_bn: "BN2609006",
+            sdt: "0956789012",
+            bac_si: "BS. CKI. Phan Thu Trang",
+            khoa: "Tai Mũi Họng",
+            ly_do: "Viêm họng hạt tái phát",
+            trang_thai: "cancelled"
+        }
+    ];
+
+    // Render bảng danh sách lịch hẹn
+    function renderAppointments(dataList) {
+        const tbody = document.getElementById('appointment-table-body');
+        tbody.innerHTML = '';
+
+        if (!dataList || dataList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-10 text-slate-400">
+                        <i class="fa-solid fa-calendar-xmark text-2xl block mb-2"></i>
+                        Không tìm thấy lịch hẹn phù hợp
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        dataList.forEach(app => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            let statusBadge = '';
+            if (app.trang_thai === 'waiting') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Đang chờ khám</span>';
+            } else if (app.trang_thai === 'confirmed') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Đã xác nhận</span>';
+            } else if (app.trang_thai === 'completed') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã khám xong</span>';
+            } else if (app.trang_thai === 'cancelled') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px]">Đã hủy</span>';
+            }
+
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-mono font-bold text-medical-700">${app.ma_hen}</td>
+                <td class="py-3 px-4">
+                    <span class="font-bold text-slate-900 block">${app.gio_hen}</span>
+                    <span class="text-[10px] text-slate-400">${app.ngay_hen}</span>
+                </td>
+                <td class="py-3 px-4">
+                    <a href="/admin/patients/${app.patient_id}" class="font-bold text-slate-900 hover:text-medical-700 transition-colors block">
+                        ${app.benh_nhan}
+                    </a>
+                    <span class="text-[10px] text-slate-400 font-mono">${app.ma_bn} • ${app.sdt}</span>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="font-semibold text-slate-800">${app.bac_si}</span>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded-lg bg-teal-50 text-teal-700 font-semibold text-[11px]">${app.khoa}</span>
+                </td>
+                <td class="py-3 px-4 text-slate-600 truncate max-w-[180px]" title="${app.ly_do}">
+                    ${app.ly_do}
+                </td>
+                <td class="py-3 px-4 text-center">
+                    ${statusBadge}
+                </td>
+                <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <a href="/admin/emr?patient_id=${app.patient_id}" 
+                           class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Bắt đầu khám (EMR)">
+                            <i class="fa-solid fa-stethoscope text-xs"></i>
+                        </a>
+                        <button type="button" onclick="toggleAppointmentStatus(${app.id})" 
+                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Đổi trạng thái">
+                            <i class="fa-solid fa-rotate text-xs"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Lọc lịch hẹn
+    function filterAppointments() {
+        const query = document.getElementById('search-appointment').value.toLowerCase().trim();
+        const docFilter = document.getElementById('filter-doctor').value;
+        const statusFilter = document.getElementById('filter-status').value;
+
+        const filtered = appointments.filter(a => {
+            const matchQuery = !query || 
+                a.ma_hen.toLowerCase().includes(query) ||
+                a.benh_nhan.toLowerCase().includes(query) ||
+                a.sdt.toLowerCase().includes(query);
+
+            const matchDoc = !docFilter || a.bac_si.includes(docFilter);
+            const matchStatus = !statusFilter || a.trang_thai === statusFilter;
+
+            return matchQuery && matchDoc && matchStatus;
+        });
+
+        renderAppointments(filtered);
+    }
+
+    // Chuyển đổi trạng thái hẹn
+    function toggleAppointmentStatus(id) {
+        const app = appointments.find(a => a.id === id);
+        if (!app) return;
+
+        if (app.trang_thai === 'waiting') {
+            app.trang_thai = 'completed';
+        } else if (app.trang_thai === 'confirmed') {
+            app.trang_thai = 'waiting';
+        } else if (app.trang_thai === 'completed') {
+            app.trang_thai = 'waiting';
+        }
+
+        filterAppointments();
+    }
+
+    // Modal
+    function openNewAppointmentModal() {
+        document.getElementById('new-appointment-modal').classList.remove('hidden');
+    }
+
+    function closeNewAppointmentModal() {
+        document.getElementById('new-appointment-modal').classList.add('hidden');
+    }
+
+    function saveNewAppointment(e) {
+        e.preventDefault();
+        const patientSelect = document.getElementById('app-patient');
+        const patientText = patientSelect.options[patientSelect.selectedIndex].text.split(' - ')[0];
+        const patientId = patientSelect.value;
+        const doctor = document.getElementById('app-doctor').value;
+        const dept = document.getElementById('app-dept').value;
+        const date = document.getElementById('app-date').value;
+        const time = document.getElementById('app-time').value;
+        const reason = document.getElementById('app-reason').value;
+
+        const newId = appointments.length + 1;
+        appointments.unshift({
+            id: newId,
+            ma_hen: `LH26090${newId}`,
+            gio_hen: time,
+            ngay_hen: date,
+            patient_id: parseInt(patientId),
+            benh_nhan: patientText,
+            ma_bn: `BN260900${patientId}`,
+            sdt: "0900000000",
+            bac_si: doctor,
+            khoa: dept,
+            ly_do: reason || "Khám theo yêu cầu",
+            trang_thai: "confirmed"
+        });
+
+        closeNewAppointmentModal();
+        e.target.reset();
+        filterAppointments();
+        alert('Đã tạo thành công lịch hẹn mới!');
+    }
+
+    // Khởi tạo hiển thị
+    document.addEventListener('DOMContentLoaded', () => {
+        renderAppointments(appointments);
+    });
+</script>
+{% endblock %}

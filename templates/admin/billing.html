@@ -1,0 +1,295 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quản Lý Viện Phí & Thu Ngân{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm print:hidden">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Viện phí & Thu ngân</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                </span>
+                Quản Lý Viện Phí, BHYT & Thu Ngân Phòng Khám
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Thanh toán viện phí, quyết toán chi phí khám chữa bệnh BHYT, xuất hóa đơn điện tử và thanh toán chuyển khoản VietQR tự động.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                <i class="fa-solid fa-qrcode text-emerald-600"></i> Cổng VietQR 24/7 trực tuyến
+            </span>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê tài chính trong ngày -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Doanh thu hôm nay</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">46.850.000 <span class="text-xs font-normal text-slate-400">đ</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-id-card"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">BHYT quyết toán</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18.200.000 <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-hand-holding-dollar"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Thực thu người bệnh</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">28.650.000 <span class="text-xs font-normal text-emerald-600 font-semibold">đ</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Hóa đơn chờ thu</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">6 <span class="text-xs font-normal text-amber-600 font-semibold">chưa thu</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Thanh tìm kiếm & Bộ lọc hóa đơn -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            
+            <div class="sm:col-span-6 relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-invoice" onkeyup="filterInvoices()" 
+                       placeholder="Tìm theo Mã hóa đơn, Tên bệnh nhân, Mã BN, SĐT..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+            </div>
+
+            <div class="sm:col-span-3">
+                <select id="filter-invoice-payment" onchange="filterInvoices()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                    <option value="">Tất cả Phương thức</option>
+                    <option value="Chuyển khoản QR">Chuyển khoản VietQR</option>
+                    <option value="Tiền mặt">Tiền mặt</option>
+                    <option value="Thẻ POS">Thẻ ngân hàng (POS)</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <select id="filter-invoice-status" onchange="filterInvoices()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500 font-medium">
+                    <option value="">Tất cả Trạng thái</option>
+                    <option value="paid">Đã thanh toán hoàn tất</option>
+                    <option value="pending">Chờ thanh toán</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. Bảng danh sách hóa đơn viện phí -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3 px-4">Mã Hóa Đơn</th>
+                        <th class="py-3 px-4">Bệnh Nhân</th>
+                        <th class="py-3 px-4">Khoản Mục Chi Phí (Khám + Cận lâm sàng + Thuốc)</th>
+                        <th class="py-3 px-4 text-right">Tổng Chi Phí</th>
+                        <th class="py-3 px-4 text-right">BHYT Chi Trả</th>
+                        <th class="py-3 px-4 text-right">Bệnh Nhân Trả</th>
+                        <th class="py-3 px-4">Hình Thức</th>
+                        <th class="py-3 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-table-body" class="divide-y divide-slate-100">
+                    <!-- JS render -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Thanh Toán VietQR & Biên Lai Thu Tiền -->
+<div id="payment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-receipt text-medical-600"></i> Thanh Toán & Xuất Hóa Đơn
+            </h3>
+            <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs space-y-1">
+            <div class="flex justify-between"><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="pay-name">Hoàng Bảo Nam</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Mã hóa đơn:</span> <span class="font-mono font-bold text-medical-700" id="pay-code">HD260901</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Tổng chi phí KCB:</span> <span class="font-mono text-slate-700" id="pay-total">920.000 đ</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Bảo hiểm Y tế chi trả:</span> <span class="font-mono text-teal-700" id="pay-bhyt">- 480.000 đ</span></div>
+            <div class="flex justify-between pt-1 border-t border-slate-200 text-sm">
+                <span class="font-bold text-slate-900">Số tiền người bệnh thực trả:</span>
+                <span class="font-black text-rose-600 font-mono" id="pay-final">440.000 đ</span>
+            </div>
+        </div>
+
+        <!-- Mã VietQR thanh toán tự động -->
+        <div class="text-center p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+            <span class="text-[11px] font-bold text-slate-600 block">Quét mã VietQR chuyển khoản nhanh</span>
+            <div class="w-40 h-40 mx-auto bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 overflow-hidden">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=H2T_CARE_PAYMENT_440000" alt="VietQR" class="w-full h-full object-contain">
+            </div>
+            <span class="text-[10px] text-slate-400 block font-mono">Tự động đối soát giao dịch qua STK 1903686868</span>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" onclick="closePaymentModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+                Đóng
+            </button>
+            <button type="button" onclick="confirmPaymentSuccess()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                <i class="fa-solid fa-check"></i> Xác Nhận Đã Thu Tiền & In
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let invoices = [
+        { id: 1, ma_hd: "HD260901", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", tong: 920000, bhyt: 480000, thuc_thu: 440000, khoan_muc: "Khám Nội (150k), Nội soi dạ dày (650k), Đơn thuốc (120k)", phuong_thuc: "Chuyển khoản QR", status: "paid" },
+        { id: 2, ma_hd: "HD260902", patient_id: 2, benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", tong: 420000, bhyt: 220000, thuc_thu: 200000, khoan_muc: "Khám TMH (150k), Nội soi mũi (180k), Thuốc (90k)", phuong_thuc: "Tiền mặt", status: "paid" },
+        { id: 3, ma_hd: "HD260903", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", tong: 780000, bhyt: 350000, thuc_thu: 430000, khoan_muc: "Khám Tim mạch (150k), ECG (80k), Mỡ máu (250k), Thuốc (300k)", phuong_thuc: "Chuyển khoản QR", status: "pending" },
+        { id: 4, ma_hd: "HD260904", patient_id: 4, benh_nhan: "Phạm Thảo My", ma_bn: "BN2609004", tong: 560000, bhyt: 450000, thuc_thu: 110000, khoan_muc: "Khám Nhi (150k), Thuốc xịt hen phế quản (410k)", phuong_thuc: "Tiền mặt", status: "paid" },
+        { id: 5, ma_hd: "HD260905", patient_id: 5, benh_nhan: "Đinh Trọng Thắng", ma_bn: "BN2609005", tong: 650000, bhyt: 0, thuc_thu: 650000, khoan_muc: "Khám Nội tiết (150k), Glucose máu (80k), Thuốc tiểu đường (420k)", phuong_thuc: "Thẻ POS", status: "paid" }
+    ];
+
+    let activeInvoiceId = null;
+
+    function renderInvoices(dataList) {
+        const tbody = document.getElementById('invoice-table-body');
+        tbody.innerHTML = '';
+
+        if (!dataList || dataList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">Không tìm thấy hóa đơn phù hợp</td></tr>`;
+            return;
+        }
+
+        dataList.forEach(inv => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            const statusBadge = inv.status === 'paid'
+                ? '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã thanh toán</span>'
+                : '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ thu tiền</span>';
+
+            tr.innerHTML = `
+                <td class="py-3.5 px-4 font-mono font-bold text-medical-700">${inv.ma_hd}</td>
+                <td class="py-3.5 px-4">
+                    <a href="/admin/patients/${inv.patient_id}" class="font-bold text-slate-900 hover:text-medical-700 transition-colors block">${inv.benh_nhan}</a>
+                    <span class="text-[10px] text-slate-400 font-mono">${inv.ma_bn}</span>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600 truncate max-w-[200px]" title="${inv.khoan_muc}">
+                    ${inv.khoan_muc}
+                </td>
+                <td class="py-3.5 px-4 text-right font-mono font-semibold text-slate-700">
+                    ${inv.tong.toLocaleString()} đ
+                </td>
+                <td class="py-3.5 px-4 text-right font-mono text-teal-700">
+                    ${inv.bhyt > 0 ? '-' + inv.bhyt.toLocaleString() + ' đ' : '0 đ'}
+                </td>
+                <td class="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
+                    ${inv.thuc_thu.toLocaleString()} đ
+                </td>
+                <td class="py-3.5 px-4 text-slate-700">${inv.phuong_thuc}</td>
+                <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+                <td class="py-3.5 px-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button type="button" onclick="openPaymentModal(${inv.id})" class="px-2.5 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs transition-colors" title="Thanh toán / In hóa đơn">
+                            <i class="fa-solid fa-receipt mr-1"></i> Thu Tiền
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterInvoices() {
+        const q = document.getElementById('search-invoice').value.toLowerCase().trim();
+        const p = document.getElementById('filter-invoice-payment').value;
+        const s = document.getElementById('filter-invoice-status').value;
+
+        const filtered = invoices.filter(inv => {
+            const matchQ = !q || inv.ma_hd.toLowerCase().includes(q) || inv.benh_nhan.toLowerCase().includes(q) || inv.ma_bn.toLowerCase().includes(q);
+            const matchP = !p || inv.phuong_thuc === p;
+            const matchS = !s || inv.status === s;
+            return matchQ && matchP && matchS;
+        });
+
+        renderInvoices(filtered);
+    }
+
+    function openPaymentModal(id) {
+        const inv = invoices.find(x => x.id === id);
+        if (!inv) return;
+        activeInvoiceId = id;
+
+        document.getElementById('pay-name').innerText = inv.benh_nhan;
+        document.getElementById('pay-code').innerText = inv.ma_hd;
+        document.getElementById('pay-total').innerText = `${inv.tong.toLocaleString()} đ`;
+        document.getElementById('pay-bhyt').innerText = inv.bhyt > 0 ? `-${inv.bhyt.toLocaleString()} đ` : '0 đ';
+        document.getElementById('pay-final').innerText = `${inv.thuc_thu.toLocaleString()} đ`;
+
+        document.getElementById('payment-modal').classList.remove('hidden');
+    }
+
+    function closePaymentModal() {
+        document.getElementById('payment-modal').classList.add('hidden');
+    }
+
+    function confirmPaymentSuccess() {
+        if (!activeInvoiceId) return;
+        const inv = invoices.find(x => x.id === activeInvoiceId);
+        if (inv) {
+            inv.status = 'paid';
+        }
+        closePaymentModal();
+        filterInvoices();
+        alert('Đã xác nhận thu viện phí thành công và xuất biên lai điện tử!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderInvoices(invoices);
+    });
+</script>
+{% endblock %}

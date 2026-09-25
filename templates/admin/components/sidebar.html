@@ -1,5 +1,5 @@
 <!-- SIDEBAR (Dành cho Admin / Bác sĩ - Tự Động Thò Thụt Hoàn Toàn & Fade-in Chữ Không Co Méo) -->
-<aside class="sidebar-auto-expand bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex shrink-0 shadow-xl z-30 select-none">
+<aside id="app-sidebar" class="sidebar-auto-expand bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex shrink-0 shadow-xl z-30 select-none">
     <div>
         <!-- Logo & Brand (Bấm vào icon sẽ về trang home) -->
         <div class="flex items-center h-20 px-3 border-b border-slate-800 overflow-hidden">
@@ -9,70 +9,81 @@
                 </a>
             </div>
             
-            <div class="sidebar-text-fade ml-2 flex-1 overflow-hidden pr-2">
-                <a href="{{ url_for('home') }}" class="block hover:opacity-80 transition-opacity" title="Về trang chủ bệnh viện">
+            <div class="sidebar-text-fade ml-2 flex-1 flex items-center justify-between overflow-hidden pr-2">
+                <a href="{{ url_for('home') }}" class="overflow-hidden block hover:opacity-80 transition-opacity" title="Về trang chủ bệnh viện">
                     <h1 class="font-bold text-white text-base leading-tight truncate">H2T Care<span class="text-medical-400">+</span></h1>
                     <span class="text-[11px] text-slate-400 block truncate">Quản Trị Phòng Khám</span>
                 </a>
+                <!-- Nút Ghim (Cố định menu mở rộng) -->
+                <button id="sidebar-pin-btn" class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-medical-400 transition-all shrink-0 ml-2" title="Ghim cố định menu mở rộng">
+                    <i class="fa-solid fa-thumbtack text-xs"></i>
+                </button>
             </div>
         </div>
 
         <!-- Navigation Menu -->
         <nav class="px-2.5 py-4 space-y-1.5 overflow-hidden">
-            <a href="{{ url_for('admin_dashboard') }}" class="nav-item nav-item-active flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tổng quan">
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-item {% if active_page == 'admin_dashboard' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tổng quan">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-chart-pie nav-icon text-base"></i>
                 </div>
                 <span class="sidebar-text-fade text-sm font-medium">Tổng quan</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Lịch hẹn khám">
+            <a href="{{ url_for('admin_patients') }}" class="nav-item {% if active_page == 'admin_patients' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Quản lý Bệnh nhân">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-hospital-user nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Quản lý Bệnh nhân</span>
+            </a>
+
+            <a href="{{ url_for('admin_appointments') }}" class="nav-item {% if active_page == 'admin_appointments' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Lịch hẹn khám">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-calendar-check nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Lịch hẹn khám</span>
+                <span class="sidebar-text-fade text-sm font-medium">Lịch hẹn khám</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tiếp nhận / Lễ tân">
+            <a href="{{ url_for('admin_reception') }}" class="nav-item {% if active_page == 'admin_reception' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Tiếp nhận / Lễ tân">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-user-plus nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Tiếp nhận / Lễ tân</span>
+                <span class="sidebar-text-fade text-sm font-medium">Tiếp nhận / Lễ tân</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Khám bệnh (EMR)">
+            <a href="{{ url_for('admin_emr') }}" class="nav-item {% if active_page == 'admin_emr' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Khám bệnh (EMR)">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-stethoscope nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Khám bệnh (EMR)</span>
+                <span class="sidebar-text-fade text-sm font-medium">Khám bệnh (EMR)</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Cận lâm sàng">
+            <a href="{{ url_for('admin_lab') }}" class="nav-item {% if active_page == 'admin_lab' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Cận lâm sàng">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-flask-vial nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Cận lâm sàng</span>
+                <span class="sidebar-text-fade text-sm font-medium">Cận lâm sàng</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Kho dược & Nhà thuốc">
+            <a href="{{ url_for('admin_pharmacy') }}" class="nav-item {% if active_page == 'admin_pharmacy' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Kho dược & Nhà thuốc">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-pills nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Kho dược & Nhà thuốc</span>
+                <span class="sidebar-text-fade text-sm font-medium">Kho dược & Nhà thuốc</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Viện phí & Thu ngân">
+            <a href="{{ url_for('admin_billing') }}" class="nav-item {% if active_page == 'admin_billing' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Viện phí & Thu ngân">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-file-invoice-dollar nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Viện phí & Thu ngân</span>
+                <span class="sidebar-text-fade text-sm font-medium">Viện phí & Thu ngân</span>
             </a>
 
-            <a href="#" class="nav-item nav-item-dark-inactive flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Báo cáo thống kê">
+            <a href="{{ url_for('admin_reports') }}" class="nav-item {% if active_page == 'admin_reports' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Báo cáo thống kê">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-chart-line nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm">Báo cáo thống kê</span>
+                <span class="sidebar-text-fade text-sm font-medium">Báo cáo thống kê</span>
             </a>
 
             <div class="pt-3 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">

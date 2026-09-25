@@ -1,0 +1,368 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Bệnh Án Điện Tử (EMR) Bác Sĩ Lâm Sàng{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề phân hệ & Thông tin ca trực bác sĩ -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm print:hidden">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Khám bệnh EMR</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-stethoscope"></i>
+                </span>
+                Phân Hệ Bác Sĩ - Bệnh Án Điện Tử (EMR)
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Khám bệnh lâm sàng, ghi nhận sinh hiệu, chẩn đoán mã bệnh ICD-10, ra chỉ định cận lâm sàng và kê đơn thuốc điện tử.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=100" class="w-9 h-9 rounded-xl object-cover ring-1 ring-medical-500/20" alt="Avatar">
+            <div>
+                <h4 class="font-bold text-slate-900 leading-tight">BS. CKII. Trần Minh Quân</h4>
+                <span class="text-teal-700 font-semibold text-[11px]">Phòng 101 - Khoa Nội Tổng Quát</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Giao diện 2 cột: Cột trái (Hàng đợi phòng khám) & Cột phải (Không gian làm việc EMR) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- CỘT TRÁI: DANH SÁCH BỆNH NHÂN CHỜ KHÁM TẠI PHÒNG (4 COLS) -->
+        <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-users-line text-medical-600"></i> Hàng Đợi Chờ Khám (<span id="waiting-count">3</span>)
+                </h3>
+                <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Trực tiếp</span>
+            </div>
+
+            <!-- Danh sách bệnh nhân chờ -->
+            <div class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1" id="emr-queue-list">
+                <!-- Card BN 1 -->
+                <div onclick="selectEmrPatient(1)" id="patient-card-1" class="p-3.5 rounded-xl border border-medical-500 bg-medical-50/50 cursor-pointer transition-all space-y-2 hover:shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded-lg bg-medical-600 text-white font-mono font-bold text-xs">STT #018</span>
+                        <span class="text-[10px] text-slate-400 font-mono">08:15</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm">Hoàng Bảo Nam</h4>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609001 • Nam • 36T • BHYT</div>
+                    </div>
+                    <p class="text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-slate-100 truncate">
+                        Lý do: Đau tức vùng thượng vị, ợ chua sau ăn
+                    </p>
+                </div>
+
+                <!-- Card BN 2 -->
+                <div onclick="selectEmrPatient(3)" id="patient-card-3" class="p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-xs">STT #019</span>
+                        <span class="text-[10px] text-slate-400 font-mono">08:35</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm">Trần Văn Quyết</h4>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609003 • Nam • 41T • BHYT</div>
+                    </div>
+                    <p class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 truncate">
+                        Lý do: Huyết áp tại nhà tăng cao, nhức đầu
+                    </p>
+                </div>
+
+                <!-- Card BN 3 -->
+                <div onclick="selectEmrPatient(5)" id="patient-card-5" class="p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-xs">STT #020</span>
+                        <span class="text-[10px] text-slate-400 font-mono">09:00</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm">Đinh Trọng Thắng</h4>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609005 • Nam • 48T • Dịch vụ</div>
+                    </div>
+                    <p class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 truncate">
+                        Lý do: Tái khám tiểu đường type 2
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: KHÔNG GIAN BỆNH ÁN ĐIỆN TỬ CHI TIẾT (8 COLS) -->
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+            
+            <!-- Header tóm tắt bệnh nhân đang khám -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-700 flex items-center justify-center font-bold text-lg" id="current-patient-avatar">
+                        N
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-slate-900 text-base" id="current-patient-name">Hoàng Bảo Nam</h3>
+                            <span class="font-mono text-xs font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded" id="current-patient-code">BN2609001</span>
+                            <span class="text-xs text-slate-400" id="current-patient-meta">Nam • 36 tuổi</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                            <span>Nhóm máu: <strong class="text-rose-600" id="current-patient-blood">O+</strong></span>
+                            <span>BHYT: <strong class="text-teal-700 font-mono" id="current-patient-bhyt">GD4797931100001</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <a id="current-patient-dossier-btn" href="/admin/patients/1" target="_blank" 
+                       class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all" title="Mở trang hồ sơ 360">
+                        <i class="fa-solid fa-folder-open text-slate-500"></i>
+                        <span>Xem Hồ Sơ 360</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cảnh báo dị ứng nổi bật -->
+            <div id="allergy-warning-box" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-800">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                    <span>Tiền sử dị ứng: <strong id="current-patient-allergy">Không ghi nhận dị ứng</strong></span>
+                </div>
+                <span class="text-[10px] text-emerald-600 font-semibold">An toàn kê đơn</span>
+            </div>
+
+            <!-- Tab Navigation EMR -->
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 text-xs font-semibold overflow-x-auto">
+                <button type="button" onclick="switchEmrTab('tab-kham')" id="btn-tab-kham" class="px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-bold transition-all">
+                    1. Khám Lâm Sàng & ICD-10
+                </button>
+                <button type="button" onclick="switchEmrTab('tab-cls')" id="btn-tab-cls" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
+                    2. Chỉ Định Cận Lâm Sàng
+                </button>
+                <button type="button" onclick="switchEmrTab('tab-thuoc')" id="btn-tab-thuoc" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
+                    3. Đơn Thuốc Điện Tử
+                </button>
+            </div>
+
+            <!-- NỘI DUNG TAB 1: KHÁM LÂM SÀNG & SINH HIỆU & ICD-10 -->
+            <div id="tab-kham" class="space-y-4">
+                <!-- Chỉ số sinh hiệu đo trước khi vào phòng khám -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Chỉ số sinh hiệu ghi nhận</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <span class="text-slate-400 block text-[11px]">Huyết áp (mmHg)</span>
+                            <input type="text" value="120/80" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <span class="text-slate-400 block text-[11px]">Mạch (lần/phút)</span>
+                            <input type="text" value="76" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <span class="text-slate-400 block text-[11px]">Thân nhiệt (°C)</span>
+                            <input type="text" value="36.8" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                            <span class="text-slate-400 block text-[11px]">SpO2 (%)</span>
+                            <input type="text" value="99" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Triệu chứng & Quá trình bệnh lý</label>
+                        <textarea rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bệnh nhân đau tức thượng vị khoảng 1 tuần nay, ợ hơi, chướng bụng sau ăn. Không nôn, đại tiện bình thường.</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Thăm khám thực thể lâm sàng</label>
+                        <textarea rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bụng mềm, ấn đau tức nhẹ vùng thượng vị. Gan lách không sờ chạm, tim đều, phổi thông khí tốt không rale.</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Chẩn đoán xác định mã ICD-10 <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="text" value="K29.5 - Viêm dạ dày mạn tính, không xác định" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Lời dặn của bác sĩ điều trị</label>
+                        <input type="text" value="Ăn uống đúng bữa, hạn chế đồ cay nóng và rượu bia, tránh thức khuya." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- NỘI DUNG TAB 2: CHỈ ĐỊNH CẬN LÂM SÀNG -->
+            <div id="tab-cls" class="space-y-4 hidden text-xs">
+                <div class="p-3 bg-teal-50 border border-teal-100 rounded-xl text-teal-800 text-xs">
+                    Chọn các kỹ thuật cận lâm sàng cần gửi xuống phòng xét nghiệm hoặc chẩn đoán hình ảnh:
+                </div>
+
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                        <input type="checkbox" checked class="w-4 h-4 rounded text-medical-600 focus:ring-0">
+                        <div class="flex-1">
+                            <span class="font-bold text-slate-800 block">Nội soi thực quản - dạ dày - tá tràng ống mềm</span>
+                            <span class="text-[11px] text-slate-400">Khoa Chẩn Đoán Hình Ảnh • Phòng 105</span>
+                        </div>
+                        <span class="font-mono font-semibold text-slate-700">650.000 đ</span>
+                    </label>
+
+                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                        <input type="checkbox" checked class="w-4 h-4 rounded text-medical-600 focus:ring-0">
+                        <div class="flex-1">
+                            <span class="font-bold text-slate-800 block">Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)</span>
+                            <span class="text-[11px] text-slate-400">Khoa Xét Nghiệm • Phòng Lab 202</span>
+                        </div>
+                        <span class="font-mono font-semibold text-slate-700">120.000 đ</span>
+                    </label>
+
+                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded text-medical-600 focus:ring-0">
+                        <div class="flex-1">
+                            <span class="font-bold text-slate-800 block">Siêu âm ổ bụng tổng quát màu Doppler</span>
+                            <span class="text-[11px] text-slate-400">Khoa Thăm Dò Chức Năng • Phòng 106</span>
+                        </div>
+                        <span class="font-mono font-semibold text-slate-700">180.000 đ</span>
+                    </label>
+                </div>
+
+                <div class="flex justify-end">
+                    <a href="{{ url_for('admin_lab') }}" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-paper-plane"></i> Gửi Y Lệnh Cận Lâm Sàng
+                    </a>
+                </div>
+            </div>
+
+            <!-- NỘI DUNG TAB 3: ĐƠN THUỐC ĐIỆN TỬ -->
+            <div id="tab-thuoc" class="space-y-4 hidden text-xs">
+                <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                            <tr>
+                                <th class="py-2.5 px-3">Tên Thuốc / Biệt Dược</th>
+                                <th class="py-2.5 px-3">Số Lượng</th>
+                                <th class="py-2.5 px-3">Cách Dùng</th>
+                                <th class="py-2.5 px-3 text-center">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="prescription-body">
+                            <tr>
+                                <td class="py-2.5 px-3">
+                                    <strong class="text-slate-800">Esomeprazole 40mg</strong>
+                                    <span class="block text-[10px] text-slate-400">Viên nang</span>
+                                </td>
+                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">28 Viên</td>
+                                <td class="py-2.5 px-3 text-slate-600">Uống 1 viên trước ăn sáng 30 phút</td>
+                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer"><i class="fa-solid fa-trash"></i></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2.5 px-3">
+                                    <strong class="text-slate-800">Phosphalugel 20g</strong>
+                                    <span class="block text-[10px] text-slate-400">Gói hỗn dịch</span>
+                                </td>
+                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">20 Gói</td>
+                                <td class="py-2.5 px-3 text-slate-600">Uống 1 gói khi đau hoặc sau ăn 2 giờ</td>
+                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer"><i class="fa-solid fa-trash"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <a href="{{ url_for('admin_pharmacy') }}" class="text-medical-600 font-semibold hover:underline">
+                        <i class="fa-solid fa-pills mr-1"></i> Tra cứu tồn kho thuốc
+                    </a>
+                    <button type="button" onclick="alert('Đã thêm thuốc mới vào đơn')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">
+                        + Thêm Thuốc
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Action Bar -->
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="text-xs text-slate-400">
+                    Trạng thái: <span class="text-amber-600 font-bold">Đang trong phiên khám</span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> In Đơn & Phiếu
+                    </button>
+                    <button type="button" onclick="completeExamination()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-check"></i> Hoàn Tất Phiên Khám
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const samplePatients = {
+        1: { name: "Hoàng Bảo Nam", code: "BN2609001", age: "36 tuổi", gender: "Nam", blood: "O+", bhyt: "GD4797931100001", allergy: "Không có", reason: "Đau tức vùng thượng vị, ợ chua" },
+        3: { name: "Trần Văn Quyết", code: "BN2609003", age: "41 tuổi", gender: "Nam", blood: "B+", bhyt: "GD4797931100003", allergy: "Không có", reason: "Huyết áp tại nhà tăng cao, nhức đầu" },
+        5: { name: "Đinh Trọng Thắng", code: "BN2609005", age: "48 tuổi", gender: "Nam", blood: "O-", bhyt: "DN4797931100005", allergy: "Không có", reason: "Tái khám tiểu đường type 2" }
+    };
+
+    function selectEmrPatient(id) {
+        const p = samplePatients[id];
+        if (!p) return;
+
+        document.getElementById('current-patient-name').innerText = p.name;
+        document.getElementById('current-patient-avatar').innerText = p.name.charAt(0);
+        document.getElementById('current-patient-code').innerText = p.code;
+        document.getElementById('current-patient-meta').innerText = `${p.gender} • ${p.age}`;
+        document.getElementById('current-patient-blood').innerText = p.blood;
+        document.getElementById('current-patient-bhyt').innerText = p.bhyt;
+        document.getElementById('current-patient-allergy').innerText = p.allergy;
+        document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
+
+        // Reset highlight card
+        [1, 3, 5].forEach(k => {
+            const card = document.getElementById(`patient-card-${k}`);
+            if (card) {
+                if (k === id) {
+                    card.className = "p-3.5 rounded-xl border border-medical-500 bg-medical-50/50 cursor-pointer transition-all space-y-2 hover:shadow-sm";
+                } else {
+                    card.className = "p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2";
+                }
+            }
+        });
+    }
+
+    function switchEmrTab(tabId) {
+        ['tab-kham', 'tab-cls', 'tab-thuoc'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        ['btn-tab-kham', 'btn-tab-cls', 'btn-tab-thuoc'].forEach(id => {
+            const btn = document.getElementById(id);
+            btn.className = "px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all";
+        });
+
+        document.getElementById(tabId).classList.remove('hidden');
+        const activeBtn = document.getElementById(`btn-${tabId}`);
+        activeBtn.className = "px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-bold transition-all";
+    }
+
+    function completeExamination() {
+        alert('Đã hoàn tất phiên khám cho bệnh nhân! Dữ liệu đã lưu vào Bệnh Án Điện Tử (EMR) và chuyển đơn thuốc sang Nhà Thuốc.');
+    }
+</script>
+{% endblock %}

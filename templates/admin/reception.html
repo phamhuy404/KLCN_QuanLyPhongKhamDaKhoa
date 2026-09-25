@@ -1,0 +1,401 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Tiếp Nhận & Lễ Tân Phòng Khám{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Tiếp nhận & Lễ tân</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-user-plus"></i>
+                </span>
+                Quầy Tiếp Nhận, Phát Số & Phân Luồng Khám
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Đăng ký khám mới, quét thẻ BHYT tự động, phân luồng phòng khám chuyên khoa và cấp số thứ tự theo thời gian thực.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Hệ thống tiếp nhận đang hoạt động
+            </span>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê lưu lượng tiếp nhận trong ngày -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-ticket"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Tổng số đã phát</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">124 <span class="text-xs font-normal text-slate-400">số</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đang chờ gọi số</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18 <span class="text-xs font-normal text-amber-600 font-semibold">người</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đang trong phòng khám</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">12 <span class="text-xs font-normal text-slate-400">người</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-check-double"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đã hoàn tất</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">94 <span class="text-xs font-normal text-slate-400">người</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Khu vực thao tác tiếp nhận 1 chạm (Quick Intake) -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Tiếp Nhận Nhanh & Cấp Số Thứ Tự
+        </h3>
+
+        <form id="quick-reception-form" onsubmit="handleQuickIntake(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end text-xs">
+            <div class="sm:col-span-4">
+                <label class="block font-semibold text-slate-700 mb-1">Bệnh nhân <span class="text-rose-500">*</span></label>
+                <select id="reception-patient-select" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
+                    <option value="">-- Chọn hoặc tìm kiếm bệnh nhân --</option>
+                    {% for p in patients %}
+                    <option value="{{ p.id }}">{{ p.ho_ten }} - {{ p.ma_benh_nhan }} ({{ p.sdt }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label class="block font-semibold text-slate-700 mb-1">Phòng khám chuyên khoa <span class="text-rose-500">*</span></label>
+                <select id="reception-room-select" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
+                    <option value="Phòng 101 - Nội Tổng Quát">Phòng 101 - Nội Tổng Quát</option>
+                    <option value="Phòng 102 - Tim Mạch">Phòng 102 - Tim Mạch</option>
+                    <option value="Phòng 201 - Tai Mũi Họng">Phòng 201 - Tai Mũi Họng</option>
+                    <option value="Phòng 301 - Nhi Khoa">Phòng 301 - Nhi Khoa</option>
+                    <option value="Phòng 104 - Nội Tiết">Phòng 104 - Nội Tiết</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <label class="block font-semibold text-slate-700 mb-1">Hình thức khám</label>
+                <select id="reception-type-select" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 font-medium">
+                    <option value="BHYT">Bảo Hiểm Y Tế (Khấu trừ)</option>
+                    <option value="Dịch vụ">Khám Dịch Vụ / Tự Nguyện</option>
+                    <option value="Ưu tiên">Ưu tiên (Người già / Trẻ nhỏ)</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-2">
+                <button type="submit" class="w-full py-2.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl text-xs shadow-md shadow-medical-600/20 transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-print"></i> Cấp Số & In Phiếu
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4. Bảng phát số thứ tự hàng đợi theo từng phòng khám (Live Queue Board) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Phòng 101 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div>
+                    <h4 class="font-bold text-xs text-slate-800">Phòng 101 - Nội Khoa</h4>
+                    <span class="text-[11px] text-slate-400">BS. Trần Minh Quân</span>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="text-center py-2 bg-medical-50 rounded-xl border border-medical-100">
+                <span class="text-[11px] text-medical-600 block font-semibold">Đang khám</span>
+                <span class="text-2xl font-black text-medical-700 font-mono">STT 018</span>
+            </div>
+            <div class="text-xs text-slate-500 space-y-1">
+                <span class="block text-[11px] font-semibold text-slate-400">Chuẩn bị vào:</span>
+                <div class="flex items-center gap-1 font-mono font-bold text-slate-700">
+                    <span class="px-2 py-0.5 rounded bg-slate-100">019</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100">020</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100">021</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phòng 102 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div>
+                    <h4 class="font-bold text-xs text-slate-800">Phòng 102 - Tim Mạch</h4>
+                    <span class="text-[11px] text-slate-400">BS. Nguyễn Văn Hậu</span>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="text-center py-2 bg-blue-50 rounded-xl border border-blue-100">
+                <span class="text-[11px] text-blue-600 block font-semibold">Đang khám</span>
+                <span class="text-2xl font-black text-blue-700 font-mono">STT 012</span>
+            </div>
+            <div class="text-xs text-slate-500 space-y-1">
+                <span class="block text-[11px] font-semibold text-slate-400">Chuẩn bị vào:</span>
+                <div class="flex items-center gap-1 font-mono font-bold text-slate-700">
+                    <span class="px-2 py-0.5 rounded bg-slate-100">013</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100">014</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phòng 201 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div>
+                    <h4 class="font-bold text-xs text-slate-800">Phòng 201 - Tai Mũi Họng</h4>
+                    <span class="text-[11px] text-slate-400">BS. Phan Thu Trang</span>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="text-center py-2 bg-purple-50 rounded-xl border border-purple-100">
+                <span class="text-[11px] text-purple-600 block font-semibold">Đang khám</span>
+                <span class="text-2xl font-black text-purple-700 font-mono">STT 009</span>
+            </div>
+            <div class="text-xs text-slate-500 space-y-1">
+                <span class="block text-[11px] font-semibold text-slate-400">Chuẩn bị vào:</span>
+                <div class="flex items-center gap-1 font-mono font-bold text-slate-700">
+                    <span class="px-2 py-0.5 rounded bg-slate-100">010</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100">011</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phòng 301 -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div>
+                    <h4 class="font-bold text-xs text-slate-800">Phòng 301 - Nhi Khoa</h4>
+                    <span class="text-[11px] text-slate-400">BS. Đỗ Hoàng Yến</span>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="text-center py-2 bg-amber-50 rounded-xl border border-amber-100">
+                <span class="text-[11px] text-amber-600 block font-semibold">Đang khám</span>
+                <span class="text-2xl font-black text-amber-700 font-mono">STT 015</span>
+            </div>
+            <div class="text-xs text-slate-500 space-y-1">
+                <span class="block text-[11px] font-semibold text-slate-400">Chuẩn bị vào:</span>
+                <div class="flex items-center gap-1 font-mono font-bold text-slate-700">
+                    <span class="px-2 py-0.5 rounded bg-slate-100">016</span>
+                    <span class="px-2 py-0.5 rounded bg-slate-100">017</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Bảng danh sách bệnh nhân tiếp nhận hôm nay -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider">
+                Danh Sách Bệnh Nhân Tiếp Nhận Trong Ngày (Hôm Nay)
+            </h4>
+            <span class="text-xs text-slate-400">Cập nhật tự động</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3 px-4">Số TT</th>
+                        <th class="py-3 px-4">Mã BN</th>
+                        <th class="py-3 px-4">Họ & Tên Bệnh Nhân</th>
+                        <th class="py-3 px-4">Giờ Lấy Số</th>
+                        <th class="py-3 px-4">Phòng Khám Phân Luồng</th>
+                        <th class="py-3 px-4">Loại Khám</th>
+                        <th class="py-3 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="reception-table-body" class="divide-y divide-slate-100">
+                    <!-- Dữ liệu JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal hiển thị Phiếu Khám & Số Thứ Tự để In -->
+<div id="ticket-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl border border-slate-100">
+        <div class="border-b border-dashed border-slate-200 pb-3">
+            <h3 class="font-bold text-slate-900 text-base">PHÒNG KHÁM ĐA KHOA H2T CARE</h3>
+            <p class="text-[11px] text-slate-400">Phiếu Tiếp Nhận & Thứ Tự Khám</p>
+        </div>
+
+        <div>
+            <span class="text-xs text-slate-400 font-semibold">SỐ THỨ TỰ CỦA BẠN</span>
+            <div class="text-5xl font-black text-medical-600 font-mono mt-1" id="ticket-stt">025</div>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl text-left text-xs space-y-1 border border-slate-100">
+            <div><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="ticket-name">Hoàng Bảo Nam</strong></div>
+            <div><span class="text-slate-400">Mã BN:</span> <span class="font-mono font-bold" id="ticket-code">BN2609001</span></div>
+            <div><span class="text-slate-400">Phòng khám:</span> <span class="text-teal-700 font-bold" id="ticket-room">Phòng 101 - Nội Tổng Quát</span></div>
+            <div><span class="text-slate-400">Thời gian cấp:</span> <span class="text-slate-600" id="ticket-time">09:45 25/09/2026</span></div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 italic">Vui lòng ngồi tại sảnh chờ, chú ý lắng nghe loa gọi số hoặc xem màn hình hiển thị.</p>
+
+        <div class="flex items-center justify-center gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onclick="closeTicketModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+                Đóng
+            </button>
+            <button type="button" onclick="window.print()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                <i class="fa-solid fa-print"></i> In Phiếu
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let receptionQueue = [
+        { stt: "018", ma_bn: "BN2609001", ho_ten: "Hoàng Bảo Nam", id: 1, gio: "08:15", phong: "Phòng 101 - Nội Tổng Quát", loai: "BHYT", status: "examining" },
+        { stt: "019", ma_bn: "BN2609002", ho_ten: "Lê Ngọc Trâm", id: 2, gio: "08:25", phong: "Phòng 201 - Tai Mũi Họng", loai: "BHYT", status: "waiting" },
+        { stt: "020", ma_bn: "BN2609003", ho_ten: "Trần Văn Quyết", id: 3, gio: "08:35", phong: "Phòng 102 - Tim Mạch", loai: "BHYT", status: "waiting" },
+        { stt: "021", ma_bn: "BN2609004", ho_ten: "Phạm Thảo My", id: 4, gio: "08:45", phong: "Phòng 301 - Nhi Khoa", loai: "BHYT", status: "waiting" },
+        { stt: "022", ma_bn: "BN2609005", ho_ten: "Đinh Trọng Thắng", id: 5, gio: "09:00", phong: "Phòng 101 - Nội Tổng Quát", loai: "Dịch vụ", status: "waiting" },
+        { stt: "017", ma_bn: "BN2609006", ho_ten: "Võ Thanh Trúc", id: 6, gio: "08:05", phong: "Phòng 101 - Nội Tổng Quát", loai: "BHYT", status: "completed" }
+    ];
+
+    function renderQueue() {
+        const tbody = document.getElementById('reception-table-body');
+        tbody.innerHTML = '';
+
+        receptionQueue.forEach(q => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            let statusBadge = '';
+            if (q.status === 'waiting') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Đang chờ gọi</span>';
+            } else if (q.status === 'examining') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Đang khám</span>';
+            } else if (q.status === 'completed') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã khám xong</span>';
+            }
+
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-mono font-bold text-sm text-slate-800">
+                    #${q.stt}
+                </td>
+                <td class="py-3 px-4 font-mono font-bold text-medical-700">
+                    <a href="/admin/patients/${q.id}" class="hover:underline">${q.ma_bn}</a>
+                </td>
+                <td class="py-3 px-4">
+                    <a href="/admin/patients/${q.id}" class="font-bold text-slate-900 hover:text-medical-700 transition-colors block">${q.ho_ten}</a>
+                </td>
+                <td class="py-3 px-4 text-slate-500 font-mono">${q.gio}</td>
+                <td class="py-3 px-4">
+                    <span class="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-lg text-[11px]">${q.phong}</span>
+                </td>
+                <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${q.loai === 'BHYT' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${q.loai}</span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                    ${statusBadge}
+                </td>
+                <td class="py-3 px-4 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button type="button" onclick="callPatientNumber('${q.stt}', '${q.ho_ten}')" class="px-2.5 py-1 bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold rounded-lg text-xs" title="Gọi số thứ tự">
+                            <i class="fa-solid fa-bullhorn mr-1"></i> Gọi Số
+                        </button>
+                        <a href="/admin/emr?patient_id=${q.id}" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Khám bệnh EMR">
+                            <i class="fa-solid fa-stethoscope text-xs"></i>
+                        </a>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function handleQuickIntake(e) {
+        e.preventDefault();
+        const pSelect = document.getElementById('reception-patient-select');
+        const pId = pSelect.value;
+        const pName = pSelect.options[pSelect.selectedIndex].text.split(' - ')[0];
+        const pCode = pSelect.options[pSelect.selectedIndex].text.split(' - ')[1].split(' ')[0];
+        const room = document.getElementById('reception-room-select').value;
+        const type = document.getElementById('reception-type-select').value;
+
+        const nextNum = receptionQueue.length + 19;
+        const stt = String(nextNum).padStart(3, '0');
+
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        receptionQueue.unshift({
+            stt: stt,
+            ma_bn: pCode,
+            ho_ten: pName,
+            id: parseInt(pId),
+            gio: timeStr,
+            phong: room,
+            loai: type,
+            status: "waiting"
+        });
+
+        renderQueue();
+
+        // Hiển thị modal in vé
+        document.getElementById('ticket-stt').innerText = stt;
+        document.getElementById('ticket-name').innerText = pName;
+        document.getElementById('ticket-code').innerText = pCode;
+        document.getElementById('ticket-room').innerText = room;
+        document.getElementById('ticket-time').innerText = `${timeStr} 25/09/2026`;
+        document.getElementById('ticket-modal').classList.remove('hidden');
+
+        e.target.reset();
+    }
+
+    function closeTicketModal() {
+        document.getElementById('ticket-modal').classList.add('hidden');
+    }
+
+    function callPatientNumber(stt, name) {
+        alert(`Đang phát loa gọi số: Xin mời bệnh nhân #${stt} - ${name} vào phòng khám!`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderQueue();
+    });
+</script>
+{% endblock %}

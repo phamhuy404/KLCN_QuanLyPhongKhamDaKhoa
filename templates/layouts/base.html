@@ -61,7 +61,11 @@
 
             <!-- Footer Hệ thống -->
             {% block footer %}
-                {% include "layouts/footer.html" %}
+                {% if request.path.startswith('/admin') %}
+                    {% include "admin/components/footer.html" %}
+                {% else %}
+                    {% include "layouts/footer.html" %}
+                {% endif %}
             {% endblock %}
         </div>
     </div>

@@ -1,0 +1,301 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Trung Tâm Xét Nghiệm & Cận Lâm Sàng{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Cận lâm sàng</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-flask-vial"></i>
+                </span>
+                Trung Tâm Xét Nghiệm & Chẩn Đoán Hình Ảnh
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Quản lý các phiếu chỉ định xét nghiệm huyết học, sinh hóa, X-quang kỹ thuật số, siêu âm Doppler và nội soi.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 text-xs font-bold border border-teal-100">
+                <i class="fa-solid fa-microscope text-teal-600"></i> Phòng Lab & Máy chụp PACS sẵn sàng
+            </span>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê nhanh tiến độ cận lâm sàng -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Chờ lấy mẫu / Thực hiện</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18 <span class="text-xs font-normal text-amber-600 font-semibold">ca</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-spinner"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đang xử lý / Phân tích</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">7 <span class="text-xs font-normal text-blue-600 font-semibold">ca</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đã có kết quả</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">42 <span class="text-xs font-normal text-emerald-600 font-semibold">ca</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Chỉ định khẩn cấp (Cấp cứu)</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-rose-600 font-semibold">ca</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Bộ lọc tìm kiếm phiếu chỉ định -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            
+            <div class="sm:col-span-5 relative">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-lab" onkeyup="filterLabOrders()" 
+                       placeholder="Tìm theo Mã CĐ, Tên bệnh nhân, Mã BN, Kỹ thuật..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
+            </div>
+
+            <div class="sm:col-span-4">
+                <select id="filter-lab-type" onchange="filterLabOrders()" 
+                        class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+                    <option value="">Tất cả Phân loại Cận Lâm Sàng</option>
+                    <option value="Huyết học">Xét nghiệm Huyết học (CBC)</option>
+                    <option value="Sinh hóa">Xét nghiệm Sinh hóa</option>
+                    <option value="Chẩn đoán hình ảnh">Chẩn đoán hình ảnh (Nội soi / Siêu âm / X-Quang)</option>
+                    <option value="Thăm dò chức năng">Thăm dò chức năng (Điện tim ECG)</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-3">
+                <select id="filter-lab-status" onchange="filterLabOrders()" 
+                        class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all font-medium">
+                    <option value="">Tất cả Trạng thái</option>
+                    <option value="waiting">Chờ lấy mẫu / Thực hiện</option>
+                    <option value="processing">Đang phân tích</option>
+                    <option value="completed">Đã có kết quả</option>
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. Bảng danh sách phiếu chỉ định cận lâm sàng -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4">Mã Chỉ Định</th>
+                        <th class="py-3.5 px-4">Bệnh Nhân</th>
+                        <th class="py-3.5 px-4">Kỹ Thuật / Dịch Vụ Chỉ Định</th>
+                        <th class="py-3.5 px-4">Phân Loại</th>
+                        <th class="py-3.5 px-4">Bác Sĩ Chỉ Định</th>
+                        <th class="py-3.5 px-4">Thời Gian</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody id="lab-table-body" class="divide-y divide-slate-100">
+                    <!-- JS render -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Nhập / Trả Kết Quả Cận Lâm Sàng -->
+<div id="result-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-vertical text-medical-600"></i> Nhập & Trả Kết Quả Cận Lâm Sàng
+            </h3>
+            <button onclick="closeResultModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+            <div><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="modal-patient-name">Hoàng Bảo Nam</strong> (<span id="modal-patient-code" class="font-mono font-bold">BN2609001</span>)</div>
+            <div><span class="text-slate-400">Dịch vụ:</span> <strong class="text-teal-700" id="modal-service-name">Nội soi dạ dày tá tràng</strong></div>
+        </div>
+
+        <div class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mô tả chi tiết / Diễn giải hình ảnh</label>
+                <textarea id="modal-result-detail" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Niêm mạc hang vị phù nề, sung huyết nhẹ, không thấy ổ loét hay tổn thương khu trú. Test Clo (HP): Âm tính (-).</textarea>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Kết luận chẩn đoán hình ảnh / xét nghiệm</label>
+                <input type="text" id="modal-conclusion" value="Viêm dạ dày mạn tính thể sung huyết nhẹ" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Bác sĩ / Kỹ thuật viên thực hiện</label>
+                <input type="text" id="modal-technician" value="BS. CKI. Nguyễn Trọng Nghĩa" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" onclick="closeResultModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
+                Đóng
+            </button>
+            <button type="button" onclick="saveLabResult()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                <i class="fa-solid fa-signature"></i> Ký Số & Trả Kết Quả Về EMR
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let labOrders = [
+        { id: 1, ma_cd: "CLS260901", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", dich_vu: "Nội soi thực quản - dạ dày - tá tràng ống mềm", loai: "Chẩn đoán hình ảnh", bac_si: "BS. CKII. Trần Minh Quân", gio: "08:35", status: "completed", ket_qua: "Niêm mạc hang vị phù nề, HP (-)" },
+        { id: 2, ma_cd: "CLS260902", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", dich_vu: "Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)", loai: "Huyết học", bac_si: "BS. CKII. Trần Minh Quân", gio: "08:35", status: "completed", ket_qua: "Các chỉ số trong giới hạn chuẩn" },
+        { id: 3, ma_cd: "CLS260903", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", dich_vu: "Đo điện tim thường (ECG 12 chuyển đạo)", loai: "Thăm dò chức năng", bac_si: "BS. CKII. Trần Minh Quân", gio: "09:10", status: "completed", ket_qua: "Nhịp xoang đều 80ck/p" },
+        { id: 4, ma_cd: "CLS260904", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", dich_vu: "Sinh hóa máu: Bộ mỡ máu (Lipid panel)", loai: "Sinh hóa", bac_si: "BS. CKII. Trần Minh Quân", gio: "09:10", status: "processing", ket_qua: "Đang chạy máy ly tâm" },
+        { id: 5, ma_cd: "CLS260905", patient_id: 2, benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", dich_vu: "Nội soi Tai Mũi Họng bằng optic mềm", loai: "Chẩn đoán hình ảnh", bac_si: "BS. CKI. Phan Thu Trang", gio: "09:30", status: "waiting", ket_qua: "Chờ bệnh nhân vào phòng soi" }
+    ];
+
+    let activeLabOrderId = null;
+
+    function renderLabOrders(dataList) {
+        const tbody = document.getElementById('lab-table-body');
+        tbody.innerHTML = '';
+
+        if (!dataList || dataList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">Không tìm thấy phiếu chỉ định phù hợp</td></tr>`;
+            return;
+        }
+
+        dataList.forEach(order => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            let statusBadge = '';
+            if (order.status === 'waiting') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ thực hiện</span>';
+            } else if (order.status === 'processing') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Đang phân tích</span>';
+            } else if (order.status === 'completed') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã có kết quả</span>';
+            }
+
+            tr.innerHTML = `
+                <td class="py-3.5 px-4 font-mono font-bold text-medical-700">${order.ma_cd}</td>
+                <td class="py-3.5 px-4">
+                    <a href="/admin/patients/${order.patient_id}" class="font-bold text-slate-900 hover:text-medical-700 transition-colors block">
+                        ${order.benh_nhan}
+                    </a>
+                    <span class="text-[10px] text-slate-400 font-mono">${order.ma_bn}</span>
+                </td>
+                <td class="py-3.5 px-4 font-semibold text-slate-800">
+                    ${order.dich_vu}
+                    ${order.ket_qua ? `<span class="block text-[11px] text-teal-700 mt-0.5">${order.ket_qua}</span>` : ''}
+                </td>
+                <td class="py-3.5 px-4">
+                    <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium">${order.loai}</span>
+                </td>
+                <td class="py-3.5 px-4 text-slate-600">${order.bac_si}</td>
+                <td class="py-3.5 px-4 text-slate-500 font-mono">${order.gio}</td>
+                <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+                <td class="py-3.5 px-4 text-center">
+                    <button type="button" onclick="openResultModal(${order.id})" 
+                            class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs transition-colors" title="Nhập kết quả">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> Kết Quả
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterLabOrders() {
+        const query = document.getElementById('search-lab').value.toLowerCase().trim();
+        const typeFilter = document.getElementById('filter-lab-type').value;
+        const statusFilter = document.getElementById('filter-lab-status').value;
+
+        const filtered = labOrders.filter(o => {
+            const matchQ = !query || o.ma_cd.toLowerCase().includes(query) || o.benh_nhan.toLowerCase().includes(query) || o.dich_vu.toLowerCase().includes(query);
+            const matchT = !typeFilter || o.loai === typeFilter;
+            const matchS = !statusFilter || o.status === statusFilter;
+            return matchQ && matchT && matchS;
+        });
+
+        renderLabOrders(filtered);
+    }
+
+    function openResultModal(id) {
+        const o = labOrders.find(x => x.id === id);
+        if (!o) return;
+        activeLabOrderId = id;
+
+        document.getElementById('modal-patient-name').innerText = o.benh_nhan;
+        document.getElementById('modal-patient-code').innerText = o.ma_bn;
+        document.getElementById('modal-service-name').innerText = o.dich_vu;
+
+        document.getElementById('result-modal').classList.remove('hidden');
+    }
+
+    function closeResultModal() {
+        document.getElementById('result-modal').classList.add('hidden');
+    }
+
+    function saveLabResult() {
+        if (!activeLabOrderId) return;
+        const o = labOrders.find(x => x.id === activeLabOrderId);
+        if (o) {
+            o.status = 'completed';
+            o.ket_qua = document.getElementById('modal-conclusion').value;
+        }
+        closeResultModal();
+        filterLabOrders();
+        alert('Đã ký số và trả kết quả cận lâm sàng về hồ sơ EMR bác sĩ!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderLabOrders(labOrders);
+    });
+</script>
+{% endblock %}

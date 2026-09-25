@@ -1,0 +1,395 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quản Lý Kho Dược & Nhà Thuốc{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Kho dược & Nhà thuốc</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-pills"></i>
+                </span>
+                Quản Lý Kho Dược & Quầy Phát Thuốc
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Kiểm soát tồn kho dược phẩm, hạn sử dụng, phát thuốc theo đơn bác sĩ và quản lý xuất nhập tồn chuẩn GPP.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <button type="button" onclick="openAddMedicineModal()" 
+                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Nhập Kho / Thêm Thuốc</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê nhanh kho dược -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Tổng danh mục thuốc</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">128 <span class="text-xs font-normal text-slate-400">loại</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Sắp hết hàng (&lt; định mức)</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">4 <span class="text-xs font-normal text-amber-600 font-semibold">loại</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Cận hạn dùng (&lt; 3 tháng)</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-rose-600 font-semibold">loại</span></h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-prescription-bottle-medical"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đơn thuốc chờ phát hôm nay</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">14 <span class="text-xs font-normal text-teal-600 font-semibold">đơn</span></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Chuyển đổi Tab: 1. Danh Mục Tồn Kho | 2. Quầy Phát Thuốc -->
+    <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-max text-xs font-bold">
+        <button type="button" onclick="switchPharmacyTab('inventory')" id="btn-tab-inventory" class="px-5 py-2.5 rounded-xl bg-white text-medical-700 shadow-sm transition-all">
+            <i class="fa-solid fa-warehouse mr-1.5"></i> Danh Mục & Tồn Kho Thuốc
+        </button>
+        <button type="button" onclick="switchPharmacyTab('dispensing')" id="btn-tab-dispensing" class="px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all">
+            <i class="fa-solid fa-hand-holding-medical mr-1.5"></i> Quầy Phát Thuốc Theo Đơn EMR
+        </button>
+    </div>
+
+    <!-- NỘI DUNG PHẦN 1: TỒN KHO THUỐC -->
+    <div id="section-inventory" class="space-y-4">
+        <!-- Thanh tìm kiếm tồn kho -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="relative w-full sm:w-80">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-medicine" onkeyup="filterMedicines()" placeholder="Tìm tên thuốc, hoạt chất, mã thuốc..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <select id="filter-medicine-status" onchange="filterMedicines()" class="py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
+                    <option value="">Tất cả Trạng thái tồn</option>
+                    <option value="in_stock">Còn hàng dồi dào</option>
+                    <option value="low_stock">Sắp hết hàng</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Bảng danh sách tồn kho thuốc -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                        <tr>
+                            <th class="py-3 px-4">Mã Thuốc</th>
+                            <th class="py-3 px-4">Tên Thuốc & Biệt Dược</th>
+                            <th class="py-3 px-4">Hoạt Chất Chính</th>
+                            <th class="py-3 px-4">Đơn Vị</th>
+                            <th class="py-3 px-4">Số Lượng Tồn</th>
+                            <th class="py-3 px-4">Đơn Giá Bán</th>
+                            <th class="py-3 px-4">Hạn Sử Dụng</th>
+                            <th class="py-3 px-4 text-center">Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="medicine-table-body" class="divide-y divide-slate-100">
+                        <!-- JS render -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG PHẦN 2: QUẦY PHÁT THUỐC THEO ĐƠN -->
+    <div id="section-dispensing" class="space-y-4 hidden">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider">
+                    Đơn Thuốc Chờ Dược Sĩ Xuất Kho & Phát Cho Bệnh Nhân
+                </h4>
+                <span class="text-xs text-teal-700 font-semibold">Tự động liên thông từ Phòng Khám EMR</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                        <tr>
+                            <th class="py-3 px-4">Mã Đơn</th>
+                            <th class="py-3 px-4">Bệnh Nhân</th>
+                            <th class="py-3 px-4">Bác Sĩ Kê Đơn</th>
+                            <th class="py-3 px-4">Các Thuốc Trong Đơn</th>
+                            <th class="py-3 px-4">Giờ Kê</th>
+                            <th class="py-3 px-4 text-center">Trạng Thái</th>
+                            <th class="py-3 px-4 text-center">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dispensing-table-body" class="divide-y divide-slate-100">
+                        <!-- JS render -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Thêm Thuốc / Nhập Kho -->
+<div id="add-medicine-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-pills text-medical-600"></i> Nhập Kho Dược Phẩm Mới
+            </h3>
+            <button onclick="closeAddMedicineModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form onsubmit="saveMedicine(event)" class="space-y-3 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Tên thuốc / Biệt dược <span class="text-rose-500">*</span></label>
+                <input type="text" id="med-name" required placeholder="Ví dụ: Augmentin 1g, Panadol Extra..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Hoạt chất chính</label>
+                    <input type="text" id="med-substance" placeholder="Amoxicillin + Clavulanic..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Đơn vị tính</label>
+                    <select id="med-unit" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                        <option value="Viên">Viên</option>
+                        <option value="Vỉ">Vỉ</option>
+                        <option value="Hộp">Hộp</option>
+                        <option value="Gói">Gói</option>
+                        <option value="Chai">Chai</option>
+                        <option value="Ống">Ống</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Số lượng nhập <span class="text-rose-500">*</span></label>
+                    <input type="number" id="med-qty" required value="100" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Đơn giá bán (VNĐ)</label>
+                    <input type="number" id="med-price" required value="15000" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Hạn sử dụng</label>
+                    <input type="date" id="med-exp" required value="2027-12-31" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeAddMedicineModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20">
+                    Lưu Kho
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let medicines = [
+        { ma: "TH001", ten: "Esomeprazole 40mg", hoat_chat: "Esomeprazole", dvt: "Viên", ton: 450, gia: 12000, hsd: "2027-08-15", status: "in_stock" },
+        { ma: "TH002", ten: "Phosphalugel 20g", hoat_chat: "Aluminium phosphate", dvt: "Gói", ton: 280, gia: 8500, hsd: "2027-05-20", status: "in_stock" },
+        { ma: "TH003", ten: "Amlodipine 5mg", hoat_chat: "Amlodipine", dvt: "Viên", ton: 18, gia: 5000, hsd: "2026-11-30", status: "low_stock" },
+        { ma: "TH004", ten: "Atorvastatin 10mg", hoat_chat: "Atorvastatin", dvt: "Viên", ton: 120, gia: 9000, hsd: "2027-10-10", status: "in_stock" },
+        { ma: "TH005", ten: "Desloratadine 5mg", hoat_chat: "Desloratadine", dvt: "Viên", ton: 350, gia: 6500, hsd: "2028-01-01", status: "in_stock" },
+        { ma: "TH006", ten: "Seretide Evohaler 25/50", hoat_chat: "Salmeterol / Fluticasone", dvt: "Bình", ton: 5, gia: 320000, hsd: "2026-12-15", status: "low_stock" },
+        { ma: "TH007", ten: "Metformin 850mg", hoat_chat: "Metformin", dvt: "Viên", ton: 600, gia: 4000, hsd: "2027-09-09", status: "in_stock" }
+    ];
+
+    let dispensingOrders = [
+        { ma_don: "DT260901", benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", id: 1, bac_si: "BS. Trần Minh Quân", thuoc: "Esomeprazole (28v), Phosphalugel (20g)", gio: "08:45", status: "waiting" },
+        { ma_don: "DT260902", benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", id: 3, bac_si: "BS. Trần Minh Quân", thuoc: "Amlodipine (30v), Atorvastatin (30v)", gio: "09:20", status: "waiting" },
+        { ma_don: "DT260903", benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", id: 2, bac_si: "BS. Phan Thu Trang", thuoc: "Desloratadine (14v), Flixonase (1 chai)", gio: "08:30", status: "completed" }
+    ];
+
+    function renderMedicines(data) {
+        const tbody = document.getElementById('medicine-table-body');
+        tbody.innerHTML = '';
+
+        data.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            const statusBadge = m.ton < 25 
+                ? '<span class="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px]">Cảnh báo sắp hết</span>' 
+                : '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Sẵn sàng</span>';
+
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-mono font-bold text-medical-700">${m.ma}</td>
+                <td class="py-3 px-4 font-bold text-slate-800">${m.ten}</td>
+                <td class="py-3 px-4 text-slate-500 italic">${m.hoat_chat}</td>
+                <td class="py-3 px-4 text-slate-600">${m.dvt}</td>
+                <td class="py-3 px-4 font-mono font-bold ${m.ton < 25 ? 'text-rose-600' : 'text-slate-900'}">${m.ton}</td>
+                <td class="py-3 px-4 font-mono text-slate-700">${m.gia.toLocaleString()} đ</td>
+                <td class="py-3 px-4 text-slate-500 font-mono">${m.hsd}</td>
+                <td class="py-3 px-4 text-center">${statusBadge}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderDispensing() {
+        const tbody = document.getElementById('dispensing-table-body');
+        tbody.innerHTML = '';
+
+        dispensingOrders.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-colors';
+
+            const badge = d.status === 'waiting'
+                ? '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ phát thuốc</span>'
+                : '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã xuất dược</span>';
+
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-mono font-bold text-medical-700">${d.ma_don}</td>
+                <td class="py-3 px-4">
+                    <a href="/admin/patients/${d.id}" class="font-bold text-slate-900 hover:text-medical-700 block">${d.benh_nhan}</a>
+                    <span class="text-[10px] text-slate-400 font-mono">${d.ma_bn}</span>
+                </td>
+                <td class="py-3 px-4 text-slate-700">${d.bac_si}</td>
+                <td class="py-3 px-4 text-slate-800 font-medium">${d.thuoc}</td>
+                <td class="py-3 px-4 font-mono text-slate-500">${d.gio}</td>
+                <td class="py-3 px-4 text-center">${badge}</td>
+                <td class="py-3 px-4 text-center">
+                    ${d.status === 'waiting' ? `
+                        <button type="button" onclick="dispenseMed('${d.ma_don}')" class="px-3 py-1.5 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-lg text-xs shadow-sm">
+                            <i class="fa-solid fa-check mr-1"></i> Phát Thuốc
+                        </button>
+                    ` : `
+                        <button type="button" onclick="window.print()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs">
+                            <i class="fa-solid fa-print mr-1"></i> In HDSD
+                        </button>
+                    `}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function switchPharmacyTab(tab) {
+        if (tab === 'inventory') {
+            document.getElementById('section-inventory').classList.remove('hidden');
+            document.getElementById('section-dispensing').classList.add('hidden');
+            document.getElementById('btn-tab-inventory').className = "px-5 py-2.5 rounded-xl bg-white text-medical-700 shadow-sm transition-all";
+            document.getElementById('btn-tab-dispensing').className = "px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all";
+        } else {
+            document.getElementById('section-inventory').classList.add('hidden');
+            document.getElementById('section-dispensing').classList.remove('hidden');
+            document.getElementById('btn-tab-inventory').className = "px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all";
+            document.getElementById('btn-tab-dispensing').className = "px-5 py-2.5 rounded-xl bg-white text-medical-700 shadow-sm transition-all";
+        }
+    }
+
+    function filterMedicines() {
+        const q = document.getElementById('search-medicine').value.toLowerCase().trim();
+        const s = document.getElementById('filter-medicine-status').value;
+
+        const filtered = medicines.filter(m => {
+            const matchQ = !q || m.ten.toLowerCase().includes(q) || m.hoat_chat.toLowerCase().includes(q) || m.ma.toLowerCase().includes(q);
+            const matchS = !s || (s === 'low_stock' ? m.ton < 25 : m.ton >= 25);
+            return matchQ && matchS;
+        });
+
+        renderMedicines(filtered);
+    }
+
+    function dispenseMed(maDon) {
+        const d = dispensingOrders.find(x => x.ma_don === maDon);
+        if (d) {
+            d.status = 'completed';
+            renderDispensing();
+            alert(`Đã hoàn tất xuất kho và hướng dẫn dùng thuốc cho đơn #${maDon}!`);
+        }
+    }
+
+    function openAddMedicineModal() {
+        document.getElementById('add-medicine-modal').classList.remove('hidden');
+    }
+
+    function closeAddMedicineModal() {
+        document.getElementById('add-medicine-modal').classList.add('hidden');
+    }
+
+    function saveMedicine(e) {
+        e.preventDefault();
+        const name = document.getElementById('med-name').value;
+        const substance = document.getElementById('med-substance').value;
+        const unit = document.getElementById('med-unit').value;
+        const qty = parseInt(document.getElementById('med-qty').value);
+        const price = parseInt(document.getElementById('med-price').value);
+        const exp = document.getElementById('med-exp').value;
+
+        const nextNum = medicines.length + 1;
+        medicines.unshift({
+            ma: `TH0${nextNum < 10 ? '0' + nextNum : nextNum}`,
+            ten: name,
+            hoat_chat: substance,
+            dvt: unit,
+            ton: qty,
+            gia: price,
+            hsd: exp,
+            status: qty < 25 ? 'low_stock' : 'in_stock'
+        });
+
+        closeAddMedicineModal();
+        e.target.reset();
+        filterMedicines();
+        alert('Đã nhập thành công dược phẩm mới vào kho!');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderMedicines(medicines);
+        renderDispensing();
+    });
+</script>
+{% endblock %}

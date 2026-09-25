@@ -1,0 +1,195 @@
+<!-- FOOTER QUẢN TRỊ VIÊN & BÁC SĨ (HỆ THỐNG H2T CARE+ HIS / EMR) -->
+<footer class="bg-white/95 backdrop-blur-sm border-t border-slate-200 py-3 px-6 text-xs text-slate-500 mt-auto select-none">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+        
+        <!-- Bên trái: Tên hệ thống, Phiên bản & Trạng thái kết nối CSDL -->
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3 text-slate-600">
+            <div class="flex items-center gap-1.5 font-semibold text-slate-800">
+                <i class="fa-solid fa-hospital-user text-medical-600 text-sm"></i>
+                <span>H2T Care<span class="text-medical-600">+</span> HIS</span>
+            </div>
+            
+            <span class="text-slate-300">•</span>
+            
+            <!-- Badge Phiên bản -->
+            <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono font-medium text-slate-600">
+                v2.4.0-EMR
+            </span>
+
+            <span class="hidden sm:inline text-slate-300">•</span>
+
+            <!-- Đèn xanh trạng thái CSDL -->
+            <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="font-medium">CSDL: Trực tuyến (18ms)</span>
+            </div>
+
+            <span class="hidden lg:inline text-slate-300">•</span>
+            <span class="hidden lg:inline text-slate-500 text-[11px]">Cơ sở chính: 140 Lê Trọng Tấn</span>
+        </div>
+
+        <!-- Bên phải: Hỗ trợ kỹ thuật IT, Phím tắt & Báo lỗi -->
+        <div class="flex items-center gap-3 sm:gap-4 text-[11px] text-slate-600">
+            <div class="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                <i class="fa-solid fa-headset text-medical-600"></i>
+                <span>Hỗ trợ IT nội bộ: <strong class="text-slate-800 font-semibold">19XX XXXX (Ext: 108)</strong></span>
+            </div>
+
+            <span class="text-slate-300">•</span>
+
+            <!-- Nút xem phím tắt -->
+            <button onclick="toggleAdminShortcutsModal(true)" class="hover:text-medical-600 transition-colors flex items-center gap-1 cursor-pointer font-medium" title="Danh sách phím tắt thao tác nhanh">
+                <i class="fa-regular fa-keyboard text-slate-400"></i>
+                <span class="hidden sm:inline">Phím tắt</span>
+            </button>
+
+            <span class="text-slate-300">•</span>
+
+            <!-- Nút báo lỗi hệ thống -->
+            <button onclick="openBugReportModal()" class="hover:text-rose-600 transition-colors flex items-center gap-1 cursor-pointer font-medium" title="Báo cáo sự cố phần mềm cho IT">
+                <i class="fa-solid fa-circle-exclamation text-slate-400"></i>
+                <span class="hidden sm:inline">Báo lỗi</span>
+            </button>
+        </div>
+    </div>
+</footer>
+
+<!-- MODAL PHÍM TẮT NHANH ADMIN / BÁC SĨ -->
+<div id="admin-shortcuts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden animate-fade-in">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2 text-slate-800">
+                <div class="w-8 h-8 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-regular fa-keyboard"></i>
+                </div>
+                <h3 class="font-bold text-sm">Phím Tắt Thao Tác Nhanh (HIS/EMR)</h3>
+            </div>
+            <button onclick="toggleAdminShortcutsModal(false)" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+        
+        <div class="p-5 space-y-3 text-xs">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="text-slate-600">Tìm kiếm nhanh bệnh nhân</span>
+                <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">Ctrl + K</kbd>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="text-slate-600">Mở danh sách bệnh nhân</span>
+                <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">Alt + P</kbd>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="text-slate-600">Tiếp nhận / Tạo lịch khám</span>
+                <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">F2</kbd>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="text-slate-600">In phiếu khám / Đơn thuốc</span>
+                <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">Ctrl + P</kbd>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-600">Đóng cửa sổ / Modal hiện tại</span>
+                <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">Esc</kbd>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <button onclick="toggleAdminShortcutsModal(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-colors">
+                Đã hiểu
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL BÁO LỖI KỸ THUẬT CHO IT -->
+<div id="admin-bug-report-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden animate-fade-in">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+            <div class="flex items-center gap-2 text-slate-800">
+                <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-slate-900">Báo Cáo Sự Cố Phần Mềm</h3>
+                    <p class="text-[11px] text-slate-500">Phản hồi sẽ được gửi trực tiếp đến bộ phận IT phòng khám</p>
+                </div>
+            </div>
+            <button onclick="closeBugReportModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-xmark text-base"></i>
+            </button>
+        </div>
+        
+        <form onsubmit="handleBugReportSubmit(event)" class="p-5 space-y-4 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mức độ ưu tiên</label>
+                <select id="bug-priority" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500">
+                    <option value="normal">Bình thường - Thắc mắc tính năng</option>
+                    <option value="urgent">Khẩn cấp - Không lưu được hồ sơ / In phiếu</option>
+                    <option value="critical">Nghiêm trọng - Mất kết nối CSDL</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mô tả sự cố hoặc nội dung cần hỗ trợ</label>
+                <textarea id="bug-desc" required rows="3" placeholder="Nhập chi tiết lỗi hoặc hiện tượng gặp phải..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 text-xs"></textarea>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 flex items-start gap-2 text-[11px]">
+                <i class="fa-solid fa-circle-info mt-0.5 text-amber-600"></i>
+                <span>Trường hợp khẩn cấp trong ca trực, xin vui lòng gọi hotline máy nhánh nội bộ <strong class="underline">19XX XXXX (Ext: 108)</strong> để kỹ thuật viên xử lý tức thời.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeBugReportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">
+                    Hủy
+                </button>
+                <button type="submit" class="px-5 py-2 bg-medical-600 hover:bg-medical-700 text-white rounded-xl font-semibold transition-colors flex items-center gap-1.5 shadow-md shadow-medical-500/20">
+                    <i class="fa-regular fa-paper-plane"></i> Gửi IT
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts xử lý tương tác Footer Admin -->
+<script>
+    function toggleAdminShortcutsModal(show) {
+        const modal = document.getElementById('admin-shortcuts-modal');
+        if (modal) {
+            modal.classList.toggle('hidden', !show);
+        }
+    }
+
+    function openBugReportModal() {
+        const modal = document.getElementById('admin-bug-report-modal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeBugReportModal() {
+        const modal = document.getElementById('admin-bug-report-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function handleBugReportSubmit(e) {
+        e.preventDefault();
+        const desc = document.getElementById('bug-desc').value.trim();
+        if (!desc) return;
+        closeBugReportModal();
+        if (typeof showAdminToast === 'function') {
+            showAdminToast('Đã gửi thông báo sự cố tới bộ phận IT thành công!', true);
+        } else {
+            alert('Đã gửi thông báo sự cố tới bộ phận IT thành công!');
+        }
+        document.getElementById('bug-desc').value = '';
+    }
+
+    // Lắng nghe phím tắt Esc để đóng modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            toggleAdminShortcutsModal(false);
+            closeBugReportModal();
+        }
+    });
+</script>
