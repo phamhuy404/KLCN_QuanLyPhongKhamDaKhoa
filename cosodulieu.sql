@@ -1,10 +1,6 @@
-﻿
--- Tắt kiểm tra khóa ngoại để tạo bảng không bị lỗi thứ tự
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ==========================================
 -- NHÓM 1: PHÂN QUYỀN VÀ NGƯỜI DÙNG
--- ==========================================
 
 CREATE TABLE vai_tro (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -29,10 +25,16 @@ CREATE TABLE benh_nhan (
     ngay_sinh DATE NOT NULL,
     gioi_tinh TINYINT(1) NOT NULL, -- 1: Nam, 0: Nữ
     sdt VARCHAR(15) NOT NULL UNIQUE,
+    email VARCHAR(100),
     cccd VARCHAR(20) UNIQUE,
     bhyt VARCHAR(30),
     dia_chi VARCHAR(255),
+    nhom_mau VARCHAR(10) DEFAULT 'Chưa rõ',
+    di_ung TEXT,
     tien_su_benh TEXT,
+    nguoi_than_ho_ten VARCHAR(100),
+    nguoi_than_sdt VARCHAR(15),
+    nguoi_than_quan_he VARCHAR(50),
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
 );
 
@@ -57,9 +59,7 @@ CREATE TABLE bac_si (
     FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
 );
 
--- ==========================================
 -- NHÓM 2: DANH MỤC & CƠ SỞ VẬT CHẤT
--- ==========================================
 
 CREATE TABLE chuyen_khoa (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -94,9 +94,7 @@ CREATE TABLE thuoc (
     huong_dan_su_dung VARCHAR(255)
 );
 
--- ==========================================
 -- NHÓM 3: LỊCH LÀM VIỆC & LỊCH HẸN
--- ==========================================
 
 CREATE TABLE lich_lam_viec (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -136,9 +134,7 @@ CREATE TABLE thong_bao (
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
 );
 
--- ==========================================
 -- NHÓM 4: BỆNH ÁN ĐIỆN TỬ & CẬN LÂM SÀNG
--- ==========================================
 
 CREATE TABLE phieu_kham (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -201,15 +197,15 @@ CREATE TABLE chi_tiet_don_thuoc (
     FOREIGN KEY (thuoc_id) REFERENCES thuoc(id)
 );
 
--- ==========================================
--- NHÓM 5: VIỆN PHÍ & CHĂM SÓC KHÁCH HÀNG
--- ==========================================
+-- NHÓM 5: VIỆN PHÍ & PHẢN HỒI
 
 CREATE TABLE hoa_don (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    ma_hoa_don VARCHAR(30) UNIQUE,
     benh_nhan_id INT NOT NULL,
     phieu_kham_id INT NOT NULL,
     tong_tien DECIMAL(10, 2) NOT NULL,
+    tien_bhyt DECIMAL(10, 2) DEFAULT 0,
     giam_gia DECIMAL(10, 2) DEFAULT 0,
     thanh_tien DECIMAL(10, 2) NOT NULL,
     hinh_thuc_thanh_toan VARCHAR(50),
@@ -222,13 +218,12 @@ CREATE TABLE hoa_don (
 CREATE TABLE chi_tiet_hoa_don (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hoa_don_id INT NOT NULL,
-    loai_khoan_thu VARCHAR(50) NOT NULL, -- VD: 'Khám bệnh', 'Xét nghiệm', 'Thuốc'
-    tham_chieu_id INT NOT NULL, -- ID của dịch vụ hoặc thuốc
+    loai_khoan_thu VARCHAR(50) NOT NULL, -- Khám bệnh, Dịch vụ CLS, Thuốc
+    tham_chieu_id INT NOT NULL,
     so_luong INT NOT NULL DEFAULT 1,
     don_gia DECIMAL(10, 2) NOT NULL,
     thanh_tien DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (hoa_don_id) REFERENCES hoa_don(id)
-
 );
 
 CREATE TABLE phan_hoi (
@@ -242,21 +237,48 @@ CREATE TABLE phan_hoi (
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
 );
 
--- Bật lại kiểm tra khóa ngoại sau khi đã tạo xong bảng
+CREATE TABLE hom_thu_gop_y (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ho_ten VARCHAR(100) NOT NULL,
+    email VARCHAR(100),
+    sdt VARCHAR(15),
+    chu_de VARCHAR(200),
+    noi_dung TEXT NOT NULL,
+    ngay_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
+    trang_thai VARCHAR(50) DEFAULT 'Chưa xử lý'
+);
+
+-- NHÓM 6: BÀI VIẾT & TRUYỀN THÔNG
+
+CREATE TABLE bai_viet (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tac_gia_id INT,
+    tieu_de VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE,
+    danh_muc VARCHAR(100),
+    tom_tat TEXT,
+    noi_dung LONGTEXT,
+    hinh_anh VARCHAR(255),
+    luot_xem INT DEFAULT 0,
+    ngay_dang DATETIME DEFAULT CURRENT_TIMESTAMP,
+    trang_thai TINYINT(1) DEFAULT 1,
+    FOREIGN KEY (tac_gia_id) REFERENCES nhan_vien(id)
+);
+
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- DỮ LIỆU MẪU (SEED DATA)
 
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1. Bảng vai_tro (4 dòng)
+-- 1. Bảng vai_tro
 INSERT INTO vai_tro (id, ten_vai_tro, mo_ta) VALUES
 (1, 'Admin', 'Quản trị viên hệ thống'),
 (2, 'LeTan', 'Nhân viên tiếp đón, thu ngân'),
 (3, 'BacSi', 'Bác sĩ khám bệnh'),
 (4, 'BenhNhan', 'Khách hàng / Bệnh nhân');
 
--- 2. Bảng tai_khoan (15 dòng)
--- 1 Admin, 2 Lễ tân, 4 Bác sĩ, 8 Bệnh nhân (Mật khẩu mô phỏng chuỗi đã hash)
+-- 2. Bảng tai_khoan
 INSERT INTO tai_khoan (id, vai_tro_id, username, password, trang_thai) VALUES
 (1, 1, 'admin', 'hashed_pwd_1', 1),
 (2, 2, 'letan1', 'hashed_pwd_2', 1),
@@ -274,7 +296,7 @@ INSERT INTO tai_khoan (id, vai_tro_id, username, password, trang_thai) VALUES
 (14, 4, '0967890123', 'hashed_pwd_14', 1),
 (15, 4, '0978901234', 'hashed_pwd_15', 1);
 
--- 3. Bảng nhan_vien (7 dòng)
+-- 3. Bảng nhan_vien
 INSERT INTO nhan_vien (id, tai_khoan_id, ho_ten, sdt, email, vi_tri_cong_viec) VALUES
 (1, 1, 'Quản Trị Hệ Thống', '0999999999', 'admin@phongkham.com', 'Admin'),
 (2, 2, 'Trần Thị Mai', '0988888888', 'mai.tt@phongkham.com', 'Lễ tân'),
@@ -284,7 +306,7 @@ INSERT INTO nhan_vien (id, tai_khoan_id, ho_ten, sdt, email, vi_tri_cong_viec) V
 (6, 6, 'Vũ Quang Minh', '0944444444', 'minh.vq@phongkham.com', 'Bác sĩ'),
 (7, 7, 'Bùi Thu Hương', '0933333333', 'huong.bt@phongkham.com', 'Bác sĩ');
 
--- 4. Bảng chuyen_khoa (5 dòng)
+-- 4. Bảng chuyen_khoa
 INSERT INTO chuyen_khoa (id, ten_khoa, mo_ta) VALUES
 (1, 'Khoa Nội', 'Khám và điều trị các bệnh lý nội khoa'),
 (2, 'Khoa Ngoại', 'Khám và tiểu phẫu ngoại khoa'),
@@ -292,27 +314,27 @@ INSERT INTO chuyen_khoa (id, ten_khoa, mo_ta) VALUES
 (4, 'Khoa Răng Hàm Mặt', 'Chăm sóc sức khỏe răng miệng'),
 (5, 'Khoa Sản - Phụ khoa', 'Khám thai và bệnh lý phụ khoa');
 
--- 5. Bảng bac_si (4 dòng - Liên kết 1-1 với nhân viên từ 4->7)
+-- 5. Bảng bac_si
 INSERT INTO bac_si (id, nhan_vien_id, chuyen_khoa_id, hoc_vi, kinh_nghiem, hinh_anh) VALUES
 (1, 4, 1, 'Thạc sĩ', '10 năm kinh nghiệm tại BV Chợ Rẫy', 'tuan.jpg'),
 (2, 5, 3, 'BS CKI', '7 năm kinh nghiệm tại BV Nhi Đồng 1', 'lan.jpg'),
 (3, 6, 2, 'Tiến sĩ', '15 năm kinh nghiệm chấn thương chỉnh hình', 'minh.jpg'),
 (4, 7, 4, 'BS CKI', '5 năm kinh nghiệm nha khoa thẩm mỹ', 'huong.jpg');
 
--- 6. Bảng benh_nhan (10 dòng - 8 dòng có tài khoản, 2 dòng bệnh nhân vãng lai)
-INSERT INTO benh_nhan (id, tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, dia_chi, tien_su_benh) VALUES
-(1, 8, 'BN2609001', 'Hoàng Bảo Nam', '1990-05-12', 1, '0901234567', 'Quận 1, TP.HCM', 'Không có'),
-(2, 9, 'BN2609002', 'Lê Ngọc Trâm', '1995-08-22', 0, '0912345678', 'Quận 3, TP.HCM', 'Dị ứng hải sản'),
-(3, 10, 'BN2609003', 'Trần Văn Quyết', '1985-11-30', 1, '0923456789', 'Quận Tân Bình, TP.HCM', 'Huyết áp cao'),
-(4, 11, 'BN2609004', 'Phạm Thảo My', '2015-02-14', 0, '0934567890', 'Quận Gò Vấp, TP.HCM', 'Suyễn'),
-(5, 12, 'BN2609005', 'Đinh Trọng Thắng', '1978-04-10', 1, '0945678901', 'Quận 10, TP.HCM', 'Tiểu đường type 2'),
-(6, 13, 'BN2609006', 'Võ Thanh Trúc', '1998-09-09', 0, '0956789012', 'Quận Bình Thạnh, TP.HCM', 'Đau dạ dày'),
-(7, 14, 'BN2609007', 'Ngô Kiến Hào', '2010-12-25', 1, '0967890123', 'Quận 7, TP.HCM', 'Không có'),
-(8, 15, 'BN2609008', 'Lý Nhã Kỳ', '1982-07-19', 0, '0978901234', 'Quận 2, TP.HCM', 'Không có'),
-(9, NULL, 'BN2609009', 'Châu Gia Kiệt', '1992-01-01', 1, '0981234567', 'Thủ Đức, TP.HCM', 'Viêm xoang'),
-(10, NULL, 'BN2609010', 'Bảo Thy', '1999-03-03', 0, '0991234567', 'Quận 5, TP.HCM', 'Không có');
+-- 6. Bảng benh_nhan
+INSERT INTO benh_nhan (id, tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su_benh, nguoi_than_ho_ten, nguoi_than_sdt, nguoi_than_quan_he) VALUES
+(1, 8, 'BN2609001', 'Hoàng Bảo Nam', '1990-05-12', 1, '0901234567', 'baonam@gmail.com', '079090000001', 'GD4797931100001', 'Quận 1, TP.HCM', 'O+', 'Không', 'Không có', 'Hoàng Tuấn Kiệt', '0909111222', 'Bố'),
+(2, 9, 'BN2609002', 'Lê Ngọc Trâm', '1995-08-22', 0, '0912345678', 'ngoctram@gmail.com', '079095000002', 'GD4797931100002', 'Quận 3, TP.HCM', 'A+', 'Dị ứng hải sản', 'Dị ứng hải sản', 'Lê Quang Liêm', '0919222333', 'Bố'),
+(3, 10, 'BN2609003', 'Trần Văn Quyết', '1985-11-30', 1, '0923456789', 'vanquyet@gmail.com', '079085000003', 'GD4797931100003', 'Quận Tân Bình, TP.HCM', 'B+', 'Không', 'Huyết áp cao', 'Trần Thị Hà', '0929333444', 'Vợ'),
+(4, 11, 'BN2609004', 'Phạm Thảo My', '2015-02-14', 0, '0934567890', 'thaomy@gmail.com', '079115000004', 'TE1797931100004', 'Quận Gò Vấp, TP.HCM', 'AB+', 'Không', 'Suyễn', 'Phạm Minh Nhật', '0939444555', 'Bố'),
+(5, 12, 'BN2609005', 'Đinh Trọng Thắng', '1978-04-10', 1, '0945678901', 'trongthang@gmail.com', '079078000005', 'DN4797931100005', 'Quận 10, TP.HCM', 'O-', 'Không', 'Tiểu đường type 2', 'Đinh Lan Anh', '0949555666', 'Vợ'),
+(6, 13, 'BN2609006', 'Võ Thanh Trúc', '1998-09-09', 0, '0956789012', 'thanhtruc@gmail.com', '079098000006', 'SV4797931100006', 'Quận Bình Thạnh, TP.HCM', 'A+', 'Dị ứng phấn hoa', 'Đau dạ dày', 'Võ Hải Đăng', '0959666777', 'Anh trai'),
+(7, 14, 'BN2609007', 'Ngô Kiến Hào', '2010-12-25', 1, '0967890123', 'kienhao@gmail.com', '079110000007', 'HS4797931100007', 'Quận 7, TP.HCM', 'O+', 'Không', 'Không có', 'Ngô Bảo Châu', '0969777888', 'Mẹ'),
+(8, 15, 'BN2609008', 'Lý Nhã Kỳ', '1982-07-19', 0, '0978901234', 'nhaky@gmail.com', '079082000008', 'DN4797931100008', 'Quận 2, TP.HCM', 'B-', 'Không', 'Không có', 'Lý Đại Nghĩa', '0979888999', 'Em trai'),
+(9, NULL, 'BN2609009', 'Châu Gia Kiệt', '1992-01-01', 1, '0981234567', 'giakiet@gmail.com', '079092000009', NULL, 'Thủ Đức, TP.HCM', 'O+', 'Không', 'Viêm xoang', 'Châu Ánh Nguyệt', '0989000111', 'Chị gái'),
+(10, NULL, 'BN2609010', 'Bảo Thy', '1999-03-03', 0, '0991234567', 'baothy@gmail.com', '079099000010', NULL, 'Quận 5, TP.HCM', 'A+', 'Không', 'Không có', 'Bảo Quốc', '0999111222', 'Bố');
 
--- 7. Bảng phong_kham (6 dòng)
+-- 7. Bảng phong_kham
 INSERT INTO phong_kham (id, chuyen_khoa_id, ten_phong, trang_thai) VALUES
 (1, 1, 'Phòng Khám Nội 1', 1),
 (2, 1, 'Phòng Khám Nội 2', 1),
@@ -321,7 +343,7 @@ INSERT INTO phong_kham (id, chuyen_khoa_id, ten_phong, trang_thai) VALUES
 (5, 4, 'Phòng Răng Hàm Mặt', 1),
 (6, 1, 'Phòng Siêu Âm', 1);
 
--- 8. Bảng dich_vu (10 dòng)
+-- 8. Bảng dich_vu
 INSERT INTO dich_vu (id, chuyen_khoa_id, ten_dich_vu, don_gia, mo_ta) VALUES
 (1, 1, 'Khám Nội Tổng Quát', 150000, 'Khám và tư vấn bệnh lý nội khoa'),
 (2, 3, 'Khám Nhi', 120000, 'Khám và tư vấn bệnh lý trẻ em'),
@@ -334,7 +356,7 @@ INSERT INTO dich_vu (id, chuyen_khoa_id, ten_dich_vu, don_gia, mo_ta) VALUES
 (9, NULL, 'X-Quang Phổi thẳng', 200000, 'Chụp X-quang kỹ thuật số'),
 (10, NULL, 'Điện tâm đồ (ECG)', 150000, 'Đo điện tim đồ 12 chuyển đạo');
 
--- 9. Bảng thuoc (10 dòng)
+-- 9. Bảng thuoc
 INSERT INTO thuoc (id, ten_thuoc, hoat_chat, don_vi_tinh, don_gia, so_luong_ton, huong_dan_su_dung) VALUES
 (1, 'Paracetamol 500mg', 'Paracetamol', 'Viên', 2000, 5000, 'Uống khi sốt hoặc đau'),
 (2, 'Amoxicillin 500mg', 'Amoxicillin', 'Viên', 3000, 2000, 'Kháng sinh uống sau ăn'),
@@ -347,7 +369,7 @@ INSERT INTO thuoc (id, ten_thuoc, hoat_chat, don_vi_tinh, don_gia, so_luong_ton,
 (9, 'Siro ho Prospan', 'Dịch chiết lá Thường Xuân', 'Chai', 75000, 200, 'Uống 5ml/lần'),
 (10, 'Nước muối sinh lý NaCl 0.9%', 'Natri Clorid 0.9%', 'Chai', 10000, 500, 'Súc miệng hoặc rửa mũi');
 
--- 10. Bảng lich_lam_viec (10 dòng)
+-- 10. Bảng lich_lam_viec
 INSERT INTO lich_lam_viec (id, bac_si_id, phong_kham_id, ngay_lam, ca_lam) VALUES
 (1, 1, 1, '2026-09-22', 1),
 (2, 1, 1, '2026-09-22', 2),
@@ -360,7 +382,7 @@ INSERT INTO lich_lam_viec (id, bac_si_id, phong_kham_id, ngay_lam, ca_lam) VALUE
 (9, 2, 4, '2026-09-24', 2),
 (10, 3, 3, '2026-09-25', 1);
 
--- 11. Bảng lich_hen (12 dòng)
+-- 11. Bảng lich_hen
 INSERT INTO lich_hen (id, benh_nhan_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio_hen, loai_lich_hen, trang_thai) VALUES
 (1, 1, 1, 1, '2026-09-22', '08:30', 1, 'Đã khám'),
 (2, 2, 1, 1, '2026-09-22', '09:00', 1, 'Đã khám'),
@@ -375,7 +397,7 @@ INSERT INTO lich_hen (id, benh_nhan_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio
 (11, 1, 1, 1, '2026-09-29', '08:30', 2, 'Đã duyệt'),
 (12, 5, 3, 2, '2026-09-29', '14:00', 2, 'Đã duyệt');
 
--- 12. Bảng phieu_kham (10 dòng)
+-- 12. Bảng phieu_kham
 INSERT INTO phieu_kham (id, benh_nhan_id, bac_si_id, phong_kham_id, lich_hen_id, mach, nhiet_do, huyet_ap, trieu_chung, chan_doan_so_bo, chan_doan_cuoi_cung, huong_dieu_tri, ngay_tai_kham) VALUES
 (1, 1, 1, 1, 1, '80', '37', '120/80', 'Đau đầu, mệt mỏi', 'Viêm họng cấp', 'Viêm họng cấp', 'Uống thuốc, nghỉ ngơi', '2026-09-29'),
 (2, 2, 1, 1, 2, '85', '38.5', '110/70', 'Đau bụng quanh rốn', 'Rối loạn tiêu hóa', 'Viêm dạ dày cấp', 'Truyền dịch, dùng thuốc', NULL),
@@ -388,7 +410,7 @@ INSERT INTO phieu_kham (id, benh_nhan_id, bac_si_id, phong_kham_id, lich_hen_id,
 (9, 9, 1, 1, NULL, '88', '37.2', '110/80', 'Mất ngủ, căng thẳng', 'Suy nhược thần kinh', 'Suy nhược cơ thể', 'Bổ sung vitamin, an thần', NULL),
 (10, 10, 3, 3, NULL, '78', '37', '110/70', 'Sưng khớp gối', 'Tràn dịch khớp', 'Viêm khớp gối', 'Hút dịch, uống thuốc', '2026-09-27');
 
--- 13. Bảng phieu_chi_dinh (8 dòng)
+-- 13. Bảng phieu_chi_dinh
 INSERT INTO phieu_chi_dinh (id, phieu_kham_id, ghi_chu) VALUES
 (1, 1, 'XN máu thường quy'),
 (2, 2, 'Siêu âm ổ bụng kiểm tra tiêu hóa'),
@@ -399,7 +421,7 @@ INSERT INTO phieu_chi_dinh (id, phieu_kham_id, ghi_chu) VALUES
 (7, 8, 'Chụp X-Quang răng toàn cảnh'),
 (8, 10, 'Siêu âm khớp gối');
 
--- 14. Bảng chi_tiet_chi_dinh (15 dòng)
+-- 14. Bảng chi_tiet_chi_dinh
 INSERT INTO chi_tiet_chi_dinh (id, phieu_chi_dinh_id, dich_vu_id, ket_qua, trang_thai) VALUES
 (1, 1, 7, 'Bạch cầu hơi tăng, tiểu cầu bình thường', 'Đã có kết quả'),
 (2, 2, 6, 'Dạ dày có vết loét nhỏ, các tạng khác bình thường', 'Đã có kết quả'),
@@ -417,7 +439,7 @@ INSERT INTO chi_tiet_chi_dinh (id, phieu_chi_dinh_id, dich_vu_id, ket_qua, trang
 (14, 7, 7, 'Máu khó đông: Âm tính', 'Đã có kết quả'),
 (15, 8, 9, 'Gai mâm chày gối phải', 'Đã có kết quả');
 
--- 15. Bảng don_thuoc (10 dòng)
+-- 15. Bảng don_thuoc
 INSERT INTO don_thuoc (id, phieu_kham_id, loi_dan_bac_si) VALUES
 (1, 1, 'Uống nhiều nước, súc miệng nước muối'),
 (2, 2, 'Ăn chín uống sôi, kiêng đồ chua cay'),
@@ -430,7 +452,7 @@ INSERT INTO don_thuoc (id, phieu_kham_id, loi_dan_bac_si) VALUES
 (9, 9, 'Tránh thức khuya, tập yoga'),
 (10, 10, 'Nghỉ ngơi, kê cao chân khi ngủ');
 
--- 16. Bảng chi_tiet_don_thuoc (20 dòng)
+-- 16. Bảng chi_tiet_don_thuoc
 INSERT INTO chi_tiet_don_thuoc (id, don_thuoc_id, thuoc_id, so_luong, lieu_dung, cach_dung) VALUES
 (1, 1, 1, 10, 'Sáng 1, Chiều 1', 'Uống sau ăn'),
 (2, 1, 2, 14, 'Sáng 1, Chiều 1', 'Uống sau ăn'),
@@ -453,49 +475,48 @@ INSERT INTO chi_tiet_don_thuoc (id, don_thuoc_id, thuoc_id, so_luong, lieu_dung,
 (19, 10, 5, 14, 'Sáng 1', 'Bảo vệ dạ dày'),
 (20, 10, 1, 10, 'Sáng 1, Tối 1', 'Uống khi thấy đau nhức');
 
--- 17. Bảng hoa_don (10 dòng)
-INSERT INTO hoa_don (id, benh_nhan_id, phieu_kham_id, tong_tien, giam_gia, thanh_tien, hinh_thuc_thanh_toan, trang_thai) VALUES
-(1, 1, 1, 582000, 0, 582000, 'Momo', 'Đã thanh toán'),
-(2, 2, 2, 820000, 0, 820000, 'Chuyển khoản', 'Đã thanh toán'),
-(3, 3, 3, 345000, 0, 345000, 'Tiền mặt', 'Đã thanh toán'),
-(4, 4, 4, 425000, 0, 425000, 'Chuyển khoản', 'Đã thanh toán'),
-(5, 5, 5, 405000, 50000, 355000, 'Tiền mặt', 'Đã thanh toán'),
-(6, 6, 6, 210000, 0, 210000, 'Tiền mặt', 'Đã thanh toán'),
-(7, 7, 7, 600000, 0, 600000, 'Chuyển khoản', 'Đã thanh toán'),
-(8, 8, 8, 1242000, 100000, 1142000, 'Thẻ tín dụng', 'Đã thanh toán'),
-(9, 9, 9, 172500, 0, 172500, 'Tiền mặt', 'Đã thanh toán'),
-(10, 10, 10, 519000, 0, 519000, 'Momo', 'Đã thanh toán');
+-- 17. Bảng hoa_don
+INSERT INTO hoa_don (id, ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, giam_gia, thanh_tien, hinh_thuc_thanh_toan, trang_thai) VALUES
+(1, 'HD2609001', 1, 1, 582000, 0, 0, 582000, 'Momo', 'Đã thanh toán'),
+(2, 'HD2609002', 2, 2, 820000, 200000, 0, 620000, 'Chuyển khoản', 'Đã thanh toán'),
+(3, 'HD2609003', 3, 3, 345000, 0, 0, 345000, 'Tiền mặt', 'Đã thanh toán'),
+(4, 'HD2609004', 4, 4, 425000, 150000, 0, 275000, 'Chuyển khoản', 'Đã thanh toán'),
+(5, 'HD2609005', 5, 5, 405000, 0, 50000, 355000, 'Tiền mặt', 'Đã thanh toán'),
+(6, 'HD2609006', 6, 6, 210000, 0, 0, 210000, 'Tiền mặt', 'Đã thanh toán'),
+(7, 'HD2609007', 7, 7, 600000, 200000, 0, 400000, 'Chuyển khoản', 'Đã thanh toán'),
+(8, 'HD2609008', 8, 8, 1242000, 0, 100000, 1142000, 'Thẻ tín dụng', 'Đã thanh toán'),
+(9, 'HD2609009', 9, 9, 172500, 0, 0, 172500, 'Tiền mặt', 'Đã thanh toán'),
+(10, 'HD2609010', 10, 10, 519000, 0, 0, 519000, 'Momo', 'Đã thanh toán');
 
--- 18. Bảng chi_tiet_hoa_don (25 dòng - Liên kết với ID dịch vụ hoặc ID thuốc)
--- VD Hóa đơn 1 (Tổng 582k): Khám(150) + Xét nghiệm Máu(350) + Nước tiểu(100) + Thuốc(62k) = 662k (Đã fix số cho khớp logic)
+-- 18. Bảng chi_tiet_hoa_don
 INSERT INTO chi_tiet_hoa_don (id, hoa_don_id, loai_khoan_thu, tham_chieu_id, so_luong, don_gia, thanh_tien) VALUES
-(1, 1, 'Khám bệnh', 1, 1, 150000, 150000), -- Khám nội (ID 1)
-(2, 1, 'Dịch vụ CLS', 7, 1, 350000, 350000), -- Xét nghiệm máu (ID 7)
-(3, 1, 'Thuốc', 1, 10, 2000, 20000), -- Para
-(4, 1, 'Thuốc', 2, 14, 3000, 42000), -- Amox
-(5, 1, 'Thuốc', 10, 2, 10000, 20000), -- Nước muối
+(1, 1, 'Khám bệnh', 1, 1, 150000, 150000),
+(2, 1, 'Dịch vụ CLS', 7, 1, 350000, 350000),
+(3, 1, 'Thuốc', 1, 10, 2000, 20000),
+(4, 1, 'Thuốc', 2, 14, 3000, 42000),
+(5, 1, 'Thuốc', 10, 2, 10000, 20000),
 (6, 2, 'Khám bệnh', 1, 1, 150000, 150000),
-(7, 2, 'Dịch vụ CLS', 6, 1, 250000, 250000), -- Siêu âm
-(8, 2, 'Dịch vụ CLS', 7, 1, 350000, 350000), -- XN Máu
-(9, 2, 'Thuốc', 5, 14, 5000, 70000), -- Omeprazol
+(7, 2, 'Dịch vụ CLS', 6, 1, 250000, 250000),
+(8, 2, 'Dịch vụ CLS', 7, 1, 350000, 350000),
+(9, 2, 'Thuốc', 5, 14, 5000, 70000),
 (10, 3, 'Khám bệnh', 1, 1, 150000, 150000),
-(11, 3, 'Dịch vụ CLS', 10, 1, 150000, 150000), -- Điện tâm đồ
-(12, 3, 'Thuốc', 6, 30, 1500, 45000), -- Vit C
-(13, 4, 'Khám bệnh', 2, 1, 120000, 120000), -- Khám Nhi
-(14, 4, 'Dịch vụ CLS', 9, 1, 200000, 200000), -- XQ Phổi
-(15, 4, 'Thuốc', 9, 1, 75000, 75000), -- Siro
-(16, 4, 'Thuốc', 2, 10, 3000, 30000), -- Amox
-(17, 5, 'Khám bệnh', 3, 1, 150000, 150000), -- Khám Ngoại
-(18, 5, 'Dịch vụ CLS', 9, 1, 200000, 200000), -- XQ 
-(19, 5, 'Thuốc', 8, 10, 3500, 35000), -- Ibuprofen
-(20, 5, 'Thuốc', 1, 10, 2000, 20000), -- Para
+(11, 3, 'Dịch vụ CLS', 10, 1, 150000, 150000),
+(12, 3, 'Thuốc', 6, 30, 1500, 45000),
+(13, 4, 'Khám bệnh', 2, 1, 120000, 120000),
+(14, 4, 'Dịch vụ CLS', 9, 1, 200000, 200000),
+(15, 4, 'Thuốc', 9, 1, 75000, 75000),
+(16, 4, 'Thuốc', 2, 10, 3000, 30000),
+(17, 5, 'Khám bệnh', 3, 1, 150000, 150000),
+(18, 5, 'Dịch vụ CLS', 9, 1, 200000, 200000),
+(19, 5, 'Thuốc', 8, 10, 3500, 35000),
+(20, 5, 'Thuốc', 1, 10, 2000, 20000),
 (21, 6, 'Khám bệnh', 1, 1, 150000, 150000),
 (22, 6, 'Thuốc', 2, 15, 3000, 45000),
 (23, 6, 'Thuốc', 6, 10, 1500, 15000),
 (24, 7, 'Khám bệnh', 2, 1, 120000, 120000),
 (25, 7, 'Dịch vụ CLS', 7, 1, 350000, 350000);
 
--- 19. Bảng phan_hoi (8 dòng)
+-- 19. Bảng phan_hoi
 INSERT INTO phan_hoi (id, benh_nhan_id, phieu_kham_id, diem_danh_gia, noi_dung) VALUES
 (1, 1, 1, 5, 'Bác sĩ Tuấn khám rất nhiệt tình và kỹ lưỡng.'),
 (2, 2, 2, 4, 'Dịch vụ tốt, siêu âm rõ nét nhưng chờ hơi lâu ở quầy thuốc.'),
@@ -506,7 +527,12 @@ INSERT INTO phan_hoi (id, benh_nhan_id, phieu_kham_id, diem_danh_gia, noi_dung) 
 (7, 7, 7, 5, 'Tuyệt vời, có kết quả xét nghiệm gửi ngay qua App rất tiện.'),
 (8, 8, 8, 5, 'Bác sĩ nhổ răng không đau, cảm ơn phòng khám!');
 
--- 20. Bảng thong_bao (10 dòng)
+-- 20. Bảng hom_thu_gop_y
+INSERT INTO hom_thu_gop_y (id, ho_ten, email, sdt, chu_de, noi_dung, ngay_gui, trang_thai) VALUES
+(1, 'Nguyễn Văn An', 'an.nguyen@gmail.com', '0911222333', 'Góp ý bãi giữ xe', 'Bãi giữ xe vào sáng thứ 2 hơi đông, mong phòng khám sắp xếp thêm nhân viên điều phối.', '2026-09-23 09:00:00', 'Đã ghi nhận'),
+(2, 'Trần Thu Thảo', 'thao.tran@gmail.com', '0922333444', 'Khen ngợi bác sĩ', 'Bác sĩ Lan phòng khám Nhi rất dịu dàng và kiên nhẫn với các bé.', '2026-09-24 15:30:00', 'Đã phản hồi');
+
+-- 21. Bảng thong_bao
 INSERT INTO thong_bao (id, tai_khoan_id, tieu_de, noi_dung, da_doc) VALUES
 (1, 8, 'Đặt lịch thành công', 'Bạn đã đặt lịch khám thành công ngày 22/09 lúc 08:30.', 1),
 (2, 9, 'Đặt lịch thành công', 'Bạn đã đặt lịch khám thành công ngày 22/09 lúc 09:00.', 1),
@@ -518,5 +544,12 @@ INSERT INTO thong_bao (id, tai_khoan_id, tieu_de, noi_dung, da_doc) VALUES
 (8, 14, 'Đặt lịch thành công', 'Lịch khám của bạn ngày 23/09 lúc 08:30 đã được duyệt.', 0),
 (9, 15, 'Hủy lịch khám', 'Lịch khám của bạn vào ngày 22/09 lúc 14:30 đã bị hủy theo yêu cầu.', 1),
 (10, 8, 'Khuyến mãi tháng 9', 'Phòng khám giảm 10% phí xét nghiệm cho khách hàng đặt lịch qua App.', 1);
+
+-- 22. Bảng bai_viet
+INSERT INTO bai_viet (id, tac_gia_id, tieu_de, slug, danh_muc, tom_tat, noi_dung, hinh_anh, luot_xem, ngay_dang, trang_thai) VALUES
+(1, 4, 'Bệnh cảm cúm mùa giao mùa và cách phòng ngừa hiệu quả', 'benh-cam-cum-mua-giao-mua', 'Cẩm Nang Sức Khỏe', 'Thời tiết chuyển mùa là điều kiện thuận lợi cho các virus đường hô hấp phát triển, gây cảm cúm và viêm họng...', 'Nội dung chi tiết bài viết hướng dẫn phòng ngừa cảm cúm...', 'cam-cum.jpg', 145, '2026-09-20 08:00:00', 1),
+(2, 5, 'Chăm sóc sức khỏe răng miệng cho trẻ đúng cách', 'cham-soc-rang-mieng-cho-tre', 'Nhi Khoa & Nha Khoa', 'Sâu răng ở trẻ em diễn tiến rất nhanh và ảnh hưởng tới quá trình mọc răng vĩnh viễn...', 'Nội dung chi tiết hướng dẫn phụ huynh chăm sóc răng cho bé...', 'rang-mieng-tre.jpg', 89, '2026-09-21 09:30:00', 1),
+(3, 6, 'Dấu hiệu thoái hóa khớp gối và phương pháp điều trị mới', 'dau-hieu-thoai-hoa-khop-goi', 'Tin Y Dược', 'Thoái hóa khớp gối là căn bệnh phổ biến ở người trung niên và cao tuổi, gây khó khăn lớn khi vận động...', 'Nội dung chi tiết về các giải pháp điều trị hiện đại...', 'thoai-hoa-khop.jpg', 230, '2026-09-22 14:15:00', 1),
+(4, 7, 'Khám sức khỏe tổng quát định kỳ: Lợi ích không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', 'Tin Tức Phòng Khám', 'Tầm soát định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn như tim mạch, tiểu đường, ung thư...', 'Nội dung chi tiết về gói khám tổng quát...', 'kham-tong-quat.jpg', 312, '2026-09-23 10:00:00', 1);
 
 SET FOREIGN_KEY_CHECKS = 1;
