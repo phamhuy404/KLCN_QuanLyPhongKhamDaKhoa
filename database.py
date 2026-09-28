@@ -1007,7 +1007,7 @@ def authenticate_user(username, password):
     # Nếu là Bác sĩ / Nhân viên
     if user_row['ma_vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
         cursor.execute('''
-            SELECT nv.ho_ten, nv.chuc_vu, bs.id AS bac_si_id, bs.hoc_vi
+            SELECT nv.ma_nhan_vien, nv.ho_ten, nv.chuc_vu, nv.email, bs.id AS bac_si_id, bs.hoc_vi
             FROM nhan_vien nv
             LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
             WHERE nv.tai_khoan_id = ?
@@ -1016,6 +1016,8 @@ def authenticate_user(username, password):
         if staff_row:
             user_info['ho_ten'] = staff_row['ho_ten']
             user_info['chuc_vu'] = staff_row['chuc_vu']
+            user_info['ma_nhan_vien'] = staff_row.get('ma_nhan_vien')
+            user_info['email'] = staff_row.get('email') or user_row.get('email')
             user_info['bac_si_id'] = staff_row['bac_si_id']
             user_info['hoc_vi'] = staff_row['hoc_vi']
         else:

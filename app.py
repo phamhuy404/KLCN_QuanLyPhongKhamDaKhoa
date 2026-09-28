@@ -78,6 +78,16 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
+@app.before_request
+def check_role_access():
+    """Kiểm soát phân quyền: Chặn tài khoản bệnh nhân vào các trang quản trị admin."""
+    if request.path.startswith('/admin'):
+        user = session.get('user')
+        if not user or not session.get('logged_in'):
+            return redirect(url_for('login', next=request.path))
+        if user.get('vai_tro') == 'BENHNHAN':
+            return redirect(url_for('patient_dashboard'))
+
 # 3. ĐIỀU HƯỚNG ĐẶT LỊCH KHÁM
 @app.route('/booking', methods=['GET', 'POST'])
 def booking():

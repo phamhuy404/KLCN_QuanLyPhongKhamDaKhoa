@@ -6,32 +6,70 @@
             <i class="fa-solid fa-bars"></i>
         </button>
 
-        <div>
-            <h2 class="text-lg sm:text-xl font-bold text-slate-800">Xin chào, Nguyễn Văn An! 👋</h2>
-            <p class="text-xs text-slate-400">Mã bệnh nhân: <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">BN00291</span></p>
-        </div>
+        {% set curr_user = session.get('user', {}) %}
+        {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+            <div>
+                <h2 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <span>Xin chào, {{ curr_user.get('ho_ten', 'Quản trị viên') }}! 👋</span>
+                    <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full">
+                        {{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}
+                    </span>
+                </h2>
+                <p class="text-xs text-slate-400">
+                    <span class="text-amber-600 font-medium"><i class="fa-solid fa-user-shield mr-1"></i>Tài khoản Quản trị</span> • Đang xem Cổng Bệnh Nhân
+                </p>
+            </div>
+        {% else %}
+            <div>
+                <h2 class="text-lg sm:text-xl font-bold text-slate-800">Xin chào, {{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Bệnh nhân') }}! 👋</h2>
+                <p class="text-xs text-slate-400">Mã bệnh nhân: <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span></p>
+            </div>
+        {% endif %}
     </div>
 
     <!-- User profile & notifications -->
     <div class="flex items-center gap-3 sm:gap-4">
-        <!-- Nút đặt lịch nhanh trên header -->
-        <a href="{{ url_for('patient_booking') }}" class="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-medical-50 text-medical-700 hover:bg-medical-100 text-xs font-semibold transition-all">
-            <i class="fa-solid fa-calendar-plus"></i> Đặt lịch hẹn
-        </a>
+        {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+            <!-- Nút quay lại cổng quản trị cho bác sĩ -->
+            <a href="{{ url_for('admin_dashboard') }}" class="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all">
+                <i class="fa-solid fa-arrow-left text-teal-400"></i>
+                <span>Về Cổng Quản Trị</span>
+            </a>
+        {% else %}
+            <!-- Nút đặt lịch nhanh trên header cho bệnh nhân -->
+            <a href="{{ url_for('patient_booking') }}" class="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-medical-50 text-medical-700 hover:bg-medical-100 text-xs font-semibold transition-all">
+                <i class="fa-solid fa-calendar-plus"></i> Đặt lịch hẹn
+            </a>
+        {% endif %}
 
         <!-- Nút chuông thông báo -->
-        <button class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" title="Thông báo" onclick="showToast('Bạn có 1 thông báo nhắc lịch khám sắp tới!', 'info')">
+        <button class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" title="Thông báo" onclick="showToast('Hệ thống hoạt động bình thường!', 'info')">
             <i class="fa-regular fa-bell text-base"></i>
             <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
         </button>
 
-        <!-- Avatar & Tên bệnh nhân có link vào tài khoản -->
-        <a href="{{ url_for('patient_profile') }}" class="flex items-center gap-3 pl-2 border-l border-slate-200 group">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" alt="Avatar" class="w-10 h-10 rounded-xl object-cover ring-2 ring-medical-500/30 group-hover:ring-medical-500 transition-all">
-            <div class="hidden sm:block text-left">
-                <h4 class="text-sm font-semibold text-slate-800 group-hover:text-medical-600 transition-colors leading-none">Nguyễn Văn An</h4>
-                <span class="text-xs text-medical-600 mt-1 block font-medium">Hội viên Bạc</span>
-            </div>
-        </a>
+        {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+            <!-- Avatar & Tên Bác sĩ / Quản trị viên -->
+            <a href="{{ url_for('admin_dashboard') }}" class="flex items-center gap-3 pl-2 border-l border-slate-200 group" title="Hồ sơ Quản trị / Bác sĩ">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-sm ring-2 ring-medical-500/30 group-hover:ring-medical-500 transition-all shrink-0">
+                    {{ (curr_user.get('ho_ten', 'BS'))[0] }}
+                </div>
+                <div class="hidden sm:block text-left">
+                    <h4 class="text-sm font-semibold text-slate-800 group-hover:text-medical-600 transition-colors leading-none">{{ curr_user.get('ho_ten') }}</h4>
+                    <span class="text-xs text-amber-600 mt-1 block font-semibold">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+                </div>
+            </a>
+        {% else %}
+            <!-- Avatar & Tên bệnh nhân có link vào tài khoản -->
+            <a href="{{ url_for('patient_profile') }}" class="flex items-center gap-3 pl-2 border-l border-slate-200 group" title="Hồ sơ bệnh nhân">
+                <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-700 font-bold flex items-center justify-center text-sm ring-2 ring-medical-500/30 group-hover:ring-medical-500 transition-all shrink-0">
+                    {{ (patient.ho_ten if patient else curr_user.get('ho_ten', 'BN'))[0] }}
+                </div>
+                <div class="hidden sm:block text-left">
+                    <h4 class="text-sm font-semibold text-slate-800 group-hover:text-medical-600 transition-colors leading-none">{{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Bệnh nhân') }}</h4>
+                    <span class="text-xs text-medical-600 mt-1 block font-medium">{{ 'Thẻ BHYT: ' ~ patient.bhyt if patient and patient.bhyt else 'Bệnh nhân' }}</span>
+                </div>
+            </a>
+        {% endif %}
     </div>
 </header>

@@ -85,16 +85,19 @@
 
             <!-- Chuyển cổng & Đăng xuất -->
             <div class="pt-3 mt-2 border-t border-slate-100 space-y-1 overflow-hidden">
-                <a href="{{ url_for('admin_dashboard') }}" 
-                   class="nav-item nav-item-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs"
-                   title="Chuyển sang Cổng Bác sĩ">
-                    <div class="sidebar-icon-box">
-                        <i class="fa-solid fa-user-doctor nav-icon text-sm"></i>
-                    </div>
-                    <span class="sidebar-text-fade font-medium">Cổng Bác sĩ / Quản trị</span>
-                </a>
+                {% set curr_user = session.get('user', {}) %}
+                {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                    <a href="{{ url_for('admin_dashboard') }}" 
+                       class="nav-item nav-item-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/60"
+                       title="Quay lại Cổng Bác sĩ / Quản trị">
+                        <div class="sidebar-icon-box">
+                            <i class="fa-solid fa-arrow-left nav-icon text-sm text-amber-600"></i>
+                        </div>
+                        <span class="sidebar-text-fade font-bold text-amber-800">Về Cổng Quản Trị</span>
+                    </a>
+                {% endif %}
 
-                <a href="{{ url_for('login') }}" 
+                <a href="{{ url_for('logout') }}" 
                    class="nav-item nav-item-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                    title="Đăng xuất">
                     <div class="sidebar-icon-box">
@@ -106,7 +109,24 @@
         </nav>
     </div>
 
-    <!-- Hotline Support Footer (Tự động mở rộng thông tin khi hover) -->
+    {% set curr_user = session.get('user', {}) %}
+    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+    <!-- Doctor Profile Footer (Khi Bác sĩ xem Cổng Bệnh nhân) -->
+    <div class="p-2.5 m-2 rounded-2xl bg-slate-900 text-slate-300 border border-slate-800 overflow-hidden">
+        <div class="flex items-center">
+            <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    {{ (curr_user.get('ho_ten', 'BS'))[0] }}
+                </div>
+            </div>
+            <div class="sidebar-text-fade ml-1 overflow-hidden">
+                <h4 class="text-[11px] font-bold text-white truncate">{{ curr_user.get('ho_ten') }}</h4>
+                <span class="text-[10px] text-teal-400 block truncate">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Hotline Support Footer (Dành cho Bệnh nhân) -->
     <div class="p-2.5 m-2 rounded-2xl bg-gradient-to-b from-medical-50 to-teal-50/40 border border-medical-100 overflow-hidden">
         <div class="flex items-center">
             <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
@@ -120,4 +140,5 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </aside>

@@ -11,6 +11,24 @@
 {% endblock %}
 
 {% block content %}
+    {% set curr_user = session.get('user', {}) %}
+    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+    <div class="bg-amber-50 border border-amber-200/80 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-sm">
+        <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm shadow-amber-500/20">
+                <i class="fa-solid fa-user-doctor"></i>
+            </span>
+            <div>
+                <span class="font-bold text-sm text-slate-800">Đang truy cập Cổng Bệnh Nhân với tài khoản: {{ curr_user.get('ho_ten') }}</span>
+                <span class="text-amber-700 block text-xs mt-0.5">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }} • Dữ liệu lâm sàng hiển thị chế độ xem trước</span>
+            </div>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 whitespace-nowrap shadow-sm self-start sm:self-auto">
+            <i class="fa-solid fa-arrow-left text-teal-400"></i> Về Cổng Quản Trị
+        </a>
+    </div>
+    {% endif %}
+
     <!-- BANNER ĐẶT LỊCH NHANH -->
     <div class="bg-gradient-to-r from-medical-600 to-teal-500 rounded-2xl p-6 text-white shadow-xl shadow-medical-500/10 flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="space-y-2">
@@ -110,19 +128,33 @@
                 <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-medical-500/20 rounded-full blur-2xl"></div>
                 
                 <div class="flex items-center justify-between mb-8">
-                    <span class="font-bold text-sm tracking-widest text-medical-400">H2T CARE VIP CARD</span>
-                    <i class="fa-solid fa-nfc text-xl text-slate-400"></i>
+                    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                        <span class="font-bold text-sm tracking-widest text-amber-400">H2T CARE - STAFF PASS</span>
+                        <i class="fa-solid fa-user-shield text-xl text-amber-400"></i>
+                    {% else %}
+                        <span class="font-bold text-sm tracking-widest text-medical-400">H2T CARE VIP CARD</span>
+                        <i class="fa-solid fa-nfc text-xl text-slate-400"></i>
+                    {% endif %}
                 </div>
 
                 <div class="space-y-1 mb-8">
                     <span class="text-xs text-slate-400">Họ và tên</span>
-                    <h4 class="text-lg font-bold tracking-wide">{{ (patient.ho_ten if patient else 'NGUYỄN VĂN AN')|upper }}</h4>
+                    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                        <h4 class="text-lg font-bold tracking-wide text-white">{{ curr_user.get('ho_ten', '')|upper }}</h4>
+                    {% else %}
+                        <h4 class="text-lg font-bold tracking-wide">{{ (patient.ho_ten if patient else curr_user.get('ho_ten', 'NGUYỄN VĂN AN'))|upper }}</h4>
+                    {% endif %}
                 </div>
 
                 <div class="flex items-end justify-between">
                     <div>
-                        <span class="text-xs text-slate-400 block">Mã số BN</span>
-                        <span class="font-mono font-bold tracking-wider text-medical-300">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span>
+                        {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                            <span class="text-xs text-slate-400 block">Chức vụ / Vai trò</span>
+                            <span class="font-mono font-bold tracking-wider text-amber-300">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+                        {% else %}
+                            <span class="text-xs text-slate-400 block">Mã số BN</span>
+                            <span class="font-mono font-bold tracking-wider text-medical-300">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span>
+                        {% endif %}
                     </div>
                     <div class="bg-white p-2 rounded-xl">
                         <!-- Giả lập mã QR Code -->

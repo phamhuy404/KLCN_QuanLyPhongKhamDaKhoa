@@ -131,15 +131,39 @@
                 </a>
 
                 {% if session.get('logged_in') %}
-                    <a href="{{ url_for('patient_dashboard') }}" 
-                       class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-circle-user"></i>
-                        <span>{{ session.get('user', {}).get('ho_ten', 'Tài khoản') }}</span>
-                    </a>
-                    <a href="{{ url_for('logout') }}" 
-                       class="hidden lg:inline-flex px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </a>
+                    {% set curr_user = session.get('user', {}) %}
+                    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('admin_dashboard') }}" 
+                               class="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
+                               title="Vào Cổng Bác sĩ / Quản trị">
+                                <i class="fa-solid fa-user-doctor text-medical-400"></i>
+                                <span>{{ curr_user.get('ho_ten', 'Quản trị viên') }}</span>
+                                <span class="bg-slate-800 text-[10px] text-teal-300 px-1.5 py-0.5 rounded font-normal">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+                            </a>
+                            <a href="{{ url_for('patient_dashboard') }}" 
+                               class="hidden md:inline-flex px-3 py-2.5 rounded-xl bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs border border-medical-200 transition-all"
+                               title="Xem Cổng Bệnh Nhân">
+                                <i class="fa-solid fa-eye mr-1"></i> Cổng BN
+                            </a>
+                            <a href="{{ url_for('logout') }}" 
+                               class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('patient_dashboard') }}" 
+                               class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-circle-user"></i>
+                                <span>{{ curr_user.get('ho_ten', 'Bệnh nhân') }}</span>
+                            </a>
+                            <a href="{{ url_for('logout') }}" 
+                               class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            </a>
+                        </div>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('login') }}" 
                        class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
