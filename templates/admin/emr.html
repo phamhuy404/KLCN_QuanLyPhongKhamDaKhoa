@@ -55,50 +55,22 @@
 
             <!-- Danh sách bệnh nhân chờ -->
             <div class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1" id="emr-queue-list">
-                <!-- Card BN 1 -->
-                <div onclick="selectEmrPatient(1)" id="patient-card-1" class="p-3.5 rounded-xl border border-medical-500 bg-medical-50/50 cursor-pointer transition-all space-y-2 hover:shadow-sm">
+                {% for p in patients[:5] %}
+                <div onclick="selectEmrPatient({{ p.id }})" id="patient-card-{{ p.id }}" 
+                     class="p-3.5 rounded-xl border {% if loop.first %}border-medical-500 bg-medical-50/50{% else %}border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50{% endif %} cursor-pointer transition-all space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="px-2 py-0.5 rounded-lg bg-medical-600 text-white font-mono font-bold text-xs">STT #018</span>
-                        <span class="text-[10px] text-slate-400 font-mono">08:15</span>
+                        <span class="px-2 py-0.5 rounded-lg {% if loop.first %}bg-medical-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %} font-mono font-bold text-xs">STT #{{ "%03d"|format(loop.index) }}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">08:{{ "%02d"|format(10 + loop.index * 15) }}</span>
                     </div>
                     <div>
-                        <h4 class="font-bold text-slate-900 text-sm">Hoàng Bảo Nam</h4>
-                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609001 • Nam • 36T • BHYT</div>
+                        <h4 class="font-bold text-slate-900 text-sm">{{ p.ho_ten }}</h4>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ p.ma_benh_nhan }} • {{ p.gioi_tinh }} • {{ p.tuoi }}T • {{ 'BHYT' if p.bhyt else 'Dịch vụ' }}</div>
                     </div>
                     <p class="text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-slate-100 truncate">
-                        Lý do: Đau tức vùng thượng vị, ợ chua sau ăn
+                        Lý do: {{ p.trieu_chung or p.tien_su_benh or 'Khám sức khỏe tổng quát định kỳ' }}
                     </p>
                 </div>
-
-                <!-- Card BN 2 -->
-                <div onclick="selectEmrPatient(3)" id="patient-card-3" class="p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-xs">STT #019</span>
-                        <span class="text-[10px] text-slate-400 font-mono">08:35</span>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-slate-900 text-sm">Trần Văn Quyết</h4>
-                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609003 • Nam • 41T • BHYT</div>
-                    </div>
-                    <p class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 truncate">
-                        Lý do: Huyết áp tại nhà tăng cao, nhức đầu
-                    </p>
-                </div>
-
-                <!-- Card BN 3 -->
-                <div onclick="selectEmrPatient(5)" id="patient-card-5" class="p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-mono font-bold text-xs">STT #020</span>
-                        <span class="text-[10px] text-slate-400 font-mono">09:00</span>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-slate-900 text-sm">Đinh Trọng Thắng</h4>
-                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">BN2609005 • Nam • 48T • Dịch vụ</div>
-                    </div>
-                    <p class="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 truncate">
-                        Lý do: Tái khám tiểu đường type 2
-                    </p>
-                </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -212,32 +184,16 @@
                 </div>
 
                 <div class="space-y-2">
+                    {% for s in services[:4] %}
                     <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                        <input type="checkbox" checked class="w-4 h-4 rounded text-medical-600 focus:ring-0">
+                        <input type="checkbox" {% if loop.index <= 2 %}checked{% endif %} class="w-4 h-4 rounded text-medical-600 focus:ring-0">
                         <div class="flex-1">
-                            <span class="font-bold text-slate-800 block">Nội soi thực quản - dạ dày - tá tràng ống mềm</span>
-                            <span class="text-[11px] text-slate-400">Khoa Chẩn Đoán Hình Ảnh • Phòng 105</span>
+                            <span class="font-bold text-slate-800 block">{{ s.ten_dich_vu }}</span>
+                            <span class="text-[11px] text-slate-400">{{ s.ten_khoa or 'Cận lâm sàng' }} • {{ s.loai_dich_vu }}</span>
                         </div>
-                        <span class="font-mono font-semibold text-slate-700">650.000 đ</span>
+                        <span class="font-mono font-semibold text-slate-700">{{ "{:,.0f}".format(s.don_gia or s.gia_dich_vu or 0) }} đ</span>
                     </label>
-
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                        <input type="checkbox" checked class="w-4 h-4 rounded text-medical-600 focus:ring-0">
-                        <div class="flex-1">
-                            <span class="font-bold text-slate-800 block">Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)</span>
-                            <span class="text-[11px] text-slate-400">Khoa Xét Nghiệm • Phòng Lab 202</span>
-                        </div>
-                        <span class="font-mono font-semibold text-slate-700">120.000 đ</span>
-                    </label>
-
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                        <input type="checkbox" class="w-4 h-4 rounded text-medical-600 focus:ring-0">
-                        <div class="flex-1">
-                            <span class="font-bold text-slate-800 block">Siêu âm ổ bụng tổng quát màu Doppler</span>
-                            <span class="text-[11px] text-slate-400">Khoa Thăm Dò Chức Năng • Phòng 106</span>
-                        </div>
-                        <span class="font-mono font-semibold text-slate-700">180.000 đ</span>
-                    </label>
+                    {% endfor %}
                 </div>
 
                 <div class="flex justify-end">
@@ -260,24 +216,17 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100" id="prescription-body">
+                            {% for m in medicines[:3] %}
                             <tr>
                                 <td class="py-2.5 px-3">
-                                    <strong class="text-slate-800">Esomeprazole 40mg</strong>
-                                    <span class="block text-[10px] text-slate-400">Viên nang</span>
+                                    <strong class="text-slate-800">{{ m.ten_thuoc }}</strong>
+                                    <span class="block text-[10px] text-slate-400">{{ m.hoat_chat }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">28 Viên</td>
-                                <td class="py-2.5 px-3 text-slate-600">Uống 1 viên trước ăn sáng 30 phút</td>
-                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer"><i class="fa-solid fa-trash"></i></td>
+                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">20 {{ m.don_vi_tinh }}</td>
+                                <td class="py-2.5 px-3 text-slate-600">{{ m.huong_dan_su_dung or 'Uống sau ăn 30 phút' }}</td>
+                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer" onclick="this.closest('tr').remove()"><i class="fa-solid fa-trash"></i></td>
                             </tr>
-                            <tr>
-                                <td class="py-2.5 px-3">
-                                    <strong class="text-slate-800">Phosphalugel 20g</strong>
-                                    <span class="block text-[10px] text-slate-400">Gói hỗn dịch</span>
-                                </td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">20 Gói</td>
-                                <td class="py-2.5 px-3 text-slate-600">Uống 1 gói khi đau hoặc sau ăn 2 giờ</td>
-                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer"><i class="fa-solid fa-trash"></i></td>
-                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -315,11 +264,20 @@
 </div>
 
 <script>
-    const samplePatients = {
-        1: { name: "Hoàng Bảo Nam", code: "BN2609001", age: "36 tuổi", gender: "Nam", blood: "O+", bhyt: "GD4797931100001", allergy: "Không có", reason: "Đau tức vùng thượng vị, ợ chua" },
-        3: { name: "Trần Văn Quyết", code: "BN2609003", age: "41 tuổi", gender: "Nam", blood: "B+", bhyt: "GD4797931100003", allergy: "Không có", reason: "Huyết áp tại nhà tăng cao, nhức đầu" },
-        5: { name: "Đinh Trọng Thắng", code: "BN2609005", age: "48 tuổi", gender: "Nam", blood: "O-", bhyt: "DN4797931100005", allergy: "Không có", reason: "Tái khám tiểu đường type 2" }
-    };
+    let rawPatients = {{ patients | tojson | safe }};
+    const samplePatients = {};
+    rawPatients.forEach(p => {
+        samplePatients[p.id] = {
+            name: p.ho_ten,
+            code: p.ma_benh_nhan,
+            age: (p.tuoi || 30) + ' tuổi',
+            gender: p.gioi_tinh || 'Nam',
+            blood: p.nhom_mau || 'Chưa rõ',
+            bhyt: p.bhyt || 'Không áp dụng',
+            allergy: p.di_ung || 'Không có',
+            reason: p.trieu_chung || p.tien_su_benh || 'Khám sức khỏe theo yêu cầu'
+        };
+    });
 
     function selectEmrPatient(id) {
         const p = samplePatients[id];
@@ -335,10 +293,10 @@
         document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
 
         // Reset highlight card
-        [1, 3, 5].forEach(k => {
+        Object.keys(samplePatients).forEach(k => {
             const card = document.getElementById(`patient-card-${k}`);
             if (card) {
-                if (k === id) {
+                if (parseInt(k) === parseInt(id)) {
                     card.className = "p-3.5 rounded-xl border border-medical-500 bg-medical-50/50 cursor-pointer transition-all space-y-2 hover:shadow-sm";
                 } else {
                     card.className = "p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2";

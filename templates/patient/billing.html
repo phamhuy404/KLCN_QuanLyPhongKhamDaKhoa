@@ -32,76 +32,76 @@
     <!-- Summary Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <span class="text-xs text-slate-400 font-medium">Tổng viện phí (Năm 2026)</span>
-            <p class="text-2xl font-bold text-slate-800 mt-1">3.250.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <span class="text-xs text-slate-400 font-medium">Tổng viện phí KCB</span>
+            <p class="text-2xl font-bold text-slate-800 mt-1">{{ "{:,.0f}".format(invoices|sum(attribute='tong_tien')) if invoices else '0' }} <span class="text-xs font-normal text-slate-500">đ</span></p>
             <div class="mt-2 text-[11px] text-slate-400 flex items-center gap-1">
-                <i class="fa-solid fa-clock-rotate-left"></i> 4 đợt khám & xét nghiệm
+                <i class="fa-solid fa-clock-rotate-left"></i> {{ invoices|length if invoices else 0 }} hóa đơn phát sinh
             </div>
         </div>
 
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <span class="text-xs text-slate-400 font-medium">BHYT đồng chi trả</span>
-            <p class="text-2xl font-bold text-emerald-600 mt-1">1.625.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <p class="text-2xl font-bold text-emerald-600 mt-1">{{ "{:,.0f}".format(invoices|sum(attribute='tien_bhyt_chi_tra')) if invoices else '0' }} <span class="text-xs font-normal text-slate-500">đ</span></p>
             <div class="mt-2 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                <i class="fa-solid fa-shield-halved"></i> Giảm 50% theo thẻ BHYT
+                <i class="fa-solid fa-shield-halved"></i> Khấu trừ BHYT hợp lệ
             </div>
         </div>
 
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <span class="text-xs text-slate-400 font-medium">Đã thanh toán</span>
-            <p class="text-2xl font-bold text-blue-600 mt-1">1.225.000 <span class="text-xs font-normal text-slate-500">đ</span></p>
+            <p class="text-2xl font-bold text-blue-600 mt-1">{{ "{:,.0f}".format(invoices|selectattr('trang_thai', 'equalto', 'Đã thanh toán')|sum(attribute='thanh_tien')) if invoices else '0' }} <span class="text-xs font-normal text-slate-500">đ</span></p>
             <div class="mt-2 text-[11px] text-blue-600 flex items-center gap-1">
-                <i class="fa-solid fa-check-circle"></i> Đã xuất hóa đơn điện tử
+                <i class="fa-solid fa-check-circle"></i> Đã xuất biên lai điện tử
             </div>
         </div>
 
         <div class="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-5 rounded-2xl shadow-lg shadow-amber-500/20">
-            <span class="text-xs text-amber-100 font-medium">Cần thanh toán ngay</span>
-            <p class="text-2xl font-bold mt-1">400.000 <span class="text-xs font-normal text-amber-100">đ</span></p>
+            <span class="text-xs text-amber-100 font-medium">Cần thanh toán</span>
+            <p class="text-2xl font-bold mt-1">{{ "{:,.0f}".format(invoices|rejectattr('trang_thai', 'equalto', 'Đã thanh toán')|sum(attribute='thanh_tien')) if invoices else '0' }} <span class="text-xs font-normal text-amber-100">đ</span></p>
             <div class="mt-2 text-[11px] text-white/90 flex items-center gap-1 font-semibold">
-                <i class="fa-solid fa-circle-exclamation"></i> 01 đợt khám chờ xác nhận
+                <i class="fa-solid fa-circle-exclamation"></i> {{ invoices|rejectattr('trang_thai', 'equalto', 'Đã thanh toán')|list|length }} hóa đơn chờ
             </div>
         </div>
     </div>
 
     <!-- Hóa Đơn Đang Chờ Thanh Toán (Unpaid Invoice Box) -->
-    <div class="bg-white rounded-2xl border border-amber-200/80 shadow-md p-6 bg-gradient-to-r from-amber-50/30 to-white">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Chờ thanh toán</span>
-                    <h3 class="font-bold text-base text-slate-900">Hóa đơn đợt khám ngày 18/09/2026</h3>
+    {% set unpaid_invoices = invoices|rejectattr('trang_thai', 'equalto', 'Đã thanh toán')|list if invoices else [] %}
+    {% if unpaid_invoices %}
+        {% set unpaid = unpaid_invoices[0] %}
+        <div class="bg-white rounded-2xl border border-amber-200/80 shadow-md p-6 bg-gradient-to-r from-amber-50/30 to-white">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Chờ thanh toán</span>
+                        <h3 class="font-bold text-base text-slate-900">Hóa đơn KCB: {{ unpaid.ma_hoa_don }}</h3>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Thời gian tạo: <span class="font-mono font-semibold text-slate-700">{{ unpaid.thoi_gian_tao }}</span></p>
                 </div>
-                <p class="text-xs text-slate-500 mt-1">Mã hóa đơn: <span class="font-mono font-semibold text-slate-700">HD-20260918-024</span> • Khoa Khám bệnh Ngoại trú</p>
+                
+                <div class="text-left md:text-right">
+                    <span class="text-xs text-slate-400 block">Số tiền cần thanh toán</span>
+                    <span class="text-2xl font-extrabold text-amber-600">{{ "{:,.0f}".format(unpaid.thanh_tien) }} đ</span>
+                </div>
             </div>
-            
-            <div class="text-left md:text-right">
-                <span class="text-xs text-slate-400 block">Số tiền cần thanh toán</span>
-                <span class="text-2xl font-extrabold text-amber-600">400.000 đ</span>
-            </div>
-        </div>
 
-        <!-- Chi tiết các khoản mục -->
-        <div class="py-4 space-y-2.5 text-xs text-slate-700">
-            <div class="flex justify-between py-1 border-b border-slate-100/60">
-                <span>1. Tiền công khám bệnh Nội tổng quát (BS. Quân)</span>
-                <span class="font-semibold text-slate-800">200.000 đ</span>
+            <!-- Chi tiết các khoản mục -->
+            <div class="py-4 space-y-2 text-xs text-slate-700">
+                <div class="p-3 bg-white rounded-xl border border-slate-100">
+                    <span class="font-semibold text-slate-800 block mb-1">Các hạng mục thực hiện:</span>
+                    <p class="text-slate-600">{{ unpaid.khoan_muc or 'Chi phí khám bệnh & thuốc' }}</p>
+                </div>
             </div>
-            <div class="flex justify-between py-1 border-b border-slate-100/60">
-                <span>2. Tiền thuốc điều trị theo toa (Augmentin, Efferalgan, Acemuc)</span>
-                <span class="font-semibold text-slate-800">200.000 đ</span>
-            </div>
-        </div>
 
-        <div class="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span class="text-xs text-slate-500 flex items-center gap-1.5">
-                <i class="fa-solid fa-lock text-medical-600"></i> Hỗ trợ thanh toán bảo mật chuẩn VietQR, VNPay, MoMo, Visa/MasterCard.
-            </span>
-            <button onclick="openPaymentModal()" class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-medical-600 to-teal-600 hover:from-medical-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-medical-600/20 transition-all flex items-center justify-center gap-2">
-                <i class="fa-solid fa-qrcode"></i> Thanh toán bằng QR Code / Thẻ
-            </button>
+            <div class="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span class="text-xs text-slate-500 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lock text-medical-600"></i> Hỗ trợ thanh toán bảo mật chuẩn VietQR, VNPay, MoMo, Visa/MasterCard.
+                </span>
+                <button onclick="openPaymentModal()" class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-medical-600 to-teal-600 hover:from-medical-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-medical-600/20 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-qrcode"></i> Thanh toán bằng QR Code / Thẻ
+                </button>
+            </div>
         </div>
-    </div>
+    {% endif %}
 
     <!-- Lịch sử hóa đơn điện tử đã thanh toán -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -127,42 +127,36 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold font-mono text-slate-900">HD-20260810-011</td>
-                        <td class="py-3.5 px-5 text-slate-500">10/08/2026</td>
-                        <td class="py-3.5 px-5">
-                            <span class="font-medium text-slate-800">Khám Nội + XN Máu + X-Quang</span>
-                        </td>
-                        <td class="py-3.5 px-5 font-medium">1.450.000 đ</td>
-                        <td class="py-3.5 px-5 text-emerald-600 font-medium">-725.000 đ</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-900">725.000 đ</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
-                        </td>
-                        <td class="py-3.5 px-5 text-right">
-                            <button onclick="showToast('Đang tải hóa đơn điện tử e-Invoice...', 'success')" class="text-medical-600 hover:text-medical-800 font-semibold hover:underline">
-                                Tải hóa đơn VAT
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold font-mono text-slate-900">HD-20260515-082</td>
-                        <td class="py-3.5 px-5 text-slate-500">15/05/2026</td>
-                        <td class="py-3.5 px-5">
-                            <span class="font-medium text-slate-800">Khám Tiêu hóa + Thuốc dạ dày</span>
-                        </td>
-                        <td class="py-3.5 px-5 font-medium">1.000.000 đ</td>
-                        <td class="py-3.5 px-5 text-emerald-600 font-medium">-500.000 đ</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-900">500.000 đ</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
-                        </td>
-                        <td class="py-3.5 px-5 text-right">
-                            <button onclick="showToast('Đang tải hóa đơn điện tử e-Invoice...', 'success')" class="text-medical-600 hover:text-medical-800 font-semibold hover:underline">
-                                Tải hóa đơn VAT
-                            </button>
-                        </td>
-                    </tr>
+                    {% if invoices %}
+                        {% for inv in invoices %}
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="py-3.5 px-5 font-bold font-mono text-slate-900">{{ inv.ma_hoa_don }}</td>
+                            <td class="py-3.5 px-5 text-slate-500">{{ inv.thoi_gian_tao[:10] if inv.thoi_gian_tao else 'Hôm nay' }}</td>
+                            <td class="py-3.5 px-5">
+                                <span class="font-medium text-slate-800">{{ inv.khoan_muc or 'Chi phí khám bệnh & thuốc' }}</span>
+                            </td>
+                            <td class="py-3.5 px-5 font-medium">{{ "{:,.0f}".format(inv.tong_tien) }} đ</td>
+                            <td class="py-3.5 px-5 text-emerald-600 font-medium">-{{ "{:,.0f}".format(inv.tien_bhyt_chi_tra) }} đ</td>
+                            <td class="py-3.5 px-5 font-bold text-slate-900">{{ "{:,.0f}".format(inv.thanh_tien) }} đ</td>
+                            <td class="py-3.5 px-5 text-center">
+                                {% if inv.trang_thai == 'Đã thanh toán' %}
+                                <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
+                                {% else %}
+                                <span class="bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Chờ thanh toán</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-5 text-right">
+                                <button onclick="window.print()" class="text-medical-600 hover:text-medical-800 font-semibold hover:underline">
+                                    In biên lai
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-slate-400">Chưa có lịch sử phát sinh hóa đơn viện phí.</td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>

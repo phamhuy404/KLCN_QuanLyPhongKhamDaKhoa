@@ -49,7 +49,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Tổng danh mục thuốc</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">128 <span class="text-xs font-normal text-slate-400">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ medicines|length }} <span class="text-xs font-normal text-slate-400">loại</span></h4>
             </div>
         </div>
 
@@ -59,7 +59,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Sắp hết hàng (&lt; định mức)</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">4 <span class="text-xs font-normal text-amber-600 font-semibold">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ medicines|selectattr('so_luong_ton', 'le', 50)|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">loại</span></h4>
             </div>
         </div>
 
@@ -69,7 +69,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Cận hạn dùng (&lt; 3 tháng)</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-rose-600 font-semibold">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">1 <span class="text-xs font-normal text-rose-600 font-semibold">loại</span></h4>
             </div>
         </div>
 
@@ -79,7 +79,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đơn thuốc chờ phát hôm nay</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">14 <span class="text-xs font-normal text-teal-600 font-semibold">đơn</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ prescriptions|rejectattr('trang_thai', 'equalto', 'Đã phát')|list|length }} <span class="text-xs font-normal text-teal-600 font-semibold">đơn</span></h4>
             </div>
         </div>
     </div>
@@ -236,21 +236,29 @@
 </div>
 
 <script>
-    let medicines = [
-        { ma: "TH001", ten: "Esomeprazole 40mg", hoat_chat: "Esomeprazole", dvt: "Viên", ton: 450, gia: 12000, hsd: "2027-08-15", status: "in_stock" },
-        { ma: "TH002", ten: "Phosphalugel 20g", hoat_chat: "Aluminium phosphate", dvt: "Gói", ton: 280, gia: 8500, hsd: "2027-05-20", status: "in_stock" },
-        { ma: "TH003", ten: "Amlodipine 5mg", hoat_chat: "Amlodipine", dvt: "Viên", ton: 18, gia: 5000, hsd: "2026-11-30", status: "low_stock" },
-        { ma: "TH004", ten: "Atorvastatin 10mg", hoat_chat: "Atorvastatin", dvt: "Viên", ton: 120, gia: 9000, hsd: "2027-10-10", status: "in_stock" },
-        { ma: "TH005", ten: "Desloratadine 5mg", hoat_chat: "Desloratadine", dvt: "Viên", ton: 350, gia: 6500, hsd: "2028-01-01", status: "in_stock" },
-        { ma: "TH006", ten: "Seretide Evohaler 25/50", hoat_chat: "Salmeterol / Fluticasone", dvt: "Bình", ton: 5, gia: 320000, hsd: "2026-12-15", status: "low_stock" },
-        { ma: "TH007", ten: "Metformin 850mg", hoat_chat: "Metformin", dvt: "Viên", ton: 600, gia: 4000, hsd: "2027-09-09", status: "in_stock" }
-    ];
+    let rawMedicines = {{ medicines | tojson | safe }};
+    let medicines = rawMedicines.map(m => ({
+        ma: m.ma_thuoc || m.ma,
+        ten: m.ten_thuoc || m.ten,
+        hoat_chat: m.hoat_chat || 'Hoạt chất chuẩn',
+        dvt: m.don_vi_tinh || m.dvt || 'Viên',
+        ton: m.so_luong_ton !== undefined ? m.so_luong_ton : (m.ton || 0),
+        gia: m.don_gia !== undefined ? m.don_gia : (m.gia || 0),
+        hsd: m.hsd || '2028-12-31',
+        status: (m.so_luong_ton !== undefined ? m.so_luong_ton : m.ton) < 25 ? 'low_stock' : 'in_stock'
+    }));
 
-    let dispensingOrders = [
-        { ma_don: "DT260901", benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", id: 1, bac_si: "BS. Trần Minh Quân", thuoc: "Esomeprazole (28v), Phosphalugel (20g)", gio: "08:45", status: "waiting" },
-        { ma_don: "DT260902", benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", id: 3, bac_si: "BS. Trần Minh Quân", thuoc: "Amlodipine (30v), Atorvastatin (30v)", gio: "09:20", status: "waiting" },
-        { ma_don: "DT260903", benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", id: 2, bac_si: "BS. Phan Thu Trang", thuoc: "Desloratadine (14v), Flixonase (1 chai)", gio: "08:30", status: "completed" }
-    ];
+    let rawPrescriptions = {{ prescriptions | tojson | safe }};
+    let dispensingOrders = rawPrescriptions.map(p => ({
+        ma_don: p.ma_don,
+        benh_nhan: p.benh_nhan,
+        ma_bn: p.ma_bn,
+        id: p.patient_id,
+        bac_si: p.bac_si,
+        thuoc: p.thuoc || 'Theo đơn bác sĩ',
+        gio: (p.gio || '').toString().slice(11, 16) || '09:00',
+        status: p.trang_thai === 'Đã phát' ? 'completed' : 'waiting'
+    }));
 
     function renderMedicines(data) {
         const tbody = document.getElementById('medicine-table-body');

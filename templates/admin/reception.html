@@ -47,8 +47,8 @@
                 <i class="fa-solid fa-ticket"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Tổng số đã phát</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">124 <span class="text-xs font-normal text-slate-400">số</span></h4>
+                <span class="text-xs text-slate-400 font-medium">Tổng số tiếp nhận</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|length }} <span class="text-xs font-normal text-slate-400">lượt</span></h4>
             </div>
         </div>
 
@@ -58,7 +58,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang chờ gọi số</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18 <span class="text-xs font-normal text-amber-600 font-semibold">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|rejectattr('trang_thai', 'in', ['Đang khám', 'Đã khám'])|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">người</span></h4>
             </div>
         </div>
 
@@ -68,7 +68,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang trong phòng khám</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">12 <span class="text-xs font-normal text-slate-400">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|selectattr('trang_thai', 'equalto', 'Đang khám')|list|length }} <span class="text-xs font-normal text-slate-400">người</span></h4>
             </div>
         </div>
 
@@ -78,7 +78,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã hoàn tất</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">94 <span class="text-xs font-normal text-slate-400">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|selectattr('trang_thai', 'equalto', 'Đã khám')|list|length }} <span class="text-xs font-normal text-slate-400">người</span></h4>
             </div>
         </div>
     </div>
@@ -286,14 +286,17 @@
 </div>
 
 <script>
-    let receptionQueue = [
-        { stt: "018", ma_bn: "BN2609001", ho_ten: "Hoàng Bảo Nam", id: 1, gio: "08:15", phong: "Phòng 101 - Nội Tổng Quát", loai: "BHYT", status: "examining" },
-        { stt: "019", ma_bn: "BN2609002", ho_ten: "Lê Ngọc Trâm", id: 2, gio: "08:25", phong: "Phòng 201 - Tai Mũi Họng", loai: "BHYT", status: "waiting" },
-        { stt: "020", ma_bn: "BN2609003", ho_ten: "Trần Văn Quyết", id: 3, gio: "08:35", phong: "Phòng 102 - Tim Mạch", loai: "BHYT", status: "waiting" },
-        { stt: "021", ma_bn: "BN2609004", ho_ten: "Phạm Thảo My", id: 4, gio: "08:45", phong: "Phòng 301 - Nhi Khoa", loai: "BHYT", status: "waiting" },
-        { stt: "022", ma_bn: "BN2609005", ho_ten: "Đinh Trọng Thắng", id: 5, gio: "09:00", phong: "Phòng 101 - Nội Tổng Quát", loai: "Dịch vụ", status: "waiting" },
-        { stt: "017", ma_bn: "BN2609006", ho_ten: "Võ Thanh Trúc", id: 6, gio: "08:05", phong: "Phòng 101 - Nội Tổng Quát", loai: "BHYT", status: "completed" }
-    ];
+    let rawAppointments = {{ appointments | tojson | safe }};
+    let receptionQueue = rawAppointments.map((a, idx) => ({
+        stt: String(idx + 1).padStart(3, '0'),
+        ma_bn: a.ma_benh_nhan,
+        ho_ten: a.ho_ten_benh_nhan,
+        id: a.benh_nhan_id,
+        gio: (a.gio_hen || '08:00').slice(0, 5),
+        phong: a.ten_phong || a.ten_khoa || 'Phòng Khám Nội',
+        loai: a.ma_lich_hen.includes('WEB') ? 'Đặt trước (Web)' : 'Trực tiếp',
+        status: a.trang_thai === 'Đang khám' ? 'examining' : (a.trang_thai === 'Đã khám' ? 'completed' : 'waiting')
+    }));
 
     function renderQueue() {
         const tbody = document.getElementById('reception-table-body');

@@ -46,8 +46,8 @@
                 <i class="fa-solid fa-wallet"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Doanh thu hôm nay</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">46.850.000 <span class="text-xs font-normal text-slate-400">đ</span></h4>
+                <span class="text-xs text-slate-400 font-medium">Doanh thu viện phí</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='tong_tien')) }} <span class="text-xs font-normal text-slate-400">đ</span></h4>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">BHYT quyết toán</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18.200.000 <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='tien_bhyt_chi_tra')) }} <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
             </div>
         </div>
 
@@ -67,7 +67,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Thực thu người bệnh</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">28.650.000 <span class="text-xs font-normal text-emerald-600 font-semibold">đ</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='thanh_tien')) }} <span class="text-xs font-normal text-emerald-600 font-semibold">đ</span></h4>
             </div>
         </div>
 
@@ -77,7 +77,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Hóa đơn chờ thu</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">6 <span class="text-xs font-normal text-amber-600 font-semibold">chưa thu</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ invoices|rejectattr('trang_thai', 'equalto', 'Đã thanh toán')|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">chưa thu</span></h4>
             </div>
         </div>
     </div>
@@ -185,13 +185,20 @@
 </div>
 
 <script>
-    let invoices = [
-        { id: 1, ma_hd: "HD260901", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", tong: 920000, bhyt: 480000, thuc_thu: 440000, khoan_muc: "Khám Nội (150k), Nội soi dạ dày (650k), Đơn thuốc (120k)", phuong_thuc: "Chuyển khoản QR", status: "paid" },
-        { id: 2, ma_hd: "HD260902", patient_id: 2, benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", tong: 420000, bhyt: 220000, thuc_thu: 200000, khoan_muc: "Khám TMH (150k), Nội soi mũi (180k), Thuốc (90k)", phuong_thuc: "Tiền mặt", status: "paid" },
-        { id: 3, ma_hd: "HD260903", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", tong: 780000, bhyt: 350000, thuc_thu: 430000, khoan_muc: "Khám Tim mạch (150k), ECG (80k), Mỡ máu (250k), Thuốc (300k)", phuong_thuc: "Chuyển khoản QR", status: "pending" },
-        { id: 4, ma_hd: "HD260904", patient_id: 4, benh_nhan: "Phạm Thảo My", ma_bn: "BN2609004", tong: 560000, bhyt: 450000, thuc_thu: 110000, khoan_muc: "Khám Nhi (150k), Thuốc xịt hen phế quản (410k)", phuong_thuc: "Tiền mặt", status: "paid" },
-        { id: 5, ma_hd: "HD260905", patient_id: 5, benh_nhan: "Đinh Trọng Thắng", ma_bn: "BN2609005", tong: 650000, bhyt: 0, thuc_thu: 650000, khoan_muc: "Khám Nội tiết (150k), Glucose máu (80k), Thuốc tiểu đường (420k)", phuong_thuc: "Thẻ POS", status: "paid" }
-    ];
+    let rawInvoices = {{ invoices | tojson | safe }};
+    let invoices = rawInvoices.map(inv => ({
+        id: inv.id,
+        ma_hd: inv.ma_hoa_don,
+        patient_id: inv.benh_nhan_id,
+        benh_nhan: inv.ho_ten_benh_nhan,
+        ma_bn: inv.ma_benh_nhan,
+        tong: inv.tong_tien || 0,
+        bhyt: inv.tien_bhyt_chi_tra || 0,
+        thuc_thu: inv.thanh_tien || 0,
+        khoan_muc: inv.khoan_muc || 'Chi phí khám bệnh & thuốc',
+        phuong_thuc: inv.hinh_thuc_thanh_toan || 'Tiền mặt',
+        status: inv.trang_thai === 'Đã thanh toán' ? 'paid' : 'pending'
+    }));
 
     let activeInvoiceId = null;
 

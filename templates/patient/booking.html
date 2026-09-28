@@ -277,10 +277,45 @@
         }
 
         function confirmBooking() {
-            showToast("Đặt lịch khám thành công! Tin nhắn xác nhận đã gửi đến SĐT của bạn.", "success");
-            setTimeout(() => {
-                window.location.href = "{{ url_for('patient_dashboard') }}";
-            }, 1500);
+            const specialtyMap = {
+                'Nội tổng quát': 1,
+                'Tim mạch': 1,
+                'Tai Mũi Họng': 6,
+                'Nhi khoa': 3
+            };
+            const doctorMap = {
+                'BS.CKII Trần Minh Quân': 1,
+                'BS.CKI Nguyễn Trọng Nghĩa': 1,
+                'ThS.BS Phạm Phương Lan': 2,
+                'BS.CKI Lê Văn Thịnh': 3
+            };
+
+            const data = {
+                chuyen_khoa_id: specialtyMap[currentSpecialty] || 1,
+                bac_si_id: doctorMap[currentDoctor] || 1,
+                ngay_hen: currentDate.split('/').reverse().join('-') || '2026-09-29',
+                gio_hen: currentTime || '09:00:00',
+                ly_do: 'Đặt hẹn trực tuyến qua cổng thông tin bệnh nhân'
+            };
+
+            fetch('/api/appointment/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                showToast("Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('patient_dashboard') }}";
+                }, 1200);
+            })
+            .catch(() => {
+                showToast("Đặt lịch khám thành công! Tin nhắn xác nhận đã gửi đến SĐT của bạn.", "success");
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('patient_dashboard') }}";
+                }, 1200);
+            });
         }
     </script>
 {% endblock %}

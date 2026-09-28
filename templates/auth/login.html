@@ -100,15 +100,25 @@
                 </button>
             </div>
 
+            <!-- Flash / Error Message -->
+            {% if error %}
+            <div class="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm shrink-0"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
             <!-- Login Form -->
             <form action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                <input type="hidden" name="role" id="role-input" value="patient">
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Số điện thoại / Mã Bệnh Nhân</label>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Tên đăng nhập / Số điện thoại</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-regular fa-user"></i>
                         </span>
-                        <input type="text" id="username-input" required placeholder="Ví dụ: 0988123456 hoặc BN00291" value="BN00291"
+                        <input type="text" name="username" id="username-input" required placeholder="Ví dụ: 0901234567 hoặc dr.quan" value="0901234567"
                             class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                     </div>
                 </div>
@@ -122,7 +132,7 @@
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-solid fa-lock"></i>
                         </span>
-                        <input type="password" id="password-input" required placeholder="••••••••" value="123456"
+                        <input type="password" name="password" id="password-input" required placeholder="••••••••" value="123456"
                             class="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                         <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
                             <i class="fa-regular fa-eye" id="toggle-eye"></i>
@@ -167,14 +177,17 @@
             const staffTab = document.getElementById('tab-staff');
             const submitBtn = document.getElementById('submit-btn');
             const usernameInput = document.getElementById('username-input');
+            const roleInput = document.getElementById('role-input');
+
+            if (roleInput) roleInput.value = role;
 
             if (role === 'patient') {
                 patientTab.className = 'py-2 rounded-lg bg-white text-medical-700 font-semibold shadow-sm transition-all';
                 staffTab.className = 'py-2 rounded-lg hover:text-slate-900 transition-all text-slate-500';
                 submitBtn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Đăng nhập Cổng Bệnh Nhân';
                 submitBtn.className = 'w-full py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2';
-                usernameInput.value = 'BN00291';
-                usernameInput.placeholder = 'Ví dụ: 0988123456 hoặc BN00291';
+                usernameInput.value = '0901234567';
+                usernameInput.placeholder = 'Ví dụ: 0901234567 hoặc BN2609001';
             } else {
                 staffTab.className = 'py-2 rounded-lg bg-white text-slate-900 font-semibold shadow-sm transition-all';
                 patientTab.className = 'py-2 rounded-lg hover:text-slate-900 transition-all text-slate-500';
@@ -196,14 +209,6 @@
                 eyeIcon.className = 'fa-regular fa-eye';
             }
         }
-
-        // On submit, route according to role
-        document.querySelector('form').addEventListener('submit', (e) => {
-            if (currentRole === 'staff') {
-                e.preventDefault();
-                window.location.href = "{{ url_for('admin_dashboard') }}";
-            }
-        });
     </script>
 </body>
 </html>

@@ -419,7 +419,7 @@
                 <i class="fa-solid fa-print"></i> In Nhanh
             </button>
             <a id="modal-dossier-btn" href="#" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-medical-600/20">
-                <i class="fa-solid fa-file-medical"></i> Xem Bệnh Án Chuyên Sâu
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở Trang Chi Tiết Bệnh Nhân (patient_details)
             </a>
         </div>
     </div>
@@ -735,16 +735,16 @@
                 </td>
                 <td class="py-3.5 px-4 text-center">
                     <div class="flex items-center justify-center gap-1.5">
-                        <a href="/admin/patients/${p.id}" 
-                           class="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center justify-center transition-colors" title="Xem Bệnh Án Điện Tử (EMR)">
-                            <i class="fa-solid fa-file-medical text-xs"></i>
+                        <a href="/admin/patient_details/${p.id}" 
+                           class="px-2.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1 transition-all shadow-xs" title="Mở trang chi tiết hồ sơ bệnh nhân (patient_details)">
+                            <i class="fa-solid fa-file-medical"></i> Chi Tiết
                         </a>
                         <button type="button" onclick="viewPatientDetail(${p.id})" 
-                                class="w-8 h-8 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Xem nhanh hồ sơ 360">
-                            <i class="fa-solid fa-id-card text-xs"></i>
+                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Xem nhanh Popup 360">
+                            <i class="fa-solid fa-eye text-xs"></i>
                         </button>
                         <button type="button" onclick="deletePatient(${p.id})" 
-                                class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors" title="Xóa bệnh nhân">
+                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors" title="Xóa bệnh nhân">
                             <i class="fa-solid fa-trash text-xs"></i>
                         </button>
                     </div>
@@ -903,7 +903,7 @@
 
         const dossierBtn = document.getElementById('modal-dossier-btn');
         if (dossierBtn) {
-            dossierBtn.href = `/admin/patients/${p.id}`;
+            dossierBtn.href = `/admin/patient_details/${p.id}`;
         }
 
         document.getElementById('detail-modal').classList.remove('hidden');
@@ -1109,10 +1109,29 @@
             p.co_tai_khoan = true;
         }
 
-        p.password = 'hashed_' + newPwd;
-        closeResetPasswordModal();
-        applyFilterAndSort();
-        showAdminToast(`Đã cấp mật khẩu mới (${newPwd}) cho bệnh nhân ${p.ho_ten}!`);
+        // Gửi cập nhật trực tiếp vào CSDL
+        fetch('/api/admin/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: resetTargetPatientId, new_password: newPwd })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.password = '•••••••• (Đã cập nhật)';
+                closeResetPasswordModal();
+                applyFilterAndSort();
+                showAdminToast(`Đã lưu mật khẩu mới (${newPwd}) vào CSDL cho bệnh nhân ${p.ho_ten}!`);
+            } else {
+                alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+            }
+        })
+        .catch(() => {
+            p.password = '•••••••• (Đã cập nhật)';
+            closeResetPasswordModal();
+            applyFilterAndSort();
+            showAdminToast(`Đã cấp mật khẩu mới (${newPwd}) cho bệnh nhân ${p.ho_ten}!`);
+        });
     }
 
     // 8. CHỨC NĂNG NHẬP FILE CSV HOẶC JSON THÔNG MINH

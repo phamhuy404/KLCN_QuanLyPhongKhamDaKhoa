@@ -36,26 +36,33 @@
                     <a href="{{ url_for('patient_booking') }}" class="text-xs text-medical-600 font-semibold hover:underline">Đặt lịch mới</a>
                 </div>
 
-                <div class="p-4 rounded-xl bg-medical-50/50 border border-medical-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-xl bg-medical-500 text-white flex flex-col items-center justify-center font-bold text-center shrink-0 shadow-md shadow-medical-500/20">
-                            <span class="text-xs uppercase">Th 9</span>
-                            <span class="text-base leading-none">26</span>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h4 class="font-bold text-slate-800">Khám Nội Tổng Quát</h4>
-                                <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded">Đã xác nhận</span>
+                {% if appointments %}
+                    {% set appt = appointments[0] %}
+                    <div class="p-4 rounded-xl bg-medical-50/50 border border-medical-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-medical-500 text-white flex flex-col items-center justify-center font-bold text-center shrink-0 shadow-md shadow-medical-500/20">
+                                <span class="text-xs uppercase">Th {{ appt.ngay_hen[5:7] if appt.ngay_hen else '09' }}</span>
+                                <span class="text-base leading-none">{{ appt.ngay_hen[8:10] if appt.ngay_hen else '26' }}</span>
                             </div>
-                            <p class="text-xs text-slate-500 mt-1">Bác sĩ: <strong class="text-slate-700">BS.CKII Trần Minh Quân</strong> • 09:00 AM</p>
-                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-medical-500 mr-1"></i> Phòng khám Đa khoa Quốc tế H2T Healthcare, Cơ sở 1</p>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-slate-800">{{ appt.ten_khoa or 'Khám Chuyên Khoa' }}</h4>
+                                    <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded">{{ appt.trang_thai }}</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">Bác sĩ: <strong class="text-slate-700">{{ appt.ho_ten_bac_si or 'BS. CKII Trần Minh Quân' }}</strong> • {{ appt.gio_hen }}</p>
+                                <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-medical-500 mr-1"></i> Phòng khám Đa khoa H2T Healthcare • {{ appt.ten_phong or 'Phòng 101' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <a href="{{ url_for('patient_booking') }}" class="flex-1 sm:flex-initial bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-medium transition-all text-center">Đổi lịch</a>
+                            <a href="{{ url_for('patient_records') }}" class="flex-1 sm:flex-initial bg-medical-600 hover:bg-medical-700 text-white px-4 py-2 rounded-xl text-xs font-medium transition-all shadow-sm text-center">Chi tiết</a>
                         </div>
                     </div>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button onclick="showToast('Hệ thống đang mở cổng đổi lịch khám...', 'info')" class="flex-1 sm:flex-initial bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-medium transition-all">Đổi lịch</button>
-                        <a href="{{ url_for('patient_records') }}" class="flex-1 sm:flex-initial bg-medical-600 hover:bg-medical-700 text-white px-4 py-2 rounded-xl text-xs font-medium transition-all shadow-sm text-center">Chi tiết</a>
+                {% else %}
+                    <div class="p-6 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        Bạn chưa có lịch hẹn khám sắp tới. <a href="{{ url_for('patient_booking') }}" class="text-medical-600 font-bold hover:underline ml-1">Đặt lịch ngay</a>
                     </div>
-                </div>
+                {% endif %}
             </div>
 
             <!-- Lịch sử khám bệnh & Toa thuốc gần nhất -->
@@ -66,23 +73,29 @@
                 </div>
 
                 <div class="space-y-3">
-                    <div class="p-4 rounded-xl border border-slate-100 hover:border-medical-200 transition-all flex items-center justify-between">
-                        <div class="flex items-center gap-3.5">
-                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                                <i class="fa-solid fa-stethoscope"></i>
+                    {% if patient and patient.lich_su_kham %}
+                        {% for enc in patient.lich_su_kham[:2] %}
+                        <div class="p-4 rounded-xl border border-slate-100 hover:border-medical-200 transition-all flex items-center justify-between">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                                    <i class="fa-solid fa-stethoscope"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-sm text-slate-800">Đợt khám: {{ enc.chan_doan_so_bo or enc.ly_do_kham }}</h4>
+                                    <span class="text-xs text-slate-400">Ngày khám: {{ enc.thoi_gian_kham }} • {{ enc.bac_si }}</span>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="font-medium text-sm text-slate-800">Đợt khám: Viêm phế quản cấp & Viêm họng</h4>
-                                <span class="text-xs text-slate-400">Ngày khám: 10/08/2026 • BS. Trần Minh Quân</span>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-blue-50 text-blue-600 text-xs font-medium px-2.5 py-1 rounded-lg">Có {{ enc.don_thuoc|length }} loại thuốc</span>
+                                <a href="{{ url_for('patient_records') }}" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                                </a>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="bg-blue-50 text-blue-600 text-xs font-medium px-2.5 py-1 rounded-lg">Có 03 loại thuốc</span>
-                            <a href="{{ url_for('patient_records') }}" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-all">
-                                <i class="fa-solid fa-chevron-right text-xs"></i>
-                            </a>
-                        </div>
-                    </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-4 text-center text-slate-400 text-xs bg-slate-50 rounded-xl">Chưa có hồ sơ bệnh án cũ</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -103,13 +116,13 @@
 
                 <div class="space-y-1 mb-8">
                     <span class="text-xs text-slate-400">Họ và tên</span>
-                    <h4 class="text-lg font-bold tracking-wide">NGUYỄN VĂN AN</h4>
+                    <h4 class="text-lg font-bold tracking-wide">{{ (patient.ho_ten if patient else 'NGUYỄN VĂN AN')|upper }}</h4>
                 </div>
 
                 <div class="flex items-end justify-between">
                     <div>
                         <span class="text-xs text-slate-400 block">Mã số BN</span>
-                        <span class="font-mono font-bold tracking-wider text-medical-300">BN-00291-2026</span>
+                        <span class="font-mono font-bold tracking-wider text-medical-300">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span>
                     </div>
                     <div class="bg-white p-2 rounded-xl">
                         <!-- Giả lập mã QR Code -->

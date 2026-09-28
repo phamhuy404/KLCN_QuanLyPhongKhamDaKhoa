@@ -47,7 +47,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Chờ lấy mẫu / Thực hiện</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">18 <span class="text-xs font-normal text-amber-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Chờ thực hiện')|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang xử lý / Phân tích</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">7 <span class="text-xs font-normal text-blue-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Đang thực hiện')|list|length }} <span class="text-xs font-normal text-blue-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
@@ -67,17 +67,17 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã có kết quả</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">42 <span class="text-xs font-normal text-emerald-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Đã hoàn thành')|list|length }} <span class="text-xs font-normal text-emerald-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
         <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-flask-vial"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Chỉ định khẩn cấp (Cấp cứu)</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-rose-600 font-semibold">ca</span></h4>
+                <span class="text-xs text-slate-400 font-medium">Tổng ca chỉ định</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|length }} <span class="text-xs font-normal text-teal-600 font-semibold">ca</span></h4>
             </div>
         </div>
     </div>
@@ -190,13 +190,20 @@
 </div>
 
 <script>
-    let labOrders = [
-        { id: 1, ma_cd: "CLS260901", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", dich_vu: "Nội soi thực quản - dạ dày - tá tràng ống mềm", loai: "Chẩn đoán hình ảnh", bac_si: "BS. CKII. Trần Minh Quân", gio: "08:35", status: "completed", ket_qua: "Niêm mạc hang vị phù nề, HP (-)" },
-        { id: 2, ma_cd: "CLS260902", patient_id: 1, benh_nhan: "Hoàng Bảo Nam", ma_bn: "BN2609001", dich_vu: "Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)", loai: "Huyết học", bac_si: "BS. CKII. Trần Minh Quân", gio: "08:35", status: "completed", ket_qua: "Các chỉ số trong giới hạn chuẩn" },
-        { id: 3, ma_cd: "CLS260903", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", dich_vu: "Đo điện tim thường (ECG 12 chuyển đạo)", loai: "Thăm dò chức năng", bac_si: "BS. CKII. Trần Minh Quân", gio: "09:10", status: "completed", ket_qua: "Nhịp xoang đều 80ck/p" },
-        { id: 4, ma_cd: "CLS260904", patient_id: 3, benh_nhan: "Trần Văn Quyết", ma_bn: "BN2609003", dich_vu: "Sinh hóa máu: Bộ mỡ máu (Lipid panel)", loai: "Sinh hóa", bac_si: "BS. CKII. Trần Minh Quân", gio: "09:10", status: "processing", ket_qua: "Đang chạy máy ly tâm" },
-        { id: 5, ma_cd: "CLS260905", patient_id: 2, benh_nhan: "Lê Ngọc Trâm", ma_bn: "BN2609002", dich_vu: "Nội soi Tai Mũi Họng bằng optic mềm", loai: "Chẩn đoán hình ảnh", bac_si: "BS. CKI. Phan Thu Trang", gio: "09:30", status: "waiting", ket_qua: "Chờ bệnh nhân vào phòng soi" }
-    ];
+    let rawLabOrders = {{ lab_orders | tojson | safe }};
+    let labOrders = rawLabOrders.map(o => ({
+        id: o.id,
+        ma_cd: o.ma_chi_dinh,
+        patient_id: o.patient_id,
+        benh_nhan: o.benh_nhan,
+        ma_bn: o.ma_bn,
+        dich_vu: o.dich_vu || 'Chỉ định cận lâm sàng',
+        loai: o.loai || 'Xét nghiệm',
+        bac_si: o.bac_si,
+        gio: (o.thoi_gian_chi_dinh || '').toString().slice(11, 16) || '08:30',
+        status: o.trang_thai === 'Đã hoàn thành' ? 'completed' : (o.trang_thai === 'Đang thực hiện' ? 'processing' : 'waiting'),
+        ket_qua: o.ket_qua || ''
+    }));
 
     let activeLabOrderId = null;
 

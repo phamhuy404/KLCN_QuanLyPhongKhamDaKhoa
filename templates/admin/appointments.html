@@ -233,93 +233,29 @@
 </div>
 
 <script>
-    // Dữ liệu mẫu danh sách lịch hẹn
-    let appointments = [
-        {
-            id: 1,
-            ma_hen: "LH260901",
-            gio_hen: "08:00 - 08:30",
-            ngay_hen: "2026-09-25",
-            patient_id: 1,
-            benh_nhan: "Hoàng Bảo Nam",
-            ma_bn: "BN2609001",
-            sdt: "0901234567",
-            bac_si: "BS. CKII. Trần Minh Quân",
-            khoa: "Tiêu Hóa - Nội Khoa",
-            ly_do: "Tái khám theo dõi viêm dạ dày mạn tính",
-            trang_thai: "waiting" // waiting, confirmed, completed, cancelled
-        },
-        {
-            id: 2,
-            ma_hen: "LH260902",
-            gio_hen: "08:30 - 09:00",
-            ngay_hen: "2026-09-25",
-            patient_id: 2,
-            benh_nhan: "Lê Ngọc Trâm",
-            ma_bn: "BN2609002",
-            sdt: "0912345678",
-            bac_si: "BS. CKI. Phan Thu Trang",
-            khoa: "Tai Mũi Họng",
-            ly_do: "Nghẹt mũi, kiểm tra viêm xoang dị ứng",
-            trang_thai: "waiting"
-        },
-        {
-            id: 3,
-            ma_hen: "LH260903",
-            gio_hen: "09:00 - 09:30",
-            ngay_hen: "2026-09-25",
-            patient_id: 3,
-            benh_nhan: "Trần Văn Quyết",
-            ma_bn: "BN2609003",
-            sdt: "0923456789",
-            bac_si: "BS. CKII. Trần Minh Quân",
-            khoa: "Tim Mạch",
-            ly_do: "Đo lại huyết áp và đánh giá phác đồ Amlodipine",
-            trang_thai: "confirmed"
-        },
-        {
-            id: 4,
-            ma_hen: "LH260904",
-            gio_hen: "09:30 - 10:00",
-            ngay_hen: "2026-09-25",
-            patient_id: 4,
-            benh_nhan: "Phạm Thảo My",
-            ma_bn: "BN2609004",
-            sdt: "0934567890",
-            bac_si: "BS. CKI. Đỗ Hoàng Yến",
-            khoa: "Nhi Khoa",
-            ly_do: "Khám định kỳ quản lý hen phế quản",
-            trang_thai: "confirmed"
-        },
-        {
-            id: 5,
-            ma_hen: "LH260905",
-            gio_hen: "07:30 - 08:00",
-            ngay_hen: "2026-09-25",
-            patient_id: 5,
-            benh_nhan: "Đinh Trọng Thắng",
-            ma_bn: "BN2609005",
-            sdt: "0945678901",
-            bac_si: "BS. CKII. Trần Minh Quân",
-            khoa: "Nội Tiết",
-            ly_do: "Kiểm tra đường huyết đói và nhận thuốc tiểu đường",
-            trang_thai: "completed"
-        },
-        {
-            id: 6,
-            ma_hen: "LH260906",
-            gio_hen: "10:00 - 10:30",
-            ngay_hen: "2026-09-25",
-            patient_id: 6,
-            benh_nhan: "Võ Thanh Trúc",
-            ma_bn: "BN2609006",
-            sdt: "0956789012",
-            bac_si: "BS. CKI. Phan Thu Trang",
-            khoa: "Tai Mũi Họng",
-            ly_do: "Viêm họng hạt tái phát",
-            trang_thai: "cancelled"
-        }
-    ];
+    // Dữ liệu lịch hẹn từ CSDL SQL Server
+    let rawAppointments = {{ appointments | tojson | safe }};
+    let appointments = (rawAppointments || []).map(a => {
+        let status = 'waiting';
+        if (a.trang_thai === 'Đã khám' || a.trang_thai === 'Hoàn thành') status = 'completed';
+        else if (a.trang_thai === 'Đã duyệt' || a.trang_thai === 'Đã xác nhận') status = 'confirmed';
+        else if (a.trang_thai === 'Đã hủy') status = 'cancelled';
+
+        return {
+            id: a.id,
+            ma_hen: a.ma_lich_hen || ('LH' + a.id),
+            gio_hen: a.gio_hen ? a.gio_hen.substring(0, 5) : '08:30',
+            ngay_hen: a.ngay_hen || '',
+            patient_id: a.benh_nhan_id,
+            benh_nhan: a.ho_ten_benh_nhan || 'Bệnh nhân',
+            ma_bn: a.ma_benh_nhan || 'BN',
+            sdt: a.sdt_benh_nhan || '',
+            bac_si: a.ho_ten_bac_si || 'BS. CKII. Trần Minh Quân',
+            khoa: a.ten_khoa || 'Khoa Nội Tổng Quát',
+            ly_do: a.ly_do_kham || 'Khám theo yêu cầu',
+            trang_thai: status
+        };
+    });
 
     // Render bảng danh sách lịch hẹn
     function renderAppointments(dataList) {

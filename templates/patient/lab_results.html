@@ -33,16 +33,16 @@
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
             <div>
-                <span class="text-slate-400 block">Mã phiếu xét nghiệm</span>
-                <span class="font-bold text-slate-800 text-sm mt-0.5 block font-mono">XN-20260810-091</span>
+                <span class="text-slate-400 block">Mã bệnh nhân</span>
+                <span class="font-bold text-slate-800 text-sm mt-0.5 block font-mono">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span>
             </div>
             <div>
-                <span class="text-slate-400 block">Thời gian lấy mẫu</span>
-                <span class="font-semibold text-slate-800 text-sm mt-0.5 block">08:15 AM • 10/08/2026</span>
+                <span class="text-slate-400 block">Họ và tên bệnh nhân</span>
+                <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ patient.ho_ten if patient else 'Hoàng Bảo Nam' }}</span>
             </div>
             <div>
-                <span class="text-slate-400 block">Bác sĩ chỉ định</span>
-                <span class="font-semibold text-slate-800 text-sm mt-0.5 block">BS. Trần Minh Quân</span>
+                <span class="text-slate-400 block">Nhóm máu & BHYT</span>
+                <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ patient.nhom_mau or 'Chưa rõ' }} • {{ patient.bhyt or 'Không áp dụng' }}</span>
             </div>
             <div>
                 <span class="text-slate-400 block">Trạng thái kết quả</span>
@@ -52,6 +52,31 @@
             </div>
         </div>
     </div>
+
+    {% if patient and patient.lich_su_kham %}
+        {% set encounters_with_cls = patient.lich_su_kham | selectattr('can_lam_sang') | list %}
+        {% if encounters_with_cls %}
+            <div class="bg-white rounded-2xl border border-teal-200 p-5 space-y-3 bg-teal-50/20">
+                <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-microscope text-teal-600"></i> Các chỉ định Cận Lâm Sàng & Kết quả từ CSDL phòng khám:
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {% for enc in encounters_with_cls %}
+                        {% for cls in enc.can_lam_sang %}
+                        <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <strong class="text-slate-900">{{ cls.ten }}</strong>
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">{{ cls.trang_thai or 'Đã có KQ' }}</span>
+                            </div>
+                            <p class="text-teal-800 font-medium">Kết quả: {{ cls.ket_qua or 'Bình thường' }}</p>
+                            <span class="text-slate-400 text-[11px] block">Người thực hiện: {{ cls.bac_si_thuc_hien or 'KTV Xét nghiệm' }} • {{ cls.loai }}</span>
+                        </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
 
     <!-- Tóm tắt chỉ số -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
