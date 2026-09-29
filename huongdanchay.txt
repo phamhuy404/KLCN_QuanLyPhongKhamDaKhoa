@@ -1,0 +1,40 @@
+HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA
+
+I. CÀI ĐẶT MÔI TRƯỜNG
+1. Cài đặt các thư viện cần thiết:
+pip install -r requirements.txt
+
+II. CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CÁCH)
+
+CÁCH 1: DÙNG SQLITE (NHANH NHẤT - KHÔNG CẦN CÀI SERVER)
+1. Mở file database.py, bật dòng cấu hình:
+DB_ENGINE = 'sqlite'
+2. Không cần cài đặt gì thêm, hệ thống tự động sử dụng file phongkham.db đã có sẵn toàn bộ dữ liệu.
+
+CÁCH 2: DÙNG MICROSOFT SQL SERVER (SSMS)
+1. Mở SQL Server Management Studio (SSMS), kết nối vào server (localhost hoặc .\SQLEXPRESS).
+2. Mở file cosodulieu.sql và nhấn Execute (F5) để tạo database quan_ly_phong_kham và nạp toàn bộ bảng, dữ liệu mẫu.
+3. Mở file database.py, bật dòng cấu hình:
+DB_ENGINE = 'sqlserver'
+4. Kiểm tra cấu hình trong SQLSERVER_CONFIG (server, trusted_connection hoặc uid/pwd).
+
+CÁCH 3: DÙNG MYSQL / MARIADB (XAMPP / PHPMYADMIN)
+1. Mở XAMPP Control Panel, nhấn Start module MySQL.
+2. Mở trình duyệt vào http://localhost/phpmyadmin, tạo database quan_ly_phong_kham và chọn thẻ Import (Nhập) file cosodulieu_mysql.sql.
+(Hoặc chạy lệnh trong terminal: mysql -u root < cosodulieu_mysql.sql)
+3. Mở file database.py, bật dòng cấu hình:
+DB_ENGINE = 'mysql'
+4. Kiểm tra cấu hình trong MYSQL_CONFIG (user, password, port nếu có thay đổi).
+
+III. KHỞI ĐỘNG VÀ TRUY CẬP WEBSITE
+1. Chạy lệnh khởi động ứng dụng:
+python app.py
+
+2. Mở trình duyệt web truy cập địa chỉ:
+http://127.0.0.1:5000
+
+IV. TÀI KHOẢN ĐĂNG NHẬP THỬ NGHIỆM
+- Quản trị viên (Admin): admin / admin123
+- Bác sĩ chuyên khoa: dr.quan / 123456
+- Nhân viên lễ tân: letan.mai / 123456
+- Bệnh nhân: 0901234567 / 123456

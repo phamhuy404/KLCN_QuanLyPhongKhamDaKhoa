@@ -4,32 +4,33 @@ from datetime import datetime, date, time
 from decimal import Decimal
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Cấu hình hệ quản trị CSDL (Bỏ comment 1 trong 3 lựa chọn để chuyển đổi)
+# Cấu hình hệ quản trị CSDL (Chỉ cần mở comment 1 dòng DB_ENGINE tương ứng để chuyển đổi)
+# DB_ENGINE = 'sqlite'      # Cách 1: SQLite (Tự động nạp CSDL, không cần cài server)
+DB_ENGINE = 'sqlserver'     # Cách 2: Microsoft SQL Server (Mặc định)
+# DB_ENGINE = 'mysql'       # Cách 3: MySQL / MariaDB (XAMPP / phpMyAdmin)
 
-# Lựa chọn 1: SQLite
-# DB_ENGINE = 'sqlite'
-# DB_FILE = os.path.join(os.path.dirname(__file__), 'phongkham.db')
+# 1. Cấu hình SQLite
+DB_FILE = os.path.join(os.path.dirname(__file__), 'phongkham.db')
 
-# Lựa chọn 2: Microsoft SQL Server (SSMS) 
-DB_ENGINE = 'sqlserver'
+# 2. Cấu hình Microsoft SQL Server (SSMS)
 SQLSERVER_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}', # hoặc '{SQL Server}' nếu dùng bản cũ
     'server': 'localhost',                       # hoặc '.\\SQLEXPRESS'
     'database': 'quan_ly_phong_kham',
-    'trusted_connection': 'yes'                  # Windows Authentication
-    # 'uid': 'sa',                               # Hoặc dùng SQL Server Authentication
-    # 'pwd': 'your_password'
+    'trusted_connection': 'yes',                 # 'yes' cho Windows Auth, 'no' cho SQL Auth
+    'uid': 'sa',                                 # Dùng khi trusted_connection = 'no'
+    'pwd': 'your_password'
 }
 
-# Lựa chọn 3: MySQL / MariaDB (XAMPP / phpMyAdmin) 
-# MYSQL_CONFIG = {
-#     'host': 'localhost',
-#     'port': 3306,
-#     'user': 'root',
-#     'password': '',
-#     'database': 'quan_ly_phong_kham',
-#     'charset': 'utf8mb4'
-# }
+# 3. Cấu hình MySQL / MariaDB (XAMPP / phpMyAdmin)
+MYSQL_CONFIG = {
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': '',
+    'database': 'quan_ly_phong_kham',
+    'charset': 'utf8mb4'
+}
 
 class UnifiedCursor:
     def __init__(self, raw_cursor, engine):
