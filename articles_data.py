@@ -118,6 +118,20 @@ ARTICLES_DATA = [
 ]
 
 
+# ─── Ảnh cho từng bài (khớp theo slug) ───────────────────────────────────────
+ARTICLE_IMAGES = {
+    "phong-ngua-benh-tim-mach-hieu-qua": "tim-mach.jpg",
+    "dieu-tri-cao-huyet-ap":             "cao-huyet-ap.jpg",
+    "che-do-dinh-duong-cho-tre-em":      "dinh-duong-tre-em.jpg",
+    "cham-soc-da-mua-kho":               "cham-soc-da.jpg",
+    "phong-ngua-benh-xuong-khop":        "xuong-khop.jpg",
+    "quan-ly-stress-hieu-qua":           "stress.jpg",
+    "suc-khoe-tong-quat-hang-nam":       "kham-tong-quat.jpg",
+    "tieu-duong-type-2-va-che-do-an":    "tieu-duong.jpg",
+}
+for _art in ARTICLES_DATA:
+    _art["image"] = ARTICLE_IMAGES.get(_art["slug"], "")
+
 # ─── Hàm hỗ trợ (app.py chỉ gọi các hàm này) ─────────────────────────────────
 def get_categories():
     """Danh mục kèm số bài thực tế (cat.count dùng trong template)."""
