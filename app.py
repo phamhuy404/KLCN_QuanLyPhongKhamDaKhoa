@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, session, jsonify, abort, flash
 import database
+import articles_data as ad
 
 app = Flask(__name__)
 app.secret_key = 'h2t_healthcare_clinic_secret_key_2026'
@@ -20,9 +21,38 @@ def home():
 @app.route('/articles')
 @app.route('/tin-tuc')
 def articles():
-    articles_list = database.get_articles(limit=20)
-    return render_template('articles.html', articles=articles_list)
+    active_category = request.args.get('category', '').strip()
+    search_query = request.args.get('search', '').strip()
 
+    return render_template(
+        'articles.html',
+        articles=ad.filter_articles(active_category, search_query),
+        categories=ad.get_categories(),
+        related_articles=ad.get_sidebar_related(active_category),
+        active_category=active_category,
+        total_articles=len(ad.ARTICLES_DATA),
+        total_pages=1,
+        current_page=1,
+    )
+
+@app.route('/articles/<slug>')
+def article_detail(slug):
+    article = ad.get_article_by_slug(slug)
+    if article is None:
+        abort(404)
+
+    article['views'] += 1
+    prev_article, next_article = ad.get_prev_next(article)
+
+    return render_template(
+        'article_detail.html',
+        article=article,
+        related_articles=ad.get_related_for(article),
+        prev_article=prev_article,
+        next_article=next_article,
+        categories=ad.get_categories(),
+        sidebar_latest=ad.get_latest(exclude_id=article['id']),
+    )
 # 2. XÁC THỰC TÀI KHOẢN (AUTHENTICATION)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
