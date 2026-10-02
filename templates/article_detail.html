@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ article.title }} - H2T Healthcare</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        medical: {
+                            50: '#eefcf6', 100: '#d4f8e8',
+                            500: '#10b981', 600: '#059669',
+                            700: '#047857', 900: '#065f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Typography cho nội dung bài viết */
+        .article-body h2 { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 2rem 0 0.75rem; border-left: 4px solid #059669; padding-left: 0.75rem; }
+        .article-body h3 { font-size: 1.05rem; font-weight: 700; color: #1e293b; margin: 1.5rem 0 0.5rem; }
+        .article-body p  { font-size: 0.875rem; line-height: 1.8; color: #475569; margin-bottom: 1rem; }
+        .article-body ul, .article-body ol { margin: 0.75rem 0 1rem 1.25rem; }
+        .article-body li { font-size: 0.875rem; color: #475569; line-height: 1.7; margin-bottom: 0.35rem; }
+        .article-body ul li { list-style: disc; }
+        .article-body ol li { list-style: decimal; }
+        .article-body blockquote { background: #eefcf6; border-left: 4px solid #059669; border-radius: 0 0.75rem 0.75rem 0; padding: 1rem 1.25rem; margin: 1.25rem 0; }
+        .article-body blockquote p { color: #047857; font-style: italic; margin: 0; }
+        .article-body strong { color: #1e293b; }
+        .article-body a { color: #059669; text-decoration: underline; }
+        .article-body img { border-radius: 1rem; width: 100%; margin: 1rem 0; }
+
+        /* Badge danh mục */
+        .badge-tim-mach       { background:#fee2e2; color:#b91c1c; }
+        .badge-nhi-khoa       { background:#dbeafe; color:#1d4ed8; }
+        .badge-da-lieu        { background:#fef9c3; color:#b45309; }
+        .badge-noi-tiet       { background:#ede9fe; color:#7c3aed; }
+        .badge-xuong-khop     { background:#e0f2fe; color:#0369a1; }
+        .badge-suc-khoe-tong-quat { background:#d1fae5; color:#065f46; }
+        .badge-dinh-duong     { background:#fff7ed; color:#c2410c; }
+        .badge-tam-than       { background:#fdf4ff; color:#86198f; }
+        .badge-default        { background:#f1f5f9; color:#475569; }
+
+        /* Card bài viết liên quan */
+        .related-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .related-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px -8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-800 min-h-screen flex flex-col">
+
+    <!-- ======================== HEADER ======================== -->
+    <div class="bg-gradient-to-r from-medical-700 to-teal-800 text-white text-xs py-2 px-4 sm:px-8 border-b border-white/10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-6">
+                <span class="flex items-center gap-1.5 text-medical-100">
+                    <i class="fa-solid fa-phone-volume text-amber-300"></i> Cấp cứu 24/7: <a href="tel:19xxxxxxxx" class="font-bold text-white hover:underline">19XX XXXX</a>
+                </span>
+                <span class="hidden md:flex items-center gap-1.5 text-medical-100">
+                    <i class="fa-solid fa-location-dot text-medical-300"></i> 140 Lê Trọng Tấn, P. Tây Thạnh, Q. Tân Phú, TP.HCM
+                </span>
+            </div>
+            <div class="flex items-center gap-4 text-medical-100">
+                <a href="{{ url_for('home') }}#bac-si" class="hover:text-white transition-colors">Tìm bác sĩ</a>
+                <span>•</span>
+                <a href="mailto:contact@huit.edu.vn" class="hover:text-white transition-colors">Chăm sóc khách hàng</a>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <a href="{{ url_for('home') }}" class="flex items-center gap-3 shrink-0" title="Về trang chủ">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-medical-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/25">
+                    <i class="fa-solid fa-heart-pulse text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-slate-900 text-xl tracking-tight leading-tight">H2T Healthcare<span class="text-medical-500">+</span></h1>
+                    <span class="text-[11px] text-slate-400 font-medium block">Bệnh viện Đa khoa Quốc tế HUIT</span>
+                </div>
+            </a>
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('articles') }}" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> <span>Bài viết</span>
+                </a>
+                <a href="{{ url_for('booking') }}" class="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-medical-50 border border-medical-200 text-medical-700 hover:bg-medical-100 font-semibold text-xs transition-all">
+                    <i class="fa-solid fa-calendar-check text-medical-600"></i> <span>Đặt Lịch Khám</span>
+                </a>
+                {% if session.get('logged_in') %}
+                    <a href="{{ url_for('patient_dashboard') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-circle-user"></i>
+                        <span>{{ session.get('user', {}).get('ho_ten', 'Tài khoản') }}</span>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> <span>Đăng nhập</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <nav class="bg-white border-t border-slate-100 px-4 sm:px-6">
+            <div class="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-slate-600 space-x-2">
+                <a href="{{ url_for('home') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Trang chủ</a>
+                <a href="{{ url_for('home') }}#chuyen-khoa" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Chuyên khoa</a>
+                <a href="{{ url_for('home') }}#bac-si" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Đội ngũ Bác sĩ</a>
+                <a href="{{ url_for('home') }}#quy-trinh-dang-ky" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Quy trình Đăng ký</a>
+                <a href="{{ url_for('home') }}#quy-trinh-kham" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Quy trình Khám bệnh</a>
+                <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg text-medical-700 bg-medical-50/80 font-bold whitespace-nowrap">Tin tức & Bài viết Y khoa</a>
+                <a href="{{ url_for('patient_billing') if session.get('logged_in') else url_for('login', next=url_for('patient_billing')) }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Bảng giá & Viện phí</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ======================== MAIN CONTENT ======================== -->
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+            <a href="{{ url_for('home') }}" class="hover:text-medical-600 flex items-center gap-1">
+                <i class="fa-solid fa-house text-[10px]"></i> Trang chủ
+            </a>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <a href="{{ url_for('articles') }}" class="hover:text-medical-600">Tin tức & Bài viết</a>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <a href="{{ url_for('articles') }}?category={{ article.category_slug }}" class="hover:text-medical-600">{{ article.category_name }}</a>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <span class="text-medical-600 font-semibold truncate max-w-[160px] sm:max-w-none">{{ article.title }}</span>
+        </div>
+
+        <!-- Grid 2 cột: Bài viết + Sidebar -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+            <!-- CỘT TRÁI: Nội dung bài viết (2/3) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Card bài viết chính -->
+                <article class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+
+                    <!-- Ảnh bìa -->
+                    {% if article.image %}
+                    <div class="h-56 sm:h-72 bg-gradient-to-br from-medical-600 to-teal-400 overflow-hidden">
+                        <img src="{{ url_for('static', filename='img/articles/' + article.image) }}" alt="{{ article.title }}"
+                            class="w-full h-full object-cover">
+                    </div>
+                    {% endif %}
+
+                    <div class="p-6 sm:p-8 space-y-5">
+                        <!-- Badge + Meta -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full badge-{{ article.category_slug | default('default') }}">
+                                <i class="{{ article.category_icon | default('fa-solid fa-tag') }} mr-1"></i>{{ article.category_name }}
+                            </span>
+                            <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                                <i class="fa-regular fa-calendar"></i> {{ article.published_at }}
+                            </span>
+                            <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                                <i class="fa-regular fa-clock"></i> {{ article.read_time }} phút đọc
+                            </span>
+                            <span class="text-[11px] text-slate-400 flex items-center gap-1">
+                                <i class="fa-regular fa-eye"></i> {{ article.views | default(0) }} lượt xem
+                            </span>
+                        </div>
+
+                        <!-- Tiêu đề -->
+                        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
+                            {{ article.title }}
+                        </h1>
+
+                        <!-- Tóm tắt -->
+                        <p class="text-sm text-slate-500 leading-relaxed border-l-4 border-medical-500 pl-4 bg-medical-50 py-3 pr-4 rounded-r-xl">
+                            {{ article.summary }}
+                        </p>
+
+                        <!-- Tác giả -->
+                        {% if article.author %}
+                        <div class="flex items-center gap-3 py-3 border-t border-b border-slate-100">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-medical-500 to-teal-400 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                                {{ article.author[0] | upper }}
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">{{ article.author }}</div>
+                                <div class="text-[10px] text-slate-400">{{ article.author_title | default('Biên tập viên y tế') }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Nội dung bài viết -->
+                        <div class="article-body prose max-w-none">
+                            {{ article.content | safe }}
+                        </div>
+
+                        <!-- Tags -->
+                        {% if article.tags %}
+                        <div class="pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                            <span class="text-[11px] text-slate-400 font-semibold mt-0.5"><i class="fa-solid fa-hashtag"></i> Tags:</span>
+                            {% for tag in article.tags %}
+                            <a href="{{ url_for('articles') }}?search={{ tag }}"
+                                class="px-2.5 py-1 bg-slate-100 hover:bg-medical-50 hover:text-medical-700 text-slate-600 rounded-full text-[11px] font-semibold transition-colors">
+                                {{ tag }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Chia sẻ -->
+                        <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
+                            <span class="text-xs text-slate-500 font-semibold">Chia sẻ:</span>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" rel="noopener"
+                                class="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors">
+                                <i class="fa-brands fa-facebook-f text-xs"></i>
+                            </a>
+                            <a href="https://twitter.com/intent/tweet?url={{ request.url }}&text={{ article.title }}" target="_blank" rel="noopener"
+                                class="w-8 h-8 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors">
+                                <i class="fa-brands fa-x-twitter text-xs"></i>
+                            </a>
+                            <button onclick="navigator.clipboard.writeText(window.location.href).then(() => alert('Đã sao chép link!'))"
+                                class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors">
+                                <i class="fa-solid fa-link text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Điều hướng bài trước / bài sau -->
+                {% if prev_article or next_article %}
+                <div class="grid grid-cols-2 gap-4">
+                    {% if prev_article %}
+                    <a href="{{ url_for('article_detail', slug=prev_article.slug) }}"
+                        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-medical-300 hover:shadow-md transition-all group flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-medical-50 flex items-center justify-center shrink-0 transition-colors">
+                            <i class="fa-solid fa-chevron-left text-slate-500 group-hover:text-medical-600 text-xs"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] text-slate-400 font-semibold mb-0.5">Bài trước</div>
+                            <div class="text-xs font-bold text-slate-700 group-hover:text-medical-700 line-clamp-2 leading-snug">{{ prev_article.title }}</div>
+                        </div>
+                    </a>
+                    {% else %}<div></div>{% endif %}
+
+                    {% if next_article %}
+                    <a href="{{ url_for('article_detail', slug=next_article.slug) }}"
+                        class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-medical-300 hover:shadow-md transition-all group flex items-center gap-3 text-right justify-end">
+                        <div class="min-w-0">
+                            <div class="text-[10px] text-slate-400 font-semibold mb-0.5">Bài tiếp theo</div>
+                            <div class="text-xs font-bold text-slate-700 group-hover:text-medical-700 line-clamp-2 leading-snug">{{ next_article.title }}</div>
+                        </div>
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-medical-50 flex items-center justify-center shrink-0 transition-colors">
+                            <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-medical-600 text-xs"></i>
+                        </div>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+
+                <!-- ===== PHẦN BÀI ĐĂNG LIÊN QUAN (cuối bài - nổi bật) ===== -->
+                {# --------------------------------------------------------
+                    BÀI ĐĂNG LIÊN QUAN
+                    - Hiển thị ở cuối bài viết chi tiết
+                    - Lấy các bài trong cùng danh mục, loại trừ bài hiện tại
+                    - Hiển thị dạng lưới 3 cột
+                    - Dữ liệu: biến 'related_articles' từ view article_detail() trong app.py
+                -------------------------------------------------------- #}
+                {% if related_articles %}
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1 h-6 bg-medical-500 rounded-full"></div>
+                            <h2 class="text-base font-extrabold text-slate-900">Bài Viết Liên Quan</h2>
+                        </div>
+                        <a href="{{ url_for('articles') }}?category={{ article.category_slug }}"
+                            class="text-xs text-medical-600 hover:text-medical-700 font-semibold flex items-center gap-1">
+                            Xem thêm <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {% for rel in related_articles %}
+                        <article class="related-card bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden group cursor-pointer flex flex-col">
+                            <a href="{{ url_for('article_detail', slug=rel.slug) }}" class="flex flex-col flex-1">
+                                <!-- Ảnh -->
+                                <div class="h-36 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden shrink-0 relative">
+                                    {% if rel.image %}
+                                        <img src="{{ url_for('static', filename='img/articles/' + rel.image) }}" alt="{{ rel.title }}"
+                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                    {% else %}
+                                        <div class="w-full h-full flex items-center justify-center">
+                                            <i class="fa-regular fa-newspaper text-slate-300 text-3xl"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full badge-{{ rel.category_slug | default('default') }}">
+                                        {{ rel.category_name }}
+                                    </span>
+                                </div>
+                                <!-- Text -->
+                                <div class="p-3.5 space-y-1.5 flex flex-col flex-1">
+                                    <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                                        <span><i class="fa-regular fa-calendar mr-0.5"></i>{{ rel.published_at }}</span>
+                                        <span><i class="fa-regular fa-clock mr-0.5"></i>{{ rel.read_time }} phút</span>
+                                    </div>
+                                    <h3 class="text-xs font-bold text-slate-800 group-hover:text-medical-700 transition-colors leading-snug line-clamp-2 flex-1">
+                                        {{ rel.title }}
+                                    </h3>
+                                    <p class="text-[11px] text-slate-400 leading-relaxed line-clamp-2">{{ rel.summary }}</p>
+                                    <div class="flex items-center gap-1 text-[11px] font-bold text-medical-600 pt-1 mt-auto">
+                                        <span>Đọc thêm</span>
+                                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform text-[10px]"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+                <!-- ===== KẾT THÚC BÀI ĐĂNG LIÊN QUAN ===== -->
+
+            </div>
+            <!-- KẾT THÚC CỘT TRÁI -->
+
+
+            <!-- CỘT PHẢI: Sidebar (1/3) -->
+            <aside class="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
+
+                <!-- Mục lục bài viết (nếu có headings) -->
+                {% if article.toc %}
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-list text-medical-500 text-sm"></i>
+                        <h3 class="font-bold text-sm text-slate-800">Mục lục</h3>
+                    </div>
+                    <div class="p-4 space-y-1">
+                        {% for item in article.toc %}
+                        <a href="#{{ item.id }}" class="flex items-center gap-2 text-xs text-slate-600 hover:text-medical-700 py-1 rounded-lg hover:bg-medical-50 px-2 transition-colors">
+                            <i class="fa-solid fa-angle-right text-medical-400 text-[10px]"></i>
+                            {{ item.title }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>s
+                {% endif %}
+
+                <!-- Widget: Danh mục -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-medical-500 text-sm"></i>
+                        <h3 class="font-bold text-sm text-slate-800">Chuyên mục</h3>
+                    </div>
+                    <div class="p-3 space-y-1">
+                        {% for cat in categories %}
+                        <a href="{{ url_for('articles') }}?category={{ cat.slug }}"
+                            class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors
+                            {% if article.category_slug == cat.slug %}bg-medical-50 text-medical-700 font-bold{% else %}text-slate-600 hover:bg-slate-50 hover:text-medical-600{% endif %}">
+                            <span class="flex items-center gap-2"><i class="{{ cat.icon }} text-slate-400"></i> {{ cat.name }}</span>
+                            <span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{{ cat.count }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Widget: Bài viết mới nhất trong sidebar -->
+                {% if sidebar_latest %}
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-fire text-orange-500 text-sm"></i>
+                        <h3 class="font-bold text-sm text-slate-800">Bài viết mới nhất</h3>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        {% for item in sidebar_latest %}
+                        <a href="{{ url_for('article_detail', slug=item.slug) }}"
+                            class="flex gap-3 p-4 hover:bg-slate-50 transition-colors group">
+                            <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-medical-100 to-teal-100 flex-shrink-0 overflow-hidden">
+                                {% if item.image %}
+                                    <img src="{{ url_for('static', filename='img/articles/' + item.image) }}" alt="{{ item.title }}"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center text-medical-400">
+                                        <i class="fa-regular fa-newspaper"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0 space-y-1">
+                                <h4 class="text-xs font-semibold text-slate-800 group-hover:text-medical-700 transition-colors line-clamp-2 leading-snug">{{ item.title }}</h4>
+                                <div class="text-[10px] text-slate-400">
+                                    <i class="fa-regular fa-calendar mr-1"></i>{{ item.published_at }}
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Widget CTA đặt lịch -->
+                <div class="bg-gradient-to-br from-medical-600 to-teal-500 rounded-2xl p-5 text-white shadow-lg shadow-medical-500/20">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-stethoscope text-white text-lg"></i>
+                        </div>
+                        <h3 class="font-extrabold text-sm leading-snug">Cần tư vấn sức khoẻ?</h3>
+                        <p class="text-xs text-medical-100 leading-relaxed">Đặt lịch khám với bác sĩ chuyên khoa ngay hôm nay.</p>
+                        <a href="{{ url_for('booking') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-medical-700 font-bold text-xs hover:bg-medical-50 transition-colors shadow-sm">
+                            <i class="fa-solid fa-calendar-check"></i> Đặt lịch ngay
+                        </a>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+
+    </main>
+
+    {% include "layouts/footer.html" %}
+
+    <!-- Script đánh dấu mục lục active khi scroll -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tự động highlight mục lục khi scroll
+            const headings = document.querySelectorAll('.article-body h2, .article-body h3');
+            headings.forEach((h, i) => {
+                if (!h.id) h.id = 'heading-' + i;
+            });
+        });
+    </script>
+</body>
+</html>
