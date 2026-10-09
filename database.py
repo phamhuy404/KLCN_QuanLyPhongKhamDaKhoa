@@ -15,7 +15,7 @@ DB_FILE = os.path.join(os.path.dirname(__file__), 'phongkham.db')
 # 2. Cấu hình Microsoft SQL Server (SSMS)
 SQLSERVER_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}', # hoặc '{SQL Server}' nếu dùng bản cũ
-    'server': 'localhost',                       # hoặc '.\\SQLEXPRESS'
+    'server': r'DESKTOP-SFDK7TR\sqlexpress',                       # hoặc '.\\SQLEXPRESS'
     'database': 'quan_ly_phong_kham',
     'trusted_connection': 'yes',                 # 'yes' cho Windows Auth, 'no' cho SQL Auth
     'uid': 'sa',                                 # Dùng khi trusted_connection = 'no'
