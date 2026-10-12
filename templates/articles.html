@@ -61,7 +61,7 @@
 </head>
 <body class="bg-slate-50 font-sans antialiased text-slate-800 min-h-screen flex flex-col">
 
-    <!-- ======================== HEADER ======================== -->
+    <!-- Header -->
     <!-- Top utility bar -->
     <div class="bg-gradient-to-r from-medical-700 to-teal-800 text-white text-xs py-2 px-4 sm:px-8 border-b border-white/10">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -119,14 +119,32 @@
                     <span>Đặt Lịch Khám</span>
                 </a>
                 {% if session.get('logged_in') %}
-                    <a href="{{ url_for('patient_dashboard') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-circle-user"></i>
-                        <span>{{ session.get('user', {}).get('ho_ten', 'Tài khoản') }}</span>
-                    </a>
+                    {% set curr_user = session.get('user', {}) %}
+                    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2" title="Vào Cổng Bác sĩ / Quản trị">
+                            <i class="fa-solid fa-user-doctor text-medical-400"></i>
+                            <span>{{ curr_user.get('ho_ten', 'Quản trị viên') }}</span>
+                            <span class="bg-slate-800 text-[10px] text-teal-300 px-1.5 py-0.5 rounded font-normal">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('patient_dashboard') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-circle-user"></i>
+                            <span>{{ curr_user.get('ho_ten', 'Bệnh nhân') }}</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </a>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('login') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
                         <span>Đăng nhập</span>
+                    </a>
+                    <a href="{{ url_for('register') }}" class="hidden lg:inline-flex px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all">
+                        Đăng ký
                     </a>
                 {% endif %}
             </div>
@@ -146,7 +164,7 @@
         </nav>
     </header>
 
-    <!-- ======================== MAIN CONTENT ======================== -->
+    <!-- Main Content -->
     <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
 
         <!-- Breadcrumb & Tiêu đề trang -->
@@ -170,13 +188,7 @@
             </p>
         </div>
 
-        <!-- ===== PHẦN 1: MENU LỌC BÀI ĐĂNG ===== -->
-        {# --------------------------------------------------------
-            MENU LỌC BÀI ĐĂNG
-            - Lọc theo danh mục (category) qua query string ?category=...
-            - Lọc theo từ khóa tìm kiếm qua ?search=...
-            - Dữ liệu categories được truyền từ view articles() trong app.py
-        -------------------------------------------------------- #}
+        <!-- Menu lọc bài đăng -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-5">
             <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                 <!-- Label -->
@@ -196,7 +208,7 @@
                         <i class="fa-solid fa-layer-group mr-1"></i> Tất cả
                     </a>
 
-                    <!-- Nút từng danh mục — được render từ biến categories truyền từ app.py -->
+                    <!-- Nút từng danh mục -->
                     {% for cat in categories %}
                     <a href="{{ url_for('articles') }}?category={{ cat.slug }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}"
                         class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5
@@ -237,10 +249,8 @@
             </div>
             {% endif %}
         </section>
-        <!-- ===== KẾT THÚC MENU LỌC ===== -->
 
-
-        <!-- ===== NỘI DUNG CHÍNH: DANH SÁCH BÀI VIẾT + SIDEBAR ===== -->
+        <!-- Danh sách bài viết và sidebar -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
             <!-- CỘT TRÁI: Danh sách bài viết (2/3) -->
@@ -386,7 +396,7 @@
             <!-- KẾT THÚC CỘT TRÁI -->
 
 
-            <!-- ===== CỘT PHẢI: SIDEBAR (1/3) ===== -->
+            <!-- Cột phải: Sidebar (1/3) -->
             <aside class="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
 
                 <!-- Widget tìm kiếm (desktop - đã có trên header, bỏ qua nếu trùng) -->
@@ -414,13 +424,7 @@
                     </div>
                 </div>
 
-                <!-- ===== PHẦN 2: BÀI VIẾT LIÊN QUAN (trong sidebar) ===== -->
-                {# --------------------------------------------------------
-                    BÀI VIẾT LIÊN QUAN
-                    - Hiển thị các bài viết trong cùng danh mục đang xem
-                    - Nếu không có bộ lọc: hiển thị bài viết mới nhất / xem nhiều nhất
-                    - Dữ liệu: biến 'related_articles' từ view articles() trong app.py
-                -------------------------------------------------------- #}
+                <!-- Bài viết liên quan -->
                 {% if related_articles %}
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -462,7 +466,6 @@
                     </div>
                 </div>
                 {% endif %}
-                <!-- ===== KẾT THÚC BÀI VIẾT LIÊN QUAN ===== -->
 
                 <!-- Widget: Tư vấn đặt lịch -->
                 <div class="bg-gradient-to-br from-medical-600 to-teal-500 rounded-2xl p-5 text-white shadow-lg shadow-medical-500/20">

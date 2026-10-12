@@ -1,299 +1,84 @@
-from flask import Flask, render_template, redirect, url_for, request, session, jsonify, abort, flash
-import database
-import articles_data as ad
+from flask import Flask, session, url_for as flask_url_for, redirect
+import config
+from core.database import init_db
+from controllers.home_controller import home_bp
+from controllers.auth_controller import auth_bp
+from controllers.patient_controller import patient_bp
+from controllers.admin_controller import admin_bp
+from controllers.api_controller import api_bp
 
-app = Flask(__name__)
-app.secret_key = 'h2t_healthcare_clinic_secret_key_2026'
+def create_app():
+    """Khởi tạo ứng dụng Flask theo mô hình kiến trúc MVC."""
+    app = Flask(__name__)
+    app.config.from_object(config)
 
-# Context processor truyền thông tin người dùng đang đăng nhập vào mọi template
-@app.context_processor
-def inject_user():
-    return dict(current_user=session.get('user'))
+    # 1. Khởi tạo và kiểm tra kết nối cơ sở dữ liệu
+    init_db()
 
-# 1. TRANG CHỦ & BÀI VIẾT CÔNG KHAI
-@app.route('/')
-@app.route('/home')
-def home():
-    articles = database.get_articles(limit=5)
-    stats = database.get_dashboard_stats()
-    return render_template('home.html', articles=articles, stats=stats)
+    # 2. Đăng ký các Controller (Blueprints)
+    app.register_blueprint(home_bp)
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(patient_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
 
-@app.route('/articles')
-@app.route('/tin-tuc')
-def articles():
-    active_category = request.args.get('category', '').strip()
-    search_query = request.args.get('search', '').strip()
+    # 3. Bảng ánh xạ tương thích ngược cho url_for trong toàn bộ templates
+    alias_map = {
+        'home': 'home.home',
+        'articles': 'home.articles',
+        'article_detail': 'home.article_detail',
+        'booking': 'patient.booking',
+        'login': 'auth.login',
+        'register': 'auth.register',
+        'logout': 'auth.logout',
+        'patient_dashboard': 'patient.dashboard',
+        'patient_booking': 'patient.booking',
+        'patient_records': 'patient.records',
+        'patient_lab_results': 'patient.lab_results',
+        'patient_billing': 'patient.billing',
+        'patient_profile': 'patient.profile',
+        'admin_dashboard': 'admin.dashboard',
+        'admin_patients': 'admin.patients',
+        'admin_appointments': 'admin.appointments',
+        'admin_reception': 'admin.reception',
+        'admin_emr': 'admin.emr',
+        'admin_lab': 'admin.lab',
+        'admin_pharmacy': 'admin.pharmacy',
+        'admin_billing': 'admin.billing',
+        'admin_reports': 'admin.reports',
+    }
 
-    return render_template(
-        'articles.html',
-        articles=ad.filter_articles(active_category, search_query),
-        categories=ad.get_categories(),
-        related_articles=ad.get_sidebar_related(active_category),
-        active_category=active_category,
-        total_articles=len(ad.ARTICLES_DATA),
-        total_pages=1,
-        current_page=1,
-    )
+    # Đăng ký alias vào app.view_functions để url_for cấp module/route hoạt động
+    with app.app_context():
+        for old_ep, new_ep in alias_map.items():
+            if new_ep in app.view_functions and old_ep not in app.view_functions:
+                app.view_functions[old_ep] = app.view_functions[new_ep]
 
-@app.route('/articles/<slug>')
-def article_detail(slug):
-    article = ad.get_article_by_slug(slug)
-    if article is None:
-        abort(404)
+    # Điều hướng đường dẫn đặt lịch chung
+    @app.route('/booking')
+    def legacy_booking():
+        if not session.get('logged_in'):
+            return redirect(flask_url_for('auth.login', next=flask_url_for('patient.booking')))
+        return redirect(flask_url_for('patient.booking'))
 
-    article['views'] += 1
-    prev_article, next_article = ad.get_prev_next(article)
+    # Context processor truyền thông tin người dùng và resolver url_for vào templates
+    @app.context_processor
+    def inject_globals():
+        def smart_url_for(endpoint, **values):
+            target = alias_map.get(endpoint, endpoint)
+            try:
+                return flask_url_for(target, **values)
+            except Exception:
+                return flask_url_for(endpoint, **values)
 
-    return render_template(
-        'article_detail.html',
-        article=article,
-        related_articles=ad.get_related_for(article),
-        prev_article=prev_article,
-        next_article=next_article,
-        categories=ad.get_categories(),
-        sidebar_latest=ad.get_latest(exclude_id=article['id']),
-    )
-# 2. XÁC THỰC TÀI KHOẢN (AUTHENTICATION)
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        
-        user = database.authenticate_user(username, password)
-        if not user:
-            return render_template('auth/login.html', error='Tên đăng nhập hoặc mật khẩu không chính xác!')
-        
-        # Lưu phiên làm việc
-        session['logged_in'] = True
-        session['user'] = user
+        return dict(
+            current_user=session.get('user'),
+            url_for=smart_url_for
+        )
 
-        next_url = request.args.get('next')
-        if next_url:
-            return redirect(next_url)
+    return app
 
-        # Điều hướng theo vai trò người dùng trong CSDL
-        if user['vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin_dashboard'))
-        return redirect(url_for('patient_dashboard'))
-
-    return render_template('auth/login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        ho_ten = request.form.get('ho_ten', '').strip()
-        sdt = request.form.get('sdt', '').strip()
-        ngay_sinh = request.form.get('ngay_sinh', '').strip()
-        gioi_tinh = request.form.get('gioi_tinh', 'Nam').strip()
-        cccd = request.form.get('cccd', '').strip()
-        email = request.form.get('email', '').strip()
-        bhyt = request.form.get('bhyt', '').strip()
-        password = request.form.get('password', '').strip()
-        confirm_password = request.form.get('confirm_password', '').strip()
-
-        if password != confirm_password:
-            return render_template('auth/register.html', error='Mật khẩu xác nhận không khớp, vui lòng nhập lại!')
-
-        success, msg = database.register_patient_account(ho_ten, sdt, ngay_sinh, gioi_tinh, cccd, email, bhyt, password)
-        if not success:
-            return render_template('auth/register.html', error=msg)
-
-        return redirect(url_for('login'))
-
-    return render_template('auth/register.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('home'))
-
-@app.before_request
-def check_role_access():
-    """Kiểm soát phân quyền: Chặn tài khoản bệnh nhân vào các trang quản trị admin."""
-    if request.path.startswith('/admin'):
-        user = session.get('user')
-        if not user or not session.get('logged_in'):
-            return redirect(url_for('login', next=request.path))
-        if user.get('vai_tro') == 'BENHNHAN':
-            return redirect(url_for('patient_dashboard'))
-
-# 3. ĐIỀU HƯỚNG ĐẶT LỊCH KHÁM
-@app.route('/booking', methods=['GET', 'POST'])
-def booking():
-    if not session.get('logged_in'):
-        return redirect(url_for('login', next=url_for('patient_booking')))
-    return redirect(url_for('patient_booking'))
-
-# 4. PHÂN HỆ BỆNH NHÂN (PATIENT PORTAL)
-@app.route('/patient')
-@app.route('/patient/dashboard')
-def patient_dashboard():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-    patient = database.get_patient_by_id(patient_id)
-    appointments = [a for a in database.get_all_appointments() if a['benh_nhan_id'] == patient_id]
-    return render_template('patient/dashboard.html', active_page='dashboard', patient=patient, appointments=appointments)
-
-@app.route('/patient/booking', methods=['GET', 'POST'])
-def patient_booking():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-
-    if request.method == 'POST':
-        chuyen_khoa_id = request.form.get('chuyen_khoa_id', 1, type=int)
-        bac_si_id = request.form.get('bac_si_id', 1, type=int)
-        ngay_hen = request.form.get('ngay_hen')
-        gio_hen = request.form.get('gio_hen')
-        ly_do = request.form.get('ly_do', '')
-        database.create_appointment(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
-        return redirect(url_for('patient_dashboard'))
-
-    return render_template('patient/booking.html', active_page='booking')
-
-@app.route('/patient/records')
-def patient_records():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-    patient = database.get_patient_by_id(patient_id)
-    return render_template('patient/records.html', active_page='records', patient=patient)
-
-@app.route('/patient/lab-results')
-def patient_lab_results():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-    patient = database.get_patient_by_id(patient_id)
-    return render_template('patient/lab_results.html', active_page='lab_results', patient=patient)
-
-@app.route('/patient/billing')
-def patient_billing():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-    patient = database.get_patient_by_id(patient_id)
-    invoices = [inv for inv in database.get_all_invoices() if inv['benh_nhan_id'] == patient_id]
-    return render_template('patient/billing.html', active_page='billing', patient=patient, invoices=invoices)
-
-@app.route('/patient/profile')
-def patient_profile():
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-    patient = database.get_patient_by_id(patient_id)
-    return render_template('patient/profile.html', active_page='profile', patient=patient)
-
-# 5. PHÂN HỆ QUẢN TRỊ & BÁC SĨ (ADMIN / CLINICAL PORTAL)
-@app.route('/admin')
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    stats = database.get_dashboard_stats()
-    patients = database.get_all_patients()
-    appointments = database.get_all_appointments()
-    return render_template('admin/dashboard.html', active_page='admin_dashboard', stats=stats, patients=patients, appointments=appointments)
-
-@app.route('/admin/patients')
-def admin_patients():
-    patients = database.get_all_patients()
-    return render_template('admin/patients.html', active_page='admin_patients', patients=patients)
-
-@app.route('/admin/patients/<int:patient_id>')
-@app.route('/admin/patient_details/<int:patient_id>')
-@app.route('/admin/patient-details/<int:patient_id>')
-@app.route('/admin/patient_detail/<int:patient_id>')
-@app.route('/admin/patient-detail/<int:patient_id>')
-@app.route('/patient_details/<int:patient_id>')
-@app.route('/patient-details/<int:patient_id>')
-def admin_patient_detail(patient_id):
-    patient = database.get_patient_by_id(patient_id)
-    if not patient:
-        abort(404)
-    return render_template('admin/patient_detail.html', active_page='admin_patients', patient=patient)
-
-@app.route('/admin/patient_details')
-@app.route('/admin/patient-details')
-@app.route('/admin/patient_detail')
-@app.route('/admin/patient-detail')
-@app.route('/patient_details')
-@app.route('/patient-details')
-def patient_details_default():
-    patient_id = request.args.get('id', 1, type=int)
-    patient = database.get_patient_by_id(patient_id)
-    if not patient:
-        patients = database.get_all_patients()
-        if patients:
-            patient = patients[0]
-        else:
-            abort(404)
-    return render_template('admin/patient_detail.html', active_page='admin_patients', patient=patient)
-
-@app.route('/admin/appointments')
-def admin_appointments():
-    appointments = database.get_all_appointments()
-    patients = database.get_all_patients()
-    return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments, patients=patients)
-
-@app.route('/admin/reception')
-def admin_reception():
-    patients = database.get_all_patients()
-    appointments = database.get_all_appointments()
-    return render_template('admin/reception.html', active_page='admin_reception', patients=patients, appointments=appointments)
-
-@app.route('/admin/emr')
-def admin_emr():
-    patients = database.get_all_patients()
-    medicines = database.get_all_medicines()
-    services = database.get_all_services()
-    return render_template('admin/emr.html', active_page='admin_emr', patients=patients, medicines=medicines, services=services)
-
-@app.route('/admin/lab')
-def admin_lab():
-    patients = database.get_all_patients()
-    services = database.get_all_services()
-    lab_orders = database.get_all_lab_orders()
-    return render_template('admin/lab.html', active_page='admin_lab', patients=patients, services=services, lab_orders=lab_orders)
-
-@app.route('/admin/pharmacy')
-def admin_pharmacy():
-    medicines = database.get_all_medicines()
-    prescriptions = database.get_all_prescriptions()
-    return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions)
-
-@app.route('/admin/billing')
-def admin_billing():
-    invoices = database.get_all_invoices()
-    patients = database.get_all_patients()
-    return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, patients=patients)
-
-@app.route('/admin/reports')
-def admin_reports():
-    stats = database.get_dashboard_stats()
-    invoices = database.get_all_invoices()
-    return render_template('admin/reports.html', active_page='admin_reports', stats=stats, invoices=invoices)
-
-# 6. REST API NỘI BỘ
-@app.route('/api/admin/reset-password', methods=['POST'])
-def api_reset_password():
-    data = request.get_json() or {}
-    patient_id = data.get('patient_id')
-    new_password = data.get('new_password')
-    if not patient_id or not new_password:
-        return jsonify({'success': False, 'message': 'Thiếu thông tin yêu cầu!'}), 400
-
-    success, msg = database.reset_patient_password(patient_id, new_password)
-    return jsonify({'success': success, 'message': msg})
-
-@app.route('/api/appointment/book', methods=['POST'])
-def api_book_appointment():
-    data = request.get_json() or {}
-    user = session.get('user')
-    patient_id = user.get('patient_id', 1) if user else 1
-
-    chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
-    bac_si_id = data.get('bac_si_id', 1)
-    ngay_hen = data.get('ngay_hen', '2026-09-29')
-    gio_hen = data.get('gio_hen', '08:30:00')
-    ly_do = data.get('ly_do', 'Khám theo yêu cầu')
-
-    success, code = database.create_appointment(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
-    return jsonify({'success': success, 'ma_lich_hen': code})
+app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

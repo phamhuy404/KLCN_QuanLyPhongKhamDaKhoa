@@ -924,10 +924,6 @@
 
     function saveNewPatient(e) {
         e.preventDefault();
-        const nextId = patients.length > 0 ? Math.max(...patients.map(p => p.id)) + 1 : 1;
-        const codeNum = String(nextId).padStart(3, '0');
-        const maBN = `BN2609${codeNum}`;
-
         const name = document.getElementById('add-name').value.trim();
         const phone = document.getElementById('add-phone').value.trim();
         const dob = document.getElementById('add-dob').value;
@@ -947,35 +943,65 @@
             age = 2026 - birthYear;
         }
 
-        const newPatient = {
-            id: nextId,
-            ma_benh_nhan: maBN,
+        const payload = {
             ho_ten: name,
-            username: createAccount ? phone : '',
-            password: createAccount ? 'hashed_default' : '',
-            ngay_sinh: dob,
-            tuoi: age,
-            gioi_tinh: gender,
             sdt: phone,
-            email: email,
+            ngay_sinh: dob || '1990-01-01',
+            gioi_tinh: gender || 'Nam',
+            nhom_mau: blood || 'Chưa rõ',
             cccd: cccd,
             bhyt: bhyt,
+            email: email,
             dia_chi: address,
-            nhom_mau: blood,
-            di_ung: allergy,
-            tien_su_benh: history,
-            nguoi_than_ho_ten: '',
-            nguoi_than_sdt: '',
-            nguoi_than_quan_he: '',
-            co_tai_khoan: createAccount,
-            ngay_tao: '2026-09-25'
+            di_ung: allergy || 'Không có',
+            tien_su_benh: history || 'Không có',
+            create_account: createAccount,
+            password: 'H2T@123456'
         };
 
-        patients.unshift(newPatient);
-        applyFilterAndSort();
-        closeAddPatientModal();
-        e.target.reset();
-        showAdminToast(`Đã thêm thành công bệnh nhân ${name} (${maBN})!`);
+        fetch('/api/patient/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const newPatient = {
+                    id: data.patient_id,
+                    ma_benh_nhan: data.ma_benh_nhan,
+                    ho_ten: name,
+                    username: createAccount ? phone : '',
+                    password: createAccount ? '••••••••' : '',
+                    ngay_sinh: dob || '1990-01-01',
+                    tuoi: age,
+                    gioi_tinh: gender,
+                    sdt: phone,
+                    email: email,
+                    cccd: cccd,
+                    bhyt: bhyt,
+                    dia_chi: address,
+                    nhom_mau: blood,
+                    di_ung: allergy,
+                    tien_su_benh: history,
+                    nguoi_than_ho_ten: '',
+                    nguoi_than_sdt: '',
+                    nguoi_than_quan_he: '',
+                    co_tai_khoan: createAccount,
+                    ngay_tao: '2026-09-25'
+                };
+                patients.unshift(newPatient);
+                applyFilterAndSort();
+                closeAddPatientModal();
+                e.target.reset();
+                showAdminToast(`Đã thêm thành công bệnh nhân ${name} (${data.ma_benh_nhan}) vào CSDL!`);
+            } else {
+                alert('Lỗi tạo bệnh nhân: ' + (data.message || 'Không thể lưu vào CSDL'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        });
     }
 
     function deletePatient(id) {

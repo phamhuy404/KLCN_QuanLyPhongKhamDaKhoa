@@ -71,5 +71,12 @@
                 </div>
             </a>
         {% endif %}
+
+        <!-- Nút đăng xuất nhanh -->
+        <a href="{{ url_for('logout') }}" 
+           class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all shrink-0" 
+           title="Đăng xuất">
+            <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+        </a>
     </div>
 </header>

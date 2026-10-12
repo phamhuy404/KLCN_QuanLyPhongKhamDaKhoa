@@ -287,12 +287,30 @@
     function confirmPaymentSuccess() {
         if (!activeInvoiceId) return;
         const inv = invoices.find(x => x.id === activeInvoiceId);
-        if (inv) {
-            inv.status = 'paid';
-        }
-        closePaymentModal();
-        filterInvoices();
-        alert('Đã xác nhận thu viện phí thành công và xuất biên lai điện tử!');
+        if (!inv) return;
+
+        fetch('/api/billing/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ma_hd: inv.ma_hd,
+                hinh_thuc_thanh_toan: inv.phuong_thuc || 'Chuyển khoản'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                inv.status = 'paid';
+                closePaymentModal();
+                filterInvoices();
+                alert(data.message || 'Đã xác nhận thu viện phí thành công và cập nhật CSDL!');
+            } else {
+                alert('Lỗi thanh toán: ' + (data.message || 'Không thể cập nhật'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {

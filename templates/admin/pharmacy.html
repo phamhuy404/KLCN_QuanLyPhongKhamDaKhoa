@@ -352,12 +352,28 @@
     }
 
     function dispenseMed(maDon) {
-        const d = dispensingOrders.find(x => x.ma_don === maDon);
-        if (d) {
-            d.status = 'completed';
-            renderDispensing();
-            alert(`Đã hoàn tất xuất kho và hướng dẫn dùng thuốc cho đơn #${maDon}!`);
-        }
+        if (!confirm(`Xác nhận xuất dược và trừ kho cho đơn thuốc #${maDon}?`)) return;
+        fetch('/api/pharmacy/dispense', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ma_don: maDon })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const d = dispensingOrders.find(x => x.ma_don === maDon);
+                if (d) {
+                    d.status = 'completed';
+                    renderDispensing();
+                }
+                alert(data.message || `Đã hoàn tất xuất kho cho đơn #${maDon}!`);
+            } else {
+                alert('Lỗi xuất thuốc: ' + (data.message || 'Không thể cập nhật'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        });
     }
 
     function openAddMedicineModal() {
@@ -377,22 +393,41 @@
         const price = parseInt(document.getElementById('med-price').value);
         const exp = document.getElementById('med-exp').value;
 
-        const nextNum = medicines.length + 1;
-        medicines.unshift({
-            ma: `TH0${nextNum < 10 ? '0' + nextNum : nextNum}`,
-            ten: name,
-            hoat_chat: substance,
-            dvt: unit,
-            ton: qty,
-            gia: price,
-            hsd: exp,
-            status: qty < 25 ? 'low_stock' : 'in_stock'
+        fetch('/api/pharmacy/add-medicine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ten_thuoc: name,
+                hoat_chat: substance,
+                don_vi_tinh: unit,
+                so_luong_ton: qty,
+                don_gia: price
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                medicines.unshift({
+                    ma: data.ma_thuoc || 'TH001',
+                    ten: name,
+                    hoat_chat: substance,
+                    dvt: unit,
+                    ton: qty,
+                    gia: price,
+                    hsd: exp,
+                    status: qty < 25 ? 'low_stock' : 'in_stock'
+                });
+                closeAddMedicineModal();
+                e.target.reset();
+                filterMedicines();
+                alert(data.message || 'Đã nhập thành công dược phẩm mới vào kho CSDL!');
+            } else {
+                alert('Lỗi nhập thuốc: ' + (data.message || 'Không thể thêm'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
         });
-
-        closeAddMedicineModal();
-        e.target.reset();
-        filterMedicines();
-        alert('Đã nhập thành công dược phẩm mới vào kho!');
     }
 
     document.addEventListener('DOMContentLoaded', () => {

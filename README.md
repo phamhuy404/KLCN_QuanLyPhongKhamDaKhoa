@@ -1,50 +1,70 @@
-# KLCN_QuanLyPhongKhamDaKhoa
-# Quản lý Phòng khám Đa khoa H2T Healthcare
+# Hệ Thống Quản Lý Phòng Khám Đa Khoa H2T Healthcare (Kiến Trúc MVC)
 
-**Hệ thống Quản lý Bệnh viện/Phòng khám Đa khoa trực tuyến**
+Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa, số hóa toàn bộ quy trình từ tiếp đón, khám bệnh điện tử (EMR), cận lâm sàng, dược phẩm, thu ngân viện phí đến cổng thông tin người bệnh.
 
-Đây là một ứng dụng Web được xây dựng với Flask (Python) và sử dụng SQL Server làm hệ quản trị cơ sở dữ liệu. Hệ thống được thiết kế nhằm số hóa toàn bộ quy trình quản lý hoạt động của một phòng khám đa khoa, từ tiếp đón bệnh nhân, đặt lịch hẹn, quản lý hồ sơ bệnh án điện tử (EMR), đến quản lý dược phẩm, thanh toán và thống kê báo cáo.
+## 1. Kiến Trúc Dự Án (Model - View - Controller)
 
-## 📋 Mục lục
+Dự án được tái cấu trúc hoàn toàn theo mô hình MVC tiêu chuẩn:
+- **Model (`models/`):** Xử lý nghiệp vụ và truy vấn CSDL độc lập với Controller.
+  - `user_model.py`: Xác thực, phân quyền RBAC, quản lý tài khoản và nhân sự.
+  - `patient_model.py`: Hồ sơ bệnh nhân 360, sinh hiệu, lịch sử khám bệnh.
+  - `appointment_model.py`: Đặt lịch khám, phân luồng tiếp nhận, cập nhật trạng thái.
+  - `medical_record_model.py`: Bệnh án điện tử EMR, chỉ định cận lâm sàng, kê toa thuốc.
+  - `pharmacy_model.py`: Kho dược phẩm, xuất nhập tồn, phát thuốc tự động trừ kho.
+  - `billing_model.py`: Hóa đơn viện phí, khấu trừ BHYT, thanh toán VietQR / tiền mặt.
+  - `clinic_model.py`: Danh mục chuyên khoa, phòng khám, dịch vụ kỹ thuật.
+  - `article_model.py`: Tin tức y khoa, bài viết sức khỏe.
+- **View (`templates/` & `static/`):** Giao diện người dùng HTML5, Tailwind CSS, FontAwesome, JavaScript tương tác cao.
+- **Controller (`controllers/`):** Điều phối luồng request, xử lý nghiệp vụ thông qua Flask Blueprints:
+  - `home_controller.py`: Trang chủ và tin tức y khoa.
+  - `auth_controller.py`: Đăng nhập, đăng ký, đăng xuất.
+  - `patient_controller.py`: Cổng thông tin cá nhân bệnh nhân.
+  - `admin_controller.py`: Bảng điều khiển quản trị y tế và các phân hệ lâm sàng.
+  - `api_controller.py`: RESTful API phục vụ các tác vụ AJAX/Fetch thời gian thực.
+- **Core & Config (`core/`, `config.py`):**
+  - `config.py`: Cấu hình tập trung (môi trường, Secret Key, kết nối 3 loại CSDL).
+  - `core/database.py`: Unified Database Layer tự động chuẩn hóa cursor và cú pháp giữa SQLite, SQL Server và MySQL.
+  - `core/security.py`: Mã hóa mật khẩu bảo mật, Decorator kiểm tra quyền đăng nhập `@login_required` và phân quyền `@roles_required`.
 
-- [Tính năng](#--tính-năng)
-- [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-- [Cài đặt & Cấu hình](#--cài-đặt--cấu-hình)
-- [Cách sử dụng](#-cách-sử-dụng)
-- [Cơ sở dữ liệu](#-cơ-sở-dữ-liệu)
+## 2. Cài Đặt Môi Trường
 
----
+Yêu cầu: Python 3.10 trở lên.
+Cài đặt các gói phụ thuộc:
+```bash
+pip install -r requirements.txt
+```
 
-## 📋 Tính năng
+## 3. Cấu Hình Cơ Sở Dữ Liệu
 
-Hệ thống cung cấp các phân hệ và tính năng toàn diện cho các đối tượng người dùng khác nhau:
+Tùy chỉnh biến `DB_ENGINE` trong file `config.py` để lựa chọn 1 trong 3 cơ chế CSDL:
 
-### 1. Quản lý Người dùng (RBAC)
-- **Quản trị viên (Admin):** Quản lý tài khoản, phân quyền, xem báo cáo toàn hệ thống.
-- **Bác sĩ (Doctor):** Quản lý lịch khám, xem hồ sơ bệnh án, chỉ định điều trị, kê đơn thuốc.
-- **Nhân viên Lễ tân (Receptionist):** Tiếp đón bệnh nhân, đặt lịch hẹn, tra cứu thông tin.
-- **Bệnh nhân (Patient):** Đặt lịch hẹn online, xem lịch sử khám, thông tin cá nhân, theo dõi đơn thuốc.
+### Cách 1: SQLite (Mặc định - Chạy ngay)
+- Trong `config.py`: `DB_ENGINE = 'sqlite'`
+- Sử dụng trực tiếp file CSDL `phongkham.db` đã được khởi tạo sẵn với schema và dữ liệu sạch.
 
-### 2. Quản lý Tiếp đón & Lịch hẹn
-- **Đặt lịch hẹn trực tuyến:** Bệnh nhân có thể tìm kiếm bác sĩ và đặt lịch theo khung giờ trống.
-- **Quản lý luồng bệnh nhân:** Cập nhật trạng thái (Chờ khám, Đang khám, Hoàn tất).
-- **Check-in/Check-out:** Xác nhận bệnh nhân đến khám và kết thúc điều trị.
+### Cách 2: Microsoft SQL Server
+- Mở SQL Server Management Studio (SSMS).
+- Mở file `cosodulieu.sql` và nhấn Execute (F5) để khởi tạo CSDL `quan_ly_phong_kham`.
+- Trong `config.py`: `DB_ENGINE = 'sqlserver'`
 
-### 3. Hồ sơ Bệnh án Điện tử (EMR)
-- **Hồ sơ y tế:** Lưu trữ thông tin cá nhân, tiền sử bệnh lý, dị ứng.
-- **Phiếu khám bệnh:** Ghi nhận triệu chứng, chẩn đoán, kết quả cận lâm sàng.
-- **Dấu hiệu sinh tồn:** Theo dõi huyết áp, nhịp tim, nhiệt độ, SpO2.
+### Cách 3: MySQL / MariaDB
+- Khởi động MySQL (XAMPP / Docker).
+- Nhập file `cosodulieu_mysql.sql` vào MySQL:
+```bash
+mysql -u root < cosodulieu_mysql.sql
+```
+- Trong `config.py`: `DB_ENGINE = 'mysql'`
 
-### 4. Quản lý Điều trị & Dược phẩm
-- **Chi định cận lâm sàng:** Gửi yêu cầu xét nghiệm, chẩn đoán hình ảnh.
-- **Đơn thuốc:** Kê đơn thuốc online, chỉ định liều lượng, cách dùng.
-- **Quản lý kho thuốc:** Theo dõi số lượng tồn kho, cảnh báo sắp hết, nhập xuất.
+## 4. Khởi Chạy Ứng Dụng
 
-### 5. Thanh toán & Hóa đơn
-- **Tự động tính toán:** Tính tổng chi phí dựa trên dịch vụ và thuốc.
-- **Hỗ trợ Bảo hiểm Y tế (BHYT):** Tính toán chi phí bệnh nhân chi trả và quỹ BHYT.
-- **In hóa đơn:** Tạo hóa đơn PDF chi tiết.
+Chạy lệnh:
+```bash
+python app.py
+```
+Truy cập website tại: `http://127.0.0.1:5000`
 
-### 6. Thông tin & Giao tiếp
-- **Bài viết y tế:** Admin có thể đăng tải tin tức, bài viết sức khỏe.
-- **Góp ý & Phản hồi:** Bệnh nhân gửi góp ý, admin trả lời qua hệ thống.
+## 5. Tài Khoản Thử Nghiệm
+
+Cơ sở dữ liệu được làm sạch 100% các bảng giao dịch (khám bệnh, đơn thuốc, lịch hẹn, viện phí) để người dùng tự do tạo mới:
+- **Quản trị viên (Admin):** `admin` / `admin123`
+- **Bệnh nhân mẫu:** `0901234567` / `123456`

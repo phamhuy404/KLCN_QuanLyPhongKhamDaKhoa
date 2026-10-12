@@ -1,40 +1,46 @@
-HƯỚNG DẪN KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA
+HƯỚNG DẪN CÀI ĐẶT VÀ KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA (CHUẨN KIẾN TRÚC MVC)
 
-I. CÀI ĐẶT MÔI TRƯỜNG
-1. Cài đặt các thư viện cần thiết:
+I. CÀI ĐẶT MÔI TRƯỜNG VÀ THƯ VIỆN
+1. Mở terminal tại thư mục gốc dự án:
 pip install -r requirements.txt
 
-II. CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CÁCH)
+II. CHỌN VÀ CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CƠ CHẾ)
+Mở file config.py để chọn loại CSDL bằng cách gán biến DB_ENGINE.
 
-CÁCH 1: DÙNG SQLITE (NHANH NHẤT - KHÔNG CẦN CÀI SERVER)
-1. Mở file database.py, bật dòng cấu hình:
+CÁCH 1: DÙNG SQLITE (MẶC ĐỊNH - KHÔNG CẦN CÀI ĐẶT DATABASE SERVER)
+1. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlite'
-2. Không cần cài đặt gì thêm, hệ thống tự động sử dụng file phongkham.db đã có sẵn toàn bộ dữ liệu.
+2. File phongkham.db đã được tạo sẵn trong thư mục gốc với cấu trúc bảng đầy đủ và cơ sở dữ liệu trống sạch.
 
 CÁCH 2: DÙNG MICROSOFT SQL SERVER (SSMS)
-1. Mở SQL Server Management Studio (SSMS), kết nối vào server (localhost hoặc .\SQLEXPRESS).
-2. Mở file cosodulieu.sql và nhấn Execute (F5) để tạo database quan_ly_phong_kham và nạp toàn bộ bảng, dữ liệu mẫu.
-3. Mở file database.py, bật dòng cấu hình:
+1. Mở SQL Server Management Studio (SSMS), kết nối vào máy chủ SQL Server.
+2. Mở file cosodulieu.sql và nhấn Execute (F5) để khởi tạo CSDL quan_ly_phong_kham và bảng dữ liệu sạch.
+3. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlserver'
-4. Kiểm tra cấu hình trong SQLSERVER_CONFIG (server, trusted_connection hoặc uid/pwd).
+4. Kiểm tra SQLSERVER_CONFIG trong config.py (mặc định server: localhost, database: quan_ly_phong_kham, Trusted_Connection: yes).
 
-CÁCH 3: DÙNG MYSQL / MARIADB (XAMPP / PHPMYADMIN)
-1. Mở XAMPP Control Panel, nhấn Start module MySQL.
-2. Mở trình duyệt vào http://localhost/phpmyadmin, tạo database quan_ly_phong_kham và chọn thẻ Import (Nhập) file cosodulieu_mysql.sql.
-(Hoặc chạy lệnh trong terminal: mysql -u root < cosodulieu_mysql.sql)
-3. Mở file database.py, bật dòng cấu hình:
+CÁCH 3: DÙNG MYSQL / MARIADB (XAMPP / PHPMYADMIN / DOCKER)
+1. Bật MySQL trên XAMPP hoặc MySQL Service.
+2. Nhập file cosodulieu_mysql.sql vào MySQL (qua phpMyAdmin hoặc lệnh terminal: mysql -u root < cosodulieu_mysql.sql).
+3. Trong file config.py, thiết lập:
 DB_ENGINE = 'mysql'
-4. Kiểm tra cấu hình trong MYSQL_CONFIG (user, password, port nếu có thay đổi).
+4. Kiểm tra MYSQL_CONFIG trong config.py (user, password, port nếu có thay đổi).
 
-III. KHỞI ĐỘNG VÀ TRUY CẬP WEBSITE
-1. Chạy lệnh khởi động ứng dụng:
+III. KHỞI CHẠY ỨNG DỤNG WEB
+1. Chạy lệnh:
 python app.py
 
 2. Mở trình duyệt web truy cập địa chỉ:
 http://127.0.0.1:5000
 
-IV. TÀI KHOẢN ĐĂNG NHẬP THỬ NGHIỆM
-- Quản trị viên (Admin): admin / admin123
-- Bác sĩ chuyên khoa: dr.quan / 123456
-- Nhân viên lễ tân: letan.mai / 123456
-- Bệnh nhân: 0901234567 / 123456
+IV. TÀI KHOẢN ĐĂNG NHẬP MẶC ĐỊNH
+Cơ sở dữ liệu được tạo mới hoàn toàn sạch (các bảng giao dịch, khám bệnh, đơn thuốc, lịch hẹn, hóa đơn đều trống để người dùng tạo mới trong quá trình trải nghiệm):
+1. Tài khoản Quản trị viên (Admin):
+- Tên đăng nhập: admin
+- Mật khẩu: admin123
+- Quyền: Toàn quyền quản trị, khám chữa bệnh EMR, quản lý bệnh nhân, dược phẩm, viện phí, báo cáo doanh thu.
+
+2. Tài khoản Bệnh nhân mẫu:
+- Tên đăng nhập / Số điện thoại: 0901234567
+- Mật khẩu: 123456
+- Quyền: Cổng thông tin bệnh nhân, đặt lịch khám, tra cứu hồ sơ bệnh án, lịch sử kê đơn, kết quả xét nghiệm, hóa đơn viện phí.

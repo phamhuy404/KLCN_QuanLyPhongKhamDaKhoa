@@ -359,34 +359,51 @@
         const room = document.getElementById('reception-room-select').value;
         const type = document.getElementById('reception-type-select').value;
 
-        const nextNum = receptionQueue.length + 19;
+        const nextNum = receptionQueue.length + 1;
         const stt = String(nextNum).padStart(3, '0');
 
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const dateStr = now.toISOString().slice(0, 10);
 
-        receptionQueue.unshift({
-            stt: stt,
-            ma_bn: pCode,
-            ho_ten: pName,
-            id: parseInt(pId),
-            gio: timeStr,
-            phong: room,
-            loai: type,
-            status: "waiting"
+        fetch('/api/appointment/book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                patient_id: parseInt(pId),
+                chuyen_khoa_id: 1,
+                ngay_hen: dateStr,
+                gio_hen: timeStr,
+                ly_do: `Tiếp nhận tại quầy: ${room} (${type})`
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            receptionQueue.unshift({
+                stt: stt,
+                ma_bn: pCode,
+                ho_ten: pName,
+                id: parseInt(pId),
+                gio: timeStr,
+                phong: room,
+                loai: type,
+                status: "waiting"
+            });
+
+            renderQueue();
+
+            document.getElementById('ticket-stt').innerText = stt;
+            document.getElementById('ticket-name').innerText = pName;
+            document.getElementById('ticket-code').innerText = pCode;
+            document.getElementById('ticket-room').innerText = room;
+            document.getElementById('ticket-time').innerText = `${timeStr} ${dateStr}`;
+            document.getElementById('ticket-modal').classList.remove('hidden');
+
+            e.target.reset();
+        })
+        .catch(err => {
+            alert('Lỗi tiếp nhận: ' + err.message);
         });
-
-        renderQueue();
-
-        // Hiển thị modal in vé
-        document.getElementById('ticket-stt').innerText = stt;
-        document.getElementById('ticket-name').innerText = pName;
-        document.getElementById('ticket-code').innerText = pCode;
-        document.getElementById('ticket-room').innerText = room;
-        document.getElementById('ticket-time').innerText = `${timeStr} 25/09/2026`;
-        document.getElementById('ticket-modal').classList.remove('hidden');
-
-        e.target.reset();
     }
 
     function closeTicketModal() {
