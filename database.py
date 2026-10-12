@@ -1,3 +1,4 @@
+
 # database.py - Cầu nối tương thích ngược (Backward Compatibility Layer) sang cấu trúc MVC
 from core.database import get_db, init_db, init_sqlite_db, UnifiedConnection, UnifiedCursor
 from models.user_model import UserModel
@@ -28,3 +29,4 @@ get_dashboard_stats = ClinicModel.get_dashboard_stats
 
 if __name__ == '__main__':
     init_db()
+
