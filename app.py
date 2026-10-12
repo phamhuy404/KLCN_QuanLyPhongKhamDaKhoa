@@ -74,6 +74,7 @@ def create_app():
 
         return dict(
             current_user=session.get('user'),
+            curr_user=session.get('user') or {},
             catalogs=get_all_catalogs(),
             url_for=smart_url_for
         )

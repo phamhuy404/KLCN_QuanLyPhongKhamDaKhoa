@@ -22,7 +22,7 @@
         {% else %}
             <div>
                 <h2 class="text-lg sm:text-xl font-bold text-slate-800">Xin chào, {{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Bệnh nhân') }}! 👋</h2>
-                <p class="text-xs text-slate-400">Mã bệnh nhân: <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{{ patient.ma_benh_nhan if patient else 'BN2609001' }}</span></p>
+                <p class="text-xs text-slate-400">Mã bệnh nhân: <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{{ patient.ma_benh_nhan if patient else curr_user.get('ma_benh_nhan', 'BN2609001') }}</span></p>
             </div>
         {% endif %}
     </div>

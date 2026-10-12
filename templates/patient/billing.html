@@ -186,7 +186,7 @@
                 <div>
                     <span class="text-xs text-slate-400">Số tiền thanh toán</span>
                     <h2 class="text-2xl font-extrabold text-medical-600 mt-0.5">400.000 VNĐ</h2>
-                    <p class="text-xs text-slate-500 mt-1">Nội dung CK: <strong class="font-mono text-slate-800">BN00291 HD20260918</strong></p>
+                    <p class="text-xs text-slate-500 mt-1">Nội dung CK: <strong class="font-mono text-slate-800">{{ patient.ma_benh_nhan if patient else curr_user.get('ma_benh_nhan', 'BN2609001') }} HD20260918</strong></p>
                 </div>
 
                 <div class="p-3 rounded-xl bg-slate-50 text-left text-xs space-y-1 text-slate-600">

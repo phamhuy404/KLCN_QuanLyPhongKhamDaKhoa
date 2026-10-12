@@ -205,11 +205,11 @@
                 <div class="py-4 space-y-3.5 text-sm">
                     <div class="flex justify-between">
                         <span class="text-slate-400">Người khám:</span>
-                        <span class="font-semibold text-slate-800">Nguyễn Văn An</span>
+                        <span class="font-semibold text-slate-800">{{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Hoàng Bảo Nam') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Mã bệnh nhân:</span>
-                        <span class="font-mono font-medium text-slate-700">BN00291</span>
+                        <span class="font-mono font-medium text-slate-700">{{ patient.ma_benh_nhan if patient else curr_user.get('ma_benh_nhan', 'BN2609001') }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Chuyên khoa:</span>

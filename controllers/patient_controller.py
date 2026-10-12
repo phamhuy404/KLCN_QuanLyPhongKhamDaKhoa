@@ -44,9 +44,10 @@ def booking():
         success, _ = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
         return redirect(url_for('patient.dashboard'))
 
+    patient = PatientModel.get_by_id(patient_id)
     departments = ClinicModel.get_all_departments()
     doctors = UserModel.get_all_doctors()
-    return render_template('patient/booking.html', active_page='booking', departments=departments, doctors=doctors)
+    return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors)
 
 @patient_bp.route('/records')
 @login_required
