@@ -1,46 +1,149 @@
-HƯỚNG DẪN CÀI ĐẶT VÀ KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA (CHUẨN KIẾN TRÚC MVC)
+HƯỚNG DẪN CÀI ĐẶT, VẬN HÀNH VÀ QUẢN TRỊ DỰ ÁN PHÒNG KHÁM ĐA KHOA (CHUẨN MVC)
 
 I. CÀI ĐẶT MÔI TRƯỜNG VÀ THƯ VIỆN
-1. Mở terminal tại thư mục gốc dự án:
+1. Yêu cầu môi trường:
+- Python phiên bản 3.9 trở lên (khuyến nghị Python 3.10 hoặc 3.11).
+- Trình duyệt web hiện đại (Google Chrome, Microsoft Edge, Firefox).
+
+2. Cài đặt các thư viện phụ thuộc:
+Mở terminal tại thư mục gốc dự án và chạy lệnh:
 pip install -r requirements.txt
 
-II. CHỌN VÀ CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CƠ CHẾ)
-Mở file config.py để chọn loại CSDL bằng cách gán biến DB_ENGINE.
+Danh sách thư viện đã được tinh giản tối đa:
+- flask: Framework phát triển web kiến trúc MVC.
+- pymysql: Driver kết nối CSDL MySQL / MariaDB.
+- pyodbc: Driver kết nối CSDL Microsoft SQL Server.
 
-CÁCH 1: DÙNG SQLITE (MẶC ĐỊNH - KHÔNG CẦN CÀI ĐẶT DATABASE SERVER)
+
+II. CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CƠ CHẾ)
+Mở file config.py để chọn loại cơ sở dữ liệu bằng cách thay đổi giá trị biến DB_ENGINE.
+
+CÁCH 1: DÙNG SQLITE (MẶC ĐỊNH - CHẠY NGAY, KHÔNG CẦN CÀI SERVER DATABASE)
 1. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlite'
-2. File phongkham.db đã được tạo sẵn trong thư mục gốc với cấu trúc bảng đầy đủ và cơ sở dữ liệu trống sạch.
+2. Hệ thống tự động tạo file phongkham.db, khởi tạo bảng dữ liệu và 2 tài khoản mẫu chuẩn. Không cần cài đặt bất kỳ phần mềm CSDL nào.
 
 CÁCH 2: DÙNG MICROSOFT SQL SERVER (SSMS)
-1. Mở SQL Server Management Studio (SSMS), kết nối vào máy chủ SQL Server.
-2. Mở file cosodulieu.sql và nhấn Execute (F5) để khởi tạo CSDL quan_ly_phong_kham và bảng dữ liệu sạch.
+1. Mở SQL Server Management Studio (SSMS), kết nối máy chủ SQL Server nội bộ.
+2. Mở file cosodulieu.sql và nhấn Execute (F5) để tạo database quan_ly_phong_kham và bảng dữ liệu sạch.
 3. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlserver'
-4. Kiểm tra SQLSERVER_CONFIG trong config.py (mặc định server: localhost, database: quan_ly_phong_kham, Trusted_Connection: yes).
+4. Kiểm tra cấu hình kết nối trong SQLSERVER_CONFIG (mặc định Server: localhost, Database: quan_ly_phong_kham, Trusted_Connection: yes).
 
 CÁCH 3: DÙNG MYSQL / MARIADB (XAMPP / PHPMYADMIN / DOCKER)
-1. Bật MySQL trên XAMPP hoặc MySQL Service.
+1. Khởi động dịch vụ MySQL (ví dụ trên XAMPP Control Panel).
 2. Nhập file cosodulieu_mysql.sql vào MySQL (qua phpMyAdmin hoặc lệnh terminal: mysql -u root < cosodulieu_mysql.sql).
 3. Trong file config.py, thiết lập:
 DB_ENGINE = 'mysql'
-4. Kiểm tra MYSQL_CONFIG trong config.py (user, password, port nếu có thay đổi).
+4. Kiểm tra thông số tài khoản trong MYSQL_CONFIG (user, password, port nếu có thay đổi).
+
 
 III. KHỞI CHẠY ỨNG DỤNG WEB
 1. Chạy lệnh:
 python app.py
 
-2. Mở trình duyệt web truy cập địa chỉ:
+2. Mở trình duyệt truy cập:
 http://127.0.0.1:5000
 
-IV. TÀI KHOẢN ĐĂNG NHẬP MẶC ĐỊNH
-Cơ sở dữ liệu được tạo mới hoàn toàn sạch (các bảng giao dịch, khám bệnh, đơn thuốc, lịch hẹn, hóa đơn đều trống để người dùng tạo mới trong quá trình trải nghiệm):
-1. Tài khoản Quản trị viên (Admin):
+
+IV. TÀI KHOẢN ĐĂNG NHẬP HỆ THỐNG
+Dữ liệu khởi tạo được làm sạch hoàn toàn (các bảng khám chữa bệnh, lịch hẹn, đơn thuốc, hóa đơn đều ở trạng thái trống để người dùng tự tạo mới và trải nghiệm thực tế):
+
+1. Tài khoản Quản trị viên & Bác sĩ (Admin):
 - Tên đăng nhập: admin
 - Mật khẩu: admin123
-- Quyền: Toàn quyền quản trị, khám chữa bệnh EMR, quản lý bệnh nhân, dược phẩm, viện phí, báo cáo doanh thu.
+- Phạm vi quyền: Toàn quyền quản trị phòng khám, quản lý bệnh nhân, tiếp nhận cấp số, phòng khám EMR, chỉ định xét nghiệm, quản lý kho thuốc, thu viện phí và báo cáo doanh thu.
 
 2. Tài khoản Bệnh nhân mẫu:
 - Tên đăng nhập / Số điện thoại: 0901234567
 - Mật khẩu: 123456
-- Quyền: Cổng thông tin bệnh nhân, đặt lịch khám, tra cứu hồ sơ bệnh án, lịch sử kê đơn, kết quả xét nghiệm, hóa đơn viện phí.
+- Phạm vi quyền: Cổng bệnh nhân cá nhân, đặt lịch khám trực tuyến, tra cứu hồ sơ bệnh án 360 độ, theo dõi lịch sử kê đơn, xem kết quả xét nghiệm và hóa đơn viện phí.
+
+
+V. SƠ ĐỒ CÁC NHÓM TRANG VÀ LUỒNG CHỨC NĂNG LIÊN QUAN
+Hệ thống được chia thành 4 phân hệ chính hoạt động liên thông dữ liệu:
+
+1. Phân hệ Khách & Công khai (Guest):
+- Trang chủ (/): Giới thiệu dịch vụ y tế, đội ngũ bác sĩ, chuyên khoa, bảng giá dịch vụ và phản hồi của bệnh nhân.
+- Đặt lịch khám trực tuyến (/booking): Cho phép người dùng đăng ký lịch hẹn khám, chọn khoa khám, ngày giờ và mô tả triệu chứng. Lịch hẹn sau khi đặt sẽ tự động xuất hiện trên màn hình quản lý của Admin và trang theo dõi của Bệnh nhân.
+- Cẩm nang bài viết y tế (/articles): Chuyên trang tin tức sức khỏe, tích hợp tìm kiếm gần đúng thông minh (Live Fuzzy Search) và lọc theo chuyên mục (Tim mạch, Nhi khoa, Da liễu, Nội tiết, Xương khớp, v.v.).
+- Chi tiết bài viết (/articles/<slug>): Hiển thị nội dung chi tiết bài viết y khoa, lượt xem và gợi ý bài viết liên quan.
+- Đăng nhập (/login) & Đăng ký (/register): Xác thực người dùng, tự động phân luồng điều hướng theo vai trò (Admin vào cổng quản trị, Bệnh nhân vào cổng cá nhân).
+
+2. Phân hệ Cổng Bệnh nhân (Patient Portal):
+- Tổng quan sức khỏe (/patient): Bảng điều khiển theo dõi lịch hẹn sắp tới, đợt khám gần nhất và thẻ thao tác nhanh.
+- Hồ sơ sức khỏe cá nhân (/patient/profile): Quản lý thông tin định danh, nhóm máu chuẩn hóa (8 nhóm cơ bản + biến thể nhóm máu), dị ứng thuốc/thức ăn và tiền sử bệnh lý nền bằng bộ chọn thẻ Tag Selector.
+- Lịch sử bệnh án & Đơn thuốc (/patient/records): Xem chi tiết các đợt khám bệnh trong quá khứ, mã chẩn đoán ICD-10, toa thuốc đã kê, hướng dẫn dùng thuốc, lời dặn bác sĩ, bộ lọc theo năm và ô tìm kiếm tức thì.
+- Kết quả cận lâm sàng (/patient/lab-results): Xem phiếu kết quả xét nghiệm máu, sinh hóa, nước tiểu và chẩn đoán hình ảnh kèm đánh giá khoảng tham chiếu chuẩn.
+
+3. Phân hệ Quản trị & Y tế (Admin & Bác sĩ):
+- Bảng điều khiển trung tâm (/admin): Tổng quan thống kê số lượt khám trong ngày, số ca chờ, doanh thu tạm tính và biểu đồ hoạt động.
+- Quản lý danh sách bệnh nhân (/admin/patients): Quản lý toàn bộ hồ sơ bệnh nhân, hỗ trợ bộ lọc y tế nâng cao và tìm kiếm tức thì đa tiêu chí (Mã BN, Họ tên không dấu, SĐT, CCCD, BHYT, Nhóm máu, Dị ứng, Tiền sử bệnh).
+- Hồ sơ bệnh nhân 360 độ (/admin/patients/<id>): Xem toàn cảnh chi tiết tiền sử, diễn biến các đợt khám, kết quả xét nghiệm và lịch sử dùng thuốc của từng bệnh nhân.
+- Quầy tiếp nhận & Cấp số thứ tự (/admin/reception): Tiếp nhận bệnh nhân nhanh một chạm, phân luồng vào các phòng khám chuyên khoa (Nội tổng quát, Tim mạch, Tai mũi họng, Nhi khoa) và in phiếu số thứ tự.
+- Quản lý lịch hẹn (/admin/appointments): Theo dõi và cập nhật trạng thái lịch hẹn tiếp nhận từ cổng trực tuyến (Chờ xác nhận, Đã tiếp nhận, Đã hoàn tất).
+- Phòng khám điện tử EMR (/admin/emr): Không gian làm việc trực tiếp của bác sĩ gồm đo sinh hiệu (huyết áp, mạch, nhiệt độ, SpO2), nhập triệu chứng lâm sàng, tra cứu chẩn đoán ICD-10, gửi chỉ định cận lâm sàng và kê đơn thuốc điện tử.
+- Phân hệ Cận lâm sàng & Xét nghiệm (/admin/lab): Tiếp nhận y lệnh từ phòng khám EMR, cập nhật tiến độ thực hiện và nhập kết quả xét nghiệm, chẩn đoán hình ảnh.
+- Quản lý Kho Dược & Quầy phát thuốc (/admin/pharmacy): Theo dõi số lượng tồn kho thuốc, cảnh báo sắp hết hàng, thêm thuốc mới vào kho và duyệt xuất thuốc theo đơn EMR.
+- Viện phí & Hóa đơn (/admin/billing): Quản lý danh sách viện phí, tự động tính khấu trừ BHYT, thu tiền mặt/chuyển khoản và in biên lai thu tiền.
+- Báo cáo thống kê tài chính (/admin/reports): Báo cáo doanh thu khám bệnh theo ngày/tháng/năm và cơ cấu doanh thu theo từng chuyên khoa.
+
+4. Phân hệ API backend (/api/...):
+- Tiếp nhận cấp số nhanh (/api/reception/intake)
+- Thêm thuốc vào kho (/api/pharmacy/add)
+- Xuất kho phát thuốc EMR (/api/pharmacy/dispense)
+- Xác nhận thu tiền viện phí (/api/billing/pay)
+- Cập nhật kết quả xét nghiệm (/api/lab/save-result)
+
+
+VI. HƯỚNG DẪN CHỈNH SỬA VÀ MỞ RỘNG MÃ NGUỒN (FILE & FOLDER GUIDE)
+Cấu trúc dự án tuân thủ nghiêm ngặt mô hình MVC:
+
+1. Thư mục controllers/ (Tầng Điều Khiển - Xử lý logic và điều hướng):
+- auth_controller.py: Chứa logic đăng nhập, đăng ký tài khoản bệnh nhân, đăng xuất và kiểm tra phân quyền phiên làm việc.
+- home_controller.py: Xử lý hiển thị trang chủ, quy trình tiếp nhận lịch đặt hẹn online và danh sách bài viết y tế.
+- patient_controller.py: Quản lý toàn bộ các màn hình hiển thị và cập nhật hồ sơ phía bệnh nhân.
+- admin_controller.py: Quản lý toàn bộ luồng hiển thị nghiệp vụ phía bác sĩ và quản trị viên.
+- api_controller.py: Tiếp nhận các yêu cầu AJAX/fetch gửi từ giao diện, xử lý nghiệp vụ nhanh và trả về phản hồi JSON.
+-> Khi muốn thay đổi quy tắc kiểm tra quyền, thêm đường dẫn URL (route) mới hoặc thay đổi luồng xử lý form, chỉnh sửa các file trong thư mục này.
+
+2. Thư mục models/ (Tầng Dữ Liệu - Tương tác trực tiếp với Database):
+- user_model.py: Truy vấn thông tin tài khoản, kiểm tra mật khẩu hash, phân quyền vai trò.
+- patient_model.py: Thêm mới, cập nhật hồ sơ bệnh nhân, lấy toàn diện lịch sử khám bệnh 360 độ kèm toa thuốc và chỉ định cận lâm sàng.
+- appointment_model.py: Xử lý lưu trữ và cập nhật trạng thái lịch hẹn khám.
+- article_model.py: Truy vấn bài viết y khoa từ CSDL, tích hợp thuật toán chuẩn hóa không dấu và tìm kiếm gần đúng tiếng Việt (fuzzy matching).
+- inventory_model.py: Quản lý danh mục dược phẩm, cập nhật số lượng tồn kho và ghi nhận lịch sử xuất nhập kho.
+- medical_service_model.py: Quản lý bảng giá dịch vụ khám và kỹ thuật cận lâm sàng.
+-> Khi muốn sửa câu lệnh SQL, bổ sung cột dữ liệu mới hoặc thay đổi cách lưu trữ, chỉnh sửa các file trong thư mục này.
+
+3. Thư mục templates/ (Tầng Giao Diện - Mã nguồn HTML Jinja2):
+- templates/layouts/: Chứa khung layout chuẩn (base.html và footer.html).
+- templates/admin/: Giao diện các phân hệ quản trị (patients.html, appointments.html, emr.html, lab.html, pharmacy.html, billing.html, reception.html, reports.html).
+- templates/patient/: Giao diện cổng bệnh nhân (dashboard.html, profile.html, records.html, lab_results.html, booking.html).
+- templates/articles.html và article_detail.html: Giao diện cẩm nang y tế và chi tiết bài viết.
+-> Khi muốn thay đổi giao diện, thêm nút bấm, sửa bảng hiển thị hoặc form nhập liệu, chỉnh sửa các file HTML tương ứng trong thư mục này.
+
+4. Thư mục static/ (Tài nguyên tĩnh frontend):
+- static/js/main.js: File kịch bản JavaScript dùng chung toàn bộ dự án, bao gồm:
+  + Bộ máy tìm kiếm gần đúng toàn cục (window.fuzzyMatch, window.fuzzyMatchRecord, window.removeVietnameseTones, window.levenshteinDistance).
+  + Bộ chọn thẻ danh mục y tế chuẩn hóa (window.initCatalogTagSelector).
+  + Đồng hồ thời gian thực và quản lý ghim mở rộng menu sidebar.
+- static/css/custom.css: Các định dạng CSS tùy biến giao diện ngoài Tailwind CSS.
+- static/img/: Thư mục lưu trữ hình ảnh minh họa bài viết và biểu tượng phòng khám.
+-> Khi muốn tinh chỉnh thuật toán tìm kiếm gần đúng, đổi màu sắc hoặc sửa hiệu ứng giao diện, chỉnh sửa các file tại đây.
+
+5. Thư mục data/catalogs/ (Danh mục y tế chuẩn hóa dạng text thuần):
+- nhom_mau.txt: Chứa 8 nhóm máu cơ bản và giá trị mặc định Chưa rõ.
+- bien_the_nhom_mau.txt: Chứa danh sách các biến thể nhóm máu và kháng thể bất thường phổ biến (Weak D, Bombay, Anti-Kell, v.v.).
+- di_ung.txt: Chứa danh sách các nhóm thuốc, thực phẩm và tác nhân dị ứng thường gặp.
+- tien_su_benh.txt: Chứa danh sách các bệnh lý nền mạn tính phổ biến.
+-> Khi muốn bổ sung thêm nhóm máu mới, thêm loại dị ứng hoặc bệnh lý nền mới để giao diện tự động nhận diện và gợi ý, chỉ cần mở file .txt tương ứng và gõ thêm một dòng mới. Hoàn toàn không cần can thiệp vào mã nguồn code.
+
+6. Thư mục core/ (Tầng cốt lõi hệ thống):
+- database.py: Khởi tạo kết nối đa cơ sở dữ liệu (SQLite, SQL Server, MySQL), thực hiện migration cấu trúc bảng tự động khi có cập nhật mới.
+- catalog.py: Đọc các file danh mục từ thư mục data/catalogs/ và cung cấp cho controller nạp ra giao diện.
+
+7. File config.py (Tệp cấu hình hệ thống):
+- Chứa thiết lập lựa chọn loại CSDL (DB_ENGINE).
+- Cấu hình chuỗi kết nối cho SQL Server và MySQL.
+- Thiết lập khóa bảo mật SECRET_KEY và các hằng số vận hành hệ thống.
