@@ -253,6 +253,7 @@ def init_sqlite_db():
         bhyt TEXT,
         dia_chi TEXT,
         nhom_mau TEXT DEFAULT 'Chưa rõ',
+        ghi_chu_nhom_mau TEXT,
         di_ung TEXT,
         tien_su_benh TEXT,
         tien_su_gia_dinh TEXT,
@@ -579,15 +580,51 @@ def _seed_minimal_data(cursor):
         (3, 1, 'Khám sức khỏe tổng quát định kỳ: Lợi ích vàng không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', 'Tin Tức Phòng Khám', 'Tầm soát sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn nguy hiểm như cao huyết áp, tiểu đường, gan nhiễm mỡ, gout ngay từ giai đoạn chưa có biểu hiện triệu chứng.', 'Nội dung chi tiết về các gói khám tổng quát định kỳ...', 'kham-tong-quat.jpg', 580, '2026-09-23 10:00:00', 1)
     ])
 
+def ensure_patient_blood_columns(conn, engine):
+    """Đảm bảo bảng benh_nhan có trường ghi_chu_nhom_mau."""
+    cursor = conn.cursor()
+    try:
+        if engine == 'sqlite':
+            cursor.execute("PRAGMA table_info(benh_nhan)")
+            cols = [col['name'] for col in cursor.fetchall()]
+            if 'ghi_chu_nhom_mau' not in cols:
+                cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau TEXT")
+                conn.commit()
+        elif engine == 'sqlserver':
+            cursor.execute("""
+                IF NOT EXISTS (
+                    SELECT * FROM sys.columns 
+                    WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'ghi_chu_nhom_mau'
+                )
+                BEGIN
+                    ALTER TABLE benh_nhan ADD ghi_chu_nhom_mau NVARCHAR(255) NULL
+                END
+            """)
+            conn.commit()
+        elif engine == 'mysql':
+            cursor.execute("""
+                SELECT COUNT(*) as cnt FROM information_schema.columns 
+                WHERE table_name = 'benh_nhan' AND column_name = 'ghi_chu_nhom_mau'
+            """)
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau VARCHAR(255) NULL")
+                conn.commit()
+    except Exception as e:
+        print("[Database] Luu y cap nhat cot ghi_chu_nhom_mau:", e)
+
 def init_db():
     """Kiểm tra và khởi tạo kết nối CSDL khi ứng dụng khởi chạy."""
     engine = getattr(config, 'DB_ENGINE', 'sqlserver')
     if engine == 'sqlite':
         init_sqlite_db()
+        conn = get_db()
+        ensure_patient_blood_columns(conn, 'sqlite')
+        conn.close()
         print("[Database] Khoi tao SQLite thanh cong!")
     elif engine == 'sqlserver':
         try:
             conn = get_db()
+            ensure_patient_blood_columns(conn, 'sqlserver')
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
             row = cursor.fetchone()
@@ -598,6 +635,7 @@ def init_db():
     elif engine == 'mysql':
         try:
             conn = get_db()
+            ensure_patient_blood_columns(conn, 'mysql')
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
             row = cursor.fetchone()

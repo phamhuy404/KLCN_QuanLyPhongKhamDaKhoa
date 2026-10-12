@@ -181,8 +181,8 @@ class PatientModel:
                     co_tai_khoan = 1
 
             cursor.execute('''
-                INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su_benh, co_tai_khoan)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, ghi_chu_nhom_mau, di_ung, tien_su_benh, co_tai_khoan)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 tai_khoan_id,
                 ma_benh_nhan,
@@ -195,6 +195,7 @@ class PatientModel:
                 data.get('bhyt', ''),
                 data.get('dia_chi', ''),
                 data.get('nhom_mau', 'Chưa rõ'),
+                data.get('ghi_chu_nhom_mau', ''),
                 data.get('di_ung', 'Không có'),
                 data.get('tien_su_benh', 'Không có'),
                 co_tai_khoan
@@ -223,3 +224,65 @@ class PatientModel:
             conn.rollback()
             conn.close()
             return False, None, str(e)
+
+    @staticmethod
+    def update_profile(patient_id, data):
+        """Cập nhật thông tin cá nhân và hồ sơ y tế của bệnh nhân."""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('''
+                UPDATE benh_nhan
+                SET ho_ten = ?,
+                    ngay_sinh = ?,
+                    gioi_tinh = ?,
+                    sdt = ?,
+                    email = ?,
+                    cccd = ?,
+                    bhyt = ?,
+                    dia_chi = ?,
+                    nhom_mau = ?,
+                    ghi_chu_nhom_mau = ?,
+                    di_ung = ?,
+                    tien_su_benh = ?,
+                    nguoi_than_ho_ten = ?,
+                    nguoi_than_sdt = ?,
+                    nguoi_than_quan_he = ?
+                WHERE id = ?
+            ''', (
+                data.get('ho_ten'),
+                data.get('ngay_sinh'),
+                data.get('gioi_tinh', 'Nam'),
+                data.get('sdt'),
+                data.get('email', ''),
+                data.get('cccd', ''),
+                data.get('bhyt', ''),
+                data.get('dia_chi', ''),
+                data.get('nhom_mau', 'Chưa rõ'),
+                data.get('ghi_chu_nhom_mau', ''),
+                data.get('di_ung', 'Không có'),
+                data.get('tien_su_benh', 'Không có'),
+                data.get('nguoi_than_ho_ten', ''),
+                data.get('nguoi_than_sdt', ''),
+                data.get('nguoi_than_quan_he', ''),
+                patient_id
+            ))
+
+            cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (patient_id,))
+            p_row = cursor.fetchone()
+            if p_row and p_row.get('tai_khoan_id'):
+                cursor.execute('''
+                    UPDATE tai_khoan
+                    SET email = ?, sdt = ?
+                    WHERE id = ?
+                ''', (data.get('email', ''), data.get('sdt', ''), p_row['tai_khoan_id']))
+
+            conn.commit()
+            conn.close()
+            return True, "Cập nhật hồ sơ thành công"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+

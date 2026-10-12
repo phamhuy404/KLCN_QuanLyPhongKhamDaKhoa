@@ -1,4 +1,48 @@
+import unicodedata
+import re
 from core.database import get_db
+
+def remove_vietnamese_tones(text):
+    if not text:
+        return ""
+    text = str(text)
+    text = re.sub(r'[àáạảãâầấậẩẫăằắặẳẵ]', 'a', text)
+    text = re.sub(r'[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]', 'A', text)
+    text = re.sub(r'[èéẹẻẽêềếệểễ]', 'e', text)
+    text = re.sub(r'[ÈÉẸẺẼÊỀẾỆỂỄ]', 'E', text)
+    text = re.sub(r'[ìíịỉĩ]', 'i', text)
+    text = re.sub(r'[ÌÍỊỈĨ]', 'I', text)
+    text = re.sub(r'[òóọỏõôồốộổỗơờớợởỡ]', 'o', text)
+    text = re.sub(r'[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]', 'O', text)
+    text = re.sub(r'[ùúụủũưừứựửữ]', 'u', text)
+    text = re.sub(r'[ÙÚỤỦŨƯỪỨỰỬỮ]', 'U', text)
+    text = re.sub(r'[ỳýỵỷỹ]', 'y', text)
+    text = re.sub(r'[ỲÝỴỶỸ]', 'Y', text)
+    text = text.replace('đ', 'd').replace('Đ', 'D')
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    return text.lower()
+
+def fuzzy_match_article(query, text):
+    if not query or not query.strip():
+        return True
+    q_clean = remove_vietnamese_tones(query).strip()
+    t_clean = remove_vietnamese_tones(text).strip()
+    if q_clean in t_clean:
+        return True
+    q_tokens = [tok for tok in re.split(r'[^a-z0-9]+', q_clean) if tok]
+    t_words = [w for w in re.split(r'[^a-z0-9]+', t_clean) if w]
+    if not q_tokens:
+        return True
+    for q_tok in q_tokens:
+        matched = False
+        for t_word in t_words:
+            if q_tok in t_word or t_word.startswith(q_tok):
+                matched = True
+                break
+        if not matched:
+            return False
+    return True
 
 class ArticleModel:
     """Model quản lý tin tức y tế, cẩm nang sức khỏe từ cơ sở dữ liệu."""
@@ -19,7 +63,7 @@ class ArticleModel:
 
     @staticmethod
     def get_all(limit=None, category=None, search=None):
-        """Lấy danh sách bài viết từ CSDL kèm lọc theo danh mục và tìm kiếm."""
+        """Lấy danh sách bài viết từ CSDL kèm lọc theo danh mục và tìm kiếm gần đúng."""
         conn = get_db()
         cursor = conn.cursor()
 
@@ -35,15 +79,20 @@ class ArticleModel:
             sql += ' AND (bv.danh_muc = ? OR bv.danh_muc LIKE ?)'
             params.extend([category, f'%{category}%'])
 
-        if search:
-            sql += ' AND (bv.tieu_de LIKE ? OR bv.tom_tat LIKE ? OR bv.noi_dung LIKE ?)'
-            params.extend([f'%{search}%', f'%{search}%', f'%{search}%'])
-
         sql += ' ORDER BY bv.ngay_dang DESC'
 
         cursor.execute(sql, tuple(params))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
+
+        # Áp dụng tìm kiếm gần đúng nếu có search
+        if search and search.strip():
+            filtered_rows = []
+            for r in rows:
+                full_text = f"{r.get('tieu_de', '')} {r.get('tom_tat', '')} {r.get('noi_dung', '')} {r.get('danh_muc', '')} {r.get('tac_gia', '')}"
+                if fuzzy_match_article(search, full_text):
+                    filtered_rows.append(r)
+            rows = filtered_rows
 
         articles = []
         for r in rows:

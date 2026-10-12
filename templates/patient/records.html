@@ -74,22 +74,24 @@
 
     <!-- Filters & Search -->
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-            <button class="px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-semibold text-xs transition-all">Tất cả đợt khám</button>
-            <button class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2026</button>
-            <button class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2025</button>
+        <div class="flex items-center gap-2 w-full sm:w-auto" id="year-filter-group">
+            <button type="button" onclick="setYearFilter('')" id="btn-year-all" class="px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-semibold text-xs transition-all">Tất cả đợt khám</button>
+            <button type="button" onclick="setYearFilter('2026')" id="btn-year-2026" class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2026</button>
+            <button type="button" onclick="setYearFilter('2025')" id="btn-year-2025" class="px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all">Năm 2025</button>
         </div>
-        <div class="relative w-full sm:w-64">
-            <input type="text" placeholder="Tìm theo bệnh, bác sĩ, ngày..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+        <div class="relative w-full sm:w-72">
+            <input type="text" id="search-patient-records" onkeyup="filterPatientRecords()" placeholder="Tìm theo bệnh, bác sĩ, thuốc, ngày..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 focus:bg-white transition-all">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
         </div>
     </div>
 
     <!-- Danh sách chi tiết các đợt khám bệnh -->
-    <div class="space-y-6">
+    <div class="space-y-6" id="patient-records-container">
         {% if patient and patient.lich_su_kham %}
             {% for enc in patient.lich_su_kham %}
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="patient-record-card bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all"
+                 data-year="{{ (enc.thoi_gian_kham or '2026')[:4] }}"
+                 data-search="{{ enc.chan_doan_icd or '' }} {{ enc.chan_doan_so_bo or '' }} {{ enc.ly_do_kham or '' }} {{ enc.trieu_chung or '' }} {{ enc.bac_si or '' }} {{ enc.khoa or '' }} {{ enc.phong or '' }} {{ enc.ma_phieu or '' }} {{ enc.thoi_gian_kham or '' }} {% if enc.don_thuoc %}{% for dt in enc.don_thuoc %}{{ dt.ten }} {{ dt.hoat_chat or '' }} {% endfor %}{% endif %}">
                 <!-- Header đợt khám -->
                 <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                     <div class="flex items-start gap-4">
@@ -188,5 +190,59 @@
                 Bệnh nhân chưa có lịch sử đợt khám bệnh trong hệ thống CSDL.
             </div>
         {% endif %}
+
+        <div id="no-records-matched" class="hidden p-10 text-center bg-white rounded-2xl border border-slate-100 shadow-sm text-slate-400 text-sm">
+            <i class="fa-solid fa-file-circle-question text-3xl mb-2 text-slate-300 block"></i>
+            Không tìm thấy đợt khám nào phù hợp với từ khóa tìm kiếm.
+        </div>
     </div>
+
+<script>
+    let activeYear = '';
+
+    function setYearFilter(year) {
+        activeYear = year;
+        ['btn-year-all', 'btn-year-2026', 'btn-year-2025'].forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            const isMatch = (year === '' && btnId === 'btn-year-all') ||
+                            (year === '2026' && btnId === 'btn-year-2026') ||
+                            (year === '2025' && btnId === 'btn-year-2025');
+            btn.className = isMatch
+                ? 'px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-semibold text-xs transition-all'
+                : 'px-4 py-2 rounded-xl hover:bg-slate-50 text-slate-500 font-medium text-xs transition-all';
+        });
+        filterPatientRecords();
+    }
+
+    function filterPatientRecords() {
+        const query = (document.getElementById('search-patient-records')?.value || '').trim();
+        const cards = document.querySelectorAll('.patient-record-card');
+        const emptyBox = document.getElementById('no-records-matched');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const cardYear = card.getAttribute('data-year') || '';
+            const cardSearch = card.getAttribute('data-search') || '';
+
+            const matchYear = !activeYear || cardYear === activeYear;
+            const matchSearch = !query || (window.fuzzyMatch ? window.fuzzyMatch(query, cardSearch) : cardSearch.toLowerCase().includes(query.toLowerCase()));
+
+            if (matchYear && matchSearch) {
+                card.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        if (emptyBox) {
+            if (visibleCount === 0 && cards.length > 0) {
+                emptyBox.classList.remove('hidden');
+            } else {
+                emptyBox.classList.add('hidden');
+            }
+        }
+    }
+</script>
 {% endblock %}

@@ -337,10 +337,13 @@
         const statusFilter = document.getElementById('filter-status').value;
 
         const filtered = appointments.filter(a => {
-            const matchQuery = !query || 
-                a.ma_hen.toLowerCase().includes(query) ||
-                a.benh_nhan.toLowerCase().includes(query) ||
-                a.sdt.toLowerCase().includes(query);
+            const matchQuery = !query || (window.fuzzyMatchRecord
+                ? window.fuzzyMatchRecord(query, [a.ma_hen, a.benh_nhan, a.sdt, a.bac_si, a.chuyen_khoa, a.ly_do])
+                : (
+                    a.ma_hen.toLowerCase().includes(query) ||
+                    a.benh_nhan.toLowerCase().includes(query) ||
+                    a.sdt.toLowerCase().includes(query)
+                ));
 
             const matchDoc = !docFilter || a.bac_si.includes(docFilter);
             const matchStatus = !statusFilter || a.trang_thai === statusFilter;

@@ -343,7 +343,9 @@
         const s = document.getElementById('filter-medicine-status').value;
 
         const filtered = medicines.filter(m => {
-            const matchQ = !q || m.ten.toLowerCase().includes(q) || m.hoat_chat.toLowerCase().includes(q) || m.ma.toLowerCase().includes(q);
+            const matchQ = !q || (window.fuzzyMatchRecord
+                ? window.fuzzyMatchRecord(q, [m.ten, m.hoat_chat, m.ma, m.dvt, m.hang_sx])
+                : (m.ten.toLowerCase().includes(q) || m.hoat_chat.toLowerCase().includes(q) || m.ma.toLowerCase().includes(q)));
             const matchS = !s || (s === 'low_stock' ? m.ton < 25 : m.ton >= 25);
             return matchQ && matchS;
         });

@@ -61,9 +61,10 @@ def create_app():
             return redirect(flask_url_for('auth.login', next=flask_url_for('patient.booking')))
         return redirect(flask_url_for('patient.booking'))
 
-    # Context processor truyền thông tin người dùng và resolver url_for vào templates
+    # Context processor truyền thông tin người dùng, danh mục và resolver url_for vào templates
     @app.context_processor
     def inject_globals():
+        from core.catalog import get_all_catalogs
         def smart_url_for(endpoint, **values):
             target = alias_map.get(endpoint, endpoint)
             try:
@@ -73,6 +74,7 @@ def create_app():
 
         return dict(
             current_user=session.get('user'),
+            catalogs=get_all_catalogs(),
             url_for=smart_url_for
         )
 

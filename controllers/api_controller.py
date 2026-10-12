@@ -58,6 +58,46 @@ def reset_password():
     success, msg = UserModel.reset_patient_password(patient_id, new_password)
     return jsonify({'success': success, 'message': msg})
 
+@api_bp.route('/catalogs/<name>', methods=['GET'])
+def get_catalog(name):
+    """API lấy danh mục chuẩn theo tên (nhom_mau, di_ung, tien_su_benh)."""
+    from core.catalog import get_all_catalogs
+    all_catalogs = get_all_catalogs()
+    items = all_catalogs.get(name, [])
+    return jsonify({'success': True, 'catalog': name, 'items': items})
+
+@api_bp.route('/patient/update-profile', methods=['POST'])
+@login_required
+def update_patient_profile():
+    """API bệnh nhân cập nhật thông tin cá nhân và hồ sơ sức khỏe."""
+    data = request.get_json() or {}
+    user = session.get('user', {})
+    patient_id = user.get('patient_id') or 1
+
+    success, msg = PatientModel.update_profile(patient_id, data)
+    if success:
+        if 'user' in session:
+            session['user']['ho_ten'] = data.get('ho_ten', session['user'].get('ho_ten'))
+            session['user']['sdt'] = data.get('sdt', session['user'].get('sdt'))
+            session['user']['email'] = data.get('email', session['user'].get('email'))
+            session.modified = True
+        return jsonify({'success': True, 'message': 'Cập nhật thông tin thành công!'})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/patient/update', methods=['POST'])
+@roles_required('ADMIN', 'LETAN', 'BACSI')
+def update_patient_admin():
+    """API nhân viên cập nhật thông tin hồ sơ bệnh nhân."""
+    data = request.get_json() or {}
+    patient_id = data.get('patient_id')
+    if not patient_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
+
+    success, msg = PatientModel.update_profile(patient_id, data)
+    if success:
+        return jsonify({'success': True, 'message': 'Cập nhật thành công!'})
+    return jsonify({'success': False, 'message': msg}), 400
+
 @api_bp.route('/patient/create', methods=['POST'])
 @roles_required('ADMIN', 'LETAN', 'BACSI')
 def create_patient():

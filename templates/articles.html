@@ -99,7 +99,8 @@
             <!-- Search Box -->
             <form method="GET" action="{{ url_for('articles') }}" class="hidden md:flex flex-1 max-w-md mx-6">
                 <div class="relative w-full">
-                    <input type="text" name="search" value="{{ request.args.get('search', '') }}"
+                    <input type="text" name="search" id="article-search-desktop" value="{{ request.args.get('search', '') }}"
+                        onkeyup="filterArticlesLive(this.value)"
                         placeholder="Tìm kiếm bài viết, tin tức y tế..."
                         class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:bg-white focus:ring-2 focus:ring-medical-500/20 transition-all">
                     <button type="submit" class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 hover:text-medical-600">
@@ -225,8 +226,9 @@
                 <form method="GET" action="{{ url_for('articles') }}" class="flex sm:hidden w-full">
                     {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
                     <div class="relative w-full">
-                        <input type="text" name="search" value="{{ request.args.get('search', '') }}"
-                            placeholder="Tìm kiếm..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20">
+                        <input type="text" name="search" id="article-search-mobile" value="{{ request.args.get('search', '') }}"
+                            onkeyup="filterArticlesLive(this.value)"
+                            placeholder="Tìm kiếm..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:bg-white focus:ring-2 focus:ring-medical-500/20 transition-all">
                         <button type="submit" class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-xs"></i>
                         </button>
@@ -260,7 +262,8 @@
                     <!-- Bài nổi bật (bài đầu tiên - hero card) -->
                     {% if not active_category and not request.args.get('search') and articles|length > 0 %}
                     {% set featured = articles[0] %}
-                    <article class="article-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer">
+                    <article class="article-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer transition-all"
+                             data-search="{{ featured.title }} {{ featured.summary }} {{ featured.category_name }} {{ featured.author }} {{ featured.tags|join(' ') if featured.tags else '' }}">
                         <a href="{{ url_for('article_detail', slug=featured.slug) }}" class="block">
                             <!-- Ảnh -->
                             <div class="relative h-52 sm:h-64 bg-gradient-to-br from-medical-600 to-teal-400 overflow-hidden">
@@ -311,7 +314,8 @@
                     {% if remaining_articles %}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         {% for article in remaining_articles %}
-                        <article class="article-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer flex flex-col">
+                        <article class="article-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer flex flex-col transition-all"
+                                 data-search="{{ article.title }} {{ article.summary }} {{ article.category_name }} {{ article.author }} {{ article.tags|join(' ') if article.tags else '' }}">
                             <a href="{{ url_for('article_detail', slug=article.slug) }}" class="flex flex-col flex-1">
                                 <!-- Ảnh -->
                                 <div class="relative h-40 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden shrink-0">
@@ -351,6 +355,18 @@
                         {% endfor %}
                     </div>
                     {% endif %}
+
+                    <!-- Hộp thông báo tìm kiếm trực tiếp không có kết quả -->
+                    <div id="no-articles-live-matched" class="hidden bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center space-y-3">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mx-auto">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-700">Không tìm thấy bài viết phù hợp</h3>
+                        <p class="text-xs text-slate-400">Không có bài viết nào khớp với từ khóa tìm kiếm gần đúng vừa nhập.</p>
+                        <button type="button" onclick="clearLiveSearch()" class="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-medical-600 text-white text-xs font-bold hover:bg-medical-700 transition-colors mt-2">
+                            <i class="fa-solid fa-rotate-left"></i> Xóa từ khóa
+                        </button>
+                    </div>
 
                 {% else %}
                     <!-- Không có bài viết -->
@@ -520,5 +536,46 @@
     <!-- Footer chung hệ thống -->
     {% include "layouts/footer.html" %}
 
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        function filterArticlesLive(query) {
+            query = (query || '').trim();
+            const dInput = document.getElementById('article-search-desktop');
+            const mInput = document.getElementById('article-search-mobile');
+            if (dInput && dInput.value !== query) dInput.value = query;
+            if (mInput && mInput.value !== query) mInput.value = query;
+
+            const cards = document.querySelectorAll('.article-card');
+            const liveEmpty = document.getElementById('no-articles-live-matched');
+            let matchCount = 0;
+
+            cards.forEach(card => {
+                const searchTarget = card.getAttribute('data-search') || '';
+                const isMatch = !query || (window.fuzzyMatch ? window.fuzzyMatch(query, searchTarget) : searchTarget.toLowerCase().includes(query.toLowerCase()));
+                if (isMatch) {
+                    card.classList.remove('hidden');
+                    matchCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            if (liveEmpty) {
+                if (matchCount === 0 && cards.length > 0) {
+                    liveEmpty.classList.remove('hidden');
+                } else {
+                    liveEmpty.classList.add('hidden');
+                }
+            }
+        }
+
+        function clearLiveSearch() {
+            const dInput = document.getElementById('article-search-desktop');
+            const mInput = document.getElementById('article-search-mobile');
+            if (dInput) dInput.value = '';
+            if (mInput) mInput.value = '';
+            filterArticlesLive('');
+        }
+    </script>
 </body>
 </html>

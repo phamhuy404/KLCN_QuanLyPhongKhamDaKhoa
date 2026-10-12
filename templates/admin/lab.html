@@ -264,7 +264,9 @@
         const statusFilter = document.getElementById('filter-lab-status').value;
 
         const filtered = labOrders.filter(o => {
-            const matchQ = !query || o.ma_cd.toLowerCase().includes(query) || o.benh_nhan.toLowerCase().includes(query) || o.dich_vu.toLowerCase().includes(query);
+            const matchQ = !query || (window.fuzzyMatchRecord
+                ? window.fuzzyMatchRecord(query, [o.ma_cd, o.benh_nhan, o.ma_bn, o.dich_vu, o.loai, o.bac_si_cd, o.ktv])
+                : (o.ma_cd.toLowerCase().includes(query) || o.benh_nhan.toLowerCase().includes(query) || o.dich_vu.toLowerCase().includes(query)));
             const matchT = !typeFilter || o.loai === typeFilter;
             const matchS = !statusFilter || o.status === statusFilter;
             return matchQ && matchT && matchS;

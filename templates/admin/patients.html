@@ -125,6 +125,7 @@
                 </span>
                 <input type="text" id="search-input" onkeyup="applyFilterAndSort()" 
                        placeholder="Tìm theo Mã BN, Họ tên, SĐT, CCCD, BHYT, Tên tài khoản..." 
+                       value="{{ request.args.get('search', '') }}"
                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
             </div>
 
@@ -166,12 +167,9 @@
                         <label class="block text-[11px] font-semibold text-slate-600 mb-1">Nhóm máu</label>
                         <select id="filter-blood" onchange="applyFilterAndSort()" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
                             <option value="">Tất cả Nhóm máu</option>
-                            <option value="O+">Nhóm máu O+</option>
-                            <option value="A+">Nhóm máu A+</option>
-                            <option value="B+">Nhóm máu B+</option>
-                            <option value="AB+">Nhóm máu AB+</option>
-                            <option value="O-">Nhóm máu O-</option>
-                            <option value="B-">Nhóm máu B-</option>
+                            {% for b in catalogs.nhom_mau %}
+                            <option value="{{ b }}">Nhóm máu {{ b }}</option>
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -376,7 +374,10 @@
             <div class="grid grid-cols-3 gap-3.5 text-xs bg-white p-4 rounded-2xl border border-slate-100">
                 <div>
                     <span class="text-slate-400 block">Nhóm máu:</span>
-                    <span class="inline-block mt-1 font-bold text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700" id="modal-blood">O+</span>
+                    <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span class="inline-block font-bold text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700" id="modal-blood">O+</span>
+                        <span class="inline-block text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold hidden" id="modal-blood-note"></span>
+                    </div>
                 </div>
                 <div>
                     <span class="text-slate-400 block">Tiền sử dị ứng:</span>
@@ -464,14 +465,24 @@
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Nhóm máu</label>
                     <select id="add-blood" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
-                        <option value="Chưa rõ">Chưa rõ</option>
-                        <option value="O+">O+</option>
-                        <option value="A+">A+</option>
-                        <option value="B+">B+</option>
-                        <option value="AB+">AB+</option>
-                        <option value="O-">O-</option>
+                        {% for b in catalogs.nhom_mau %}
+                        <option value="{{ b }}">{{ b }}</option>
+                        {% endfor %}
                     </select>
                 </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Ghi chú biến thể nhóm máu / Kháng thể bất thường</span>
+                    <span class="text-[10px] text-slate-400 font-normal">Tùy chọn: Weak D, Bombay, Anti-Kell...</span>
+                </label>
+                <input type="text" id="add-blood-note" list="add-blood-variants-datalist" placeholder="Nhập tay hoặc chọn biến thể nhóm máu..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                <datalist id="add-blood-variants-datalist">
+                    {% for bv in catalogs.bien_the_nhom_mau %}
+                    <option value="{{ bv }}"></option>
+                    {% endfor %}
+                </datalist>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -495,14 +506,22 @@
                 <input type="text" id="add-address" placeholder="Số nhà, đường, phường, quận/huyện..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-3">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Dị ứng</label>
-                    <input type="text" id="add-allergy" placeholder="Hải sản, kháng sinh,..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                    <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                        <span class="text-rose-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Dị ứng thuốc & thực phẩm</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Chọn từ danh mục hoặc tìm kiếm</span>
+                    </label>
+                    <input type="hidden" id="add-allergy" value="Không có">
+                    <div id="add-allergy-container"></div>
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Tiền sử bệnh</label>
-                    <input type="text" id="add-history" placeholder="Huyết áp, tim mạch,..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                    <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                        <span class="text-teal-600"><i class="fa-solid fa-notes-medical mr-1"></i> Tiền sử bệnh lý nền</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Chọn từ danh mục chuẩn y khoa</span>
+                    </label>
+                    <input type="hidden" id="add-history" value="Không có">
+                    <div id="add-history-container"></div>
                 </div>
             </div>
 
@@ -582,6 +601,31 @@
     let currentFiltered = [...patients];
     let activeModalPatient = null;
     let modalPasswordVisible = false;
+    let addAllergyTagSelector = null;
+    let addHistoryTagSelector = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const ALLERGY_CATALOG = {{ catalogs.di_ung | tojson | safe }};
+        const HISTORY_CATALOG = {{ catalogs.tien_su_benh | tojson | safe }};
+
+        addAllergyTagSelector = window.initCatalogTagSelector({
+            containerId: 'add-allergy-container',
+            hiddenInputId: 'add-allergy',
+            catalog: ALLERGY_CATALOG,
+            placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Hải sản...)...',
+            badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+            emptyLabel: 'Không có'
+        });
+
+        addHistoryTagSelector = window.initCatalogTagSelector({
+            containerId: 'add-history-container',
+            hiddenInputId: 'add-history',
+            catalog: HISTORY_CATALOG,
+            placeholder: 'Gõ tìm kiếm bệnh lý nền (Huyết áp, Tim mạch...)...',
+            badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+            emptyLabel: 'Không có'
+        });
+    });
 
     // Toast helper
     function showAdminToast(msg, isSuccess = true) {
@@ -720,9 +764,10 @@
                 </td>
                 <td class="py-3.5 px-4">
                     <div class="space-y-1">
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="text-[10px] text-slate-400">Máu:</span>
                             <span class="font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded text-[10px]">${p.nhom_mau || 'Chưa rõ'}</span>
+                            ${p.ghi_chu_nhom_mau ? `<span class="text-[9px] px-1 py-0.2 rounded bg-amber-50 text-amber-700 font-semibold" title="${p.ghi_chu_nhom_mau}">${p.ghi_chu_nhom_mau}</span>` : ''}
                         </div>
                         <div><span class="text-[10px] text-slate-400">Dị ứng:</span> ${allergyText}</div>
                     </div>
@@ -781,16 +826,23 @@
         }
 
         currentFiltered = patients.filter(p => {
-            // Match search
-            const matchSearch = !query || 
-                (p.ma_benh_nhan && p.ma_benh_nhan.toLowerCase().includes(query)) ||
-                (p.ho_ten && p.ho_ten.toLowerCase().includes(query)) ||
-                (p.sdt && p.sdt.toLowerCase().includes(query)) ||
-                (p.cccd && p.cccd.toLowerCase().includes(query)) ||
-                (p.bhyt && p.bhyt.toLowerCase().includes(query)) ||
-                (p.email && p.email.toLowerCase().includes(query)) ||
-                (p.username && p.username.toLowerCase().includes(query)) ||
-                (p.dia_chi && p.dia_chi.toLowerCase().includes(query));
+            // Match search bằng fuzzy search thông minh
+            const matchSearch = !query || (window.fuzzyMatchRecord
+                ? window.fuzzyMatchRecord(query, [
+                    p.ma_benh_nhan, p.ho_ten, p.sdt, p.cccd, p.bhyt, 
+                    p.email, p.username, p.dia_chi, p.nhom_mau, 
+                    p.ghi_chu_nhom_mau, p.di_ung, p.tien_su_benh
+                  ])
+                : (
+                    (p.ma_benh_nhan && p.ma_benh_nhan.toLowerCase().includes(query)) ||
+                    (p.ho_ten && p.ho_ten.toLowerCase().includes(query)) ||
+                    (p.sdt && p.sdt.toLowerCase().includes(query)) ||
+                    (p.cccd && p.cccd.toLowerCase().includes(query)) ||
+                    (p.bhyt && p.bhyt.toLowerCase().includes(query)) ||
+                    (p.email && p.email.toLowerCase().includes(query)) ||
+                    (p.username && p.username.toLowerCase().includes(query)) ||
+                    (p.dia_chi && p.dia_chi.toLowerCase().includes(query))
+                ));
 
             // Match gender
             const matchGender = !genderFilter || p.gioi_tinh === genderFilter;
@@ -894,6 +946,15 @@
         document.getElementById('modal-address').innerText = p.dia_chi || '-';
 
         document.getElementById('modal-blood').innerText = p.nhom_mau || 'Chưa rõ';
+        const modalBloodNote = document.getElementById('modal-blood-note');
+        if (modalBloodNote) {
+            if (p.ghi_chu_nhom_mau) {
+                modalBloodNote.innerText = p.ghi_chu_nhom_mau;
+                modalBloodNote.classList.remove('hidden');
+            } else {
+                modalBloodNote.classList.add('hidden');
+            }
+        }
         document.getElementById('modal-allergy').innerText = p.di_ung || 'Không';
         document.getElementById('modal-history').innerText = p.tien_su_benh || 'Không có';
 
@@ -920,6 +981,10 @@
 
     function closeAddPatientModal() {
         document.getElementById('add-modal').classList.add('hidden');
+        const bloodNoteInput = document.getElementById('add-blood-note');
+        if (bloodNoteInput) bloodNoteInput.value = '';
+        if (addAllergyTagSelector) addAllergyTagSelector.clear();
+        if (addHistoryTagSelector) addHistoryTagSelector.clear();
     }
 
     function saveNewPatient(e) {
@@ -929,6 +994,7 @@
         const dob = document.getElementById('add-dob').value;
         const gender = document.getElementById('add-gender').value;
         const blood = document.getElementById('add-blood').value;
+        const bloodNote = document.getElementById('add-blood-note') ? document.getElementById('add-blood-note').value.trim() : '';
         const cccd = document.getElementById('add-cccd').value.trim();
         const bhyt = document.getElementById('add-bhyt').value.trim();
         const email = document.getElementById('add-email').value.trim();
@@ -949,6 +1015,7 @@
             ngay_sinh: dob || '1990-01-01',
             gioi_tinh: gender || 'Nam',
             nhom_mau: blood || 'Chưa rõ',
+            ghi_chu_nhom_mau: bloodNote,
             cccd: cccd,
             bhyt: bhyt,
             email: email,
@@ -982,6 +1049,7 @@
                     bhyt: bhyt,
                     dia_chi: address,
                     nhom_mau: blood,
+                    ghi_chu_nhom_mau: bloodNote,
                     di_ung: allergy,
                     tien_su_benh: history,
                     nguoi_than_ho_ten: '',
@@ -1021,7 +1089,7 @@
         const headers = [
             'ID', 'Mã Bệnh Nhân', 'Họ Và Tên', 'Tên Tài Khoản', 'Mật Khẩu',
             'Ngày Sinh', 'Tuổi', 'Giới Tính', 'Số Điện Thoại', 'Email',
-            'Số CCCD', 'Mã Thẻ BHYT', 'Nhóm Máu', 'Dị Ứng', 'Tiền Sử Bệnh',
+            'Số CCCD', 'Mã Thẻ BHYT', 'Nhóm Máu', 'Biến Thể Nhóm Máu', 'Dị Ứng', 'Tiền Sử Bệnh',
             'Người Thân Họ Tên', 'Người Thân SĐT', 'Người Thân Quan Hệ', 'Địa Chỉ'
         ];
 
@@ -1043,6 +1111,7 @@
                 p.cccd || '',
                 p.bhyt || '',
                 p.nhom_mau || '',
+                p.ghi_chu_nhom_mau || '',
                 p.di_ung || '',
                 p.tien_su_benh || '',
                 p.nguoi_than_ho_ten || '',

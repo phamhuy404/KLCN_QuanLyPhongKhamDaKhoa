@@ -101,22 +101,22 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Họ và tên</label>
-                        <input type="text" value="{{ patient.ho_ten if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-name" value="{{ patient.ho_ten if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Số điện thoại</label>
-                        <input type="tel" value="{{ patient.sdt if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="tel" id="profile-phone" value="{{ patient.sdt if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Ngày sinh</label>
-                        <input type="date" value="{{ patient.ngay_sinh if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="date" id="profile-dob" value="{{ patient.ngay_sinh if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Giới tính</label>
-                        <select class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <select id="profile-gender" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                             <option value="Nam" {% if patient and patient.gioi_tinh == 'Nam' %}selected{% endif %}>Nam</option>
                             <option value="Nữ" {% if patient and patient.gioi_tinh == 'Nữ' %}selected{% endif %}>Nữ</option>
                             <option value="Khác" {% if patient and patient.gioi_tinh not in ['Nam', 'Nữ'] %}selected{% endif %}>Khác</option>
@@ -125,17 +125,17 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Số CCCD / CMND</label>
-                        <input type="text" value="{{ patient.cccd or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-cccd" value="{{ patient.cccd or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Email liên hệ</label>
-                        <input type="email" value="{{ patient.email or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="email" id="profile-email" value="{{ patient.email or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Địa chỉ thường trú</label>
-                        <input type="text" value="{{ patient.dia_chi or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-address" value="{{ patient.dia_chi or '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
                 </div>
             </div>
@@ -149,22 +149,70 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Mã số thẻ BHYT</label>
-                        <input type="text" value="{{ patient.bhyt or 'Không áp dụng' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-bhyt" value="{{ patient.bhyt or '' }}" placeholder="Ví dụ: GD4797931100001" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nơi ĐK KCB ban đầu</label>
-                        <input type="text" value="Phòng khám Đa khoa Quốc tế H2T Healthcare" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nhóm máu cơ bản</label>
+                        <select id="profile-blood" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-semibold text-slate-800">
+                            {% for b in catalogs.nhom_mau %}
+                            <option value="{{ b }}" {% if patient and patient.nhom_mau == b %}selected{% endif %}>{{ b }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-400 mt-1 block">Hệ thống ABO và Rh (8 nhóm chuẩn + Chưa rõ)</span>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nhóm máu</label>
-                        <input type="text" value="{{ patient.nhom_mau or 'Chưa rõ' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                    <!-- Ghi chú / Biến thể nhóm máu chuyên sâu -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-rose-700">
+                                <i class="fa-solid fa-dna"></i> Biến thể nhóm máu & Kháng thể bất thường (Cận lâm sàng)
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-normal">Tùy chọn: Weak D, Bombay, Anti-Kell...</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="profile-blood-note" list="blood-variants-datalist" value="{{ patient.ghi_chu_nhom_mau or '' }}" placeholder="Nhập tay hoặc chọn biến thể nhóm máu từ kết quả xét nghiệm huyết học..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 text-slate-800">
+                            <datalist id="blood-variants-datalist">
+                                {% for bv in catalogs.bien_the_nhom_mau %}
+                                <option value="{{ bv }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                            <span class="text-[11px] text-slate-400">Gợi ý xét nghiệm:</span>
+                            {% for bv in catalogs.bien_the_nhom_mau[:4] %}
+                            <button type="button" onclick="document.getElementById('profile-blood-note').value = '{{ bv }}'" class="text-[11px] px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                                + {{ bv.split('(')[0].strip() }}
+                            </button>
+                            {% endfor %}
+                            <button type="button" onclick="document.getElementById('profile-blood-note').value = ''" class="text-[11px] px-2 py-0.5 rounded-lg text-slate-400 hover:text-slate-600 hover:underline">
+                                Xóa ghi chú
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tiền sử dị ứng thuốc</label>
-                        <input type="text" value="{{ patient.di_ung or 'Không có' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 text-rose-600 font-medium">
+                    <!-- Tiền sử dị ứng thuốc & thực phẩm -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-rose-700">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Tiền sử dị ứng (Thuốc, thực phẩm, thời tiết...)
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-normal">Chọn từ danh mục chuẩn hoặc tìm kiếm</span>
+                        </label>
+                        <input type="hidden" id="profile-allergy" value="{{ patient.di_ung or 'Không có' }}">
+                        <div id="allergy-tag-container" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Tiền sử bệnh lý nền & mãn tính -->
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-teal-700">
+                                <i class="fa-solid fa-notes-medical"></i> Tiền sử bệnh lý nền & Bệnh mãn tính
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-normal">Chọn từ danh mục chuẩn y tế</span>
+                        </label>
+                        <input type="hidden" id="profile-history" value="{{ patient.tien_su_benh or 'Không có' }}">
+                        <div id="history-tag-container" class="space-y-2"></div>
                     </div>
                 </div>
             </div>
@@ -178,17 +226,17 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Họ và tên người thân</label>
-                        <input type="text" value="{{ patient.nguoi_than_ho_ten or 'Chưa cập nhật' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-rel-name" value="{{ patient.nguoi_than_ho_ten or '' }}" placeholder="Ví dụ: Hoàng Tuấn Kiệt" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Mối quan hệ</label>
-                        <input type="text" value="{{ patient.nguoi_than_quan_he or 'Người thân' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-rel-type" value="{{ patient.nguoi_than_quan_he or '' }}" placeholder="Bố, Mẹ, Vợ, Chồng, Con..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Số điện thoại khẩn cấp</label>
-                        <input type="tel" value="{{ patient.nguoi_than_sdt or 'Chưa cập nhật' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        <input type="tel" id="profile-rel-phone" value="{{ patient.nguoi_than_sdt or '' }}" placeholder="0909xxxxxx" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
                 </div>
             </div>
@@ -198,8 +246,71 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const ALLERGY_CATALOG = {{ catalogs.di_ung | tojson | safe }};
+            const HISTORY_CATALOG = {{ catalogs.tien_su_benh | tojson | safe }};
+
+            // Khởi tạo các bộ chọn thẻ chuẩn hóa từ danh mục y tế
+            window.initCatalogTagSelector({
+                containerId: 'allergy-tag-container',
+                hiddenInputId: 'profile-allergy',
+                catalog: ALLERGY_CATALOG,
+                placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Aspirin, Hải sản...)...',
+                badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+                emptyLabel: 'Không có'
+            });
+
+            window.initCatalogTagSelector({
+                containerId: 'history-tag-container',
+                hiddenInputId: 'profile-history',
+                catalog: HISTORY_CATALOG,
+                placeholder: 'Gõ tìm kiếm bệnh lý nền (Tăng huyết áp, Đái tháo đường...)...',
+                badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+                emptyLabel: 'Không có'
+            });
+        });
+
+        // Hàm lưu và đồng bộ thông tin hồ sơ
         function saveProfile() {
-            showToast('Đã lưu và đồng bộ thông tin tài khoản thành công!', 'success');
+            const payload = {
+                ho_ten: document.getElementById('profile-name').value.trim(),
+                sdt: document.getElementById('profile-phone').value.trim(),
+                ngay_sinh: document.getElementById('profile-dob').value,
+                gioi_tinh: document.getElementById('profile-gender').value,
+                cccd: document.getElementById('profile-cccd').value.trim(),
+                email: document.getElementById('profile-email').value.trim(),
+                dia_chi: document.getElementById('profile-address').value.trim(),
+                bhyt: document.getElementById('profile-bhyt').value.trim(),
+                nhom_mau: document.getElementById('profile-blood').value,
+                ghi_chu_nhom_mau: document.getElementById('profile-blood-note').value.trim(),
+                di_ung: document.getElementById('profile-allergy').value,
+                tien_su_benh: document.getElementById('profile-history').value,
+                nguoi_than_ho_ten: document.getElementById('profile-rel-name').value.trim(),
+                nguoi_than_quan_he: document.getElementById('profile-rel-type').value.trim(),
+                nguoi_than_sdt: document.getElementById('profile-rel-phone').value.trim()
+            };
+
+            if (!payload.ho_ten || !payload.sdt) {
+                showToast('Họ và tên cùng Số điện thoại không được để trống!', 'error');
+                return;
+            }
+
+            fetch('/api/patient/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Đã lưu và đồng bộ hồ sơ y tế thành công!', 'success');
+                } else {
+                    showToast('Lỗi cập nhật: ' + (data.message || 'Không thể lưu'), 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
+            });
         }
     </script>
 {% endblock %}

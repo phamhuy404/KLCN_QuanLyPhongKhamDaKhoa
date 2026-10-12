@@ -257,7 +257,9 @@
         const s = document.getElementById('filter-invoice-status').value;
 
         const filtered = invoices.filter(inv => {
-            const matchQ = !q || inv.ma_hd.toLowerCase().includes(q) || inv.benh_nhan.toLowerCase().includes(q) || inv.ma_bn.toLowerCase().includes(q);
+            const matchQ = !q || (window.fuzzyMatchRecord
+                ? window.fuzzyMatchRecord(q, [inv.ma_hd, inv.benh_nhan, inv.ma_bn, inv.sdt, inv.nhan_vien])
+                : (inv.ma_hd.toLowerCase().includes(q) || inv.benh_nhan.toLowerCase().includes(q) || inv.ma_bn.toLowerCase().includes(q)));
             const matchP = !p || inv.phuong_thuc === p;
             const matchS = !s || inv.status === s;
             return matchQ && matchP && matchS;

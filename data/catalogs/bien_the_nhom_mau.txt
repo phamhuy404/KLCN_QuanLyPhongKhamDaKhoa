@@ -1,0 +1,13 @@
+# Danh mục biến thể nhóm máu và kháng thể bất thường phổ biến (Cận lâm sàng & Huyết học truyền máu)
+Weak D (D yếu)
+Partial D (D bán phần)
+Bombay (Nhóm máu Oh)
+Para-Bombay
+Kháng thể bất thường chống Kell (Anti-K)
+Kháng thể bất thường chống Duffy (Anti-Fya)
+Kháng thể bất thường chống Kidd (Anti-Jka)
+Kháng thể bất thường hệ Rh (Anti-E, Anti-c)
+Kháng thể bất thường hệ MNS (Anti-M)
+Rh-null (Thiếu hụt hoàn toàn hệ Rh)
+Tự kháng thể ấm (Warm autoantibodies)
+Bất đồng kháng thể lạnh (Cold agglutinin)

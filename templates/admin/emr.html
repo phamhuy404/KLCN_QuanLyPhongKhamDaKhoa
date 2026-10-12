@@ -89,8 +89,8 @@
                             <span class="font-mono text-xs font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded" id="current-patient-code">BN2609001</span>
                             <span class="text-xs text-slate-400" id="current-patient-meta">Nam • 36 tuổi</span>
                         </div>
-                        <div class="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                            <span>Nhóm máu: <strong class="text-rose-600" id="current-patient-blood">O+</strong></span>
+                        <div class="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
+                            <span class="flex items-center">Nhóm máu: <strong class="text-rose-600 ml-1" id="current-patient-blood">O+</strong> <span id="current-patient-blood-variant" class="hidden text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-semibold ml-1.5"></span></span>
                             <span>BHYT: <strong class="text-teal-700 font-mono" id="current-patient-bhyt">GD4797931100001</strong></span>
                         </div>
                     </div>
@@ -273,6 +273,7 @@
             age: (p.tuoi || 30) + ' tuổi',
             gender: p.gioi_tinh || 'Nam',
             blood: p.nhom_mau || 'Chưa rõ',
+            blood_variant: p.ghi_chu_nhom_mau || '',
             bhyt: p.bhyt || 'Không áp dụng',
             allergy: p.di_ung || 'Không có',
             reason: p.trieu_chung || p.tien_su_benh || 'Khám sức khỏe theo yêu cầu'
@@ -288,6 +289,15 @@
         document.getElementById('current-patient-code').innerText = p.code;
         document.getElementById('current-patient-meta').innerText = `${p.gender} • ${p.age}`;
         document.getElementById('current-patient-blood').innerText = p.blood;
+        const variantEl = document.getElementById('current-patient-blood-variant');
+        if (variantEl) {
+            if (p.blood_variant) {
+                variantEl.innerText = p.blood_variant;
+                variantEl.classList.remove('hidden');
+            } else {
+                variantEl.classList.add('hidden');
+            }
+        }
         document.getElementById('current-patient-bhyt').innerText = p.bhyt;
         document.getElementById('current-patient-allergy').innerText = p.allergy;
         document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
