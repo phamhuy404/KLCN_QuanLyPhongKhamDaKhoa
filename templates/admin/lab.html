@@ -146,7 +146,7 @@
 
 <!-- Modal Nhập / Trả Kết Quả Cận Lâm Sàng -->
 <div id="result-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <i class="fa-solid fa-square-poll-vertical text-medical-600"></i> Nhập & Trả Kết Quả Cận Lâm Sàng
@@ -156,35 +156,42 @@
             </button>
         </div>
 
+        <input type="hidden" id="modal-order-id" value="">
+        <input type="hidden" id="modal-order-status" value="">
+
         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
             <div><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="modal-patient-name">Hoàng Bảo Nam</strong> (<span id="modal-patient-code" class="font-mono font-bold">BN2609001</span>)</div>
             <div><span class="text-slate-400">Dịch vụ:</span> <strong class="text-teal-700" id="modal-service-name">Nội soi dạ dày tá tràng</strong></div>
         </div>
 
+        <div id="modal-approved-warning" class="hidden p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+            <i class="fa-solid fa-lock mr-1"></i> Kết quả này <strong>đã được bác sĩ duyệt</strong>. Không thể chỉnh sửa sau khi duyệt.
+        </div>
+
         <div class="space-y-3 text-xs">
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Mô tả chi tiết / Diễn giải hình ảnh</label>
-                <textarea id="modal-result-detail" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Niêm mạc hang vị phù nề, sung huyết nhẹ, không thấy ổ loét hay tổn thương khu trú. Test Clo (HP): Âm tính (-).</textarea>
+                <textarea id="modal-result-detail" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Kết quả xét nghiệm bình thường.</textarea>
             </div>
 
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Kết luận chẩn đoán hình ảnh / xét nghiệm</label>
-                <input type="text" id="modal-conclusion" value="Viêm dạ dày mạn tính thể sung huyết nhẹ" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
-            </div>
-
-            <div>
-                <label class="block font-semibold text-slate-700 mb-1">Bác sĩ / Kỹ thuật viên thực hiện</label>
-                <input type="text" id="modal-technician" value="BS. CKI. Nguyễn Trọng Nghĩa" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                <input type="text" id="modal-conclusion" value="" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
             </div>
         </div>
 
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5">
             <button type="button" onclick="closeResultModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
                 Đóng
             </button>
-            <button type="button" onclick="saveLabResult()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
-                <i class="fa-solid fa-signature"></i> Ký Số & Trả Kết Quả Về EMR
-            </button>
+            <div class="flex gap-2">
+                <button type="button" id="btn-save-result" onclick="saveLabResult()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu Kết Quả
+                </button>
+                <button type="button" id="btn-approve-result" onclick="approveLabResult()" class="hidden px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i> Bác Sĩ Duyệt
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -202,10 +209,14 @@
         bac_si: o.bac_si,
         gio: (o.thoi_gian_chi_dinh || '').toString().slice(11, 16) || '08:30',
         status: o.trang_thai === 'Đã hoàn thành' ? 'completed' : (o.trang_thai === 'Đang thực hiện' ? 'processing' : 'waiting'),
-        ket_qua: o.ket_qua || ''
+        trang_thai_raw: o.trang_thai || '',
+        ket_qua: o.ket_qua || '',
+        nguoi_nhap: o.nguoi_nhap || '',
+        bac_si_duyet: o.bac_si_duyet || ''
     }));
 
     let activeLabOrderId = null;
+    const userRole = "{{ session.get('user', {}).get('vai_tro', '') }}";
 
     function renderLabOrders(dataList) {
         const tbody = document.getElementById('lab-table-body');
@@ -224,9 +235,22 @@
             if (order.status === 'waiting') {
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ thực hiện</span>';
             } else if (order.status === 'processing') {
-                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Đang phân tích</span>';
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Chờ duyệt</span>';
             } else if (order.status === 'completed') {
-                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã có kết quả</span>';
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã duyệt</span>';
+            }
+
+            // Nút thao tác
+            let actionBtn = '';
+            if (order.bac_si_duyet && order.status === 'completed') {
+                // Đã duyệt — chỉ xem
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs"><i class="fa-solid fa-eye mr-1"></i> Xem</button>`;
+            } else if (order.ket_qua && (userRole === 'ADMIN' || userRole === 'BACSI')) {
+                // Có kết quả, bác sĩ có thể duyệt
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Duyệt KQ</button>`;
+            } else {
+                // KTV nhập kết quả
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs"><i class="fa-solid fa-pen-to-square mr-1"></i> Kết Quả</button>`;
             }
 
             tr.innerHTML = `
@@ -239,7 +263,7 @@
                 </td>
                 <td class="py-3.5 px-4 font-semibold text-slate-800">
                     ${order.dich_vu}
-                    ${order.ket_qua ? `<span class="block text-[11px] text-teal-700 mt-0.5">${order.ket_qua}</span>` : ''}
+                    ${order.ket_qua ? `<span class="block text-[11px] text-teal-700 mt-0.5 font-normal">${order.ket_qua}</span>` : ''}
                 </td>
                 <td class="py-3.5 px-4">
                     <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium">${order.loai}</span>
@@ -247,12 +271,7 @@
                 <td class="py-3.5 px-4 text-slate-600">${order.bac_si}</td>
                 <td class="py-3.5 px-4 text-slate-500 font-mono">${order.gio}</td>
                 <td class="py-3.5 px-4 text-center">${statusBadge}</td>
-                <td class="py-3.5 px-4 text-center">
-                    <button type="button" onclick="openResultModal(${order.id})" 
-                            class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs transition-colors" title="Nhập kết quả">
-                        <i class="fa-solid fa-pen-to-square mr-1"></i> Kết Quả
-                    </button>
-                </td>
+                <td class="py-3.5 px-4 text-center">${actionBtn}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -265,7 +284,7 @@
 
         const filtered = labOrders.filter(o => {
             const matchQ = !query || (window.fuzzyMatchRecord
-                ? window.fuzzyMatchRecord(query, [o.ma_cd, o.benh_nhan, o.ma_bn, o.dich_vu, o.loai, o.bac_si_cd, o.ktv])
+                ? window.fuzzyMatchRecord(query, [o.ma_cd, o.benh_nhan, o.ma_bn, o.dich_vu, o.loai, o.bac_si])
                 : (o.ma_cd.toLowerCase().includes(query) || o.benh_nhan.toLowerCase().includes(query) || o.dich_vu.toLowerCase().includes(query)));
             const matchT = !typeFilter || o.loai === typeFilter;
             const matchS = !statusFilter || o.status === statusFilter;
@@ -280,9 +299,39 @@
         if (!o) return;
         activeLabOrderId = id;
 
+        document.getElementById('modal-order-id').value = id;
+        document.getElementById('modal-order-status').value = o.trang_thai_raw;
         document.getElementById('modal-patient-name').innerText = o.benh_nhan;
         document.getElementById('modal-patient-code').innerText = o.ma_bn;
         document.getElementById('modal-service-name').innerText = o.dich_vu;
+        document.getElementById('modal-result-detail').value = o.ket_qua || '';
+        document.getElementById('modal-conclusion').value = o.ket_qua || '';
+
+        const isApproved = !!o.bac_si_duyet;
+        const warningEl = document.getElementById('modal-approved-warning');
+        const saveBtn = document.getElementById('btn-save-result');
+        const approveBtn = document.getElementById('btn-approve-result');
+
+        if (isApproved) {
+            warningEl.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            approveBtn.classList.add('hidden');
+            document.getElementById('modal-result-detail').readOnly = true;
+            document.getElementById('modal-conclusion').readOnly = true;
+        } else {
+            warningEl.classList.add('hidden');
+            document.getElementById('modal-result-detail').readOnly = false;
+            document.getElementById('modal-conclusion').readOnly = false;
+
+            // Nếu đã có kết quả và là bác sĩ → hiện nút duyệt
+            if (o.ket_qua && (userRole === 'ADMIN' || userRole === 'BACSI')) {
+                saveBtn.classList.remove('hidden');
+                approveBtn.classList.remove('hidden');
+            } else {
+                saveBtn.classList.remove('hidden');
+                approveBtn.classList.add('hidden');
+            }
+        }
 
         document.getElementById('result-modal').classList.remove('hidden');
     }
@@ -291,16 +340,70 @@
         document.getElementById('result-modal').classList.add('hidden');
     }
 
-    function saveLabResult() {
-        if (!activeLabOrderId) return;
-        const o = labOrders.find(x => x.id === activeLabOrderId);
-        if (o) {
-            o.status = 'completed';
-            o.ket_qua = document.getElementById('modal-conclusion').value;
+    async function saveLabResult() {
+        const orderId = document.getElementById('modal-order-id').value;
+        const ketQua = document.getElementById('modal-conclusion').value.trim();
+        const moTa = document.getElementById('modal-result-detail').value.trim();
+        if (!orderId || !ketQua) {
+            alert('Vui lòng nhập kết luận xét nghiệm!');
+            return;
         }
-        closeResultModal();
-        filterLabOrders();
-        alert('Đã ký số và trả kết quả cận lâm sàng về hồ sơ EMR bác sĩ!');
+
+        try {
+            const res = await fetch('/api/lab/result/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chi_tiet_id: parseInt(orderId), ket_qua: ketQua + (moTa ? '\n' + moTa : '') })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Cập nhật local state
+                const o = labOrders.find(x => x.id === parseInt(orderId));
+                if (o) {
+                    o.ket_qua = ketQua;
+                    o.status = 'processing';
+                    o.trang_thai_raw = 'Chờ duyệt';
+                }
+                closeResultModal();
+                filterLabOrders();
+                alert(data.message || 'Đã lưu kết quả xét nghiệm thành công!');
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
+    }
+
+    async function approveLabResult() {
+        const orderId = document.getElementById('modal-order-id').value;
+        if (!orderId) return;
+
+        if (!confirm('Xác nhận duyệt kết quả xét nghiệm này? Sau khi duyệt sẽ không thể chỉnh sửa.')) return;
+
+        try {
+            const res = await fetch('/api/lab/result/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chi_tiet_id: parseInt(orderId), approval_note: 'Đã kiểm tra và xác nhận' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const o = labOrders.find(x => x.id === parseInt(orderId));
+                if (o) {
+                    o.status = 'completed';
+                    o.trang_thai_raw = 'Đã duyệt';
+                    o.bac_si_duyet = 'Bác sĩ';
+                }
+                closeResultModal();
+                filterLabOrders();
+                alert(data.message || 'Đã duyệt kết quả xét nghiệm thành công!');
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -308,3 +411,5 @@
     });
 </script>
 {% endblock %}
+
+

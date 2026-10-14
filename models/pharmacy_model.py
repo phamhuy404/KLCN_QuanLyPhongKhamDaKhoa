@@ -32,17 +32,37 @@ class PharmacyModel:
         """Lấy chi tiết đơn thuốc và các mặt hàng thuốc trong đơn."""
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT dt.*, pk.ma_phieu, pk.benh_nhan_id,
-                   bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan,
-                   COALESCE(nv.ho_ten, 'Bác sĩ chuyên khoa') AS ten_bac_si
-            FROM don_thuoc dt
-            JOIN phieu_kham pk ON dt.phieu_kham_id = pk.id
-            JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
-            LEFT JOIN bac_si bs ON dt.bac_si_id = bs.id
-            LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-            WHERE dt.id = ? OR dt.ma_don_thuoc = ?
-        ''', (prescription_id, str(prescription_id)))
+        # Xác định loại ID: int hoặc mã chuỗi
+        try:
+            pid_int = int(prescription_id)
+        except (ValueError, TypeError):
+            pid_int = None
+
+        if pid_int is not None:
+            cursor.execute('''
+                SELECT dt.*, pk.ma_phieu, pk.benh_nhan_id,
+                       bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan,
+                       COALESCE(nv.ho_ten, 'Bác sĩ chuyên khoa') AS ten_bac_si
+                FROM don_thuoc dt
+                JOIN phieu_kham pk ON dt.phieu_kham_id = pk.id
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON dt.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                WHERE dt.id = ? OR dt.ma_don_thuoc = ?
+            ''', (pid_int, str(prescription_id)))
+        else:
+            # Tìm chỉ theo mã chuỗi
+            cursor.execute('''
+                SELECT dt.*, pk.ma_phieu, pk.benh_nhan_id,
+                       bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan,
+                       COALESCE(nv.ho_ten, 'Bác sĩ chuyên khoa') AS ten_bac_si
+                FROM don_thuoc dt
+                JOIN phieu_kham pk ON dt.phieu_kham_id = pk.id
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON dt.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                WHERE dt.ma_don_thuoc = ?
+            ''', (str(prescription_id),))
         dt = cursor.fetchone()
         if not dt:
             conn.close()

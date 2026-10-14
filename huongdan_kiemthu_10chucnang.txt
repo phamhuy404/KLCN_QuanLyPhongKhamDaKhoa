@@ -1,0 +1,340 @@
+================================================================================
+BÁO CÁO TỔNG HỢP HIỆN TRẠNG & HƯỚNG DẪN KIỂM THỬ 10 CHỨC NĂNG HỆ THỐNG PHÒNG KHÁM
+Dự án: Phòng Khám Đa Khoa H2T Care (Kiến trúc MVC - Python Flask)
+================================================================================
+
+PHẦN I. TỔNG HỢP NHỮNG PHẦN ĐÃ LÀM (10 CHỨC NĂNG)
+--------------------------------------------------------------------------------
+Hệ thống đã triển khai đầy đủ cả 3 tầng (Model - View - Controller/API) và kết nối
+CSDL thật cho toàn bộ 10 chức năng, cụ thể:
+
+1. SAO LƯU VÀ PHỤC HỒI DỮ LIỆU
+   - Đã làm: Model BackupModel (models/backup_model.py) hỗ trợ SQLite (sqlite3.backup),
+     SQL Server (T-SQL BACKUP/RESTORE qua kết nối master) và MySQL (mysqldump/mysql CLI).
+   - Tự động tạo bản sao lưu an toàn trước khi phục hồi để chống mất dữ liệu.
+   - Chống tấn công Path Traversal bằng hàm secure_filename và kiểm tra đường dẫn.
+   - Bảng CSDL: lich_su_sao_luu ghi nhận thời gian, dung lượng, người thực hiện, trạng thái.
+   - Giao diện Admin: /admin/backups (templates/admin/backups.html).
+
+2. TIẾP NHẬN VÀ QUẢN LÝ PHẢN HỒI BỆNH NHÂN
+   - Đã làm: Model FeedbackModel (models/feedback_model.py). Bệnh nhân gửi phản hồi
+     với điểm 1-5 sao, chọn chủ đề và nhập nội dung.
+   - Bảo mật & cách ly: Bệnh nhân chỉ xem được phản hồi của chính mình.
+   - Quản trị: Admin/CSKH lọc theo trạng thái/chủ đề và gửi câu trả lời.
+   - Tự động đồng bộ: Khi CSKH trả lời, hệ thống tự sinh thông báo In-App gửi tới
+     tài khoản bệnh nhân qua bảng thong_bao.
+   - Giao diện: /patient/feedbacks (Bệnh nhân) và /admin/feedbacks (Quản trị).
+
+3. GỬI THÔNG BÁO NHẮC LỊCH KHÁM VÀ TÁI KHÁM
+   - Đã làm: Dịch vụ lõi NotificationService (core/notification_service.py).
+   - Tự động quét lịch hẹn (lich_hen) và lịch tái khám (phieu_kham.ngay_tai_kham)
+     sắp diễn ra trong vòng 24h - 48h tới.
+   - Cơ chế chống gửi trùng: Bảng lich_su_nhac_nho ghi nhận lịch sử gửi, chặn spam.
+   - Đa kênh: Lưu thông báo In-App trong website; gửi Email SMTP qua TLS/SSL nếu cấu hình.
+   - Tiến trình ngầm: Background scheduler chạy tự động định kỳ mỗi 2 giờ (app.py).
+   - Giao diện: /patient/notifications và nút chuông thông báo trên thanh tiêu đề.
+
+4. QUẢN LÝ DANH MỤC CHUYÊN KHOA, PHÒNG KHÁM VÀ DỊCH VỤ
+   - Đã làm: Model ClinicModel (models/clinic_model.py) hỗ trợ CRUD đầy đủ cho 3 bảng:
+     chuyen_khoa, phong_kham, dich_vu.
+   - Kiểm tra tính hợp lệ: Chặn trùng mã, chuẩn hóa đơn giá và phần trăm BHYT.
+   - Bật/tắt trạng thái hoạt động linh hoạt (trang_thai = 1 hoặc 0).
+   - Bảo vệ toàn vẹn tham chiếu: Chặn xóa cứng khi chuyên khoa/phòng/dịch vụ đã có
+     bác sĩ, lịch hẹn, lịch trực hoặc phiếu chỉ định tham chiếu; hướng dẫn chuyển sang
+     vô hiệu hóa an toàn.
+   - Giao diện Admin: /admin/catalogs (templates/admin/catalogs.html).
+
+5. QUẢN LÝ BÁC SĨ, NHÂN VIÊN Y TẾ VÀ LỊCH LÀM VIỆC
+   - Đã làm: UserModel và ScheduleModel (models/schedule_model.py, models/user_model.py).
+   - Thêm nhân sự mới, tự động tạo hồ sơ bác sĩ và tạo tài khoản đăng nhập tương ứng.
+   - Quản lý lịch trực theo ca (lich_lam_viec), theo dõi số lượt khám tối đa/đã đăng ký.
+   - Thuật toán chống xung đột lịch:
+     + Chặn xếp lịch làm việc cho ngày trong quá khứ.
+     + Chặn bác sĩ trực 2 phòng cùng lúc trong cùng một ca khám.
+     + Chặn 2 bác sĩ trực cùng một phòng trong cùng một ca khám.
+   - Giao diện Admin: /admin/staff (templates/admin/staff.html).
+
+6. QUẢN LÝ TÀI KHOẢN VÀ PHÂN QUYỀN
+   - Đã làm: Hệ thống phân quyền RBAC đa tầng (@roles_required, core/security.py)
+     dựa trên các vai trò: ADMIN, LETAN, BACSI, DUOCSI, KTV, BENHNHAN.
+   - Quản lý tài khoản: Xem danh sách, tìm kiếm, lọc theo vai trò và trạng thái.
+   - Khóa/Mở khóa tài khoản: Khi khóa (trang_thai = 0), chặn đăng nhập và đẩy phiên ra ngoài.
+   - Đặt lại mật khẩu an toàn: Quản trị viên đặt lại mật khẩu mới được băm scrypt,
+     không làm lộ mật khẩu cũ.
+   - Phân quyền động: Gán và đổi vai trò tài khoản theo danh mục bảng vai_tro.
+   - Ghi vết kiểm toán: Mọi thao tác đổi quyền, đổi mật khẩu đều lưu vào bảng audit_log.
+   - Giao diện Admin: Tab "Tài khoản & Phân quyền" tại /admin/staff.
+
+7. QUẢN LÝ LỊCH HẸN, ĐIỀU PHỐI, ĐỔI VÀ HỦY LỊCH
+   - Đã làm: Model AppointmentModel (models/appointment_model.py).
+   - Đặt lịch khám: Kiểm tra chuyên khoa, bác sĩ, ngày giờ hợp lệ, tự sinh mã LH2609xxx,
+     tăng số lượt đăng ký ca trực, gửi thông báo in-app và ghi audit log.
+   - Đổi lịch khám (Reschedule): Bệnh nhân chỉ đổi lịch của mình trước giờ hẹn; nhân viên
+     được điều phối sau giờ hẹn; tự động điều chuyển số lượt đăng ký giữa ca cũ và mới.
+   - Hủy lịch (Cancel): Đổi trạng thái 'Đã hủy' (không xóa mất bản ghi), hoàn trả số lượt
+     đăng ký về ca trực, thông báo cho bệnh nhân nếu hủy bởi nhân viên y tế.
+   - Giao diện: /booking (Bệnh nhân) và /admin/appointments (Quản trị).
+
+8. QUẢN LÝ PHIẾU CHỈ ĐỊNH VÀ KẾT QUẢ XÉT NGHIỆM / CẬN LÂM SÀNG
+   - Đã làm: MedicalRecordModel (models/medical_record_model.py) quản lý phieu_chi_dinh
+     và chi_tiet_chi_dinh.
+   - Bác sĩ ra y lệnh cận lâm sàng từ phòng khám EMR, trạng thái khởi tạo 'Chờ thực hiện'.
+   - Kỹ thuật viên (KTV) nhập kết quả đo đạc, chẩn đoán, đính kèm tệp kết quả -> Chuyển
+     trạng thái sang 'Chờ duyệt'.
+   - Bác sĩ chuyên khoa duyệt kết quả nội bộ -> Chuyển trạng thái sang 'Đã duyệt'.
+   - Cơ chế bảo vệ: Khi đã duyệt, KTV không thể chỉnh sửa kết quả; bệnh nhân chỉ nhìn thấy
+     kết quả sau khi đã được bác sĩ phê duyệt chính thức.
+   - Giao diện: /admin/lab (KTV & Bác sĩ) và /patient/lab-results (Bệnh nhân).
+
+9. QUẢN LÝ BỆNH ÁN ĐIỆN TỬ VÀ LỊCH SỬ CHỈNH SỬA
+   - Đã làm: MedicalRecordModel và AuditLogger (core/audit.py).
+   - Lưu trữ hồ sơ khám EMR: Triệu chứng lâm sàng, sinh hiệu, chẩn đoán sơ bộ, mã ICD-10,
+     hướng điều trị, lời dặn và ngày hẹn tái khám.
+   - Chỉnh sửa bệnh án: Chỉ bác sĩ điều trị mới có quyền cập nhật, bắt buộc nhập lý do sửa.
+   - Lưu vết kiểm toán (Audit Trail): Tự động so sánh và lưu snapshot dữ liệu cũ (before_json)
+     và dữ liệu mới (after_json) vào bảng audit_log.
+   - API tra cứu lịch sử sửa đổi bệnh án: /api/emr/history/<record_id>.
+   - Giao diện: /admin/emr, /admin/patients/<id> và /patient/records.
+
+10. QUẢN LÝ ĐƠN THUỐC, CẤP PHÁT THUỐC VÀ QUÁ TRÌNH ĐIỀU TRỊ
+   - Đã làm: Model PharmacyModel (models/pharmacy_model.py).
+   - Quản lý danh mục thuốc và tồn kho (thuoc), cảnh báo sắp hết hàng (< 25 đơn vị).
+   - Bác sĩ kê đơn qua EMR; được phép sửa đơn thuốc khi ở trạng thái 'Chưa cấp phát'.
+   - Ngăn chặn sửa đơn đã cấp phát: Tuyệt đối không cho sửa trực tiếp đơn đã xuất dược.
+   - Xuất dược trừ kho an toàn: Kiểm tra tồn kho trước khi trừ; trừ chính xác số lượng.
+   - Chống cấp phát lặp lại (Double-dispense): Từ chối xuất thuốc lần 2 trên cùng đơn
+     để tránh trừ kho trùng lặp.
+   - Hủy/điều chỉnh đơn có hoàn kho: Tự động cộng lại số lượng tồn kho và ghi audit log.
+   - Giao diện: /admin/pharmacy (Kho dược & Quầy phát thuốc), /patient/records.
+
+--------------------------------------------------------------------------------
+PHẦN II. CÁCH CẤU HÌNH VÀ CHẠY DỰ ÁN
+--------------------------------------------------------------------------------
+
+1. CÁCH CHỌN CƠ SỞ DỮ LIỆU TRONG FILE config.py:
+   Mở file config.py, tìm dòng 8-10:
+
+   * Cách 1 (Khuyên dùng để test nhanh nhất - Không cần cài SQL Server):
+     DB_ENGINE = 'sqlite'
+     # DB_ENGINE = 'sqlserver'
+     -> Hệ thống sẽ dùng trực tiếp file phongkham.db có sẵn ở thư mục gốc.
+
+   * Cách 2 (Nếu máy tính của bạn đã cài Microsoft SQL Server):
+     DB_ENGINE = 'sqlserver'
+     Kiểm tra thông số trong SQLSERVER_CONFIG (tên server, database quan_ly_phong_kham).
+     Chạy file cosodulieu.sql trong SSMS trước khi chạy app.
+
+2. LỆNH KHỞI ĐỘNG ỨNG DỤNG:
+   Mở PowerShell hoặc Command Prompt tại thư mục dự án và chạy:
+   
+   pip install -r requirements.txt
+   python app.py
+
+   Khi màn hình hiện: "Running on http://127.0.0.1:5000"
+   -> Mở trình duyệt truy cập: http://127.0.0.1:5000
+
+3. TÀI KHOẢN ĐĂNG NHẬP MẪU:
+   - Tài khoản Quản trị / Bác sĩ (Admin):
+     + Tên đăng nhập: admin
+     + Mật khẩu: admin123
+   - Tài khoản Bệnh nhân:
+     + Tên đăng nhập (Số điện thoại): 0901234567
+     + Mật khẩu: 123456
+
+--------------------------------------------------------------------------------
+PHẦN III. CÁC BƯỚC KIỂM THỬ CHI TIẾT TỪNG CHỨC NĂNG (1 ĐẾN 10)
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 1: SAO LƯU VÀ PHỤC HỒI DỮ LIỆU
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập tài khoản Admin (admin / admin123).
+- Bước 2: Truy cập đường dẫn: http://127.0.0.1:5000/admin/backups
+- Bước 3 (Tạo bản sao lưu): Nhấn nút xanh "Tạo Bản Sao Lưu Mới".
+  * Kết quả: Xuất hiện thông báo thành công. Bảng "Danh Sách Bản Sao Lưu Khả Dụng"
+    hiển thị file mới với tên định dạng backup_<loai_csdl>_YYYYMMDD_HHMMSS.
+- Bước 4 (Tải về): Nhấn nút tải về (icon mũi tên tải xuống) bên cạnh file vừa tạo.
+  * Kết quả: Trình duyệt tải về tệp backup (.db, .bak hoặc .sql).
+- Bước 5 (Phục hồi dữ liệu): Nhấn nút "Phục hồi" màu đỏ tại một tệp sao lưu -> Modal
+  xác nhận xuất hiện -> Nhấn nút "Xác Nhận Phục Hồi".
+  * Kết quả: Thông báo phục hồi thành công. Bảng "Nhật Ký Thao Tác Sao Lưu" bên dưới
+    ghi nhận thêm 1 dòng lịch sử loại "PHỤC HỒI", trạng thái "Thành công".
+- Thử nghiệm an toàn: Dùng tài khoản Bệnh nhân gửi yêu cầu POST đến /api/backup/create
+  -> Kết quả: Bị từ chối quyền truy cập (mã lỗi 403 Forbidden).
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 2: TIẾP NHẬN VÀ QUẢN LÝ PHẢN HỒI BỆNH NHÂN
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập tài khoản Bệnh nhân (0901234567 / 123456).
+- Bước 2: Vào trang: http://127.0.0.1:5000/patient/feedbacks
+- Bước 3 (Gửi phản hồi): Chọn Chủ đề "Dịch vụ khám bệnh", chọn 5 sao, nhập nội dung:
+  "Bác sĩ tư vấn rất tận tình, phòng khám sạch sẽ." -> Nhấn "Gửi ý kiến đóng góp".
+  * Kết quả: Danh sách phản hồi của bệnh nhân hiển thị phản hồi mới với trạng thái
+    "Chờ tiếp nhận".
+- Bước 4 (Admin tiếp nhận & trả lời): Đăng xuất, đăng nhập tài khoản Admin.
+  Truy cập: http://127.0.0.1:5000/admin/feedbacks
+  * Kết quả: Thấy phản hồi của bệnh nhân vừa gửi.
+  Nhấn nút "Trả lời" -> Nhập: "Phòng khám H2T Care chân thành cảm ơn đánh giá của bạn!"
+  -> Chọn trạng thái "Đã giải quyết" -> Nhấn "Lưu trả lời".
+- Bước 5 (Kiểm tra phía bệnh nhân): Đăng nhập lại tài khoản bệnh nhân 0901234567.
+  * Kết quả: Trạng thái phản hồi chuyển thành "Đã giải quyết", hiển thị nội dung câu
+    trả lời của CSKH. Icon quả chuông trên thanh tiêu đề nhận được thông báo in-app mới.
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 3: GỬI THÔNG BÁO NHẮC LỊCH KHÁM VÀ TÁI KHÁM
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập Admin, vào http://127.0.0.1:5000/admin/appointments
+  Tạo 1 lịch hẹn khám cho ngày mai cho bệnh nhân Hoàng Bảo Nam (0901234567).
+- Bước 2: Mở Console trình duyệt của Admin (F12) hoặc gọi POST qua Postman đến endpoint:
+  http://127.0.0.1:5000/api/notifications/trigger-reminders
+  * Kết quả: Trả về JSON thông báo appointments_reminded = 1, in_app_sent = 1.
+- Bước 3: Đăng nhập tài khoản bệnh nhân 0901234567, truy cập:
+  http://127.0.0.1:5000/patient/notifications
+  * Kết quả: Hiển thị thông báo nhắc lịch khám: "Nhắc lịch khám bệnh: LH2609xxx..."
+    kèm thời gian, chuyên khoa và địa điểm phòng khám.
+- Bước 4 (Kiểm tra chống gửi trùng): Gọi lại endpoint POST /api/notifications/trigger-reminders.
+  * Kết quả: appointments_reminded = 0 (Hệ thống tự nhận diện đã gửi trong bảng
+    lich_su_nhac_nho và không gửi lặp lại).
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 4: QUẢN LÝ DANH MỤC CHUYÊN KHOA, PHÒNG KHÁM VÀ DỊCH VỤ
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập Admin, truy cập: http://127.0.0.1:5000/admin/catalogs
+- Bước 2 (Thêm Chuyên khoa): Nhấn "Thêm Chuyên Khoa Mới", nhập Mã "CK_UNG_BUOU",
+  Tên "Khoa Ung Bướu", Giá khám "200000" -> Nhấn Lưu -> Chuyên khoa mới xuất hiện.
+- Bước 3 (Bật/Tắt trạng thái): Nhấn nút Power cạnh khoa vừa tạo -> Trạng thái chuyển
+  từ "Hoạt động" sang "Tạm ngưng".
+- Bước 4 (Thêm Dịch vụ): Chuyển sang Tab "Danh Mục Dịch Vụ", nhấn "Thêm Dịch Vụ Mới",
+  nhập Mã "DV_SINH_THIET", Tên "Sinh thiết tế bào", Đơn giá "500000", BHYT "50%" -> Lưu.
+- Bước 5 (Thử nghiệm bảo vệ toàn vẹn tham chiếu):
+  Tại Tab Chuyên khoa, bấm nút Xóa ở một chuyên khoa đang có Bác sĩ hoạt động
+  (ví dụ: Khoa Nội Tổng Quát).
+  * Kết quả: Hệ thống chặn lại và thông báo: "Không thể xóa cứng vì chuyên khoa
+    đang liên kết với các phòng khám vật lý hoặc bác sĩ! Hãy chuyển sang Vô hiệu hóa."
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 5: QUẢN LÝ BÁC SĨ, NHÂN VIÊN Y TẾ VÀ LỊCH LÀM VIỆC
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập Admin, truy cập: http://127.0.0.1:5000/admin/staff
+- Bước 2 (Thêm nhân sự & bác sĩ): Tại Tab 1, nhấn "Thêm nhân viên mới".
+  Nhập Họ tên: "Bác sĩ Nguyễn Văn Minh", Số điện thoại: "0911223344", Chức vụ: "Bác sĩ chuyên khoa",
+  Vai trò: "Bác sĩ chuyên khoa", Chuyên khoa: "Khoa Nội Tổng Quát".
+  Tích chọn "Tự động tạo tài khoản đăng nhập" -> Nhấn Lưu.
+  * Kết quả: Bác sĩ mới xuất hiện trong danh sách nhân viên và đồng thời tạo tài khoản
+    đăng nhập ở Tab 3.
+- Bước 3 (Phân ca trực): Chuyển sang Tab 2 "Quản lý Lịch trực & Phân ca", nhấn "Phân ca trực khám".
+  Chọn Bác sĩ Nguyễn Văn Minh, Phòng khám PK101, Ngày làm việc: Chọn ngày mai,
+  Ca làm việc: Ca Sáng (07:00 - 11:30) -> Nhấn Lưu phân ca.
+  * Kết quả: Ca trực mới xuất hiện trong bảng với thanh tiến độ 0/20 bệnh nhân.
+- Bước 4 (Thử nghiệm chống xung đột lịch):
+  Thao tác 1: Phân ca tiếp cho chính Bác sĩ Nguyễn Văn Minh vào cùng ngày mai, cùng Ca Sáng,
+  nhưng ở phòng PK102.
+  * Kết quả: Bị chặn với thông báo: "Xung đột lịch bác sĩ: Bác sĩ này đã có lịch trực tại PK101...".
+  Thao tác 2: Thử chọn ngày làm việc trong quá khứ -> Bị chặn: "Không thể xếp lịch làm việc
+  cho ngày trong quá khứ".
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 6: QUẢN LÝ TÀI KHOẢN VÀ PHÂN QUYỀN
+--------------------------------------------------------------------------------
+- Bước 1: Đăng nhập Admin, truy cập: http://127.0.0.1:5000/admin/staff
+  Chuyển sang Tab 3: "Tài khoản & Phân quyền".
+- Bước 2 (Khóa tài khoản): Tìm tài khoản bệnh nhân 0901234567, nhấn nút biểu tượng
+  ổ khóa màu đỏ để khóa tài khoản.
+  * Kết quả: Trạng thái tài khoản chuyển thành "Đã khóa".
+- Bước 3 (Kiểm tra chặn đăng nhập): Mở tab trình duyệt ẩn danh, truy cập /login,
+  thử đăng nhập bằng 0901234567 / 123456.
+  * Kết quả: Đăng nhập thất bại, hệ thống báo: "Tài khoản của bạn đã bị vô hiệu hóa!".
+- Bước 4 (Mở khóa & Đặt lại mật khẩu): Quay lại trang Admin, nhấn mở khóa tài khoản.
+  Nhấn nút biểu tượng chìa khóa màu vàng -> Nhập mật khẩu mới: "NewPass123" -> Lưu.
+- Bước 5: Sang tab ẩn danh đăng nhập lại bằng 0901234567 và mật khẩu mới "NewPass123".
+  * Kết quả: Đăng nhập thành công vào cổng thông tin bệnh nhân.
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 7: QUẢN LÝ LỊCH HẸN, ĐIỀU PHỐI, ĐỔI VÀ HỦY LỊCH
+--------------------------------------------------------------------------------
+- Bước 1 (Bệnh nhân đặt lịch): Đăng nhập tài khoản bệnh nhân 0901234567, vào:
+  http://127.0.0.1:5000/booking
+  Chọn Chuyên khoa Nội, chọn Ngày khám (ngày mai), Giờ khám (08:30), Lý do khám:
+  "Khám đau đầu" -> Nhấn "Xác nhận đặt lịch".
+  * Kết quả: Đặt lịch thành công, sinh mã LH2609xxx, trạng thái ban đầu "Chờ xác nhận".
+- Bước 2 (Admin kiểm tra): Đăng nhập Admin, vào http://127.0.0.1:5000/admin/appointments
+  * Kết quả: Lịch hẹn mới hiển thị ở đầu danh sách.
+- Bước 3 (Bệnh nhân đổi lịch): Bệnh nhân vào trang tổng quan hoặc lịch sử hẹn, nhấn
+  "Đổi lịch khám" -> Chọn ngày khám khác ở tương lai và giờ 09:30 -> Lưu lại.
+  * Kết quả: Ngày giờ lịch hẹn được cập nhật thành công, có ghi nhận vết kiểm toán.
+- Bước 4 (Hủy lịch): Bệnh nhân nhấn nút "Hủy lịch" -> Nhập lý do: "Bận việc đột xuất" -> Xác nhận.
+  * Kết quả: Trạng thái lịch chuyển sang "Đã hủy". Bản ghi vẫn được giữ trong CSDL để đối soát.
+  Thử bấm hủy lần nữa -> Bị chặn với thông báo "Lịch hẹn này đã được hủy trước đó!".
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 8: QUẢN LÝ PHIẾU CHỈ ĐỊNH VÀ KẾT QUẢ XÉT NGHIỆM / CẬN LÂM SÀNG
+--------------------------------------------------------------------------------
+- Bước 1 (Bác sĩ ra chỉ định): Đăng nhập Admin, vào http://127.0.0.1:5000/admin/emr
+  Chọn Bệnh nhân Hoàng Bảo Nam, nhập triệu chứng, chẩn đoán, tích chọn dịch vụ xét nghiệm:
+  "Tổng phân tích tế bào máu ngoại vi" -> Nhấn "Hoàn thành khám & Lưu bệnh án".
+- Bước 2 (KTV xem chỉ định): Vào http://127.0.0.1:5000/admin/lab
+  * Kết quả: Thấy chỉ định xét nghiệm vừa tạo với trạng thái ban đầu "Chờ thực hiện".
+- Bước 3 (KTV nhập kết quả): Nhấn nút "Nhập kết quả" -> Điền kết quả:
+  "RBC: 4.8 T/L, HGB: 140 g/L (Bình thường)" -> Nhấn "Lưu kết quả".
+  * Kết quả: Trạng thái chỉ định chuyển sang "Chờ duyệt".
+- Bước 4 (Bác sĩ duyệt kết quả): Nhấn nút "Duyệt kết quả" -> Nhập ghi chú duyệt:
+  "Kết quả bình thường, không thiếu máu" -> Nhấn Xác nhận.
+  * Kết quả: Trạng thái chuyển sang "Đã duyệt", ghi nhận rõ tên bác sĩ và thời gian duyệt.
+- Bước 5 (Kiểm tra khóa sửa & phân quyền bệnh nhân):
+  Thao tác 1: Thử nhấn sửa lại kết quả xét nghiệm đã duyệt -> Bị chặn: "Kết quả xét nghiệm
+  này đã được bác sĩ duyệt nội bộ, không thể chỉnh sửa!".
+  Thao tác 2: Đăng nhập tài khoản bệnh nhân 0901234567, vào http://127.0.0.1:5000/patient/lab-results
+  * Kết quả: Bệnh nhân xem được kết quả xét nghiệm đã được duyệt.
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 9: QUẢN LÝ BỆNH ÁN ĐIỆN TỬ VÀ LỊCH SỬ CHỈNH SỬA
+--------------------------------------------------------------------------------
+- Bước 1: Tại màn hình EMR hoặc danh sách bệnh nhân /admin/patients/1, mở xem chi tiết
+  một phiếu khám bệnh án đã hoàn thành (ghi nhớ chẩn đoán cũ, ví dụ: "Viêm dạ dày").
+- Bước 2 (Chỉnh sửa bệnh án có lý do): Gọi API cập nhật bệnh án qua endpoint
+  POST /api/emr/update với dữ liệu JSON:
+  {
+    "record_id": 1,
+    "diagnosis": "Viêm loét dạ dày tá tràng có vi khuẩn HP",
+    "icd": "K25 - Loét dạ dày",
+    "treatment": "Phác đồ 4 thuốc trong 14 ngày",
+    "advice": "Uống thuốc đúng giờ, kiêng đồ chua cay",
+    "reason": "Bổ sung kết quả nội soi có HP dương tính"
+  }
+  * Kết quả: Cập nhật thành công.
+- Bước 3 (Tra cứu lịch sử sửa đổi): Gọi API GET /api/emr/history/1
+  * Kết quả: Trả về danh sách vết kiểm toán trong audit_log, hiển thị rõ ràng:
+    + Người thực hiện: Bác sĩ điều trị.
+    + Lý do sửa: "Bổ sung kết quả nội soi có HP dương tính".
+    + before_json: Chứa chẩn đoán cũ "Viêm dạ dày".
+    + after_json: Chứa chẩn đoán mới "Viêm loét dạ dày tá tràng có vi khuẩn HP".
+
+--------------------------------------------------------------------------------
+TEST CHỨC NĂNG 10: QUẢN LÝ ĐƠN THUỐC, CẤP PHÁT THUỐC VÀ QUÁ TRÌNH ĐIỀU TRỊ
+--------------------------------------------------------------------------------
+- Bước 1 (Ghi nhận tồn kho ban đầu): Đăng nhập Admin, vào:
+  http://127.0.0.1:5000/admin/pharmacy
+  Tại Tab "Danh Mục & Tồn Kho Thuốc", ghi nhận số lượng tồn của thuốc Paracetamol (ví dụ: 5000 viên).
+- Bước 2 (Kê đơn thuốc): Vào phòng khám EMR (/admin/emr), kê đơn cho bệnh nhân với
+  10 viên Paracetamol -> Hoàn thành khám.
+- Bước 3 (Xuất dược phát thuốc): Quay lại trang /admin/pharmacy, chuyển sang Tab
+  "Quầy Phát Thuốc Theo Đơn EMR" -> Tìm đơn thuốc vừa kê -> Nhấn nút "Phát Thuốc" -> Xác nhận.
+  * Kết quả: Đơn thuốc chuyển trạng thái thành "Đã xuất dược / Đã cấp thuốc".
+  Quay lại Tab Tồn kho: Số lượng tồn của Paracetamol giảm chính xác 10 viên (còn 4990 viên).
+- Bước 4 (Kiểm tra chống trừ kho lặp lại - Double-dispense):
+  Thử nhấn nút phát thuốc lần nữa hoặc gọi POST /api/pharmacy/dispense cho đơn này.
+  * Kết quả: Hệ thống chặn lại với thông báo: "Đơn thuốc ... đã được cấp phát trước đó!
+    Không thể cấp phát lại để tránh trừ kho trùng lặp." Tồn kho vẫn là 4990, không bị trừ thêm.
+- Bước 5 (Kiểm tra chặn sửa đơn đã phát): Thử gọi POST /api/prescription/update để sửa đơn này.
+  * Kết quả: Bị chặn với thông báo: "Đơn thuốc này đã được cấp phát, không thể chỉnh sửa trực tiếp!".
+- Bước 6 (Kiểm tra hủy đơn có hoàn kho): Gửi POST /api/prescription/cancel với reason:
+  "Bệnh nhân đổi phác đồ điều trị" và restore_stock: true.
+  * Kết quả: Đơn chuyển sang "Đã hủy", số lượng tồn kho của Paracetamol được tự động
+    cộng bù lại 10 viên (trở về 5000 viên).
+
+================================================================================
+KẾT LUẬN & KHUYẾN NGHỊ:
+- Mọi chức năng đều có thể kiểm thử trực tiếp trên giao diện web hoặc qua các API.
+- Để thuận tiện nhất, hãy đặt DB_ENGINE = 'sqlite' trong config.py để test ngay mà
+  không phụ thuộc vào dịch vụ SQL Server bên ngoài.
+================================================================================

@@ -1067,3 +1067,98 @@ def get_patient_prescriptions():
     return jsonify({'success': True, 'prescriptions': prescriptions})
 
 
+# =========================================================================
+# ALIAS ROUTES — Frontend convenience paths (map to admin routes)
+# =========================================================================
+
+@api_bp.route('/account/toggle', methods=['POST'])
+@roles_required('ADMIN')
+def account_toggle_alias():
+    """Alias: /api/account/toggle → /api/admin/account/toggle."""
+    data = request.get_json() or {}
+    account_id = data.get('id') or data.get('account_id')
+    if not account_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID tài khoản!'}), 400
+    user = session.get('user')
+    ok, res = UserModel.toggle_account_status(account_id, audit_user=user)
+    if ok:
+        status_text = 'kích hoạt' if res == 1 else 'vô hiệu hóa / khóa'
+        return jsonify({'success': True, 'new_status': res, 'message': f'Đã {status_text} tài khoản thành công!'})
+    return jsonify({'success': False, 'message': res}), 400
+
+
+@api_bp.route('/account/reset-password', methods=['POST'])
+@roles_required('ADMIN')
+def account_reset_password_alias():
+    """Alias: /api/account/reset-password → /api/admin/account/reset-password."""
+    data = request.get_json() or {}
+    account_id = data.get('id') or data.get('account_id')
+    new_password = data.get('new_password')
+    user = session.get('user')
+    if not account_id or not new_password:
+        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản và mật khẩu mới!'}), 400
+    ok, msg = UserModel.reset_account_password(account_id, new_password, audit_user=user)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+
+@api_bp.route('/account/change-role', methods=['POST'])
+@roles_required('ADMIN')
+def account_change_role_alias():
+    """Alias: /api/account/change-role → /api/admin/account/set-role."""
+    data = request.get_json() or {}
+    account_id = data.get('id') or data.get('account_id')
+    role_id = data.get('role_id')
+    user = session.get('user')
+    if not account_id or not role_id:
+        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản và ID vai trò!'}), 400
+    ok, msg = UserModel.set_account_role(account_id, role_id, audit_user=user)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+
+@api_bp.route('/appointment/status', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'LETAN')
+def appointment_status_alias():
+    """Alias: /api/appointment/status → cập nhật trạng thái lịch hẹn từ admin UI."""
+    data = request.get_json() or {}
+    appointment_id = data.get('id') or data.get('appointment_id')
+    new_status = data.get('status')
+    user = session.get('user')
+    if not appointment_id or not new_status:
+        return jsonify({'success': False, 'message': 'Thiếu ID lịch hẹn hoặc trạng thái mới!'}), 400
+    success, msg = AppointmentModel.update_status(appointment_id, new_status, user_info=user)
+    return jsonify({'success': success, 'message': msg})
+
+
+@api_bp.route('/appointment/create', methods=['POST'])
+@roles_required('ADMIN', 'LETAN', 'BACSI')
+def appointment_create_alias():
+    """API tạo lịch hẹn mới từ giao diện admin."""
+    data = request.get_json() or {}
+    patient_id = data.get('patient_id')
+    ngay_kham = data.get('ngay_kham') or data.get('ngay_hen')
+    gio_kham = data.get('gio_kham') or data.get('gio_hen')
+    ly_do = data.get('ly_do_kham') or data.get('ly_do', 'Khám theo yêu cầu')
+    bac_si_id = data.get('doctor_id') or data.get('bac_si_id')
+    chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
+    user = session.get('user')
+
+    if not patient_id or not ngay_kham or not gio_kham:
+        return jsonify({'success': False, 'message': 'Vui lòng cung cấp bệnh nhân, ngày và giờ khám!'}), 400
+
+    success, result = AppointmentModel.create(
+        patient_id, chuyen_khoa_id, bac_si_id, ngay_kham, gio_kham, ly_do, audit_user=user
+    )
+    if success:
+        return jsonify({'success': True, 'ma_lich_hen': result, 'message': 'Tạo lịch hẹn thành công!'})
+    return jsonify({'success': False, 'message': result}), 400
+
+
+@api_bp.route('/lab/result/save-alias', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'KTV')
+def lab_result_save_alias():
+    """Alias đơn giản cho lưu kết quả xét nghiệm (dùng bởi lab.html JS)."""
+    return save_lab_result()
