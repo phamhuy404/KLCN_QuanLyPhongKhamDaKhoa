@@ -15,6 +15,10 @@ def create_app():
     # 1. Khởi tạo và kiểm tra kết nối cơ sở dữ liệu
     init_db()
 
+    # 1.1 Khởi động tiến trình chạy ngầm quét nhắc lịch khám và tái khám
+    from core.notification_service import NotificationService
+    NotificationService.start_background_scheduler(interval_hours=2)
+
     # 2. Đăng ký các Controller (Blueprints)
     app.register_blueprint(home_bp)
     app.register_blueprint(auth_bp)
@@ -37,6 +41,8 @@ def create_app():
         'patient_lab_results': 'patient.lab_results',
         'patient_billing': 'patient.billing',
         'patient_profile': 'patient.profile',
+        'patient_feedbacks': 'patient.feedbacks',
+        'patient_notifications': 'patient.notifications',
         'admin_dashboard': 'admin.dashboard',
         'admin_patients': 'admin.patients',
         'admin_appointments': 'admin.appointments',
@@ -46,7 +52,12 @@ def create_app():
         'admin_pharmacy': 'admin.pharmacy',
         'admin_billing': 'admin.billing',
         'admin_reports': 'admin.reports',
+        'admin_catalogs': 'admin.catalogs',
+        'admin_staff': 'admin.staff',
+        'admin_feedbacks': 'admin.feedbacks',
+        'admin_backups': 'admin.backups',
     }
+
 
     # Đăng ký alias vào app.view_functions để url_for cấp module/route hoạt động
     with app.app_context():

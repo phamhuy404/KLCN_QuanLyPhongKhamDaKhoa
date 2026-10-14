@@ -86,7 +86,40 @@
                 <span class="sidebar-text-fade text-sm font-medium">Báo cáo thống kê</span>
             </a>
 
+            <!-- Các module chức năng quản trị mở rộng -->
+            <a href="{{ url_for('admin_catalogs') }}" class="nav-item {% if active_page == 'admin_catalogs' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Danh mục y tế">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-layer-group nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Danh mục y tế</span>
+            </a>
+
+            <a href="{{ url_for('admin_staff') }}" class="nav-item {% if active_page == 'admin_staff' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Nhân sự & Lịch trực">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-user-doctor nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Nhân sự & Lịch trực</span>
+            </a>
+
+            <a href="{{ url_for('admin_feedbacks') }}" class="nav-item {% if active_page == 'admin_feedbacks' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden" title="Phản hồi người bệnh">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-comments nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Phản hồi người bệnh</span>
+            </a>
+
+            {% set curr_user = session.get('user', {}) %}
+            {% if curr_user.get('vai_tro') == 'ADMIN' %}
+            <a href="{{ url_for('admin_backups') }}" class="nav-item {% if active_page == 'admin_backups' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden text-emerald-400" title="Sao lưu & Phục hồi">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-database nav-icon text-base text-emerald-400"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium text-emerald-300">Sao lưu & Phục hồi</span>
+            </a>
+            {% endif %}
+
             <div class="pt-3 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
+
                 <a href="{{ url_for('patient_dashboard') }}" class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs" title="Cổng Bệnh nhân">
                     <div class="sidebar-icon-box">
                         <i class="fa-solid fa-arrow-up-right-from-square nav-icon text-sm"></i>

@@ -360,4 +360,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     };
+
+    // 5. Tự động kiểm tra và đồng bộ chấm thông báo chưa đọc trên Header
+    const headerBadge = document.getElementById('header-unread-badge');
+    if (headerBadge) {
+        fetch('/api/notifications')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.unread_count > 0) {
+                    headerBadge.classList.remove('hidden');
+                } else {
+                    headerBadge.classList.add('hidden');
+                }
+            })
+            .catch(() => {});
+    }
 });
+

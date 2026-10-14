@@ -43,10 +43,10 @@
         {% endif %}
 
         <!-- Nút chuông thông báo -->
-        <button class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" title="Thông báo" onclick="showToast('Hệ thống hoạt động bình thường!', 'info')">
+        <a href="{{ url_for('patient_notifications') }}" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" title="Xem thông báo của bạn">
             <i class="fa-regular fa-bell text-base"></i>
-            <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
-        </button>
+            <span id="header-unread-badge" class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white hidden"></span>
+        </a>
 
         {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
             <!-- Avatar & Tên Bác sĩ / Quản trị viên -->

@@ -1,0 +1,962 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Quản lý Nhân sự & Lịch làm việc - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Quản lý Nhân sự & Lịch làm việc</h1>
+            <p class="text-gray-500 text-sm mt-1">Quản lý hồ sơ bác sĩ, nhân viên y tế và lịch trực khám</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openStaffModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
+                <i class="fas fa-user-plus"></i> Thêm nhân viên mới
+            </button>
+            <button onclick="openScheduleModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm transition flex items-center gap-2">
+                <i class="fas fa-calendar-plus"></i> Phân ca trực khám
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+            <button id="tab-staff-btn" onclick="switchTab('staff')" class="px-6 py-3.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition">
+                <i class="fas fa-user-md"></i> Đội ngũ Bác sĩ & Nhân sự
+            </button>
+            <button id="tab-schedules-btn" onclick="switchTab('schedules')" class="px-6 py-3.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 transition">
+                <i class="fas fa-calendar-alt"></i> Quản lý Lịch trực & Phân ca
+            </button>
+            <button id="tab-accounts-btn" onclick="switchTab('accounts')" class="px-6 py-3.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 transition">
+                <i class="fas fa-user-shield"></i> Tài khoản & Phân quyền
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB 1: NHÂN SỰ -->
+    <div id="tab-staff" class="tab-pane">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row gap-3 justify-between items-center bg-gray-50/50">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="relative w-full md:w-72">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="staff-search" oninput="filterStaffTable()" placeholder="Tìm theo mã, tên, chức vụ..." class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <select id="staff-role-filter" onchange="filterStaffTable()" class="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                        <option value="">Tất cả chức vụ/vai trò</option>
+                        <option value="BacSi">Bác sĩ</option>
+                        <option value="NhanVien">Nhân viên tiếp nhận/y tế</option>
+                        <option value="QuanTriVien">Quản trị viên</option>
+                    </select>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Tổng số: <span id="staff-count" class="font-bold text-gray-700">{{ staff_list|length }}</span> nhân viên
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm" id="staff-table">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-semibold border-b">
+                        <tr>
+                            <th class="px-6 py-3.5">Họ và tên</th>
+                            <th class="px-6 py-3.5">Chức vụ / Vai trò</th>
+                            <th class="px-6 py-3.5">Chuyên khoa</th>
+                            <th class="px-6 py-3.5">Liên hệ</th>
+                            <th class="px-6 py-3.5">Trạng thái</th>
+                            <th class="px-6 py-3.5 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="staff-tbody">
+                        {% for st in staff_list %}
+                        <tr class="hover:bg-gray-50/70 transition staff-row" data-search="{{ (st.ho_ten or '')|lower }} {{ (st.ma_nhan_vien or '')|lower }} {{ (st.chuc_vu or '')|lower }}" data-role="{{ st.ten_vai_tro or '' }}">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm uppercase">
+                                        {{ (st.ho_ten or 'NV')[:2] }}
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">{{ st.ho_ten }}</div>
+                                        <div class="text-xs text-gray-400">Mã NV: {{ st.ma_nhan_vien }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 text-xs font-medium rounded-full {% if st.ma_vai_tro == 'BACSI' or st.ten_vai_tro == 'Bác sĩ' %}bg-purple-100 text-purple-700{% elif st.ma_vai_tro == 'ADMIN' or st.ten_vai_tro == 'Quản trị viên' %}bg-amber-100 text-amber-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                                    {{ st.chuc_vu or st.ten_vai_tro or 'Nhân viên' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-600">
+                                {{ st.ten_khoa or '-' }}
+                            </td>
+                            <td class="px-6 py-4 text-xs text-gray-500">
+                                <div><i class="fas fa-phone mr-1"></i> {{ st.sdt or 'N/A' }}</div>
+                                <div><i class="fas fa-envelope mr-1"></i> {{ st.email or 'N/A' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if st.trang_thai == 1 or st.trang_thai == '1' %}
+                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-700">Đang làm việc</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-500">Đã nghỉ</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button data-id="{{ st.id }}" onclick="editStaffById(this.dataset.id)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Sửa nhân viên">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button data-id="{{ st.id }}" onclick="toggleStaffStatus(this.dataset.id)" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" title="Đổi trạng thái">
+                                        <i class="fa-solid fa-rotate"></i>
+                                    </button>
+                                    <button data-id="{{ st.id }}" onclick="deleteStaffById(this.dataset.id)" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded" title="Xóa">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-400">Chưa có thông tin nhân viên nào.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: LỊCH TRỰC -->
+    <div id="tab-schedules" class="tab-pane hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row gap-3 justify-between items-center bg-gray-50/50">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-500 font-medium">Từ ngày:</label>
+                        <input type="date" id="filter-start-date" value="{{ start_date }}" onchange="filterSchedules()" class="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 outline-none">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-gray-500 font-medium">Đến ngày:</label>
+                        <input type="date" id="filter-end-date" value="{{ end_date }}" onchange="filterSchedules()" class="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 outline-none">
+                    </div>
+                    <select id="filter-doctor" onchange="filterSchedules()" class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 outline-none">
+                        <option value="">Tất cả Bác sĩ</option>
+                        {% for doc in doctors %}
+                        <option value="{{ doc.id }}">{{ doc.ho_ten }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Tổng số: <span id="schedules-count" class="font-bold text-gray-700">{{ schedules|length }}</span> ca trực
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm" id="schedules-table">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-semibold border-b">
+                        <tr>
+                            <th class="px-6 py-3.5">Ngày làm việc</th>
+                            <th class="px-6 py-3.5">Bác sĩ phụ trách</th>
+                            <th class="px-6 py-3.5">Ca / Khung giờ</th>
+                            <th class="px-6 py-3.5">Phòng khám</th>
+                            <th class="px-6 py-3.5">Đã đăng ký / Tối đa</th>
+                            <th class="px-6 py-3.5">Trạng thái</th>
+                            <th class="px-6 py-3.5 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="schedules-tbody">
+                        {% for sc in schedules %}
+                        <tr class="hover:bg-gray-50/70 transition schedule-row" data-doctor="{{ sc.bac_si_id }}" data-date="{{ sc.ngay_lam }}">
+                            <td class="px-6 py-4 font-semibold text-gray-800">
+                                {{ sc.ngay_lam }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="font-medium text-blue-700">{{ sc.ten_bac_si }}</div>
+                                <div class="text-xs text-gray-400">{{ sc.ten_khoa or 'Bác sĩ chuyên khoa' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                    {{ sc.ten_ca }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-gray-700 font-medium">
+                                {{ sc.ten_phong }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-20 bg-gray-200 rounded-full h-2 overflow-hidden">
+                                        {% set percent = ((sc.so_luong_da_dang_ky or 0) / (sc.so_luong_kham_toi_da or 1) * 100)|round %}
+                                        <div class="bg-blue-600 h-2 rounded-full progress-bar" data-progress="{{ [percent, 100]|min }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600 font-medium">{{ sc.so_luong_da_dang_ky or 0 }}/{{ sc.so_luong_kham_toi_da or 20 }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if sc.trang_thai == 1 or sc.trang_thai == '1' %}
+                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-700">Khả dụng</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-rose-100 text-rose-700">Đã tắt</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button data-id="{{ sc.id }}" onclick="editScheduleById(this.dataset.id)" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Sửa ca trực">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button data-id="{{ sc.id }}" onclick="toggleScheduleStatus(this.dataset.id)" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" title="Bật/Tắt khả dụng">
+                                        <i class="fa-solid fa-power-off"></i>
+                                    </button>
+                                    <button data-id="{{ sc.id }}" onclick="deleteSchedule(this.dataset.id)" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded" title="Xóa">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-8 text-center text-gray-400">Không tìm thấy ca trực nào trong khoảng thời gian này.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: TÀI KHOẢN & PHÂN QUYỀN -->
+    <div id="tab-accounts" class="tab-pane hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row gap-3 justify-between items-center bg-gray-50/50">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="relative w-full md:w-72">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="account-search" oninput="filterAccountsTable()" placeholder="Tìm theo tên đăng nhập, chủ sở hữu..." class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <select id="account-role-filter" onchange="filterAccountsTable()" class="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                        <option value="">Tất cả vai trò</option>
+                        {% for r in roles %}
+                        <option value="{{ r.ma_vai_tro }}">{{ r.ten_vai_tro }} ({{ r.ma_vai_tro }})</option>
+                        {% endfor %}
+                    </select>
+                    <select id="account-status-filter" onchange="filterAccountsTable()" class="text-sm border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="1">Đang hoạt động</option>
+                        <option value="0">Đã khóa</option>
+                    </select>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Tổng số: <span id="accounts-count" class="font-bold text-gray-700">{{ accounts|length if accounts else 0 }}</span> tài khoản
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm" id="accounts-table">
+                    <thead class="bg-gray-50 text-gray-600 text-xs uppercase font-semibold border-b">
+                        <tr>
+                            <th class="px-6 py-3.5">Tên đăng nhập</th>
+                            <th class="px-6 py-3.5">Chủ sở hữu</th>
+                            <th class="px-6 py-3.5">Vai trò hệ thống</th>
+                            <th class="px-6 py-3.5">Trạng thái</th>
+                            <th class="px-6 py-3.5">Ngày tạo</th>
+                            <th class="px-6 py-3.5 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100" id="accounts-tbody">
+                        {% for acc in accounts %}
+                        <tr class="hover:bg-gray-50/70 transition account-row" 
+                            data-search="{{ (acc.ten_dang_nhap or '')|lower }} {{ (acc.ho_ten or '')|lower }} {{ (acc.sdt or '')|lower }}"
+                            data-role="{{ acc.ma_vai_tro or '' }}"
+                            data-status="{{ acc.trang_thai }}">
+                            <td class="px-6 py-4 font-mono font-bold text-gray-800">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <span>{{ acc.ten_dang_nhap }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-gray-800">{{ acc.ho_ten or 'Chưa gắn hồ sơ' }}</div>
+                                <div class="text-xs text-gray-400">{{ acc.sdt or acc.email or 'N/A' }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2.5 py-1 text-xs font-semibold rounded-full 
+                                    {% if acc.ma_vai_tro == 'ADMIN' %}bg-rose-100 text-rose-700 border border-rose-200
+                                    {% elif acc.ma_vai_tro == 'BACSI' %}bg-purple-100 text-purple-700 border border-purple-200
+                                    {% elif acc.ma_vai_tro == 'DUOCSI' %}bg-teal-100 text-teal-700 border border-teal-200
+                                    {% elif acc.ma_vai_tro == 'KTV' %}bg-amber-100 text-amber-700 border border-amber-200
+                                    {% elif acc.ma_vai_tro == 'LETAN' %}bg-blue-100 text-blue-700 border border-blue-200
+                                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                    {{ acc.ten_vai_tro or acc.ma_vai_tro }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if acc.trang_thai == 1 or acc.trang_thai == '1' %}
+                                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Hoạt động
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                                    <i class="fa-solid fa-ban mr-1 text-[10px]"></i> Đã khóa
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-xs text-gray-500 font-mono">
+                                {{ (acc.ngay_tao or '')|string|truncate(19, True, '') }}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button onclick="openChangeRoleModal({{ acc.id }}, '{{ acc.ten_dang_nhap }}', {{ acc.vai_tro_id or 0 }})" 
+                                            class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Đổi vai trò">
+                                        <i class="fa-solid fa-user-tag text-xs"></i>
+                                    </button>
+                                    <button onclick="openResetPasswordModal({{ acc.id }}, '{{ acc.ten_dang_nhap }}')" 
+                                            class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Đặt lại mật khẩu">
+                                        <i class="fa-solid fa-key text-xs"></i>
+                                    </button>
+                                    <button onclick="toggleAccountStatus({{ acc.id }}, {{ acc.trang_thai }})" 
+                                            class="p-2 {% if acc.trang_thai == 1 or acc.trang_thai == '1' %}text-rose-600 hover:bg-rose-50{% else %}text-emerald-600 hover:bg-emerald-50{% endif %} rounded-lg transition" 
+                                            title="{% if acc.trang_thai == 1 or acc.trang_thai == '1' %}Khóa tài khoản{% else %}Mở khóa tài khoản{% endif %}">
+                                        <i class="fa-solid {% if acc.trang_thai == 1 or acc.trang_thai == '1' %}fa-lock{% else %}fa-lock-open{% endif %} text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-400">Chưa có thông tin tài khoản nào trong hệ thống.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA NHÂN VIÊN -->
+<div id="staffModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-fade-in">
+        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+            <h3 class="font-bold text-gray-800" id="staffModalTitle">Thêm nhân sự mới</h3>
+            <button onclick="closeStaffModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="staffForm" onsubmit="handleStaffSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="staff_id" value="">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Họ và tên *</label>
+                <input type="text" id="staff_name" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nguyễn Văn A">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Chức vụ</label>
+                    <input type="text" id="staff_position" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" placeholder="Bác sĩ điều trị / Điều dưỡng">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Vai trò hệ thống *</label>
+                    <select id="staff_role" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" onchange="toggleSpecialtyField()">
+                        {% for r in roles %}
+                        <option value="{{ r.id }}" data-ma="{{ r.ma_vai_tro }}">{{ r.ten_vai_tro }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div id="specialty-container">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Chuyên khoa (đối với Bác sĩ)</label>
+                <select id="staff_specialty" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                    <option value="">-- Chọn chuyên khoa --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.ten_khoa }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Số điện thoại *</label>
+                    <input type="text" id="staff_phone" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none" placeholder="0912345678">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                    <input type="email" id="staff_email" class="w-full px-3 py-2 border rounded-lg text-sm outline-none" placeholder="bacsi@clinic.com">
+                </div>
+            </div>
+            <div id="account-creation-box" class="p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
+                <label class="flex items-center gap-2 cursor-pointer font-medium">
+                    <input type="checkbox" id="create_account" checked class="rounded text-blue-600"> Tự động tạo tài khoản đăng nhập cho nhân viên này
+                </label>
+                <div id="account-inputs" class="mt-2 grid grid-cols-2 gap-2">
+                    <input type="text" id="staff_username" placeholder="Tên đăng nhập (mặc định SĐT)" class="px-2 py-1.5 bg-white border rounded text-xs">
+                    <input type="password" id="staff_password" placeholder="Mật khẩu ban đầu (mặc định 123456)" class="px-2 py-1.5 bg-white border rounded text-xs">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onclick="closeStaffModal()" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Hủy</button>
+                <button type="submit" id="staffSubmitBtn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow-sm">Lưu thông tin</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL PHÂN CA TRỰC -->
+<div id="scheduleModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in">
+        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+            <h3 class="font-bold text-gray-800" id="scheduleModalTitle">Phân ca trực khám</h3>
+            <button onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="scheduleForm" onsubmit="handleScheduleSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="schedule_id" value="">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Bác sĩ phụ trách *</label>
+                <select id="schedule_doctor" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                    <option value="">-- Chọn bác sĩ --</option>
+                    {% for doc in doctors %}
+                    <option value="{{ doc.id }}">{{ doc.ho_ten }} ({{ doc.ten_khoa or 'Bác sĩ' }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Phòng khám *</label>
+                <select id="schedule_room" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                    <option value="">-- Chọn phòng khám --</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}">{{ room.ten_phong }} ({{ room.vi_tri_tang }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Ngày làm việc *</label>
+                    <input type="date" id="schedule_date" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Ca làm việc *</label>
+                    <select id="schedule_shift" required class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                        <option value="1">Ca Sáng (07:00 - 11:30)</option>
+                        <option value="2">Ca Chiều (13:30 - 17:00)</option>
+                        <option value="3">Ca Tối (17:30 - 20:30)</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Số bệnh nhân tối đa trong ca</label>
+                <input type="number" id="schedule_max_patients" value="20" min="1" max="100" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+            </div>
+            <div id="scheduleConflictAlert" class="hidden p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg">
+                <i class="fas fa-exclamation-triangle mr-1"></i> <span id="scheduleConflictMsg"></span>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onclick="closeScheduleModal()" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Hủy</button>
+                <button type="submit" id="scheduleSubmitBtn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm">Lưu ca trực</button>
+            </div>
+        </form>
+    </div>
+<!-- MODAL ĐẶT LẠI MẬT KHẨU TÀI KHOẢN -->
+<div id="resetPasswordModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in">
+        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+            <h3 class="font-bold text-gray-800"><i class="fa-solid fa-key text-amber-500 mr-2"></i>Đặt lại mật khẩu</h3>
+            <button onclick="closeResetPasswordModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form onsubmit="handleResetPasswordSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="reset_account_id">
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                Đặt lại mật khẩu đăng nhập cho tài khoản: <strong id="reset_account_username" class="font-mono font-bold"></strong>. Mật khẩu mới sẽ được mã hóa an toàn bằng thuật toán scrypt.
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Mật khẩu mới (tối thiểu 6 ký tự) *</label>
+                <input type="password" id="reset_new_password" required minlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập mật khẩu mới...">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Xác nhận mật khẩu mới *</label>
+                <input type="password" id="reset_confirm_password" required minlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập lại mật khẩu mới...">
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onclick="closeResetPasswordModal()" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Hủy</button>
+                <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-sm">Xác nhận đặt lại</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL ĐỔI VAI TRÒ TÀI KHOẢN -->
+<div id="changeRoleModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in">
+        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+            <h3 class="font-bold text-gray-800"><i class="fa-solid fa-user-tag text-indigo-500 mr-2"></i>Phân quyền tài khoản</h3>
+            <button onclick="closeChangeRoleModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        <form onsubmit="handleChangeRoleSubmit(event)" class="p-6 space-y-4">
+            <input type="hidden" id="change_role_account_id">
+            <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-800">
+                Gán vai trò mới cho tài khoản: <strong id="change_role_username" class="font-mono font-bold"></strong>. Quyền hạn truy cập các chức năng của tài khoản sẽ được áp dụng ngay lập tức.
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Vai trò hệ thống *</label>
+                <select id="change_role_select" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    {% for r in roles %}
+                    <option value="{{ r.id }}">{{ r.ten_vai_tro }} ({{ r.ma_vai_tro }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onclick="closeChangeRoleModal()" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Hủy</button>
+                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm">Lưu vai trò</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script id="staff-data-json" type="application/json">{{ staff_list|tojson|safe }}</script>
+<script id="schedules-data-json" type="application/json">{{ schedules|tojson|safe }}</script>
+<script>
+window.staffData = JSON.parse(document.getElementById('staff-data-json')?.textContent || '[]');
+window.schedulesData = JSON.parse(document.getElementById('schedules-data-json')?.textContent || '[]');
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.progress-bar').forEach(el => {
+        if (el.dataset.progress) el.style.width = el.dataset.progress;
+    });
+});
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+    const targetEl = document.getElementById('tab-' + tab);
+    if (targetEl) targetEl.classList.remove('hidden');
+
+    const staffBtn = document.getElementById('tab-staff-btn');
+    const schBtn = document.getElementById('tab-schedules-btn');
+    const accBtn = document.getElementById('tab-accounts-btn');
+
+    [staffBtn, schBtn, accBtn].forEach(b => {
+        if (b) b.className = "px-6 py-3.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 flex items-center gap-2 transition";
+    });
+
+    if (tab === 'staff' && staffBtn) {
+        staffBtn.className = "px-6 py-3.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition";
+    } else if (tab === 'schedules' && schBtn) {
+        schBtn.className = "px-6 py-3.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition";
+    } else if (tab === 'accounts' && accBtn) {
+        accBtn.className = "px-6 py-3.5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition";
+    }
+}
+
+function filterStaffTable() {
+    const q = document.getElementById('staff-search').value.toLowerCase().trim();
+    const role = document.getElementById('staff-role-filter').value;
+    const rows = document.querySelectorAll('.staff-row');
+    let visible = 0;
+    rows.forEach(r => {
+        const text = r.getAttribute('data-search') || '';
+        const rRole = r.getAttribute('data-role') || '';
+        const matchText = !q || text.includes(q);
+        const matchRole = !role || rRole === role;
+        if (matchText && matchRole) {
+            r.classList.remove('hidden');
+            visible++;
+        } else {
+            r.classList.add('hidden');
+        }
+    });
+    document.getElementById('staff-count').innerText = visible;
+}
+
+function filterSchedules() {
+    const doctor = document.getElementById('filter-doctor').value;
+    const start = document.getElementById('filter-start-date').value;
+    const end = document.getElementById('filter-end-date').value;
+    const rows = document.querySelectorAll('.schedule-row');
+    let visible = 0;
+    rows.forEach(r => {
+        const rDoc = r.getAttribute('data-doctor');
+        const rDate = r.getAttribute('data-date');
+        const matchDoc = !doctor || String(rDoc) === String(doctor);
+        const matchStart = !start || rDate >= start;
+        const matchEnd = !end || rDate <= end;
+        if (matchDoc && matchStart && matchEnd) {
+            r.classList.remove('hidden');
+            visible++;
+        } else {
+            r.classList.add('hidden');
+        }
+    });
+    document.getElementById('schedules-count').innerText = visible;
+}
+
+function toggleSpecialtyField() {
+    const roleSelect = document.getElementById('staff_role');
+    const opt = roleSelect.options[roleSelect.selectedIndex];
+    const ma = opt ? opt.getAttribute('data-ma') : '';
+    const specBox = document.getElementById('specialty-container');
+    if (ma === 'BACSI') {
+        specBox.classList.remove('hidden');
+    } else {
+        specBox.classList.add('hidden');
+    }
+}
+
+// Modal Staff
+function openStaffModal() {
+    document.getElementById('staffForm').reset();
+    document.getElementById('staff_id').value = '';
+    document.getElementById('staffModalTitle').innerText = 'Thêm nhân sự mới';
+    document.getElementById('account-creation-box').classList.remove('hidden');
+    toggleSpecialtyField();
+    document.getElementById('staffModal').classList.remove('hidden');
+}
+
+function closeStaffModal() {
+    document.getElementById('staffModal').classList.add('hidden');
+}
+
+function editStaffById(id) {
+    const targetId = parseInt(id);
+    const st = (window.staffData || []).find(s => s.id === targetId);
+    if (!st) return;
+    document.getElementById('staffForm').reset();
+    document.getElementById('staff_id').value = st.id;
+    document.getElementById('staff_name').value = st.ho_ten || '';
+    document.getElementById('staff_position').value = st.chuc_vu || '';
+    document.getElementById('staff_phone').value = st.sdt || '';
+    document.getElementById('staff_email').value = st.email || '';
+    if (st.vai_tro_id) document.getElementById('staff_role').value = st.vai_tro_id;
+    toggleSpecialtyField();
+    if (st.chuyen_khoa_id) document.getElementById('staff_specialty').value = st.chuyen_khoa_id;
+    
+    document.getElementById('staffModalTitle').innerText = 'Cập nhật nhân sự: ' + st.ho_ten;
+    document.getElementById('account-creation-box').classList.add('hidden');
+    document.getElementById('staffModal').classList.remove('hidden');
+}
+
+async function handleStaffSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('staff_id').value;
+    const payload = {
+        ho_ten: document.getElementById('staff_name').value.trim(),
+        chuc_vu: document.getElementById('staff_position').value.trim(),
+        vai_tro_id: parseInt(document.getElementById('staff_role').value),
+        chuyen_khoa_id: document.getElementById('staff_specialty').value ? parseInt(document.getElementById('staff_specialty').value) : null,
+        sdt: document.getElementById('staff_phone').value.trim(),
+        email: document.getElementById('staff_email').value.trim()
+    };
+
+    if (!id && document.getElementById('create_account').checked) {
+        payload.username = document.getElementById('staff_username').value.trim() || payload.sdt;
+        payload.password = document.getElementById('staff_password').value || '123456';
+    }
+
+    const url = id ? '/api/staff/update' : '/api/staff/create';
+    const body = id ? { id: parseInt(id), ...payload } : payload;
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Lưu thành công');
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + (data.message || 'Không thể lưu nhân viên'));
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+async function toggleStaffStatus(id) {
+    const targetId = parseInt(id);
+    const st = (window.staffData || []).find(s => s.id === targetId);
+    const isCurrentActive = st ? (st.trang_thai === 1 || st.trang_thai === '1') : true;
+    const confirmMsg = isCurrentActive ? 'Chuyển nhân viên này sang trạng thái Nghỉ việc?' : 'Kích hoạt lại nhân viên này?';
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch('/api/staff/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+async function deleteStaffById(id) {
+    const targetId = parseInt(id);
+    const st = (window.staffData || []).find(s => s.id === targetId);
+    const name = st ? st.ho_ten : ('#' + id);
+    if (!confirm(`Bạn có chắc muốn xóa nhân sự "${name}"? Thao tác này sẽ kiểm tra xem nhân viên đã có lịch trực hoặc hồ sơ liên quan hay chưa.`)) return;
+
+    try {
+        const res = await fetch('/api/staff/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('Không thể xóa: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+// Modal Schedule
+function openScheduleModal() {
+    document.getElementById('scheduleForm').reset();
+    document.getElementById('schedule_id').value = '';
+    document.getElementById('scheduleConflictAlert').classList.add('hidden');
+    document.getElementById('scheduleModalTitle').innerText = 'Phân ca trực khám';
+    
+    // Đặt ngày mặc định là ngày mai
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('schedule_date').value = tomorrow.toISOString().split('T')[0];
+    
+    document.getElementById('scheduleModal').classList.remove('hidden');
+}
+
+function closeScheduleModal() {
+    document.getElementById('scheduleModal').classList.add('hidden');
+}
+
+function editScheduleById(id) {
+    const targetId = parseInt(id);
+    const sc = (window.schedulesData || []).find(s => s.id === targetId);
+    if (!sc) return;
+    document.getElementById('scheduleForm').reset();
+    document.getElementById('schedule_id').value = sc.id;
+    document.getElementById('schedule_doctor').value = sc.bac_si_id;
+    document.getElementById('schedule_room').value = sc.phong_kham_id;
+    document.getElementById('schedule_date').value = sc.ngay_lam;
+    document.getElementById('schedule_shift').value = sc.ca_lam;
+    document.getElementById('schedule_max_patients').value = sc.so_luong_kham_toi_da || 20;
+    document.getElementById('scheduleConflictAlert').classList.add('hidden');
+    
+    document.getElementById('scheduleModalTitle').innerText = 'Chỉnh sửa ca trực #' + sc.id;
+    document.getElementById('scheduleModal').classList.remove('hidden');
+}
+
+async function handleScheduleSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('schedule_id').value;
+    const payload = {
+        bac_si_id: parseInt(document.getElementById('schedule_doctor').value),
+        phong_kham_id: parseInt(document.getElementById('schedule_room').value),
+        ngay_lam: document.getElementById('schedule_date').value,
+        ca_lam: parseInt(document.getElementById('schedule_shift').value) || 1,
+        so_luong_kham_toi_da: parseInt(document.getElementById('schedule_max_patients').value) || 20
+    };
+
+    const url = id ? '/api/schedule/update' : '/api/schedule/create';
+    const body = id ? { id: parseInt(id), ...payload } : payload;
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Lưu ca trực thành công');
+            window.location.reload();
+        } else {
+            const conflictBox = document.getElementById('scheduleConflictAlert');
+            document.getElementById('scheduleConflictMsg').innerText = data.message;
+            conflictBox.classList.remove('hidden');
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+async function toggleScheduleStatus(id) {
+    const targetId = parseInt(id);
+    try {
+        const res = await fetch('/api/schedule/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: targetId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+async function deleteSchedule(id) {
+    const targetId = parseInt(id);
+    if (!confirm('Bạn có chắc muốn xóa ca trực này? Nếu ca trực đã có bệnh nhân đăng ký sẽ không được phép xóa.')) return;
+    try {
+        const res = await fetch('/api/schedule/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: targetId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('Không thể xóa: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+// =================== XỬ LÝ TÀI KHOẢN & PHÂN QUYỀN ===================
+function filterAccountsTable() {
+    const q = (document.getElementById('account-search')?.value || '').toLowerCase().trim();
+    const role = document.getElementById('account-role-filter')?.value || '';
+    const status = document.getElementById('account-status-filter')?.value || '';
+    const rows = document.querySelectorAll('.account-row');
+    let visible = 0;
+    rows.forEach(r => {
+        const text = r.getAttribute('data-search') || '';
+        const rRole = r.getAttribute('data-role') || '';
+        const rStatus = r.getAttribute('data-status') || '';
+        const matchText = !q || text.includes(q);
+        const matchRole = !role || rRole === role;
+        const matchStatus = !status || String(rStatus) === String(status);
+        if (matchText && matchRole && matchStatus) {
+            r.classList.remove('hidden');
+            visible++;
+        } else {
+            r.classList.add('hidden');
+        }
+    });
+    const countEl = document.getElementById('accounts-count');
+    if (countEl) countEl.innerText = visible;
+}
+
+async function toggleAccountStatus(id, currentStatus) {
+    const isLocking = currentStatus === 1 || currentStatus === '1';
+    const confirmMsg = isLocking 
+        ? 'Bạn có chắc chắn muốn KHÓA tài khoản này? Người dùng sẽ không thể đăng nhập hoặc tiếp tục phiên làm việc.' 
+        : 'Bạn có chắc chắn muốn MỞ KHÓA tài khoản này?';
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch('/api/account/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: parseInt(id) })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Cập nhật trạng thái tài khoản thành công!');
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+}
+
+function openResetPasswordModal(id, username) {
+    document.getElementById('reset_account_id').value = id;
+    document.getElementById('reset_account_username').innerText = username;
+    document.getElementById('reset_new_password').value = '';
+    document.getElementById('reset_confirm_password').value = '';
+    document.getElementById('resetPasswordModal').classList.remove('hidden');
+}
+
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.add('hidden');
+}
+
+async function handleResetPasswordSubmit(e) {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('reset_account_id').value);
+    const newPass = document.getElementById('reset_new_password').value;
+    const confirmPass = document.getElementById('reset_confirm_password').value;
+
+    if (newPass !== confirmPass) {
+        alert('Mật khẩu mới và mật khẩu xác nhận không khớp nhau!');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/account/reset-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id, new_password: newPass })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Đặt lại mật khẩu thành công!');
+            closeResetPasswordModal();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+}
+
+function openChangeRoleModal(id, username, roleId) {
+    document.getElementById('change_role_account_id').value = id;
+    document.getElementById('change_role_username').innerText = username;
+    if (roleId) {
+        document.getElementById('change_role_select').value = roleId;
+    }
+    document.getElementById('changeRoleModal').classList.remove('hidden');
+}
+
+function closeChangeRoleModal() {
+    document.getElementById('changeRoleModal').classList.add('hidden');
+}
+
+async function handleChangeRoleSubmit(e) {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('change_role_account_id').value);
+    const roleId = parseInt(document.getElementById('change_role_select').value);
+
+    try {
+        const res = await fetch('/api/account/change-role', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id, role_id: roleId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Đổi vai trò tài khoản thành công!');
+            closeChangeRoleModal();
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ: ' + err.message);
+    }
+}
+</script>
+{% endblock %}

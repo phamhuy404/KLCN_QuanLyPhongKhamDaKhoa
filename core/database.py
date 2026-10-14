@@ -117,6 +117,7 @@ def get_db():
         conn = pyodbc.connect(conn_str)
         return UnifiedConnection(conn, 'sqlserver')
 
+
     elif engine == 'mysql':
         import pymysql
         cfg = config.MYSQL_CONFIG
@@ -460,7 +461,50 @@ def init_sqlite_db():
         trang_thai INTEGER DEFAULT 1,
         FOREIGN KEY (tac_gia_id) REFERENCES nhan_vien(id)
     );
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        table_name TEXT NOT NULL,
+        row_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        performed_by INTEGER,
+        performed_by_name TEXT,
+        performed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        reason TEXT,
+        before_json TEXT,
+        after_json TEXT
+    );
     ''')
+
+    # Bổ sung các cột mới nếu bảng đã tồn tại (cho SQLite)
+    try:
+        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN bac_si_duyet TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN thoi_gian_duyet DATETIME")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN ghi_chu_duyet TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN nguoi_nhap TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN ly_do_huy TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN nguoi_huy TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN thoi_gian_huy DATETIME")
+    except Exception:
+        pass
 
     # Kiểm tra nếu chưa có tài khoản nào thì nạp seed tối thiểu (1 admin, 1 bệnh nhân)
     cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
@@ -580,37 +624,231 @@ def _seed_minimal_data(cursor):
         (3, 1, 'Khám sức khỏe tổng quát định kỳ: Lợi ích vàng không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', 'Tin Tức Phòng Khám', 'Tầm soát sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn nguy hiểm như cao huyết áp, tiểu đường, gan nhiễm mỡ, gout ngay từ giai đoạn chưa có biểu hiện triệu chứng.', 'Nội dung chi tiết về các gói khám tổng quát định kỳ...', 'kham-tong-quat.jpg', 580, '2026-09-23 10:00:00', 1)
     ])
 
-def ensure_patient_blood_columns(conn, engine):
-    """Đảm bảo bảng benh_nhan có trường ghi_chu_nhom_mau."""
+def ensure_schema_updates(conn, engine):
+    """Tự động đồng bộ các bảng và cột mới trên cả 3 CSDL: SQLite, SQL Server, MySQL."""
     cursor = conn.cursor()
     try:
         if engine == 'sqlite':
+            # 1. benh_nhan: ghi_chu_nhom_mau
             cursor.execute("PRAGMA table_info(benh_nhan)")
-            cols = [col['name'] for col in cursor.fetchall()]
+            cols = [c['name'] for c in cursor.fetchall()]
             if 'ghi_chu_nhom_mau' not in cols:
                 cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau TEXT")
-                conn.commit()
-        elif engine == 'sqlserver':
-            cursor.execute("""
-                IF NOT EXISTS (
-                    SELECT * FROM sys.columns 
-                    WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'ghi_chu_nhom_mau'
-                )
-                BEGIN
-                    ALTER TABLE benh_nhan ADD ghi_chu_nhom_mau NVARCHAR(255) NULL
-                END
-            """)
+
+            # 2. chuyen_khoa: trang_thai
+            cursor.execute("PRAGMA table_info(chuyen_khoa)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            if 'trang_thai' not in cols:
+                cursor.execute("ALTER TABLE chuyen_khoa ADD COLUMN trang_thai INTEGER DEFAULT 1")
+                cursor.execute("UPDATE chuyen_khoa SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 3. dich_vu: trang_thai
+            cursor.execute("PRAGMA table_info(dich_vu)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            if 'trang_thai' not in cols:
+                cursor.execute("ALTER TABLE dich_vu ADD COLUMN trang_thai INTEGER DEFAULT 1")
+                cursor.execute("UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 4. lich_lam_viec: trang_thai
+            cursor.execute("PRAGMA table_info(lich_lam_viec)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            if 'trang_thai' not in cols:
+                cursor.execute("ALTER TABLE lich_lam_viec ADD COLUMN trang_thai INTEGER DEFAULT 1")
+                cursor.execute("UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 5. phan_hoi: chu_de, trang_thai, tra_loi, ngay_tra_loi, nguoi_tra_loi
+            cursor.execute("PRAGMA table_info(phan_hoi)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            if 'chu_de' not in cols:
+                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN chu_de TEXT DEFAULT 'Dịch vụ khám bệnh'")
+            if 'trang_thai' not in cols:
+                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN trang_thai TEXT DEFAULT 'Chờ tiếp nhận'")
+            if 'tra_loi' not in cols:
+                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN tra_loi TEXT")
+            if 'ngay_tra_loi' not in cols:
+                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN ngay_tra_loi DATETIME")
+            if 'nguoi_tra_loi' not in cols:
+                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN nguoi_tra_loi TEXT")
+
+            # 6. thong_bao: lien_ket
+            cursor.execute("PRAGMA table_info(thong_bao)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            if 'lien_ket' not in cols:
+                cursor.execute("ALTER TABLE thong_bao ADD COLUMN lien_ket TEXT")
+
+            # 7. lich_su_nhac_nho
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS lich_su_nhac_nho (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lich_hen_id INTEGER,
+                    phieu_kham_id INTEGER,
+                    benh_nhan_id INTEGER NOT NULL,
+                    loai_nhac TEXT NOT NULL,
+                    ngay_nhac TEXT,
+                    kenh_gui TEXT DEFAULT 'IN_APP',
+                    trang_thai TEXT DEFAULT 'THANH_CONG',
+                    loi_gui TEXT,
+                    thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id),
+                    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
+                    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
+                );
+            ''')
+
+            # 8. lich_su_sao_luu
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS lich_su_sao_luu (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    loai_thao_tac TEXT NOT NULL,
+                    ten_tap_tin TEXT NOT NULL,
+                    duong_dan TEXT,
+                    loai_csdl TEXT NOT NULL,
+                    dung_luong INTEGER DEFAULT 0,
+                    nguoi_thuc_hien TEXT,
+                    trang_thai TEXT DEFAULT 'SUCCESS',
+                    ghi_chu TEXT,
+                    thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
             conn.commit()
+
+        elif engine == 'sqlserver':
+            stmts = [
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'ghi_chu_nhom_mau') ALTER TABLE benh_nhan ADD ghi_chu_nhom_mau NVARCHAR(255) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chuyen_khoa') AND name = 'trang_thai') ALTER TABLE chuyen_khoa ADD trang_thai BIT DEFAULT 1;",
+                "UPDATE chuyen_khoa SET trang_thai = 1 WHERE trang_thai IS NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dich_vu') AND name = 'trang_thai') ALTER TABLE dich_vu ADD trang_thai BIT DEFAULT 1;",
+                "UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'trang_thai') ALTER TABLE lich_lam_viec ADD trang_thai BIT DEFAULT 1;",
+                "UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'chu_de') ALTER TABLE phan_hoi ADD chu_de NVARCHAR(100) DEFAULT N'Dịch vụ khám bệnh';",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'trang_thai') ALTER TABLE phan_hoi ADD trang_thai NVARCHAR(50) DEFAULT N'Chờ tiếp nhận';",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'tra_loi') ALTER TABLE phan_hoi ADD tra_loi NVARCHAR(MAX) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'ngay_tra_loi') ALTER TABLE phan_hoi ADD ngay_tra_loi DATETIME NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'nguoi_tra_loi') ALTER TABLE phan_hoi ADD nguoi_tra_loi NVARCHAR(100) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('thong_bao') AND name = 'lien_ket') ALTER TABLE thong_bao ADD lien_ket NVARCHAR(255) NULL;",
+                """
+                IF OBJECT_ID('lich_su_nhac_nho', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE lich_su_nhac_nho (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        lich_hen_id INT NULL,
+                        phieu_kham_id INT NULL,
+                        benh_nhan_id INT NULL,
+                        loai_nhac NVARCHAR(50) NOT NULL,
+                        ngay_nhac DATE NULL,
+                        kenh_gui NVARCHAR(20) DEFAULT 'IN_APP',
+                        trang_thai NVARCHAR(50) DEFAULT 'THANH_CONG',
+                        loi_gui NVARCHAR(MAX) NULL,
+                        thoi_gian_gui DATETIME DEFAULT GETDATE()
+                    );
+                END
+                """,
+                """
+                IF OBJECT_ID('lich_su_sao_luu', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE lich_su_sao_luu (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        loai_thao_tac NVARCHAR(20) NOT NULL,
+                        ten_tap_tin NVARCHAR(255) NOT NULL,
+                        duong_dan NVARCHAR(500) NULL,
+                        loai_csdl NVARCHAR(50) NOT NULL,
+                        dung_luong BIGINT DEFAULT 0,
+                        nguoi_thuc_hien NVARCHAR(100) NULL,
+                        trang_thai NVARCHAR(50) DEFAULT 'SUCCESS',
+                        ghi_chu NVARCHAR(MAX) NULL,
+                        thoi_gian DATETIME DEFAULT GETDATE()
+                    );
+                END
+                """
+            ]
+            for s in stmts:
+                cursor.execute(s)
+            conn.commit()
+
         elif engine == 'mysql':
-            cursor.execute("""
-                SELECT COUNT(*) as cnt FROM information_schema.columns 
-                WHERE table_name = 'benh_nhan' AND column_name = 'ghi_chu_nhom_mau'
-            """)
+            # 1. benh_nhan: ghi_chu_nhom_mau
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'benh_nhan' AND column_name = 'ghi_chu_nhom_mau'")
             if cursor.fetchone()['cnt'] == 0:
                 cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau VARCHAR(255) NULL")
-                conn.commit()
+
+            # 2. chuyen_khoa: trang_thai
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'chuyen_khoa' AND column_name = 'trang_thai'")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE chuyen_khoa ADD COLUMN trang_thai BIT DEFAULT 1")
+                cursor.execute("UPDATE chuyen_khoa SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 3. dich_vu: trang_thai
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'dich_vu' AND column_name = 'trang_thai'")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE dich_vu ADD COLUMN trang_thai BIT DEFAULT 1")
+                cursor.execute("UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 4. lich_lam_viec: trang_thai
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'lich_lam_viec' AND column_name = 'trang_thai'")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE lich_lam_viec ADD COLUMN trang_thai BIT DEFAULT 1")
+                cursor.execute("UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL")
+
+            # 5. phan_hoi
+            col_specs = [
+                ('chu_de', "VARCHAR(100) DEFAULT 'Dịch vụ khám bệnh'"),
+                ('trang_thai', "VARCHAR(50) DEFAULT 'Chờ tiếp nhận'"),
+                ('tra_loi', "TEXT NULL"),
+                ('ngay_tra_loi', "DATETIME NULL"),
+                ('nguoi_tra_loi', "VARCHAR(100) NULL")
+            ]
+            for col_name, col_type in col_specs:
+                cursor.execute(f"SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'phan_hoi' AND column_name = '{col_name}'")
+                if cursor.fetchone()['cnt'] == 0:
+                    cursor.execute(f"ALTER TABLE phan_hoi ADD COLUMN {col_name} {col_type}")
+
+            # 6. thong_bao: lien_ket
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'thong_bao' AND column_name = 'lien_ket'")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE thong_bao ADD COLUMN lien_ket VARCHAR(255) NULL")
+
+            # 7. lich_su_nhac_nho
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS lich_su_nhac_nho (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    lich_hen_id INT NULL,
+                    phieu_kham_id INT NULL,
+                    benh_nhan_id INT NOT NULL,
+                    loai_nhac VARCHAR(50) NOT NULL,
+                    ngay_nhac DATE NULL,
+                    kenh_gui VARCHAR(20) DEFAULT 'IN_APP',
+                    trang_thai VARCHAR(50) DEFAULT 'THANH_CONG',
+                    loi_gui TEXT NULL,
+                    thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id) ON DELETE SET NULL,
+                    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE SET NULL,
+                    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE
+                );
+            ''')
+
+            # 8. lich_su_sao_luu
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS lich_su_sao_luu (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    loai_thao_tac VARCHAR(20) NOT NULL,
+                    ten_tap_tin VARCHAR(255) NOT NULL,
+                    duong_dan VARCHAR(500) NULL,
+                    loai_csdl VARCHAR(50) NOT NULL,
+                    dung_luong BIGINT DEFAULT 0,
+                    nguoi_thuc_hien VARCHAR(100) NULL,
+                    trang_thai VARCHAR(50) DEFAULT 'SUCCESS',
+                    ghi_chu TEXT NULL,
+                    thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            conn.commit()
+
     except Exception as e:
-        print("[Database] Luu y cap nhat cot ghi_chu_nhom_mau:", e)
+        print("[Database] Luu y cap nhat schema tu dong:", e)
+
+# Ánh xạ tương thích ngược
+ensure_patient_blood_columns = ensure_schema_updates
 
 def init_db():
     """Kiểm tra và khởi tạo kết nối CSDL khi ứng dụng khởi chạy."""
@@ -618,13 +856,13 @@ def init_db():
     if engine == 'sqlite':
         init_sqlite_db()
         conn = get_db()
-        ensure_patient_blood_columns(conn, 'sqlite')
+        ensure_schema_updates(conn, 'sqlite')
         conn.close()
         print("[Database] Khoi tao SQLite thanh cong!")
     elif engine == 'sqlserver':
         try:
             conn = get_db()
-            ensure_patient_blood_columns(conn, 'sqlserver')
+            ensure_schema_updates(conn, 'sqlserver')
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
             row = cursor.fetchone()
@@ -635,7 +873,7 @@ def init_db():
     elif engine == 'mysql':
         try:
             conn = get_db()
-            ensure_patient_blood_columns(conn, 'mysql')
+            ensure_schema_updates(conn, 'mysql')
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
             row = cursor.fetchone()
@@ -643,3 +881,4 @@ def init_db():
             conn.close()
         except Exception as e:
             print("[Database] Canh bao ket noi MySQL:", e)
+

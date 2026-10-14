@@ -109,3 +109,45 @@ def reports():
     stats = ClinicModel.get_dashboard_stats()
     invoices = BillingModel.get_all()
     return render_template('admin/reports.html', active_page='admin_reports', stats=stats, invoices=invoices)
+
+@admin_bp.route('/catalogs')
+@roles_required('ADMIN')
+def catalogs():
+    """Quản lý danh mục y tế: Chuyên khoa, Phòng khám vật lý, Dịch vụ kỹ thuật."""
+    departments = ClinicModel.get_all_departments(active_only=False)
+    rooms = ClinicModel.get_all_rooms(active_only=False)
+    services = ClinicModel.get_all_services(active_only=False)
+    return render_template('admin/catalogs.html', active_page='admin_catalogs', departments=departments, rooms=rooms, services=services)
+
+@admin_bp.route('/staff')
+@roles_required('ADMIN')
+def staff():
+    """Quản lý nhân sự y tế, bác sĩ chuyên khoa và lịch làm việc / phân ca trực."""
+    from models.schedule_model import ScheduleModel
+    staff_list = UserModel.get_all_staff()
+    doctors = UserModel.get_all_doctors()
+    schedules = ScheduleModel.get_all()
+    roles = UserModel.get_all_roles()
+    departments = ClinicModel.get_all_departments(active_only=True)
+    rooms = ClinicModel.get_all_rooms(active_only=True)
+    accounts = UserModel.get_accounts()
+    return render_template('admin/staff.html', active_page='admin_staff', staff_list=staff_list, doctors=doctors, schedules=schedules, roles=roles, departments=departments, rooms=rooms, accounts=accounts)
+
+@admin_bp.route('/feedbacks')
+@roles_required('ADMIN', 'LETAN', 'BACSI')
+def feedbacks():
+    """Tiếp nhận, xử lý và phản hồi ý kiến đóng góp của người bệnh."""
+    from models.feedback_model import FeedbackModel
+    status_filter = request.args.get('status', 'ALL')
+    topic_filter = request.args.get('topic', 'ALL')
+    feedback_list = FeedbackModel.get_all(filter_status=status_filter, filter_topic=topic_filter)
+    return render_template('admin/feedbacks.html', active_page='admin_feedbacks', feedbacks=feedback_list, current_status=status_filter, current_topic=topic_filter)
+
+@admin_bp.route('/backups')
+@roles_required('ADMIN')
+def backups():
+    """Quản lý sao lưu và phục hồi cơ sở dữ liệu an toàn (Dành riêng cho Quản trị viên)."""
+    from models.backup_model import BackupModel
+    backup_data = BackupModel.list_backups()
+    return render_template('admin/backups.html', active_page='admin_backups', backup_data=backup_data)
+

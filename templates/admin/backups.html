@@ -1,0 +1,362 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Sao Lưu & Phục Hồi Dữ Liệu - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Page Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-slate-700/50">
+        <div>
+            <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-shield-halved"></i> Phân Hệ Quản Trị Hệ Thống An Toàn
+            </div>
+            <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                <span>Sao Lưu & Phục Hồi Dữ Liệu</span>
+                <span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-semibold">
+                    Admin Only
+                </span>
+            </h2>
+            <p class="text-slate-300 mt-1 text-sm max-w-2xl">
+                Quản lý các bản snapshot dữ liệu phòng khám, đảm bảo an toàn thông tin bệnh nhân và khả năng phục hồi thảm họa tức thì. Hỗ trợ SQLite, SQL Server và MySQL.
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="handleCreateBackup()" id="btn-create-backup" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Tạo Bản Sao Lưu Mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Status & Info Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Card 1: Hệ CSDL Hiện Tại -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Hệ Quản Trị CSDL</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <div class="mt-3 flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center text-xl font-bold">
+                    {% if backup_data.current_engine == 'sqlite' %}
+                        <i class="fa-solid fa-file-shield"></i>
+                    {% elif backup_data.current_engine == 'sqlserver' %}
+                        <i class="fa-solid fa-server"></i>
+                    {% else %}
+                        <i class="fa-solid fa-database"></i>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 uppercase">{{ backup_data.current_engine }}</h3>
+                    <p class="text-xs text-slate-500">
+                        {% if backup_data.current_engine == 'sqlite' %}
+                            Tự động nạp CSDL file phongkham.db
+                        {% elif backup_data.current_engine == 'sqlserver' %}
+                            Microsoft SQL Server (ODBC T-SQL)
+                        {% else %}
+                            MySQL / MariaDB (mysqldump)
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Thư Mục Lưu Trữ -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Thư Mục Bản Lưu</span>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Bảo mật ngoài static</span>
+            </div>
+            <div class="mt-3">
+                <div class="text-xs font-mono bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-700 truncate" title="{{ backup_data.backup_dir }}">
+                    {{ backup_data.backup_dir }}
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                    <i class="fa-solid fa-lock text-emerald-500"></i> Ngăn chặn tải trực tiếp và path traversal
+                </p>
+            </div>
+        </div>
+
+        <!-- Card 3: Thống Kê Bản Sao Lưu -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Tổng Số Bản Sao Lưu</span>
+                <i class="fa-solid fa-box-archive text-slate-400"></i>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-slate-800">{{ backup_data.files|length }}</span>
+                <span class="text-xs text-slate-500">tệp sao lưu khả dụng</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">
+                Lịch sử ghi nhận: <strong class="text-slate-700">{{ backup_data.history|length }}</strong> lượt thao tác
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Section: Danh Sách File Sao Lưu Khả Dụng -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-medical-600"></i>
+                    <span>Danh Sách Tệp Sao Lưu Trên Đĩa</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Các tệp sao lưu hợp lệ có thể tải xuống hoặc sử dụng để phục hồi</p>
+            </div>
+            <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-xl">
+                Cập nhật tự động
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50/80 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-3.5">Tên Tệp Sao Lưu</th>
+                        <th class="px-6 py-3.5">Loại CSDL</th>
+                        <th class="px-6 py-3.5">Dung Lượng</th>
+                        <th class="px-6 py-3.5">Thời Gian Tạo</th>
+                        <th class="px-6 py-3.5 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% if backup_data.files %}
+                        {% for f in backup_data.files %}
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            <td class="px-6 py-4 font-mono font-bold text-slate-800 flex items-center gap-2.5">
+                                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-file-code"></i>
+                                </span>
+                                <span class="truncate max-w-xs md:max-w-md" title="{{ f.ten_tap_tin }}">{{ f.ten_tap_tin }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-xs font-semibold uppercase px-2.5 py-1 rounded-md bg-slate-100 text-slate-700">
+                                    {{ f.loai_csdl }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-semibold text-slate-700">
+                                {{ f.dung_luong_hienthi }}
+                            </td>
+                            <td class="px-6 py-4 text-xs text-slate-500">
+                                {{ f.thoi_gian_tao }}
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="inline-flex items-center gap-2">
+                                    <a href="/api/backup/download/{{ f.ten_tap_tin }}" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5" title="Tải tệp về máy tính">
+                                        <i class="fa-solid fa-download text-medical-600"></i>
+                                        <span>Tải về</span>
+                                    </a>
+                                    <button onclick="confirmRestore('{{ f.ten_tap_tin }}')" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs border border-rose-200/80 transition-all flex items-center gap-1.5" title="Phục hồi cơ sở dữ liệu từ tệp này">
+                                        <i class="fa-solid fa-rotate-left text-rose-600"></i>
+                                        <span>Phục hồi</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                <i class="fa-solid fa-box-open text-4xl mb-3 text-slate-300 block"></i>
+                                Chưa có bản sao lưu nào được tạo. Hãy bấm <strong>"Tạo Bản Sao Lưu Mới"</strong> ở góc trên.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- History Section: Lịch Sử Thao Tác Sao Lưu & Phục Hồi -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-slate-600"></i>
+                    <span>Nhật Ký Thao Tác (Audit Log)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Ghi nhận minh bạch thời điểm, loại thao tác, người thực hiện và trạng thái</p>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50/80 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-3">Loại Thao Tác</th>
+                        <th class="px-6 py-3">Tên Tệp</th>
+                        <th class="px-6 py-3">CSDL</th>
+                        <th class="px-6 py-3">Người Thực Hiện</th>
+                        <th class="px-6 py-3">Thời Gian</th>
+                        <th class="px-6 py-3">Trạng Thái</th>
+                        <th class="px-6 py-3">Ghi Chú</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% if backup_data.history %}
+                        {% for h in backup_data.history %}
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            <td class="px-6 py-3.5 font-bold">
+                                {% if h.loai_thao_tac == 'BACKUP' %}
+                                    <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold border border-emerald-200/80">SAO LƯU</span>
+                                {% else %}
+                                    <span class="text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-semibold border border-rose-200/80">PHỤC HỒI</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-3.5 font-mono text-slate-800">
+                                {{ h.ten_tap_tin }}
+                            </td>
+                            <td class="px-6 py-3.5 uppercase text-slate-500">
+                                {{ h.loai_csdl }}
+                            </td>
+                            <td class="px-6 py-3.5 font-semibold text-slate-700">
+                                {{ h.nguoi_thuc_hien or 'Admin' }}
+                            </td>
+                            <td class="px-6 py-3.5 text-slate-500">
+                                {{ h.thoi_gian }}
+                            </td>
+                            <td class="px-6 py-3.5">
+                                {% if h.trang_thai == 'SUCCESS' %}
+                                    <span class="inline-flex items-center gap-1 text-emerald-600 font-bold">
+                                        <i class="fa-solid fa-circle-check text-xs"></i> Thành công
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1 text-rose-600 font-bold">
+                                        <i class="fa-solid fa-circle-xmark text-xs"></i> Thất bại
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-3.5 text-slate-500 truncate max-w-xs" title="{{ h.ghi_chu or '' }}">
+                                {{ h.ghi_chu or '-' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-6 text-center text-slate-400">Chưa có bản ghi nhật ký nào.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Xác Nhận Phục Hồi Dữ Liệu An Toàn -->
+<div id="modal-restore" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto mb-4 border border-rose-200">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 text-center">Xác Nhận Phục Hồi Cơ Sở Dữ Liệu</h3>
+        <p class="text-sm text-slate-600 mt-2 text-center">
+            Hệ thống sẽ tiến hành ghi đè dữ liệu hiện tại bằng tệp sao lưu:
+        </p>
+        <div class="my-3 p-3 bg-slate-100 rounded-xl font-mono text-xs text-slate-800 text-center break-all font-bold" id="restore-target-file">
+            backup_file.bak
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
+            <p class="font-bold flex items-center gap-1"><i class="fa-solid fa-shield"></i> Cơ chế an toàn tự động:</p>
+            <p>1. Hệ thống sẽ tự động tạo một bản sao lưu an toàn của dữ liệu hiện tại trước khi khôi phục.</p>
+            <p>2. Các kết nối đang truy cập có thể bị tạm ngắt trong giây lát để hoàn tất tiến trình.</p>
+        </div>
+
+        <div class="mt-5 flex gap-3">
+            <button type="button" onclick="closeRestoreModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all">
+                Hủy bỏ
+            </button>
+            <button type="button" id="btn-submit-restore" onclick="executeRestore()" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span>Xác Nhận Phục Hồi</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentRestoreFile = '';
+
+function confirmRestore(filename) {
+    currentRestoreFile = filename;
+    document.getElementById('restore-target-file').innerText = filename;
+    const modal = document.getElementById('modal-restore');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeRestoreModal() {
+    const modal = document.getElementById('modal-restore');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentRestoreFile = '';
+}
+
+async function handleCreateBackup() {
+    const btn = document.getElementById('btn-create-backup');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang sao lưu...';
+
+    try {
+        const res = await fetch('/api/backup/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            showToast(data.message || 'Lỗi khi sao lưu dữ liệu!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (err) {
+        showToast('Lỗi mạng hoặc server không phản hồi: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function executeRestore() {
+    if (!currentRestoreFile) return;
+
+    const btn = document.getElementById('btn-submit-restore');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang phục hồi...';
+
+    try {
+        const res = await fetch('/api/backup/restore', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                filename: currentRestoreFile,
+                confirm: true
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast(data.message || 'Phục hồi dữ liệu thất bại!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (err) {
+        showToast('Lỗi mạng hoặc server: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+</script>
+{% endblock %}

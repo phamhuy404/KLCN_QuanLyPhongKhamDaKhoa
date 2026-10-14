@@ -14,18 +14,27 @@ def verify_password(stored_hash, password):
         return stored_hash == password
 
 def login_required(f):
-    """Decorator kiểm tra người dùng đã đăng nhập chưa."""
+    """Decorator kiểm tra người dùng đã đăng nhập chưa và tài khoản có đang hoạt động hay không."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in') or not session.get('user'):
             if request.path.startswith('/api/'):
                 return jsonify({'success': False, 'message': 'Vui lòng đăng nhập để tiếp tục!'}), 401
             return redirect(url_for('auth.login', next=request.path))
+        
+        user_id = session.get('user', {}).get('id')
+        if user_id:
+            from models.user_model import UserModel
+            if not UserModel.check_account_active(user_id):
+                session.clear()
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'message': 'Tài khoản của bạn đã bị vô hiệu hóa!'}), 401
+                return redirect(url_for('auth.login', error='Tài khoản của bạn đã bị vô hiệu hóa!'))
         return f(*args, **kwargs)
     return decorated_function
 
 def roles_required(*allowed_roles):
-    """Decorator kiểm tra vai trò người dùng (RBAC)."""
+    """Decorator kiểm tra vai trò người dùng (RBAC) và trạng thái tài khoản hoạt động."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -33,6 +42,15 @@ def roles_required(*allowed_roles):
                 if request.path.startswith('/api/'):
                     return jsonify({'success': False, 'message': 'Yêu cầu đăng nhập!'}), 401
                 return redirect(url_for('auth.login', next=request.path))
+
+            user_id = session.get('user', {}).get('id')
+            if user_id:
+                from models.user_model import UserModel
+                if not UserModel.check_account_active(user_id):
+                    session.clear()
+                    if request.path.startswith('/api/'):
+                        return jsonify({'success': False, 'message': 'Tài khoản của bạn đã bị vô hiệu hóa!'}), 401
+                    return redirect(url_for('auth.login', error='Tài khoản của bạn đã bị vô hiệu hóa!'))
             
             user_role = session.get('user', {}).get('vai_tro')
             if user_role not in allowed_roles:
@@ -45,3 +63,4 @@ def roles_required(*allowed_roles):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+

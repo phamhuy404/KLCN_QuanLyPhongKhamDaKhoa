@@ -319,10 +319,16 @@
                            class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Bắt đầu khám (EMR)">
                             <i class="fa-solid fa-stethoscope text-xs"></i>
                         </a>
-                        <button type="button" onclick="toggleAppointmentStatus(${app.id})" 
-                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Đổi trạng thái">
+                        ${app.trang_thai !== 'cancelled' ? `
+                        <button type="button" onclick="cycleAppointmentStatus(${app.id}, '${app.trang_thai}')" 
+                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Chuyển trạng thái kế tiếp">
                             <i class="fa-solid fa-rotate text-xs"></i>
                         </button>
+                        <button type="button" onclick="cancelAppointment(${app.id}, '${app.ma_hen}')" 
+                                class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors" title="Hủy lịch hẹn">
+                            <i class="fa-solid fa-ban text-xs"></i>
+                        </button>
+                        ` : ''}
                     </div>
                 </td>
             `;
@@ -354,23 +360,70 @@
         renderAppointments(filtered);
     }
 
-    // Chuyển đổi trạng thái hẹn
-    function toggleAppointmentStatus(id) {
-        const app = appointments.find(a => a.id === id);
-        if (!app) return;
-
-        if (app.trang_thai === 'waiting') {
-            app.trang_thai = 'completed';
-        } else if (app.trang_thai === 'confirmed') {
-            app.trang_thai = 'waiting';
-        } else if (app.trang_thai === 'completed') {
-            app.trang_thai = 'waiting';
+    // Chuyển đổi trạng thái hẹn qua API
+    async function cycleAppointmentStatus(id, currentStatus) {
+        let nextStatus = 'waiting';
+        let statusText = 'Chờ khám';
+        if (currentStatus === 'waiting') {
+            nextStatus = 'confirmed';
+            statusText = 'Đã xác nhận';
+        } else if (currentStatus === 'confirmed') {
+            nextStatus = 'completed';
+            statusText = 'Đã khám xong';
+        } else {
+            nextStatus = 'waiting';
+            statusText = 'Chờ khám';
         }
 
-        filterAppointments();
+        try {
+            const res = await fetch('/api/appointment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: nextStatus })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const app = appointments.find(a => a.id === id);
+                if (app) app.trang_thai = nextStatus;
+                filterAppointments();
+            } else {
+                alert('Lỗi cập nhật trạng thái: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
     }
 
-    // Modal
+    // Hủy lịch hẹn qua API
+    async function cancelAppointment(id, maHen) {
+        const reason = prompt(`Nhập lý do hủy lịch hẹn #${maHen}:`, 'Bệnh nhân yêu cầu hủy hẹn');
+        if (reason === null) return;
+        if (!reason.trim()) {
+            alert('Vui lòng nhập lý do hủy lịch hẹn!');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/appointment/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, ly_do: reason.trim() })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Đã hủy lịch hẹn thành công!');
+                const app = appointments.find(a => a.id === id);
+                if (app) app.trang_thai = 'cancelled';
+                filterAppointments();
+            } else {
+                alert('Không thể hủy lịch hẹn: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
+    }
+
+    // Modal tạo lịch hẹn mới
     function openNewAppointmentModal() {
         document.getElementById('new-appointment-modal').classList.remove('hidden');
     }
@@ -379,37 +432,38 @@
         document.getElementById('new-appointment-modal').classList.add('hidden');
     }
 
-    function saveNewAppointment(e) {
+    async function saveNewAppointment(e) {
         e.preventDefault();
         const patientSelect = document.getElementById('app-patient');
-        const patientText = patientSelect.options[patientSelect.selectedIndex].text.split(' - ')[0];
-        const patientId = patientSelect.value;
-        const doctor = document.getElementById('app-doctor').value;
-        const dept = document.getElementById('app-dept').value;
+        const patientId = parseInt(patientSelect.value);
+        const doctorId = document.getElementById('app-doctor')?.value;
         const date = document.getElementById('app-date').value;
         const time = document.getElementById('app-time').value;
         const reason = document.getElementById('app-reason').value;
 
-        const newId = appointments.length + 1;
-        appointments.unshift({
-            id: newId,
-            ma_hen: `LH26090${newId}`,
-            gio_hen: time,
-            ngay_hen: date,
-            patient_id: parseInt(patientId),
-            benh_nhan: patientText,
-            ma_bn: `BN260900${patientId}`,
-            sdt: "0900000000",
-            bac_si: doctor,
-            khoa: dept,
-            ly_do: reason || "Khám theo yêu cầu",
-            trang_thai: "confirmed"
-        });
-
-        closeNewAppointmentModal();
-        e.target.reset();
-        filterAppointments();
-        alert('Đã tạo thành công lịch hẹn mới!');
+        try {
+            const res = await fetch('/api/appointment/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientId,
+                    doctor_id: doctorId,
+                    ngay_kham: date,
+                    gio_kham: time,
+                    ly_do_kham: reason || 'Khám theo yêu cầu'
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Đã tạo lịch hẹn thành công!');
+                closeNewAppointmentModal();
+                window.location.reload();
+            } else {
+                alert('Lỗi tạo lịch hẹn: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
     }
 
     // Khởi tạo hiển thị

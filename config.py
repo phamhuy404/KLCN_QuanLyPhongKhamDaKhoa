@@ -15,7 +15,7 @@ DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'phongkham.db
 # 2. Cấu hình Microsoft SQL Server (SSMS)
 SQLSERVER_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}', # hoặc '{SQL Server}' nếu dùng driver cũ
-    'server': 'localhost',                       # hoặc '.\\SQLEXPRESS'
+    'server': r'DESKTOP-SFDK7TR\SQLEXPRESS',                       # hoặc '.\\SQLEXPRESS'
     'database': 'quan_ly_phong_kham',
     'trusted_connection': 'yes',                 # 'yes' cho Windows Auth, 'no' cho SQL Server Auth
     'uid': 'sa',                                 # Dùng khi trusted_connection = 'no'
@@ -31,3 +31,19 @@ MYSQL_CONFIG = {
     'database': 'quan_ly_phong_kham',
     'charset': 'utf8mb4'
 }
+
+# 4. Cấu hình thư mục sao lưu dữ liệu (nằm ngoài public/static)
+BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+
+# 5. Cấu hình Email SMTP (Đọc từ biến môi trường, bảo mật thông tin)
+SMTP_SERVER = os.environ.get('SMTP_SERVER', '')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_USERNAME = os.environ.get('SMTP_USERNAME', '')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+SMTP_USE_TLS = os.environ.get('SMTP_USE_TLS', 'true').lower() in ('true', '1', 'yes')
+SMTP_SENDER_EMAIL = os.environ.get('SMTP_SENDER_EMAIL', os.environ.get('SMTP_USERNAME', ''))
+SMTP_SENDER_NAME = os.environ.get('SMTP_SENDER_NAME', 'Phòng Khám Đa Khoa H2T Care')
+
+# 6. Múi giờ hệ thống (Việt Nam UTC+7)
+TIMEZONE = 'Asia/Ho_Chi_Minh'
+

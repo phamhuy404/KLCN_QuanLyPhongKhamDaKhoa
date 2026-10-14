@@ -1,0 +1,688 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Quản Lý Danh Mục Y Tế - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Page Banner -->
+    <div class="bg-gradient-to-r from-teal-700 via-medical-600 to-cyan-700 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-teal-200 text-xs font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-layer-group"></i> Cơ Cấu Tổ Chức & Bảng Giá Dịch Vụ
+            </div>
+            <h2 class="text-2xl font-bold">Quản Lý Danh Mục Y Tế Chuẩn Hóa</h2>
+            <p class="text-teal-100 mt-1 text-sm max-w-2xl">
+                Cấu hình hệ thống chuyên khoa, phân bổ phòng khám vật lý và bảng giá danh mục dịch vụ cận lâm sàng/thủ thuật trên toàn phòng khám.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="openCreateModalCurrentTab()" class="px-5 py-2.5 bg-white text-medical-800 rounded-xl font-bold text-sm shadow-lg hover:bg-teal-50 transition-all flex items-center gap-2 hover:scale-[1.02]">
+                <i class="fa-solid fa-plus text-medical-600"></i>
+                <span id="btn-add-label">Thêm Chuyên Khoa Mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap gap-2">
+        <button onclick="switchTab('tab-departments')" id="tab-btn-departments" class="tab-btn active px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all bg-medical-50 text-medical-700 border border-medical-200">
+            <i class="fa-solid fa-stethoscope"></i>
+            <span>Chuyên Khoa Y Tế ({{ departments|length }})</span>
+        </button>
+        <button onclick="switchTab('tab-rooms')" id="tab-btn-rooms" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all text-slate-600 hover:bg-slate-50 border border-transparent">
+            <i class="fa-solid fa-door-open"></i>
+            <span>Phòng Khám Vật Lý ({{ rooms|length }})</span>
+        </button>
+        <button onclick="switchTab('tab-services')" id="tab-btn-services" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition-all text-slate-600 hover:bg-slate-50 border border-transparent">
+            <i class="fa-solid fa-flask-vial"></i>
+            <span>Dịch Vụ & Kỹ Thuật ({{ services|length }})</span>
+        </button>
+    </div>
+
+    <!-- TAB 1: CHUYÊN KHOA -->
+    <div id="tab-departments" class="tab-content bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Mã Khoa</th>
+                        <th class="px-6 py-4">Tên Chuyên Khoa</th>
+                        <th class="px-6 py-4">Icon</th>
+                        <th class="px-6 py-4">Giá Khám Mặc Định</th>
+                        <th class="px-6 py-4">Trạng Thái</th>
+                        <th class="px-6 py-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for d in departments %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-800">{{ d.ma_khoa }}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-800">{{ d.ten_khoa }}</div>
+                            <div class="text-xs text-slate-400 line-clamp-1 max-w-sm">{{ d.mo_ta or 'Chưa có mô tả' }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 inline-flex items-center justify-center">
+                                <i class="fa-solid {{ d.icon or 'fa-stethoscope' }}"></i>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-slate-800">
+                            {{ "{:,.0f}".format(d.gia_kham_mac_dinh or 150000) }} đ
+                        </td>
+                        <td class="px-6 py-4">
+                            <button data-id="{{ d.id }}" onclick="toggleDepartmentStatus(this.dataset.id)" class="cursor-pointer">
+                                {% if d.trang_thai == 1 or d.trang_thai is none %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Đang hoạt động
+                                    </span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-ban text-[10px]"></i> Đã vô hiệu hóa
+                                    </span>
+                                {% endif %}
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <button data-id="{{ d.id }}" onclick="editDepartmentById(this.dataset.id)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button data-id="{{ d.id }}" onclick="deleteDepartmentById(this.dataset.id)" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-all" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 2: PHÒNG KHÁM VẬT LÝ -->
+    <div id="tab-rooms" class="tab-content bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Mã Phòng</th>
+                        <th class="px-6 py-4">Tên Phòng Khám</th>
+                        <th class="px-6 py-4">Chuyên Khoa Phụ Trách</th>
+                        <th class="px-6 py-4">Vị Trí Tầng / Khu</th>
+                        <th class="px-6 py-4">Trạng Thái</th>
+                        <th class="px-6 py-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for r in rooms %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-800">{{ r.ma_phong }}</td>
+                        <td class="px-6 py-4 font-bold text-slate-800">{{ r.ten_phong }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 text-medical-800">
+                                {{ r.ten_khoa }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-500 text-xs">{{ r.vi_tri_tang or 'Tầng 1' }}</td>
+                        <td class="px-6 py-4">
+                            <button data-id="{{ r.id }}" onclick="toggleRoomStatus(this.dataset.id)" class="cursor-pointer">
+                                {% if r.trang_thai == 1 or r.trang_thai is none %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Sẵn sàng
+                                    </span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-ban text-[10px]"></i> Tạm ngưng
+                                    </span>
+                                {% endif %}
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <button data-id="{{ r.id }}" onclick="editRoomById(this.dataset.id)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button data-id="{{ r.id }}" onclick="deleteRoomById(this.dataset.id)" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-all" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 3: DỊCH VỤ KỸ THUẬT -->
+    <div id="tab-services" class="tab-content bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Mã Dịch Vụ</th>
+                        <th class="px-6 py-4">Tên Dịch Vụ Kỹ Thuật</th>
+                        <th class="px-6 py-4">Loại Danh Mục</th>
+                        <th class="px-6 py-4">Đơn Giá</th>
+                        <th class="px-6 py-4">BHYT Chi Trả</th>
+                        <th class="px-6 py-4">Trạng Thái</th>
+                        <th class="px-6 py-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in services %}
+                    <tr class="hover:bg-slate-50/70 transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold text-slate-800">{{ s.ma_dich_vu }}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-800">{{ s.ten_dich_vu }}</div>
+                            <div class="text-xs text-slate-400 line-clamp-1">{{ s.mo_ta or s.ten_khoa or 'Dịch vụ y tế' }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                                {{ s.loai_dich_vu or 'Khám bệnh' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-slate-800">
+                            {{ "{:,.0f}".format(s.don_gia or 0) }} đ
+                        </td>
+                        <td class="px-6 py-4 font-semibold text-teal-600">
+                            {{ s.bhyt_chi_tra_pt or 0 }} %
+                        </td>
+                        <td class="px-6 py-4">
+                            <button data-id="{{ s.id }}" onclick="toggleServiceStatus(this.dataset.id)" class="cursor-pointer">
+                                {% if s.trang_thai == 1 or s.trang_thai is none %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Đang áp dụng
+                                    </span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200 inline-flex items-center gap-1 hover:opacity-80">
+                                        <i class="fa-solid fa-ban text-[10px]"></i> Ngưng áp dụng
+                                    </span>
+                                {% endif %}
+                            </button>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <button data-id="{{ s.id }}" onclick="editServiceById(this.dataset.id)" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all" title="Chỉnh sửa">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button data-id="{{ s.id }}" onclick="deleteServiceById(this.dataset.id)" class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-all" title="Xóa">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA CHUYÊN KHOA -->
+<div id="modal-dept" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+        <h3 class="text-base font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2" id="modal-dept-title">
+            <i class="fa-solid fa-stethoscope text-medical-600"></i>
+            <span>Thêm Chuyên Khoa Mới</span>
+        </h3>
+        <form id="form-dept" class="mt-4 space-y-3" onsubmit="handleSaveDepartment(event)">
+            <input type="hidden" id="dept-id">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mã Khoa (*):</label>
+                    <input type="text" id="dept-ma" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono font-bold uppercase focus:ring-2 focus:ring-medical-500" placeholder="KHOA_TIMMACH">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Icon FontAwesome:</label>
+                    <input type="text" id="dept-icon" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-medical-500" placeholder="fa-heart-pulse" value="fa-stethoscope">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Chuyên Khoa (*):</label>
+                <input type="text" id="dept-ten" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-medical-500" placeholder="Khoa Tim Mạch">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá Khám Mặc Định (VNĐ):</label>
+                <input type="number" id="dept-gia" min="0" step="10000" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-medical-700 focus:ring-2 focus:ring-medical-500" value="150000">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô Tả Chuyên Môn:</label>
+                <textarea id="dept-mota" rows="2" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-medical-500 resize-none"></textarea>
+            </div>
+            <div id="dept-status-group" class="hidden">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Trạng Thái:</label>
+                <select id="dept-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">
+                    <option value="1">Đang hoạt động</option>
+                    <option value="0">Vô hiệu hóa</option>
+                </select>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-dept')" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs">Hủy</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md">Lưu Thay Đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA PHÒNG KHÁM -->
+<div id="modal-room" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+        <h3 class="text-base font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2" id="modal-room-title">
+            <i class="fa-solid fa-door-open text-medical-600"></i>
+            <span>Thêm Phòng Khám Mới</span>
+        </h3>
+        <form id="form-room" class="mt-4 space-y-3" onsubmit="handleSaveRoom(event)">
+            <input type="hidden" id="room-id">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chuyên Khoa Phụ Trách (*):</label>
+                <select id="room-dept-id" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold">
+                    {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.ten_khoa }} ({{ d.ma_khoa }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mã Phòng (*):</label>
+                    <input type="text" id="room-ma" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono font-bold uppercase" placeholder="PK105">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vị Trí Tầng / Khu:</label>
+                    <input type="text" id="room-tang" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="Tầng 1 - Khu A" value="Tầng 1">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Phòng Khám (*):</label>
+                <input type="text" id="room-ten" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="Phòng Khám Nội Tim Mạch">
+            </div>
+            <div id="room-status-group" class="hidden">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Trạng Thái:</label>
+                <select id="room-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">
+                    <option value="1">Sẵn sàng hoạt động</option>
+                    <option value="0">Tạm ngưng</option>
+                </select>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-room')" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs">Hủy</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md">Lưu Thay Đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA DỊCH VỤ -->
+<div id="modal-service" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+        <h3 class="text-base font-bold text-slate-800 pb-3 border-b border-slate-100 flex items-center gap-2" id="modal-service-title">
+            <i class="fa-solid fa-flask-vial text-medical-600"></i>
+            <span>Thêm Dịch Vụ Mới</span>
+        </h3>
+        <form id="form-service" class="mt-4 space-y-3" onsubmit="handleSaveService(event)">
+            <input type="hidden" id="service-id">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chuyên Khoa Liên Quan:</label>
+                    <select id="service-dept-id" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">
+                        <option value="">-- Dùng chung toàn viện --</option>
+                        {% for d in departments %}
+                            <option value="{{ d.id }}">{{ d.ten_khoa }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Loại Dịch Vụ:</label>
+                    <select id="service-loai" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold">
+                        <option value="Khám bệnh">Khám bệnh</option>
+                        <option value="Xét nghiệm">Xét nghiệm</option>
+                        <option value="Chẩn đoán hình ảnh">Chẩn đoán hình ảnh</option>
+                        <option value="Thăm dò chức năng">Thăm dò chức năng</option>
+                        <option value="Thủ thuật">Thủ thuật / Tiểu phẫu</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mã Dịch Vụ (*):</label>
+                    <input type="text" id="service-ma" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono font-bold uppercase" placeholder="DV_ECG">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">BHYT Chi Trả (%):</label>
+                    <input type="number" id="service-bhyt" min="0" max="100" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-teal-700" value="80">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Dịch Vụ Kỹ Thuật (*):</label>
+                <input type="text" id="service-ten" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" placeholder="Điện tâm đồ 12 chuyển đạo">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đơn Giá Dịch Vụ (VNĐ) (*):</label>
+                <input type="number" id="service-gia" required min="0" step="5000" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-medical-700" value="150000">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô Tả / Hướng Dẫn Chuẩn Bị:</label>
+                <textarea id="service-mota" rows="2" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm resize-none"></textarea>
+            </div>
+            <div id="service-status-group" class="hidden">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Trạng Thái:</label>
+                <select id="service-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm">
+                    <option value="1">Đang áp dụng</option>
+                    <option value="0">Ngưng áp dụng</option>
+                </select>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-service')" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs">Hủy</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md">Lưu Thay Đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script id="dept-data-json" type="application/json">{{ departments|tojson|safe }}</script>
+<script id="room-data-json" type="application/json">{{ rooms|tojson|safe }}</script>
+<script id="service-data-json" type="application/json">{{ services|tojson|safe }}</script>
+<script>
+window.departmentData = JSON.parse(document.getElementById('dept-data-json')?.textContent || '[]');
+window.roomData = JSON.parse(document.getElementById('room-data-json')?.textContent || '[]');
+window.serviceData = JSON.parse(document.getElementById('service-data-json')?.textContent || '[]');
+
+let currentTabId = 'tab-departments';
+
+function switchTab(tabId) {
+    currentTabId = tabId;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-medical-50', 'text-medical-700', 'border-medical-200');
+        btn.classList.add('text-slate-600', 'border-transparent');
+    });
+
+    document.getElementById(tabId).classList.remove('hidden');
+    const activeBtn = document.getElementById(tabId.replace('tab-', 'tab-btn-'));
+    if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'border-transparent');
+        activeBtn.classList.add('bg-medical-50', 'text-medical-700', 'border-medical-200');
+    }
+
+    const label = document.getElementById('btn-add-label');
+    if (tabId === 'tab-departments') label.innerText = 'Thêm Chuyên Khoa Mới';
+    else if (tabId === 'tab-rooms') label.innerText = 'Thêm Phòng Khám Mới';
+    else if (tabId === 'tab-services') label.innerText = 'Thêm Dịch Vụ Mới';
+}
+
+function openCreateModalCurrentTab() {
+    if (currentTabId === 'tab-departments') {
+        document.getElementById('modal-dept-title').innerText = 'Thêm Chuyên Khoa Mới';
+        document.getElementById('dept-id').value = '';
+        document.getElementById('dept-ma').value = '';
+        document.getElementById('dept-ma').readOnly = false;
+        document.getElementById('dept-ten').value = '';
+        document.getElementById('dept-gia').value = 150000;
+        document.getElementById('dept-icon').value = 'fa-stethoscope';
+        document.getElementById('dept-mota').value = '';
+        document.getElementById('dept-status-group').classList.add('hidden');
+        openModal('modal-dept');
+    } else if (currentTabId === 'tab-rooms') {
+        document.getElementById('modal-room-title').innerText = 'Thêm Phòng Khám Mới';
+        document.getElementById('room-id').value = '';
+        document.getElementById('room-ma').value = '';
+        document.getElementById('room-ma').readOnly = false;
+        document.getElementById('room-ten').value = '';
+        document.getElementById('room-tang').value = 'Tầng 1';
+        document.getElementById('room-status-group').classList.add('hidden');
+        openModal('modal-room');
+    } else if (currentTabId === 'tab-services') {
+        document.getElementById('modal-service-title').innerText = 'Thêm Dịch Vụ Mới';
+        document.getElementById('service-id').value = '';
+        document.getElementById('service-ma').value = '';
+        document.getElementById('service-ma').readOnly = false;
+        document.getElementById('service-ten').value = '';
+        document.getElementById('service-gia').value = 150000;
+        document.getElementById('service-bhyt').value = 80;
+        document.getElementById('service-mota').value = '';
+        document.getElementById('service-status-group').classList.add('hidden');
+        openModal('modal-service');
+    }
+}
+
+function openModal(id) {
+    const el = document.getElementById(id);
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+}
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+}
+
+// Chỉnh sửa theo ID an toàn tuyệt đối
+function editDepartmentById(id) {
+    const targetId = parseInt(id);
+    const d = (window.departmentData || []).find(item => item.id === targetId);
+    if (!d) return;
+    editDepartment(d.id, d.ma_khoa, d.ten_khoa, d.mo_ta || '', d.icon || 'fa-stethoscope', d.gia_kham_mac_dinh || 150000, d.trang_thai !== undefined && d.trang_thai !== null ? d.trang_thai : 1);
+}
+
+function deleteDepartmentById(id) {
+    const targetId = parseInt(id);
+    const d = (window.departmentData || []).find(item => item.id === targetId);
+    deleteDepartment(targetId, d ? d.ten_khoa : '');
+}
+
+function editRoomById(id) {
+    const targetId = parseInt(id);
+    const r = (window.roomData || []).find(item => item.id === targetId);
+    if (!r) return;
+    editRoom(r.id, r.chuyen_khoa_id, r.ma_phong, r.ten_phong, r.vi_tri_tang || '', r.trang_thai !== undefined && r.trang_thai !== null ? r.trang_thai : 1);
+}
+
+function deleteRoomById(id) {
+    const targetId = parseInt(id);
+    const r = (window.roomData || []).find(item => item.id === targetId);
+    deleteRoom(targetId, r ? r.ten_phong : '');
+}
+
+function editServiceById(id) {
+    const targetId = parseInt(id);
+    const s = (window.serviceData || []).find(item => item.id === targetId);
+    if (!s) return;
+    editService(s.id, s.chuyen_khoa_id, s.ma_dich_vu, s.ten_dich_vu, s.loai_dich_vu || 'Khám bệnh', s.don_gia || 0, s.bhyt_chi_tra_pt || 0, s.mo_ta || '', s.trang_thai !== undefined && s.trang_thai !== null ? s.trang_thai : 1);
+}
+
+function deleteServiceById(id) {
+    const targetId = parseInt(id);
+    const s = (window.serviceData || []).find(item => item.id === targetId);
+    deleteService(targetId, s ? s.ten_dich_vu : '');
+}
+
+// Chỉnh sửa
+function editDepartment(id, ma, ten, mota, icon, gia, tt) {
+    document.getElementById('modal-dept-title').innerText = 'Chỉnh Sửa Chuyên Khoa';
+    document.getElementById('dept-id').value = id;
+    document.getElementById('dept-ma').value = ma;
+    document.getElementById('dept-ten').value = ten;
+    document.getElementById('dept-mota').value = mota;
+    document.getElementById('dept-icon').value = icon;
+    document.getElementById('dept-gia').value = gia;
+    document.getElementById('dept-status').value = tt;
+    document.getElementById('dept-status-group').classList.remove('hidden');
+    openModal('modal-dept');
+}
+
+function editRoom(id, ckId, ma, ten, tang, tt) {
+    document.getElementById('modal-room-title').innerText = 'Chỉnh Sửa Phòng Khám';
+    document.getElementById('room-id').value = id;
+    document.getElementById('room-dept-id').value = ckId;
+    document.getElementById('room-ma').value = ma;
+    document.getElementById('room-ten').value = ten;
+    document.getElementById('room-tang').value = tang;
+    document.getElementById('room-status').value = tt;
+    document.getElementById('room-status-group').classList.remove('hidden');
+    openModal('modal-room');
+}
+
+function editService(id, ckId, ma, ten, loai, gia, bhyt, mota, tt) {
+    document.getElementById('modal-service-title').innerText = 'Chỉnh Sửa Dịch Vụ';
+    document.getElementById('service-id').value = id;
+    document.getElementById('service-dept-id').value = ckId || '';
+    document.getElementById('service-ma').value = ma;
+    document.getElementById('service-ten').value = ten;
+    document.getElementById('service-loai').value = loai;
+    document.getElementById('service-gia').value = gia;
+    document.getElementById('service-bhyt').value = bhyt;
+    document.getElementById('service-mota').value = mota;
+    document.getElementById('service-status').value = tt;
+    document.getElementById('service-status-group').classList.remove('hidden');
+    openModal('modal-service');
+}
+
+// Bật/tắt trạng thái
+async function toggleDepartmentStatus(id) {
+    const targetId = parseInt(id);
+    const res = await fetch('/api/catalog/department/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: targetId})
+    });
+    const d = await res.json();
+    if (d.success) window.location.reload();
+    else showToast(d.message, 'error');
+}
+
+async function toggleRoomStatus(id) {
+    const targetId = parseInt(id);
+    const res = await fetch('/api/catalog/room/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: targetId})
+    });
+    const d = await res.json();
+    if (d.success) window.location.reload();
+    else showToast(d.message, 'error');
+}
+
+async function toggleServiceStatus(id) {
+    const targetId = parseInt(id);
+    const res = await fetch('/api/catalog/service/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: targetId})
+    });
+    const d = await res.json();
+    if (d.success) window.location.reload();
+    else showToast(d.message, 'error');
+}
+
+// Xóa có kiểm tra
+async function deleteDepartment(id, ten) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa chuyên khoa '${ten}'?`)) return;
+    const res = await fetch('/api/catalog/department/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+
+async function deleteRoom(id, ten) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa phòng khám '${ten}'?`)) return;
+    const res = await fetch('/api/catalog/room/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+
+async function deleteService(id, ten) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa dịch vụ '${ten}'?`)) return;
+    const res = await fetch('/api/catalog/service/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id})
+    });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+
+// Lưu form
+async function handleSaveDepartment(e) {
+    e.preventDefault();
+    const id = document.getElementById('dept-id').value;
+    const url = id ? '/api/catalog/department/update' : '/api/catalog/department/create';
+    const payload = {
+        id: id ? parseInt(id) : null,
+        ma_khoa: document.getElementById('dept-ma').value.trim(),
+        ten_khoa: document.getElementById('dept-ten').value.trim(),
+        mo_ta: document.getElementById('dept-mota').value.trim(),
+        icon: document.getElementById('dept-icon').value.trim(),
+        gia_kham_mac_dinh: parseFloat(document.getElementById('dept-gia').value),
+        trang_thai: parseInt(document.getElementById('dept-status').value || 1)
+    };
+
+    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+
+async function handleSaveRoom(e) {
+    e.preventDefault();
+    const id = document.getElementById('room-id').value;
+    const url = id ? '/api/catalog/room/update' : '/api/catalog/room/create';
+    const payload = {
+        id: id ? parseInt(id) : null,
+        chuyen_khoa_id: parseInt(document.getElementById('room-dept-id').value),
+        ma_phong: document.getElementById('room-ma').value.trim(),
+        ten_phong: document.getElementById('room-ten').value.trim(),
+        vi_tri_tang: document.getElementById('room-tang').value.trim(),
+        trang_thai: parseInt(document.getElementById('room-status').value || 1)
+    };
+
+    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+
+async function handleSaveService(e) {
+    e.preventDefault();
+    const id = document.getElementById('service-id').value;
+    const url = id ? '/api/catalog/service/update' : '/api/catalog/service/create';
+    const ckVal = document.getElementById('service-dept-id').value;
+    const payload = {
+        id: id ? parseInt(id) : null,
+        chuyen_khoa_id: ckVal ? parseInt(ckVal) : null,
+        ma_dich_vu: document.getElementById('service-ma').value.trim(),
+        ten_dich_vu: document.getElementById('service-ten').value.trim(),
+        loai_dich_vu: document.getElementById('service-loai').value,
+        don_gia: parseFloat(document.getElementById('service-gia').value),
+        bhyt_chi_tra_pt: parseInt(document.getElementById('service-bhyt').value || 0),
+        mo_ta: document.getElementById('service-mota').value.trim(),
+        trang_thai: parseInt(document.getElementById('service-status').value || 1)
+    };
+
+    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (d.success) { showToast(d.message, 'success'); setTimeout(() => window.location.reload(), 800); }
+    else showToast(d.message, 'error');
+}
+</script>
+{% endblock %}

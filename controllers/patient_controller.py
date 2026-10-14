@@ -31,7 +31,7 @@ def dashboard():
 @patient_bp.route('/booking', methods=['GET', 'POST'])
 @login_required
 def booking():
-    """Đặt lịch khám bệnh trực tuyến."""
+    """Đặt lịch khám bệnh trực tuyến (Chỉ hiển thị chuyên khoa và bác sĩ đang hoạt động)."""
     patient_id = _get_current_patient_id()
 
     if request.method == 'POST':
@@ -45,8 +45,8 @@ def booking():
         return redirect(url_for('patient.dashboard'))
 
     patient = PatientModel.get_by_id(patient_id)
-    departments = ClinicModel.get_all_departments()
-    doctors = UserModel.get_all_doctors()
+    departments = ClinicModel.get_all_departments(active_only=True)
+    doctors = UserModel.get_all_doctors(active_only=True)
     return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors)
 
 @patient_bp.route('/records')
@@ -81,3 +81,36 @@ def profile():
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
     return render_template('patient/profile.html', active_page='profile', patient=patient)
+
+@patient_bp.route('/feedbacks', methods=['GET', 'POST'])
+@login_required
+def feedbacks():
+    """Cổng gửi và tra cứu tiến độ xử lý phản hồi, đóng góp ý kiến của bệnh nhân."""
+    from models.feedback_model import FeedbackModel
+    patient_id = _get_current_patient_id()
+    patient = PatientModel.get_by_id(patient_id)
+
+    if request.method == 'POST':
+        chu_de = request.form.get('chu_de', 'Dịch vụ khám bệnh')
+        diem_danh_gia = request.form.get('diem_danh_gia', 5, type=int)
+        noi_dung = request.form.get('noi_dung', '')
+        phieu_kham_id = request.form.get('phieu_kham_id', type=int)
+        FeedbackModel.create(patient_id, phieu_kham_id, chu_de, diem_danh_gia, noi_dung)
+        return redirect(url_for('patient.feedbacks'))
+
+    my_feedbacks = FeedbackModel.get_by_patient(patient_id)
+    return render_template('patient/feedbacks.html', active_page='feedbacks', patient=patient, feedbacks=my_feedbacks)
+
+@patient_bp.route('/notifications')
+@login_required
+def notifications():
+    """Xem danh sách toàn bộ thông báo in-app của tài khoản."""
+    from models.notification_model import NotificationModel
+    user = session.get('user', {})
+    tai_khoan_id = user.get('id')
+    patient_id = _get_current_patient_id()
+    patient = PatientModel.get_by_id(patient_id)
+    notifs = NotificationModel.get_user_notifications(tai_khoan_id, limit=50)
+    unread_cnt = NotificationModel.get_unread_count(tai_khoan_id)
+    return render_template('patient/notifications.html', active_page='notifications', patient=patient, notifications=notifs, unread_count=unread_cnt)
+

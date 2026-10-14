@@ -1,0 +1,290 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Quản Lý Phản Hồi Bệnh Nhân - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-medical-700 via-teal-600 to-emerald-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-teal-200 text-xs font-bold uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-comments"></i> Chăm Sóc Khách Hàng & Quản Trị Chất Lượng
+            </div>
+            <h2 class="text-2xl font-bold">Tiếp Nhận & Xử Lý Phản Hồi Bệnh Nhân</h2>
+            <p class="text-medical-100 mt-1 text-sm max-w-2xl">
+                Lắng nghe ý kiến đóng góp của người bệnh về chất lượng khám chữa bệnh, thái độ y bác sĩ và dịch vụ để không ngừng nâng cao chất lượng phòng khám.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-xs font-semibold border border-white/20">
+                Tổng cộng: <strong class="text-base font-bold text-white ml-1">{{ feedbacks|length }}</strong> ý kiến
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('admin_feedbacks') }}" class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-500 uppercase">Trạng thái:</label>
+                <select name="status" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-medical-500 bg-slate-50">
+                    <option value="ALL" {% if current_status == 'ALL' %}selected{% endif %}>Tất cả trạng thái</option>
+                    <option value="Chờ tiếp nhận" {% if current_status == 'Chờ tiếp nhận' %}selected{% endif %}>Chờ tiếp nhận</option>
+                    <option value="Đang xử lý" {% if current_status == 'Đang xử lý' %}selected{% endif %}>Đang xử lý</option>
+                    <option value="Đã giải quyết" {% if current_status == 'Đã giải quyết' %}selected{% endif %}>Đã giải quyết</option>
+                    <option value="Đóng" {% if current_status == 'Đóng' %}selected{% endif %}>Đóng</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-500 uppercase">Chủ đề:</label>
+                <select name="topic" onchange="this.form.submit()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-medical-500 bg-slate-50">
+                    <option value="ALL" {% if current_topic == 'ALL' %}selected{% endif %}>Tất cả chủ đề</option>
+                    <option value="Dịch vụ khám bệnh" {% if current_topic == 'Dịch vụ khám bệnh' %}selected{% endif %}>Dịch vụ khám bệnh</option>
+                    <option value="Thái độ phục vụ" {% if current_topic == 'Thái độ phục vụ' %}selected{% endif %}>Thái độ phục vụ</option>
+                    <option value="Cơ sở vật chất" {% if current_topic == 'Cơ sở vật chất' %}selected{% endif %}>Cơ sở vật chất</option>
+                    <option value="Chi phí & Viện phí" {% if current_topic == 'Chi phí & Viện phí' %}selected{% endif %}>Chi phí & Viện phí</option>
+                    <option value="Góp ý khác" {% if current_topic == 'Góp ý khác' %}selected{% endif %}>Góp ý khác</option>
+                </select>
+            </div>
+
+            {% if current_status != 'ALL' or current_topic != 'ALL' %}
+            <a href="{{ url_for('admin_feedbacks') }}" class="text-xs text-rose-600 hover:underline font-semibold flex items-center gap-1">
+                <i class="fa-solid fa-xmark"></i> Bỏ lọc
+            </a>
+            {% endif %}
+        </form>
+
+        <div class="text-xs text-slate-400">
+            Hiển thị <strong class="text-slate-700">{{ feedbacks|length }}</strong> bản ghi
+        </div>
+    </div>
+
+    <!-- Feedbacks Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-4">Bệnh Nhân</th>
+                        <th class="px-6 py-4">Chủ Đề & Đánh Giá</th>
+                        <th class="px-6 py-4">Nội Dung Phản Hồi</th>
+                        <th class="px-6 py-4">Trạng Thái</th>
+                        <th class="px-6 py-4">Thời Gian</th>
+                        <th class="px-6 py-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% if feedbacks %}
+                        {% for fb in feedbacks %}
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                            <td class="px-6 py-4 align-top">
+                                <div class="font-bold text-slate-800">{{ fb.ten_benh_nhan }}</div>
+                                <div class="text-xs text-slate-400 font-mono">{{ fb.ma_benh_nhan }} • {{ fb.sdt_benh_nhan }}</div>
+                                {% if fb.ma_phieu %}
+                                <div class="text-[11px] text-teal-600 mt-0.5">Phiếu khám: {{ fb.ma_phieu }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 align-top">
+                                <span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 mb-1">
+                                    {{ fb.chu_de }}
+                                </span>
+                                <div class="flex items-center gap-1 text-amber-400 text-xs">
+                                    {% for star in range(fb.diem_danh_gia or 5) %}
+                                        <i class="fa-solid fa-star"></i>
+                                    {% endfor %}
+                                    <span class="text-slate-500 font-bold ml-1">{{ fb.diem_danh_gia or 5 }}/5</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 align-top max-w-md">
+                                <p class="text-slate-700 text-xs leading-relaxed line-clamp-3">
+                                    {{ fb.noi_dung }}
+                                </p>
+                                {% if fb.tra_loi %}
+                                <div class="mt-2 p-2.5 bg-teal-50/70 border border-teal-200/60 rounded-xl text-xs text-teal-900">
+                                    <div class="font-bold text-[11px] text-teal-700 flex items-center gap-1">
+                                        <i class="fa-solid fa-reply"></i> Đã trả lời bởi {{ fb.nguoi_tra_loi or 'CSKH' }} ({{ fb.ngay_tra_loi or '' }}):
+                                    </div>
+                                    <div class="mt-0.5 line-clamp-2">{{ fb.tra_loi }}</div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 align-top">
+                                {% if fb.trang_thai == 'Chờ tiếp nhận' %}
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-hourglass-start text-[10px]"></i> Chờ tiếp nhận
+                                    </span>
+                                {% elif fb.trang_thai == 'Đang xử lý' %}
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Đang xử lý
+                                    </span>
+                                {% elif fb.trang_thai == 'Đã giải quyết' %}
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Đã giải quyết
+                                    </span>
+                                {% else %}
+                                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1">
+                                        Đóng
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 align-top text-xs text-slate-400">
+                                {{ fb.thoi_gian }}
+                            </td>
+                            <td class="px-6 py-4 align-top text-right">
+                                <button data-id="{{ fb.id }}" onclick="openReplyModalById(this.dataset.id)" class="px-3.5 py-1.5 rounded-xl bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs border border-medical-200 transition-all inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                    <span>{% if fb.tra_loi %}Sửa Trả Lời{% else %}Trả Lời{% endif %}</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                                <i class="fa-solid fa-comment-slash text-4xl mb-3 text-slate-300 block"></i>
+                                Không tìm thấy phản hồi nào phù hợp với bộ lọc hiện tại.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Trả Lời & Xử Lý Phản Hồi -->
+<div id="modal-reply" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-reply text-medical-600"></i>
+                <span>Xử Lý Ý Kiến Bệnh Nhân</span>
+            </h3>
+            <button onclick="closeReplyModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="mt-4 space-y-4">
+            <!-- Box thông tin bệnh nhân & nội dung gửi -->
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-800" id="reply-patient-name">Hoàng Bảo Nam</span>
+                    <span class="px-2 py-0.5 rounded bg-medical-100 text-medical-800 font-semibold" id="reply-topic">Dịch vụ khám bệnh</span>
+                </div>
+                <p class="text-slate-600 italic bg-white p-2.5 rounded-lg border border-slate-100" id="reply-content">
+                    Nội dung phản hồi...
+                </p>
+            </div>
+
+            <!-- Form xử lý -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Trạng Thái Xử Lý:</label>
+                <select id="reply-status-select" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-medical-500">
+                    <option value="Đang xử lý">Đang xử lý</option>
+                    <option value="Đã giải quyết" selected>Đã giải quyết</option>
+                    <option value="Đóng">Đóng</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nội Dung Phản Hồi / Trả Lời Người Bệnh:</label>
+                <textarea id="reply-text" rows="4" class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-medical-500 resize-none" placeholder="Nhập câu trả lời chính thức của phòng khám..."></textarea>
+                <span class="text-[11px] text-slate-400 mt-1 block">Nội dung này sẽ hiển thị trên Cổng bệnh nhân và gửi thông báo in-app cho người bệnh.</span>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <button type="button" onclick="closeReplyModal()" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-all">
+                Đóng
+            </button>
+            <button type="button" id="btn-submit-reply" onclick="submitReply()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/30 transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Gửi Phản Hồi</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script id="feedbacks-data" type="application/json">{{ feedbacks|tojson|safe }}</script>
+<script>
+window.feedbackData = JSON.parse(document.getElementById('feedbacks-data')?.textContent || '[]');
+let activeFeedbackId = null;
+
+function openReplyModalById(id) {
+    const targetId = parseInt(id);
+    const fb = (window.feedbackData || []).find(item => item.id === targetId);
+    if (!fb) return;
+    openReplyModal(fb.id, fb.ten_benh_nhan || 'Bệnh nhân', fb.chu_de || '', fb.noi_dung || '', fb.trang_thai, fb.tra_loi || '');
+}
+
+function openReplyModal(id, patientName, topic, content, status, currentReply) {
+    activeFeedbackId = id;
+    document.getElementById('reply-patient-name').innerText = patientName;
+    document.getElementById('reply-topic').innerText = topic;
+    document.getElementById('reply-content').innerText = content;
+    document.getElementById('reply-status-select').value = status || 'Đã giải quyết';
+    document.getElementById('reply-text').value = currentReply || '';
+
+    const modal = document.getElementById('modal-reply');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeReplyModal() {
+    const modal = document.getElementById('modal-reply');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    activeFeedbackId = null;
+}
+
+async function submitReply() {
+    if (!activeFeedbackId) return;
+    const replyText = document.getElementById('reply-text').value.trim();
+    const statusVal = document.getElementById('reply-status-select').value;
+
+    if (!replyText) {
+        showToast('Vui lòng nhập nội dung câu trả lời!', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btn-submit-reply');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+
+    try {
+        const res = await fetch('/api/feedback/reply', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                feedback_id: activeFeedbackId,
+                tra_loi: replyText,
+                trang_thai: statusVal
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Lỗi khi cập nhật câu trả lời!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi Phản Hồi';
+        }
+    } catch (err) {
+        showToast('Lỗi mạng: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi Phản Hồi';
+    }
+}
+</script>
+{% endblock %}

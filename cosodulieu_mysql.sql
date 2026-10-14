@@ -43,7 +43,8 @@ CREATE TABLE chuyen_khoa (
     ten_khoa VARCHAR(100) NOT NULL,
     mo_ta TEXT,
     icon VARCHAR(100) DEFAULT 'fa-stethoscope',
-    gia_kham_mac_dinh DECIMAL(12, 2) DEFAULT 150000.00
+    gia_kham_mac_dinh DECIMAL(12, 2) DEFAULT 150000.00,
+    trang_thai BIT DEFAULT 1
 );
 
 CREATE TABLE phong_kham (
@@ -65,8 +66,10 @@ CREATE TABLE dich_vu (
     don_gia DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     bhyt_chi_tra_pt INT DEFAULT 0,
     mo_ta VARCHAR(255),
+    trang_thai BIT DEFAULT 1,
     FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
 );
+
 
 CREATE TABLE thuoc (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -306,6 +309,7 @@ CREATE TABLE thong_bao (
     tieu_de VARCHAR(200) NOT NULL,
     noi_dung TEXT NOT NULL,
     loai_thong_bao VARCHAR(50) DEFAULT 'Hệ thống',
+    lien_ket VARCHAR(255) NULL,
     da_doc BIT DEFAULT 0,
     thoi_gian_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id) ON DELETE CASCADE
@@ -315,8 +319,13 @@ CREATE TABLE phan_hoi (
     id INT AUTO_INCREMENT PRIMARY KEY,
     benh_nhan_id INT NOT NULL,
     phieu_kham_id INT NULL,
+    chu_de VARCHAR(100) DEFAULT 'Dịch vụ khám bệnh',
     diem_danh_gia TINYINT NOT NULL CHECK (diem_danh_gia BETWEEN 1 AND 5),
     noi_dung TEXT,
+    trang_thai VARCHAR(50) DEFAULT 'Chờ tiếp nhận',
+    tra_loi TEXT NULL,
+    ngay_tra_loi DATETIME NULL,
+    nguoi_tra_loi VARCHAR(100) NULL,
     thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE,
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
@@ -332,6 +341,36 @@ CREATE TABLE hom_thu_gop_y (
     ngay_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
     trang_thai VARCHAR(50) DEFAULT 'Chưa xử lý'
 );
+
+CREATE TABLE lich_su_nhac_nho (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lich_hen_id INT NULL,
+    phieu_kham_id INT NULL,
+    benh_nhan_id INT NOT NULL,
+    loai_nhac VARCHAR(50) NOT NULL,
+    ngay_nhac DATE NULL,
+    kenh_gui VARCHAR(20) DEFAULT 'IN_APP',
+    trang_thai VARCHAR(50) DEFAULT 'THANH_CONG',
+    loi_gui TEXT NULL,
+    thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id) ON DELETE SET NULL,
+    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE SET NULL,
+    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE
+);
+
+CREATE TABLE lich_su_sao_luu (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    loai_thao_tac VARCHAR(20) NOT NULL,
+    ten_tap_tin VARCHAR(255) NOT NULL,
+    duong_dan VARCHAR(500) NULL,
+    loai_csdl VARCHAR(50) NOT NULL,
+    dung_luong BIGINT DEFAULT 0,
+    nguoi_thuc_hien VARCHAR(100) NULL,
+    trang_thai VARCHAR(50) DEFAULT 'SUCCESS',
+    ghi_chu TEXT NULL,
+    thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 
 CREATE TABLE bai_viet (
     id INT AUTO_INCREMENT PRIMARY KEY,

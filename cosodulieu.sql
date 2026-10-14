@@ -64,7 +64,8 @@ CREATE TABLE chuyen_khoa (
     ten_khoa NVARCHAR(100) NOT NULL,
     mo_ta NVARCHAR(MAX),
     icon NVARCHAR(100) DEFAULT 'fa-stethoscope',
-    gia_kham_mac_dinh DECIMAL(12, 2) DEFAULT 150000.00
+    gia_kham_mac_dinh DECIMAL(12, 2) DEFAULT 150000.00,
+    trang_thai BIT DEFAULT 1
 );
 
 CREATE TABLE phong_kham (
@@ -86,6 +87,7 @@ CREATE TABLE dich_vu (
     don_gia DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     bhyt_chi_tra_pt INT DEFAULT 0,
     mo_ta NVARCHAR(255),
+    trang_thai BIT DEFAULT 1,
     FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
 );
 
@@ -327,6 +329,7 @@ CREATE TABLE thong_bao (
     tieu_de NVARCHAR(200) NOT NULL,
     noi_dung NVARCHAR(MAX) NOT NULL,
     loai_thong_bao NVARCHAR(50) DEFAULT N'Hệ thống',
+    lien_ket NVARCHAR(255) NULL,
     da_doc BIT DEFAULT 0,
     thoi_gian_tao DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id) ON DELETE CASCADE
@@ -336,8 +339,13 @@ CREATE TABLE phan_hoi (
     id INT IDENTITY(1,1) PRIMARY KEY,
     benh_nhan_id INT NOT NULL,
     phieu_kham_id INT NULL,
+    chu_de NVARCHAR(100) DEFAULT N'Dịch vụ khám bệnh',
     diem_danh_gia TINYINT NOT NULL CHECK (diem_danh_gia BETWEEN 1 AND 5),
     noi_dung NVARCHAR(MAX),
+    trang_thai NVARCHAR(50) DEFAULT N'Chờ tiếp nhận',
+    tra_loi NVARCHAR(MAX) NULL,
+    ngay_tra_loi DATETIME NULL,
+    nguoi_tra_loi NVARCHAR(100) NULL,
     thoi_gian DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE,
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
@@ -352,6 +360,35 @@ CREATE TABLE hom_thu_gop_y (
     noi_dung NVARCHAR(MAX) NOT NULL,
     ngay_gui DATETIME DEFAULT GETDATE(),
     trang_thai NVARCHAR(50) DEFAULT N'Chưa xử lý'
+);
+
+CREATE TABLE lich_su_nhac_nho (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    lich_hen_id INT NULL,
+    phieu_kham_id INT NULL,
+    benh_nhan_id INT NOT NULL,
+    loai_nhac NVARCHAR(50) NOT NULL,
+    ngay_nhac DATE NULL,
+    kenh_gui NVARCHAR(20) DEFAULT 'IN_APP',
+    trang_thai NVARCHAR(50) DEFAULT 'THANH_CONG',
+    loi_gui NVARCHAR(MAX) NULL,
+    thoi_gian_gui DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id),
+    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
+    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
+);
+
+CREATE TABLE lich_su_sao_luu (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    loai_thao_tac NVARCHAR(20) NOT NULL,
+    ten_tap_tin NVARCHAR(255) NOT NULL,
+    duong_dan NVARCHAR(500) NULL,
+    loai_csdl NVARCHAR(50) NOT NULL,
+    dung_luong BIGINT DEFAULT 0,
+    nguoi_thuc_hien NVARCHAR(100) NULL,
+    trang_thai NVARCHAR(50) DEFAULT 'SUCCESS',
+    ghi_chu NVARCHAR(MAX) NULL,
+    thoi_gian DATETIME DEFAULT GETDATE()
 );
 
 CREATE TABLE bai_viet (
@@ -369,6 +406,7 @@ CREATE TABLE bai_viet (
     FOREIGN KEY (tac_gia_id) REFERENCES nhan_vien(id)
 );
 GO
+
 
 -- 4. TẠO CÁC CHỈ MỤC (INDEXES)
 CREATE INDEX idx_benhnhan_sdt ON benh_nhan(sdt);

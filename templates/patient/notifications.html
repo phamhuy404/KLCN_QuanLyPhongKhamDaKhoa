@@ -1,0 +1,168 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Thông báo nhắc nhở - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Thông báo của bạn</h1>
+            <p class="text-gray-500 text-sm mt-1">Nhắc nhở lịch khám, lịch tái khám định kỳ và thông báo từ phòng khám</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="button" id="btnMarkAllRead" class="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-check-double text-blue-600"></i> Đánh dấu tất cả đã đọc
+            </button>
+        </div>
+    </div>
+
+    <!-- Danh sách thông báo -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Hộp thư thông báo</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold" id="unread-badge">
+                    {{ unread_count or 0 }} chưa đọc
+                </span>
+            </div>
+            <div class="text-xs text-gray-400">
+                Hiển thị tối đa 50 thông báo gần nhất
+            </div>
+        </div>
+
+        <div class="divide-y divide-gray-100" id="notification-list">
+            {% for noti in notifications %}
+            <div class="p-5 hover:bg-blue-50/30 transition flex items-start gap-4 {% if not noti.da_doc %}bg-blue-50/20{% endif %}" id="noti-row-{{ noti.id }}">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 {% if noti.loai_thong_bao == 'NhacLichKham' %}bg-blue-100 text-blue-600{% elif noti.loai_thong_bao == 'NhacTaiKham' %}bg-purple-100 text-purple-600{% elif noti.loai_thong_bao == 'PhanHoi' %}bg-emerald-100 text-emerald-600{% else %}bg-gray-100 text-gray-600{% endif %}">
+                    {% if noti.loai_thong_bao == 'NhacLichKham' %}
+                    <i class="fa-solid fa-calendar-check text-base"></i>
+                    {% elif noti.loai_thong_bao == 'NhacTaiKham' %}
+                    <i class="fa-solid fa-notes-medical text-base"></i>
+                    {% elif noti.loai_thong_bao == 'PhanHoi' %}
+                    <i class="fa-solid fa-comment-medical text-base"></i>
+                    {% else %}
+                    <i class="fa-solid fa-bell text-base"></i>
+                    {% endif %}
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <h3 class="font-bold text-sm text-gray-800 flex items-center gap-2">
+                            {{ noti.tieu_de }}
+                            {% if not noti.da_doc %}
+                            <span class="w-2 h-2 rounded-full bg-blue-600 inline-block unread-dot"></span>
+                            {% endif %}
+                        </h3>
+                        <span class="text-xs text-gray-400 shrink-0">
+                            {{ noti.thoi_gian_tao }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600 leading-relaxed mb-3">
+                        {{ noti.noi_dung }}
+                    </p>
+
+                    <div class="flex items-center gap-3">
+                        {% if noti.lien_ket %}
+                        <a href="{{ noti.lien_ket }}" data-action="mark-read" data-id="{{ noti.id }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            Xem chi tiết <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if not noti.da_doc %}
+                        <button type="button" data-action="mark-read" data-id="{{ noti.id }}" data-type="btn-mark-single" class="text-xs text-gray-400 hover:text-gray-600 transition">
+                            <i class="fa-solid fa-check mr-1"></i> Đánh dấu đã đọc
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="py-12 text-center text-gray-400">
+                <i class="fa-regular fa-bell text-4xl mb-3 text-gray-300"></i>
+                <p>Bạn không có thông báo nào.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function markAsRead(id) {
+    if (!id) return;
+    try {
+        const res = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ notification_id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById('noti-row-' + id);
+            if (row) {
+                row.classList.remove('bg-blue-50/20');
+                const dot = row.querySelector('.unread-dot');
+                if (dot) dot.remove();
+                const singleBtn = row.querySelector('[data-type="btn-mark-single"]');
+                if (singleBtn) singleBtn.remove();
+                // Update badge
+                const badge = document.getElementById('unread-badge');
+                if (badge) {
+                    const cur = parseInt(badge.innerText) || 0;
+                    badge.innerText = Math.max(0, cur - 1) + ' chưa đọc';
+                }
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function markAllAsRead() {
+    try {
+        const res = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ all: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.querySelectorAll('.unread-dot').forEach(el => el.remove());
+            document.querySelectorAll('#notification-list > div').forEach(el => el.classList.remove('bg-blue-50/20'));
+            document.querySelectorAll('[data-type="btn-mark-single"]').forEach(el => el.remove());
+            const badge = document.getElementById('unread-badge');
+            if (badge) badge.innerText = '0 chưa đọc';
+        } else {
+            alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const markAllBtn = document.getElementById('btnMarkAllRead');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', markAllAsRead);
+    }
+});
+
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action="mark-read"]');
+    if (target) {
+        const id = target.getAttribute('data-id');
+        if (id) {
+            markAsRead(id);
+        }
+    }
+});
+</script>
+{% endblock %}

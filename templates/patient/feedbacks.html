@@ -1,0 +1,213 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Hòm thư Góp ý & Phản hồi - H2T Care{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold">Hòm thư Góp ý & Phản hồi</h1>
+                <p class="text-blue-100 text-sm mt-1">Ý kiến đóng góp quý báu của quý khách giúp phòng khám không ngừng nâng cao chất lượng dịch vụ.</p>
+            </div>
+            <button onclick="document.getElementById('feedbackFormContainer').scrollIntoView({behavior: 'smooth'})" class="px-5 py-2.5 bg-white text-blue-600 hover:bg-blue-50 rounded-xl font-semibold text-sm shadow transition self-start md:self-auto flex items-center gap-2">
+                <i class="fas fa-pen"></i> Gửi ý kiến mới
+            </button>
+        </div>
+    </div>
+
+    <!-- Danh sách phản hồi đã gửi -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <h2 class="font-bold text-gray-800 flex items-center gap-2 text-base">
+                <i class="fas fa-history text-blue-500"></i> Lịch sử phản hồi của bạn
+            </h2>
+            <span class="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-full">
+                {{ feedbacks|length }} lượt gửi
+            </span>
+        </div>
+
+        <div class="divide-y divide-gray-100">
+            {% for fb in feedbacks %}
+            <div class="p-6 hover:bg-gray-50/60 transition space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                            {{ fb.chu_de or 'Góp ý chung' }}
+                        </span>
+                        <div class="flex text-amber-400 text-xs">
+                            {% for i in range(fb.danh_gia or 5) %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                            {% for i in range(5 - (fb.danh_gia or 5)) %}
+                            <i class="far fa-star text-gray-300"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-400">
+                            <i class="far fa-clock mr-1"></i> {{ fb.ngay_tao }}
+                        </span>
+                        {% if fb.trang_thai == 'DaPhanHoi' %}
+                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Đã phản hồi</span>
+                        {% elif fb.trang_thai == 'DangXuLy' %}
+                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">Đang xử lý</span>
+                        {% elif fb.trang_thai == 'DaDong' %}
+                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">Đã đóng</span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Đã tiếp nhận</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Nội dung phản hồi của bệnh nhân -->
+                <div class="text-sm text-gray-700 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    {{ fb.noi_dung }}
+                </div>
+
+                <!-- Trả lời từ phòng khám nếu có -->
+                {% if fb.tra_loi %}
+                <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-4 ml-4 relative">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <span class="text-xs font-bold text-blue-900">Phản hồi từ Ban Quản Lý Phòng Khám</span>
+                        {% if fb.ngay_tra_loi %}
+                        <span class="text-[11px] text-gray-400">({{ fb.ngay_tra_loi }})</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-sm text-blue-800">{{ fb.tra_loi }}</p>
+                </div>
+                {% else %}
+                <div class="text-xs text-gray-400 italic flex items-center gap-1.5 ml-1">
+                    <i class="fas fa-info-circle text-blue-400"></i> Phòng khám đang tiến hành xem xét ý kiến của bạn và sẽ sớm phản hồi.
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="py-12 text-center text-gray-400">
+                <i class="fas fa-comment-dots text-4xl mb-3 text-gray-300"></i>
+                <p>Bạn chưa gửi ý kiến hay phản hồi nào.</p>
+                <p class="text-xs text-gray-400 mt-1">Hãy để lại đánh giá của bạn sau những lần thăm khám tại phòng khám nhé!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- FORM GỬI PHẢN HỒI MỚI -->
+    <div id="feedbackFormContainer" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+            <i class="fas fa-paper-plane text-blue-600"></i> Gửi ý kiến đóng góp mới
+        </h2>
+        <p class="text-xs text-gray-500 mb-6">Mọi thông tin phản hồi đều được ban lãnh đạo tiếp nhận và bảo mật thông tin cá nhân.</p>
+
+        <form id="patientFeedbackForm" onsubmit="submitFeedback(event)" class="space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Chủ đề góp ý *</label>
+                    <select id="fb_topic" required class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Dịch vụ khám chữa bệnh">Dịch vụ khám chữa bệnh</option>
+                        <option value="Thái độ phục vụ của y bác sĩ">Thái độ phục vụ của y bác sĩ / nhân viên</option>
+                        <option value="Cơ sở vật chất & Tiện nghi">Cơ sở vật chất & Tiện nghi</option>
+                        <option value="Thời gian chờ đợi & Quy trình">Thời gian chờ đợi & Quy trình tiếp đón</option>
+                        <option value="Viện phí & Bảng giá">Viện phí & Bảng giá dịch vụ</option>
+                        <option value="Khác">Ý kiến đóng góp khác</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Mức độ hài lòng của bạn</label>
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="hidden" id="fb_rating" value="5">
+                        <div class="flex gap-1.5 text-2xl text-amber-400 cursor-pointer" id="star-rating">
+                            <i class="fas fa-star" onclick="setRating(1)"></i>
+                            <i class="fas fa-star" onclick="setRating(2)"></i>
+                            <i class="fas fa-star" onclick="setRating(3)"></i>
+                            <i class="fas fa-star" onclick="setRating(4)"></i>
+                            <i class="fas fa-star" onclick="setRating(5)"></i>
+                        </div>
+                        <span id="rating-text" class="text-xs font-medium text-gray-600 ml-2">Rất hài lòng (5 sao)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">Nội dung chi tiết *</label>
+                <textarea id="fb_content" required rows="4" placeholder="Vui lòng chia sẻ cảm nhận hoặc vấn đề bạn gặp phải khi thăm khám..." class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" id="fbSubmitBtn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow transition flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Gửi phản hồi ngay
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const ratingTexts = {
+    1: 'Rất không hài lòng (1 sao)',
+    2: 'Không hài lòng (2 sao)',
+    3: 'Bình thường (3 sao)',
+    4: 'Hài lòng (4 sao)',
+    5: 'Rất hài lòng (5 sao)'
+};
+
+function setRating(val) {
+    document.getElementById('fb_rating').value = val;
+    document.getElementById('rating-text').innerText = ratingTexts[val] || '';
+    const stars = document.querySelectorAll('#star-rating i');
+    stars.forEach((s, idx) => {
+        if (idx < val) {
+            s.className = 'fas fa-star text-amber-400';
+        } else {
+            s.className = 'far fa-star text-gray-300';
+        }
+    });
+}
+
+async function submitFeedback(e) {
+    e.preventDefault();
+    const btn = document.getElementById('fbSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+    const payload = {
+        chu_de: document.getElementById('fb_topic').value,
+        diem_danh_gia: parseInt(document.getElementById('fb_rating').value) || 5,
+        noi_dung: document.getElementById('fb_content').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/feedback/submit', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Cảm ơn bạn! Ý kiến phản hồi đã được gửi đến ban quản lý phòng khám.');
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + (data.message || 'Không thể gửi phản hồi'));
+        }
+    } catch (err) {
+        alert('Lỗi kết nối: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi phản hồi ngay';
+    }
+}
+</script>
+{% endblock %}
