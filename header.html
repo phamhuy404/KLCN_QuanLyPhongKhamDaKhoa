@@ -1,0 +1,235 @@
+<!-- Header dành cho phân hệ Quản trị & Y tế -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-6 py-3.5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+        <!-- Nút menu mobile -->
+        <button id="mobile-menu-btn" class="md:hidden w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <!-- Search Box tìm kiếm bệnh nhân -->
+        <form method="GET" action="{{ url_for('admin.patients') }}" class="hidden sm:flex items-center w-80 lg:w-96">
+            <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" name="search" placeholder="Tìm bệnh nhân (Mã BN, Tên, SĐT, CCCD)..." 
+                    class="w-full pl-10 pr-4 py-2 bg-slate-100 border border-transparent rounded-xl text-xs focus:bg-white focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all outline-none">
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Actions & User Identity -->
+    <div class="flex items-center gap-3">
+        <!-- NÚT BẤM THỬ POPUP THÔNG BÁO (THEO YÊU CẦU CỦA BẠN ĐỂ TEST / DEMO) -->
+        <button type="button" onclick="triggerTestNotification()" 
+                class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" 
+                title="Bấm để thử nghiệm nhảy Popup thông báo thời gian thực">
+            <i class="fa-solid fa-bell text-amber-600 animate-bounce"></i>
+            <span class="hidden sm:inline">Bấm thử thông báo</span>
+        </button>
+
+        <!-- Nút tiếp nhận bệnh nhân -->
+        <a href="{{ url_for('admin.reception') }}" 
+           class="bg-medical-600 hover:bg-medical-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 transition-all" 
+           title="Mở quầy tiếp nhận lễ tân">
+            <i class="fa-solid fa-plus text-xs"></i>
+            <span class="hidden sm:inline">Tiếp nhận mới</span>
+        </a>
+
+        <!-- Nút xem trang chủ -->
+        <a href="{{ url_for('home') }}" 
+           class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all flex items-center gap-1.5" 
+           title="Xem Trang chủ phòng khám">
+            <i class="fa-solid fa-house text-xs"></i>
+            <span class="hidden lg:inline">Trang chủ</span>
+        </a>
+
+        <!-- Dropdown Chuông thông báo -->
+        <div class="relative inline-block text-left" id="notification-bell-container">
+            <button type="button" onclick="toggleNotificationDropdown()" 
+                    class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" 
+                    title="Thông báo hệ thống">
+                <i class="fa-regular fa-bell text-sm"></i>
+                <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
+            </button>
+            
+            <!-- Menu Dropdown Thông báo -->
+            <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-100 py-3 z-50">
+                <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+                    <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Mới Nhất
+                    </h5>
+                    <button type="button" onclick="triggerTestNotification('success')" class="text-[11px] text-medical-600 hover:underline font-semibold">
+                        + Thử thông báo mới
+                    </button>
+                </div>
+                <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs" id="notification-list">
+                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-calendar-check text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h6 class="font-semibold text-slate-800 text-xs">Lịch hẹn khám mới</h6>
+                            <p class="text-slate-500 text-[11px] mt-0.5">Bệnh nhân Hoàng Bảo Nam vừa đặt hẹn lúc 09:30 sáng nay.</p>
+                            <span class="text-[10px] text-slate-400 mt-1 block">5 phút trước</span>
+                        </div>
+                    </div>
+                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-flask text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h6 class="font-semibold text-slate-800 text-xs">Kết quả xét nghiệm</h6>
+                            <p class="text-slate-500 text-[11px] mt-0.5">Phòng xét nghiệm vừa hoàn tất sinh hóa máu cho mã BN2609001.</p>
+                            <span class="text-[10px] text-slate-400 mt-1 block">20 phút trước</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 pt-2 border-t border-slate-100 text-center">
+                    <a href="{{ url_for('admin.dashboard') }}" class="text-[11px] text-slate-500 hover:text-medical-600 font-medium">Xem tất cả trên Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin tài khoản nhân sự đăng nhập -->
+        {% set curr_user = session.get('user', {}) %}
+        <div class="flex items-center gap-2.5 pl-2.5 border-l border-slate-200">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+                {{ (curr_user.get('ho_ten', 'AD'))[0] }}
+            </div>
+            <div class="hidden md:block text-left">
+                <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px]">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
+                <span class="text-[10px] text-teal-700 font-semibold block leading-tight">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" 
+               class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all ml-1" 
+               title="Đăng xuất khỏi hệ thống">
+                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- KHUNG CONTAINER CHỨA CÁC POPUP TOAST THÔNG BÁO TỰ ĐỘNG -->
+<div id="popup-notification-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none w-80 sm:w-96"></div>
+
+<script>
+    // Hàm bật/tắt menu dropdown thông báo
+    function toggleNotificationDropdown() {
+        const menu = document.getElementById('notification-dropdown');
+        if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('notification-bell-container');
+        if (container && !container.contains(e.target)) {
+            const menu = document.getElementById('notification-dropdown');
+            if (menu) menu.classList.add('hidden');
+        }
+    });
+
+    // HÀM TẠO VÀ BẬT POPUP THÔNG BÁO HIỆN ĐẠI (TOAST NOTIFICATION)
+    function showAppNotification({ title = 'Thông báo hệ thống', message = '', type = 'info', duration = 4000 }) {
+        const container = document.getElementById('popup-notification-container');
+        if (!container) return;
+
+        const config = {
+            success: {
+                bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                icon: 'fa-solid fa-circle-check text-emerald-500',
+                bar: 'bg-emerald-500'
+            },
+            warning: {
+                bg: 'bg-amber-50 border-amber-200 text-amber-800',
+                icon: 'fa-solid fa-triangle-exclamation text-amber-500',
+                bar: 'bg-amber-500'
+            },
+            danger: {
+                bg: 'bg-rose-50 border-rose-200 text-rose-800',
+                icon: 'fa-solid fa-circle-xmark text-rose-500',
+                bar: 'bg-rose-500'
+            },
+            info: {
+                bg: 'bg-teal-50 border-teal-200 text-teal-800',
+                icon: 'fa-solid fa-bell text-teal-500',
+                bar: 'bg-teal-500'
+            }
+        }[type] || {
+            bg: 'bg-slate-900 border-slate-700 text-white',
+            icon: 'fa-solid fa-bell text-teal-400',
+            bar: 'bg-teal-400'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto transform translate-x-full opacity-0 transition-all duration-300 ease-out p-4 rounded-2xl border shadow-xl ${config.bg} flex items-start gap-3 relative overflow-hidden`;
+
+        toast.innerHTML = `
+            <div class="text-xl shrink-0 mt-0.5">
+                <i class="${config.icon}"></i>
+            </div>
+            <div class="flex-1 pr-4">
+                <h5 class="text-xs font-bold leading-tight">${title}</h5>
+                <p class="text-[11px] opacity-90 mt-1 leading-snug">${message}</p>
+                <span class="text-[9px] opacity-60 mt-1.5 block">${new Date().toLocaleTimeString('vi-VN')}</span>
+            </div>
+            <button type="button" class="text-slate-400 hover:text-slate-700 text-xs shrink-0" onclick="this.parentElement.remove()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="absolute bottom-0 left-0 h-1 ${config.bar} transition-all duration-[${duration}ms]" style="width: 100%; transition: width ${duration}ms linear;" id="progress-bar"></div>
+        `;
+
+        container.appendChild(toast);
+
+        // Hiệu ứng trượt vào
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full', 'opacity-0');
+            const pBar = toast.querySelector('#progress-bar');
+            if (pBar) pBar.style.width = '0%';
+        }, 20);
+
+        // Tự động đóng sau `duration`
+        setTimeout(() => {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    // NÚT BẤM TEST POPUP THÔNG BÁO VỚI CÁC KỊCH BẢN THỰC TẾ
+    let testNotifyIndex = 0;
+    function triggerTestNotification(specificType = null) {
+        const scenarios = [
+            {
+                title: 'Lịch Hẹn Mới Vừa Đến! 📅',
+                message: 'Bệnh nhân Nguyễn Văn An vừa đặt lịch khám Khoa Tim Mạch lúc 14:00 hôm nay.',
+                type: 'info'
+            },
+            {
+                title: 'Kê Đơn Thuốc Thành Công! 💊',
+                message: 'Hồ sơ EMR #PK2609012 đã xuất đơn thuốc sang quầy Dược thành công.',
+                type: 'success'
+            },
+            {
+                title: 'Cảnh Báo Lâm Sàng! ⚠️',
+                message: 'Bệnh nhân Lê Thị B có tiền sử dị ứng kháng sinh nhóm Penicillin!',
+                type: 'warning'
+            },
+            {
+                title: 'Cập Nhật CSDL Khóa Luận! 🏥',
+                message: 'Hệ thống H2T Healthcare đã đồng bộ dữ liệu Bệnh nhân & Bác sĩ an toàn 100%.',
+                type: 'success'
+            }
+        ];
+
+        const item = specificType 
+            ? scenarios.find(s => s.type === specificType) || scenarios[0]
+            : scenarios[testNotifyIndex % scenarios.length];
+
+        testNotifyIndex++;
+        showAppNotification({
+            title: item.title,
+            message: item.message,
+            type: item.type,
+            duration: 4500
+        });
+    }
+</script>
