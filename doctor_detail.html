@@ -1,0 +1,204 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Hồ Sơ Bác Sĩ: {{ doctor.ho_ten }} ({{ doctor.hoc_vi }}){% endblock %}
+
+{% block sidebar %}
+{% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+{% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Breadcrumb & Nút Thao tác -->
+    <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm print:hidden">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <a href="{{ url_for('admin.doctors') }}" class="hover:text-medical-600">Danh sách Bác sĩ</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">{{ doctor.ho_ten }}</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </span>
+                Hồ Sơ Y Khoa & Chuyên Môn Bác Sĩ
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Thông tin hành chính, chuyên khoa phụ trách, lịch sử các ca khám lâm sàng và lịch trực.
+            </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <a href="{{ url_for('admin.doctors') }}"
+                class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Danh Sách</span>
+            </a>
+
+            <button type="button" onclick="window.print()"
+                class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-print"></i>
+                <span>In Hồ Sơ</span>
+            </button>
+
+            <a href="{{ url_for('admin.staff') }}"
+                class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>Phân Lịch Trực</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. Thẻ Profile Bác Sĩ -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
+        <div
+            class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-teal-600 to-medical-500 text-white flex items-center justify-center text-3xl font-bold shadow-lg shadow-teal-500/20 shrink-0">
+                    {{ doctor.ho_ten[0] }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h3 class="text-xl font-bold text-slate-900">{{ doctor.ho_ten }}</h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700">
+                            {{ doctor.hoc_vi }} • {{ doctor.ten_khoa }}
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
+                            {{ doctor.trang_thai_lam_viec or 'Đang làm việc' }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 mt-2">
+                        <span><i class="fa-solid fa-id-badge text-slate-400 mr-1"></i> Mã NV: {{ doctor.ma_nhan_vien or
+                            'NV' ~ doctor.nhan_vien_id }}</span>
+                        <span><i class="fa-solid fa-phone text-slate-400 mr-1"></i> {{ doctor.sdt }}</span>
+                        <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i> {{ doctor.email or 'Chưa cập nhật
+                            email' }}</span>
+                        <span><i class="fa-solid fa-door-open text-slate-400 mr-1"></i> {{ doctor.ten_phong or 'Phòng
+                            khám tổng quát' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Giá khám & Thống kê ca khám -->
+            <div
+                class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs w-full lg:w-auto">
+                <div>
+                    <div class="text-slate-400 text-[11px]">Giá khám ban đầu:</div>
+                    <div class="font-mono font-bold text-base text-medical-700">
+                        {{ "{:,.0f}".format(doctor.gia_kham or 150000) }} đ
+                    </div>
+                    <span class="text-[10px] text-slate-400">Đã bao gồm VAT</span>
+                </div>
+                <div class="w-px h-10 bg-slate-200 mx-1"></div>
+                <div>
+                    <div class="text-slate-400 text-[11px]">Tổng số ca đã khám:</div>
+                    <div class="font-mono font-bold text-base text-teal-700">
+                        {{ doctor.total_visits }} lượt khám
+                    </div>
+                    <span class="text-[10px] text-emerald-600 font-semibold">Hiệu suất cao</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin chi tiết chuyên môn -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
+            <div>
+                <span class="text-slate-400 block text-[11px]">Kinh nghiệm công tác:</span>
+                <p class="font-semibold text-slate-800 mt-0.5">{{ doctor.kinh_nghiem or 'Hơn 10 năm kinh nghiệm trong
+                    lĩnh vực khám & điều trị chuyên sâu.' }}</p>
+            </div>
+            <div>
+                <span class="text-slate-400 block text-[11px]">Tài khoản nội bộ:</span>
+                <p class="font-semibold text-slate-800 font-mono mt-0.5">{{ doctor.username }}</p>
+            </div>
+            <div>
+                <span class="text-slate-400 block text-[11px]">Lần đăng nhập cuối:</span>
+                <p class="font-semibold text-slate-800 font-mono mt-0.5">{{ doctor.lan_dang_nhap_cuoi or 'Gần đây' }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Lịch làm việc trong tuần (Phân ca trực) -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-calendar-week text-teal-600"></i> Lịch Khám & Ca Trực Tuần Này
+            </h4>
+            <span class="text-xs text-slate-400">Lịch chuẩn phòng khám H2T Care</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-7 gap-2.5 text-center text-xs">
+            {% set days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'] %}
+            {% for d in days %}
+            <div
+                class="p-3 rounded-xl border {% if loop.index <= 5 %}bg-teal-50/50 border-teal-100{% else %}bg-slate-50 border-slate-100{% endif %}">
+                <span class="font-bold text-slate-800 block">{{ d }}</span>
+                <span class="text-[10px] text-slate-400 block mt-1">Sáng: 07:30 - 11:30</span>
+                <span class="text-[10px] text-slate-400 block">Chiều: 13:30 - 17:00</span>
+                <span
+                    class="mt-2 inline-block px-2 py-0.5 rounded-full text-[9px] font-bold {% if loop.index <= 5 %}bg-emerald-100 text-emerald-800{% else %}bg-slate-200 text-slate-600{% endif %}">
+                    {{ 'Có ca trực' if loop.index <= 5 else 'Nghỉ' }} </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 4. Danh sách các ca khám gần đây do Bác sĩ phụ trách -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-medical-600"></i> Bệnh Nhân Được Khám Gần Đây
+            </h4>
+            <span class="text-xs text-slate-400">5 lượt khám gần nhất</span>
+        </div>
+
+        {% if doctor.recent_patients %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-2.5 px-3">Mã Phiếu</th>
+                        <th class="py-2.5 px-3">Ngày Khám</th>
+                        <th class="py-2.5 px-3">Bệnh Nhân</th>
+                        <th class="py-2.5 px-3">Giới Tính / SĐT</th>
+                        <th class="py-2.5 px-3">Chẩn Đoán ICD-10</th>
+                        <th class="py-2.5 px-3 text-center">Hồ Sơ EMR</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in doctor.recent_patients %}
+                    <tr>
+                        <td class="py-3 px-3 font-mono font-bold text-medical-700">#{{ p.ma_phieu }}</td>
+                        <td class="py-3 px-3 text-slate-600">{{ p.ngay_kham }}</td>
+                        <td class="py-3 px-3 font-bold text-slate-900">{{ p.benh_nhan_ten }}</td>
+                        <td class="py-3 px-3 text-slate-500">{{ p.gioi_tinh }} • {{ p.sdt }}</td>
+                        <td class="py-3 px-3 font-medium text-slate-800">{{ p.chan_doan_icd }}</td>
+                        <td class="py-3 px-3 text-center">
+                            <a href="{{ url_for('admin.patient_detail', patient_id=p.benh_nhan_id) }}"
+                                class="text-medical-600 hover:text-medical-800 font-bold hover:underline">
+                                Xem bệnh án
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-xs text-slate-400 italic text-center py-4">Bác sĩ chưa có ca khám bệnh nào trong cơ sở dữ liệu.
+        </p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
