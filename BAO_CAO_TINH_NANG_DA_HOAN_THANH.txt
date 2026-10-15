@@ -1,0 +1,117 @@
+================================================================================
+BÁO CÁO TIẾN ĐỘ & CÁC CHỨC NĂNG ĐÃ NGHIÊN CỨU, PHÁT TRIỂN HOÀN THÀNH
+DỰ ÁN KHÓA LUẬN TỐT NGHIỆP: HỆ THỐNG QUẢN LÝ PHÒNG KHÁM ĐA KHOA (H2T HEALTHCARE)
+Người thực hiện: Sinh viên thực hiện Khóa luận tốt nghiệp
+================================================================================
+
+Trong giai đoạn này, tôi đã chủ động nghiên cứu, thiết kế kiến trúc và trực tiếp lập 
+trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luận tốt nghiệp theo 
+đúng chuẩn y tế và yêu cầu thực tế của phòng khám đa khoa, bao gồm:
+
+--------------------------------------------------------------------------------
+1. HỆ THỐNG POPUP TOAST THÔNG BÁO THỜI GIAN THỰC & NÚT TEST DEMO
+--------------------------------------------------------------------------------
+- Tôi đã xây dựng hệ thống thông báo Toast Notification tự động với giao diện hiện đại:
+  + Hiệu ứng trượt mượt mà (Slide-in) từ góc trên bên phải màn hình.
+  + Hỗ trợ phân loại 4 trạng thái trực quan: Thành công (Xanh lá), Cảnh báo (Vàng cam), 
+    Nguy hiểm (Đỏ), và Tin tức/Lịch hẹn mới (Xanh teal).
+  + Tích hợp thanh thời gian đếm ngược (Progress bar) tự động ẩn sau 4.5 giây.
+- Thiết kế thêm nút bấm chuyên dụng "[🔔 Bấm thử thông báo]" trực quan trên Top Header:
+  + Nút bấm có icon quả chuông hoạt họa nảy (bounce animation).
+  + Khi bấm vào, hệ thống tự động kích hoạt các kịch bản thực tế (bệnh nhân đặt hẹn mới, 
+    kết quả xét nghiệm hoàn tất, cảnh báo lâm sàng dị ứng thuốc) phục vụ quá trình bảo vệ 
+    và demo tính năng trực tiếp trước Hội đồng chấm khóa luận.
+
+--------------------------------------------------------------------------------
+2. PHÂN HỆ QUẢN LÝ TÀI KHOẢN (IMPORT & EXPORT DỮ LIỆU EXCEL / CSV CHUẨN UTF-8)
+--------------------------------------------------------------------------------
+- Xây dựng giao diện trang Quản lý Tài khoản (admin/accounts.html):
+  + Thống kê phân loại tài khoản: Tổng số lượng, Bác sĩ, Nhân sự nội bộ, Bệnh nhân và 
+    Tài khoản bị vô hiệu hóa.
+  + Bộ lọc tài khoản linh hoạt theo từng vai trò (ADMIN, BACSI, LETAN, DUOCSI, KTV, BENHNHAN) 
+    và thanh tìm kiếm tức thì theo username, họ tên, số điện thoại.
+- Tính năng Xuất dữ liệu (Export to Excel/CSV):
+  + Tự động xuất toàn bộ danh sách tài khoản ra file CSV có gắn mã UTF-8 BOM (\uFEFF), 
+    đảm bảo khi mở bằng Microsoft Excel tiếng Việt có dấu 100% không bị lỗi font chữ.
+- Tính năng Tải file mẫu (Template Download):
+  + Cung cấp nút "Tải File Mẫu" chuẩn cấu trúc cột giúp người quản trị dễ dàng nhập thêm 
+    hàng loạt tài khoản mới về sau.
+- Tính năng Đổi mật khẩu & Khóa/Mở tài khoản:
+  + Tích hợp modal cấp lại mật khẩu mới được mã hóa an toàn vào CSDL MySQL.
+  + Nút bật/tắt (Toggle) khóa hoặc kích hoạt tài khoản tức thì mà không cần tải lại trang.
+
+--------------------------------------------------------------------------------
+3. PHÂN HỆ DANH SÁCH BÁC SĨ CHUYÊN KHOA
+--------------------------------------------------------------------------------
+- Xây dựng trang Quản lý Đội ngũ Bác sĩ (admin/doctors.html) với thiết kế bảng y tế chuyên nghiệp:
+  + Hiển thị đầy đủ thông tin: Mã bác sĩ, Avatar đại diện, Họ tên, Chuyên khoa công tác, 
+    Phòng khám trực thuộc, Học hàm/Học vị (ThS.BS, BSCKII, Bác sĩ...), Số năm kinh nghiệm, 
+    Thông tin liên hệ (SĐT, Email công vụ), Giá khám niêm yết và Trạng thái làm việc.
+  + Thẻ đếm số lượng bác sĩ theo chuyên khoa và ca trực trong ngày.
+  + Nút thao tác nhanh "Chi Tiết" dẫn thẳng đến hồ sơ y khoa toàn diện 360 độ của từng bác sĩ.
+
+--------------------------------------------------------------------------------
+4. PHÂN HỆ HỒ SƠ CHI TIẾT BÁC SĨ 360 ĐỘ (DOCTOR DOSSIER 360)
+--------------------------------------------------------------------------------
+- Thiết kế trang Chi tiết thông tin Bác sĩ (admin/doctor_detail.html) đạt chuẩn EMR:
+  + Khối Profile Header: Thông tin nhân sự, học vị, chuyên khoa, trạng thái làm việc, 
+    giá khám ban đầu và tổng số ca khám bệnh đã thực hiện.
+  + Khối Lịch công tác & Phân ca trực trong tuần: Bảng trực trực quan từ Thứ 2 đến Chủ nhật 
+    chia theo 2 ca Sáng (07:30 - 11:30) và Chiều (13:30 - 17:00).
+  + Khối Bệnh án & Lịch sử khám bệnh gần đây: Truy vấn từ bảng phiếu khám bệnh (phieu_kham) 
+    để liệt kê 5 bệnh nhân được bác sĩ này chẩn đoán gần nhất, kèm liên kết mở trực tiếp hồ 
+    sơ bệnh án điện tử (EMR) của bệnh nhân đó.
+  + Nút "In Hồ Sơ" hỗ trợ in ấn nhanh hồ sơ lý lịch y khoa của bác sĩ.
+
+--------------------------------------------------------------------------------
+5. PHÂN HỆ BIÊN TẬP & XUẤT BẢN BÀI VIẾT Y KHOA (CMS QUẢN TRỊ NỘI DUNG)
+--------------------------------------------------------------------------------
+- Xây dựng trang Quản lý danh sách bài viết (admin/articles.html):
+  + Quản lý các bài viết cẩm nang sức khỏe y tế cộng đồng.
+  + Lọc bài theo danh mục (Tim mạch, Nhi khoa, Da liễu, Nội tiết, Xương khớp, Sức khỏe tổng quát...).
+  + Thống kê lượt xem, ngày đăng, tác giả và trạng thái (Bản nháp / Đã xuất bản).
+- Xây dựng trang Soạn thảo bài viết chuyên nghiệp (admin/article_editor.html) làm rất kỹ:
+  + Tích hợp trình soạn thảo WYSIWYG Quill.js: Đầy đủ công cụ bôi đậm, in nghiêng, gạch chân, 
+    đặt tiêu đề H2-H4, danh sách đánh số, chèn liên kết, trích dẫn blockquote, chèn ảnh.
+  + Tự động tạo SEO Slug: Khi nhập tiêu đề bài viết (ví dụ: "Cách phòng ngừa bệnh tiểu đường"), 
+    hệ thống tự động chuyển hóa thành đường dẫn thân thiện SEO (cach-phong-ngua-benh-tieu-duong).
+  + Quản lý Thumbnail trực quan: Nhập link ảnh đại diện là khung bên dưới tự động hiển thị 
+    ảnh xem trước (Preview Thumbnail) ngay lập tức.
+  + Tính năng Xem Trước (Live Preview Modal): Bấm nút "Xem Trước" sẽ hiển thị bài viết y hệt 
+    như trên giao diện người đọc thực tế trước khi bấm Xuất bản chính thức.
+  + Lưu trữ vào CSDL: Tự động gắn mã tác giả theo tài khoản nhân sự/bác sĩ đang đăng nhập.
+
+--------------------------------------------------------------------------------
+6. TỔNG HỢP CÁC FILE MÃ NGUỒN TÔI ĐÃ TẠO MỚI & NÂNG CẤP TRONG DỰ ÁN
+--------------------------------------------------------------------------------
+[Các file tạo mới]:
+1. templates/admin/accounts.html         : Giao diện quản lý tài khoản, Import/Export Excel.
+2. templates/admin/doctors.html          : Giao diện danh sách bác sĩ chuyên khoa.
+3. templates/admin/doctor_detail.html    : Giao diện hồ sơ chi tiết bác sĩ 360 độ.
+4. templates/admin/articles.html         : Giao diện quản trị danh sách tin tức/bài viết.
+5. templates/admin/article_editor.html   : Giao diện soạn thảo WYSIWYG, tự sinh slug, preview.
+
+[Các file đã nâng cấp logic & backend]:
+6. app.py                                : Đăng ký hệ thống alias_map và hàm smart_url_for 
+                                           giúp tương thích toàn bộ route quản trị không lỗi.
+7. controllers/admin_controller.py       : Bổ sung toàn bộ các route điều hướng (/accounts, 
+                                           /doctors, /articles, /articles/create, /articles/edit...).
+8. models/article_model.py               : Bổ sung các phương thức nghiệp vụ CRUD bài viết 
+                                           (get_by_id, get_all_admin, create, update, delete).
+9. models/user_model.py                  : Bổ sung phương thức get_doctor_by_id và get_account_stats.
+10. templates/admin/components/header.html: Tích hợp nút test thông báo và container Toast.
+11. templates/admin/components/sidebar.html: Thêm 3 menu liên kết mới cho Bác sĩ, Tài khoản, Bài viết.
+
+--------------------------------------------------------------------------------
+7. KỊCH BẢN HƯỚNG DẪN TEST & TRÌNH DIỄN KHI BÁO CÁO KHÓA LUẬN
+--------------------------------------------------------------------------------
+Bước 1: Chạy lệnh `python app.py` và đăng nhập tài khoản Quản trị viên (ADMIN).
+Bước 2: Test Popup thông báo: Nhìn lên góc phải thanh Header, bấm nút vàng "[🔔 Bấm thử thông báo]" 
+        để thấy hiệu ứng toast trượt ra mượt mà và thanh đếm giờ tự tắt.
+Bước 3: Test Quản lý Tài khoản: Vào menu "Quản lý Tài khoản", bấm "Tải File Mẫu" và "Xuất File Excel" 
+        để chứng minh tính năng trích xuất dữ liệu tiếng Việt không lỗi font.
+Bước 4: Test Đội ngũ Bác sĩ: Vào menu "Đội ngũ Bác sĩ", bấm "Chi Tiết" một bác sĩ để xem hồ sơ 360 độ 
+        kèm bảng ca trực tuần và danh sách bệnh nhân đã tiếp nhận.
+Bước 5: Test Đăng bài viết: Vào menu "Quản lý Bài viết", bấm "Viết & Đăng Bài Mới", gõ tiêu đề để xem 
+        slug tự sinh ra, soạn nội dung bằng Quill.js, bấm "Xem Trước (Preview)" và bấm "Xuất Bản".
+================================================================================

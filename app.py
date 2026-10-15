@@ -56,6 +56,13 @@ def create_app():
         'admin_staff': 'admin.staff',
         'admin_feedbacks': 'admin.feedbacks',
         'admin_backups': 'admin.backups',
+        'admin_doctors': 'admin.doctors',
+        'admin_doctor_detail': 'admin.doctor_detail',
+        'admin_accounts': 'admin.accounts',
+        'admin_articles': 'admin.articles',
+        'admin_article_create': 'admin.article_create',
+        'admin_article_edit': 'admin.article_edit',
+        'admin_article_delete': 'admin.article_delete',
     }
 
 
@@ -81,13 +88,17 @@ def create_app():
             try:
                 return flask_url_for(target, **values)
             except Exception:
-                return flask_url_for(endpoint, **values)
+                try:
+                    return flask_url_for(f"admin.{endpoint}", **values)
+                except Exception:
+                    return flask_url_for(endpoint, **values)
 
         return dict(
             current_user=session.get('user'),
             curr_user=session.get('user') or {},
             catalogs=get_all_catalogs(),
-            url_for=smart_url_for
+            url_for=smart_url_for,
+            str=str
         )
 
     return app
