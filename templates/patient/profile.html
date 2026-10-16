@@ -245,10 +245,16 @@
 
     </div>
 
+    <script type="application/json" id="patient-allergy-catalog-data">
+        {{ catalogs.di_ung | tojson | safe }}
+    </script>
+    <script type="application/json" id="patient-history-catalog-data">
+        {{ catalogs.tien_su_benh | tojson | safe }}
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const ALLERGY_CATALOG = {{ catalogs.di_ung | tojson | safe }};
-            const HISTORY_CATALOG = {{ catalogs.tien_su_benh | tojson | safe }};
+            const ALLERGY_CATALOG = JSON.parse(document.getElementById('patient-allergy-catalog-data').textContent || '[]');
+            const HISTORY_CATALOG = JSON.parse(document.getElementById('patient-history-catalog-data').textContent || '[]');
 
             // Khởi tạo các bộ chọn thẻ chuẩn hóa từ danh mục y tế
             window.initCatalogTagSelector({

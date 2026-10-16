@@ -1,3 +1,4 @@
+""""tốt"""
 from flask import Blueprint, render_template, request, abort
 from core.security import roles_required
 from models.patient_model import PatientModel
@@ -100,6 +101,13 @@ def pharmacy():
 def billing():
     """Phân hệ thu ngân: Viện phí, chi trả BHYT và xuất hóa đơn điện tử."""
     invoices = BillingModel.get_all()
+    
+    # Tiền xử lý dữ liệu: Đảm bảo mọi hóa đơn đều có key 'tien_bhyt_chi_tra' với giá trị hợp lệ
+    # Điều này giúp tránh lỗi Jinja2 khi dùng bộ lọc sum() trên file HTML
+    for inv in invoices:
+        if 'tien_bhyt_chi_tra' not in inv or inv['tien_bhyt_chi_tra'] is None:
+            inv['tien_bhyt_chi_tra'] = 0
+            
     patients_list = PatientModel.get_all()
     return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, patients=patients_list)
 

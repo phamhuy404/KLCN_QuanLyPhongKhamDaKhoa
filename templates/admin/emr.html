@@ -56,7 +56,7 @@
             <!-- Danh sách bệnh nhân chờ -->
             <div class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1" id="emr-queue-list">
                 {% for p in patients[:5] %}
-                <div onclick="selectEmrPatient({{ p.id }})" id="patient-card-{{ p.id }}" 
+                <div onclick="selectEmrPatient('{{ p.id }}')" id="patient-card-{{ p.id }}" 
                      class="p-3.5 rounded-xl border {% if loop.first %}border-medical-500 bg-medical-50/50{% else %}border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50{% endif %} cursor-pointer transition-all space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="px-2 py-0.5 rounded-lg {% if loop.first %}bg-medical-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %} font-mono font-bold text-xs">STT #{{ "%03d"|format(loop.index) }}</span>
@@ -263,8 +263,11 @@
 
 </div>
 
+<script type="application/json" id="emr-patients-data">
+    {{ patients | tojson | safe }}
+</script>
 <script>
-    let rawPatients = {{ patients | tojson | safe }};
+    let rawPatients = JSON.parse(document.getElementById('emr-patients-data').textContent || '[]');
     const samplePatients = {};
     rawPatients.forEach(p => {
         samplePatients[p.id] = {

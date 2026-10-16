@@ -232,10 +232,13 @@
     </div>
 </div>
 
+<script type="application/json" id="admin-appointments-data">
+    {{ appointments | tojson | safe }}
+</script>
 <script>
     // Dữ liệu lịch hẹn từ CSDL SQL Server
-    let rawAppointments = {{ appointments | tojson | safe }};
-    let appointments = (rawAppointments || []).map(a => {
+    let rawAppointments = JSON.parse(document.getElementById('admin-appointments-data').textContent || '[]');
+    var appointments = (rawAppointments || []).map(a => {
         let status = 'waiting';
         if (a.trang_thai === 'Đã khám' || a.trang_thai === 'Hoàn thành') status = 'completed';
         else if (a.trang_thai === 'Đã duyệt' || a.trang_thai === 'Đã xác nhận') status = 'confirmed';

@@ -184,9 +184,12 @@
     </div>
 </div>
 
+<script type="application/json" id="billing-invoices-data">
+    {{ invoices | tojson | safe }}
+</script>
 <script>
-    let rawInvoices = {{ invoices | tojson | safe }};
-    let invoices = rawInvoices.map(inv => ({
+    let rawInvoices = JSON.parse(document.getElementById('billing-invoices-data').textContent || '[]');
+    var invoices = rawInvoices.map(inv => ({
         id: inv.id,
         ma_hd: inv.ma_hoa_don,
         patient_id: inv.benh_nhan_id,

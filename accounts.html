@@ -185,11 +185,11 @@
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             <div class="flex items-center justify-center gap-1.5">
-                                <button type="button" onclick="openResetPasswordModal({{ a.id }}, '{{ a.username }}')" 
+                                <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
                                         class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Đặt lại mật khẩu">
                                     <i class="fa-solid fa-key text-[10px]"></i> Đổi MK
                                 </button>
-                                <button type="button" onclick="toggleAccount({{ a.id }})" 
+                                <button type="button" onclick="toggleAccount('{{ a.id }}')" 
                                         class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center" title="Khóa / Mở khóa tài khoản">
                                     <i class="fa-solid fa-power-off text-xs"></i>
                                 </button>
@@ -236,8 +236,11 @@
     </div>
 </div>
 
+<script type="application/json" id="accounts-data">
+    {{ accounts | tojson | safe }}
+</script>
 <script>
-    let currentAccounts = {{ accounts | tojson | safe }};
+    let currentAccounts = JSON.parse(document.getElementById('accounts-data').textContent || '[]');
     let activeResetAccountId = null;
 
     // 1. TẢI FILE MẪU EXCEL ĐỂ TIỆN THÊM TÀI KHOẢN SAU NÀY

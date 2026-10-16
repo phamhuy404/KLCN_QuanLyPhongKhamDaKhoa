@@ -196,8 +196,11 @@
     </div>
 </div>
 
+<script type="application/json" id="lab-orders-data">
+    {{ lab_orders | tojson | safe }}
+</script>
 <script>
-    let rawLabOrders = {{ lab_orders | tojson | safe }};
+    let rawLabOrders = JSON.parse(document.getElementById('lab-orders-data').textContent || '[]');
     let labOrders = rawLabOrders.map(o => ({
         id: o.id,
         ma_cd: o.ma_chi_dinh,

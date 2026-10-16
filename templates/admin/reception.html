@@ -285,8 +285,11 @@
     </div>
 </div>
 
+<script type="application/json" id="reception-appointments-data">
+    {{ appointments | tojson | safe }}
+</script>
 <script>
-    let rawAppointments = {{ appointments | tojson | safe }};
+    let rawAppointments = JSON.parse(document.getElementById('reception-appointments-data').textContent || '[]');
     let receptionQueue = rawAppointments.map((a, idx) => ({
         stt: String(idx + 1).padStart(3, '0'),
         ma_bn: a.ma_benh_nhan,

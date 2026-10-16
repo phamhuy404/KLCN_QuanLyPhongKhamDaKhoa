@@ -594,10 +594,20 @@
     </div>
 </div>
 
+<script type="application/json" id="admin-patients-data">
+    {{ patients | tojson | safe }}
+</script>
+<script type="application/json" id="admin-catalogs-allergy-data">
+    {{ catalogs.di_ung | tojson | safe }}
+</script>
+<script type="application/json" id="admin-catalogs-history-data">
+    {{ catalogs.tien_su_benh | tojson | safe }}
+</script>
+
 <!-- JAVASCRIPT XỬ LÝ TÌM KIẾM, SẮP XẾP, IMPORT & EXPORT CSV / JSON -->
 <script>
     // Dữ liệu bệnh nhân khởi tạo từ backend
-    let patients = {{ patients | tojson | safe }};
+    var patients = JSON.parse(document.getElementById('admin-patients-data').textContent || '[]');
     let currentFiltered = [...patients];
     let activeModalPatient = null;
     let modalPasswordVisible = false;
@@ -605,8 +615,8 @@
     let addHistoryTagSelector = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        const ALLERGY_CATALOG = {{ catalogs.di_ung | tojson | safe }};
-        const HISTORY_CATALOG = {{ catalogs.tien_su_benh | tojson | safe }};
+        const ALLERGY_CATALOG = JSON.parse(document.getElementById('admin-catalogs-allergy-data').textContent || '[]');
+        const HISTORY_CATALOG = JSON.parse(document.getElementById('admin-catalogs-history-data').textContent || '[]');
 
         addAllergyTagSelector = window.initCatalogTagSelector({
             containerId: 'add-allergy-container',

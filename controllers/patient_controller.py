@@ -46,7 +46,7 @@ def booking():
 
     patient = PatientModel.get_by_id(patient_id)
     departments = ClinicModel.get_all_departments(active_only=True)
-    doctors = UserModel.get_all_doctors(active_only=True)
+    doctors = UserModel.get_all_doctors()
     return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors)
 
 @patient_bp.route('/records')
@@ -72,6 +72,14 @@ def billing():
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
     invoices = BillingModel.get_by_patient(patient_id)
+    
+    # --- THÊM ĐOẠN NÀY ĐỂ FIX LỖI THIẾU KEY ---
+    if invoices:
+        for inv in invoices:
+            if 'tien_bhyt_chi_tra' not in inv or inv['tien_bhyt_chi_tra'] is None:
+                inv['tien_bhyt_chi_tra'] = 0
+    # ------------------------------------------
+
     return render_template('patient/billing.html', active_page='billing', patient=patient, invoices=invoices)
 
 @patient_bp.route('/profile')

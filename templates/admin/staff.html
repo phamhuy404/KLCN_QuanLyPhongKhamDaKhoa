@@ -313,15 +313,15 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <button onclick="openChangeRoleModal({{ acc.id }}, '{{ acc.ten_dang_nhap }}', {{ acc.vai_tro_id or 0 }})" 
+                                    <button onclick="openChangeRoleModal('{{ acc.id }}', '{{ acc.ten_dang_nhap }}', '{{ acc.vai_tro_id or 0 }}')" 
                                             class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Đổi vai trò">
                                         <i class="fa-solid fa-user-tag text-xs"></i>
                                     </button>
-                                    <button onclick="openResetPasswordModal({{ acc.id }}, '{{ acc.ten_dang_nhap }}')" 
+                                    <button onclick="openResetPasswordModal('{{ acc.id }}', '{{ acc.ten_dang_nhap }}')" 
                                             class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Đặt lại mật khẩu">
                                         <i class="fa-solid fa-key text-xs"></i>
                                     </button>
-                                    <button onclick="toggleAccountStatus({{ acc.id }}, {{ acc.trang_thai }})" 
+                                    <button onclick="toggleAccountStatus('{{ acc.id }}', '{{ 1 if (acc.trang_thai == 1 or acc.trang_thai == \'1\') else 0 }}')" 
                                             class="p-2 {% if acc.trang_thai == 1 or acc.trang_thai == '1' %}text-rose-600 hover:bg-rose-50{% else %}text-emerald-600 hover:bg-emerald-50{% endif %} rounded-lg transition" 
                                             title="{% if acc.trang_thai == 1 or acc.trang_thai == '1' %}Khóa tài khoản{% else %}Mở khóa tài khoản{% endif %}">
                                         <i class="fa-solid {% if acc.trang_thai == 1 or acc.trang_thai == '1' %}fa-lock{% else %}fa-lock-open{% endif %} text-xs"></i>

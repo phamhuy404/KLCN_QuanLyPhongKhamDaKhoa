@@ -235,9 +235,15 @@
     </div>
 </div>
 
+<script type="application/json" id="pharmacy-medicines-data">
+    {{ medicines | tojson | safe }}
+</script>
+<script type="application/json" id="pharmacy-prescriptions-data">
+    {{ prescriptions | tojson | safe }}
+</script>
 <script>
-    let rawMedicines = {{ medicines | tojson | safe }};
-    let medicines = rawMedicines.map(m => ({
+    let rawMedicines = JSON.parse(document.getElementById('pharmacy-medicines-data').textContent || '[]');
+    var medicines = rawMedicines.map(m => ({
         ma: m.ma_thuoc || m.ma,
         ten: m.ten_thuoc || m.ten,
         hoat_chat: m.hoat_chat || 'Hoạt chất chuẩn',
@@ -248,8 +254,8 @@
         status: (m.so_luong_ton !== undefined ? m.so_luong_ton : m.ton) < 25 ? 'low_stock' : 'in_stock'
     }));
 
-    let rawPrescriptions = {{ prescriptions | tojson | safe }};
-    let dispensingOrders = rawPrescriptions.map(p => ({
+    let rawPrescriptions = JSON.parse(document.getElementById('pharmacy-prescriptions-data').textContent || '[]');
+    var dispensingOrders = rawPrescriptions.map(p => ({
         ma_don: p.ma_don,
         benh_nhan: p.benh_nhan,
         ma_bn: p.ma_bn,
