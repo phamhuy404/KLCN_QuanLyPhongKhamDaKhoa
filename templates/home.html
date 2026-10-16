@@ -360,53 +360,19 @@
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-stethoscope"></i>
+                        {% if departments %}
+                            {% for dep in departments[:6] %}
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
+                                <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl mb-2.5">
+                                    <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
+                                </div>
+                                <h4 class="font-bold text-sm text-slate-800">{{ dep.ten_khoa }}</h4>
+                                <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ dep.mo_ta or 'Khám & điều trị chuyên sâu theo chuẩn y khoa' }}</p>
                             </div>
-                            <h4 class="font-bold text-sm text-slate-800">Khoa Nội Tổng Quát</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Khám & điều trị bệnh lý đa cơ quan</p>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-heart-pulse"></i>
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800">Khoa Tim Mạch</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Chẩn đoán sớm bệnh lý van tim & mạch vành</p>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-baby"></i>
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800">Khoa Nhi & Tiêm Chủng</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Chăm sóc toàn diện cho trẻ sơ sinh & trẻ nhỏ</p>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-head-side-cough"></i>
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800">Tai Mũi Họng</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Nội soi ống mềm không đau độ nét cao</p>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-bone"></i>
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800">Cơ Xương Khớp</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Điều trị thoái hóa cột sống & chấn thương</p>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl mb-2.5">
-                                <i class="fa-solid fa-tooth"></i>
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800">Răng Hàm Mặt</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">Nha khoa thẩm mỹ & điều trị kỹ thuật cao</p>
-                        </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-span-3 text-center py-6 text-xs text-slate-400">Đang cập nhật danh sách chuyên khoa...</div>
+                        {% endif %}
                     </div>
                 </section>
 
@@ -419,53 +385,26 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <!-- Bác sĩ 1 -->
-                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
-                            <div class="text-center">
-                                <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=250" alt="BS.CKII Trần Minh Quân" 
-                                    class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md">
-                                <h4 class="font-bold text-slate-900 text-sm mt-3.5">BS.CKII Trần Minh Quân</h4>
-                                <span class="text-xs text-medical-700 font-semibold block mt-0.5">Trưởng khoa Nội tổng quát</span>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Hơn 18 năm công tác tại các bệnh viện tuyến trung ương. Chuyên gia điều trị các bệnh mãn tính.</p>
+                        {% if doctors %}
+                            {% for doc in doctors[:3] %}
+                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
+                                <div class="text-center">
+                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" 
+                                        class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md">
+                                    <h4 class="font-bold text-slate-900 text-sm mt-3.5">{{ doc.hoc_vi or 'Bác sĩ' }} {{ doc.ho_ten }}</h4>
+                                    <span class="text-xs text-medical-700 font-semibold block mt-0.5">{{ doc.ten_khoa or 'Chuyên khoa' }}</span>
+                                    <p class="text-[11px] text-slate-400 mt-1 leading-relaxed line-clamp-2">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm thăm khám.' }}</p>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                                    <span class="text-slate-500 font-medium"><i class="fa-solid fa-door-open text-medical-500 mr-1"></i>{{ doc.ten_phong or 'Phòng khám' }}</span>
+                                    <a href="{{ url_for('booking') }}" 
+                                       class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
+                                </div>
                             </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                                <span class="text-slate-500 font-medium">★ 4.9 (1.2k lượt khám)</span>
-                                <a href="{{ url_for('booking') }}" 
-                                   class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
-                            </div>
-                        </div>
-
-                        <!-- Bác sĩ 2 -->
-                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
-                            <div class="text-center">
-                                <img src="https://images.unsplash.com/photo-1594824813583-a44b54e7d389?auto=format&fit=crop&q=80&w=250" alt="PGS.TS Nguyễn Thu Hương" 
-                                    class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-rose-500/20 shadow-md">
-                                <h4 class="font-bold text-slate-900 text-sm mt-3.5">PGS.TS Nguyễn Thu Hương</h4>
-                                <span class="text-xs text-rose-700 font-semibold block mt-0.5">Chuyên gia Tim Mạch can thiệp</span>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Giảng viên cao cấp ĐH Y Dược, thành viên Hội Tim Mạch Học Việt Nam & Châu Á.</p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                                <span class="text-slate-500 font-medium">★ 5.0 (950 lượt khám)</span>
-                                <a href="{{ url_for('booking') }}" 
-                                   class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
-                            </div>
-                        </div>
-
-                        <!-- Bác sĩ 3 -->
-                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
-                            <div class="text-center">
-                                <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=250" alt="ThS.BS Lê Hoàng Long" 
-                                    class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-blue-500/20 shadow-md">
-                                <h4 class="font-bold text-slate-900 text-sm mt-3.5">ThS.BS Lê Hoàng Long</h4>
-                                <span class="text-xs text-blue-700 font-semibold block mt-0.5">Khoa Tiêu Hóa & Gan Mật</span>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">Tu nghiệp chuyên sâu tại Nhật Bản về kỹ thuật nội soi chẩn đoán sớm ung thư tiêu hóa.</p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                                <span class="text-slate-500 font-medium">★ 4.8 (820 lượt khám)</span>
-                                <a href="{{ url_for('booking') }}" 
-                                   class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
-                            </div>
-                        </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-span-3 text-center py-6 text-xs text-slate-400">Đang cập nhật danh sách bác sĩ...</div>
+                        {% endif %}
                     </div>
                 </section>
 
@@ -555,49 +494,66 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-                            <div class="space-y-2.5">
-                                <div class="flex items-center gap-1 text-amber-400 text-xs">
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
+                        {% if feedbacks %}
+                            {% for fb in feedbacks[:2] %}
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                                <div class="space-y-2.5">
+                                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                                        {% for s in range(fb.diem_danh_gia or 5) %}
+                                        <i class="fa-solid fa-star"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="text-xs text-slate-600 italic leading-relaxed">
+                                        "{{ fb.noi_dung }}"
+                                    </p>
                                 </div>
-                                <p class="text-xs text-slate-600 italic leading-relaxed">
-                                    "Tôi rất ấn tượng với việc đặt lịch trực tuyến, đến nơi không phải chen lấn chờ đợi. Bác sĩ Quân thăm khám rất ân cần, giải thích kỹ từng chỉ số xét nghiệm giúp tôi an tâm."
-                                </p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
-                                <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100" class="w-9 h-9 rounded-full object-cover">
-                                <div>
-                                    <h5 class="font-bold text-slate-800 text-xs">Chị Lê Thu Trang</h5>
-                                    <span class="text-[11px] text-slate-400">Khám Nội tổng quát • TP.HCM</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-                            <div class="space-y-2.5">
-                                <div class="flex items-center gap-1 text-amber-400 text-xs">
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                    <i class="fa-solid fa-star"></i>
-                                </div>
-                                <p class="text-xs text-slate-600 italic leading-relaxed">
-                                    "Cơ sở vật chất tại 140 Lê Trọng Tấn rất sạch sẽ và hiện đại. Kết quả xét nghiệm máu và toa thuốc được lưu trên tài khoản điện tử rất tiện để theo dõi lâu dài."
-                                </p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
-                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100" class="w-9 h-9 rounded-full object-cover">
-                                <div>
-                                    <h5 class="font-bold text-slate-800 text-xs">Anh Phạm Hoàng Nam</h5>
-                                    <span class="text-[11px] text-slate-400">Khám Tiêu hóa & BHYT • Tân Phú</span>
+                                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-medical-100 text-medical-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                        {{ (fb.ten_benh_nhan or 'BN')[:2]|upper }}
+                                    </div>
+                                    <div>
+                                        <h5 class="font-bold text-slate-800 text-xs">{{ fb.ten_benh_nhan or 'Bệnh nhân' }}</h5>
+                                        <span class="text-[11px] text-slate-400">{{ fb.chu_de or 'Dịch vụ khám bệnh' }} • {{ str(fb.thoi_gian or '')[:10] }}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                                <div class="space-y-2.5">
+                                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                                    </div>
+                                    <p class="text-xs text-slate-600 italic leading-relaxed">
+                                        "Đặt lịch trực tuyến qua hệ thống rất nhanh chóng và tiện lợi, giảm đáng kể thời gian chờ đợi."
+                                    </p>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-medical-100 text-medical-700 flex items-center justify-center font-bold text-xs">BN</div>
+                                    <div>
+                                        <h5 class="font-bold text-slate-800 text-xs">Người bệnh H2T</h5>
+                                        <span class="text-[11px] text-slate-400">Đánh giá dịch vụ</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+                                <div class="space-y-2.5">
+                                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                                    </div>
+                                    <p class="text-xs text-slate-600 italic leading-relaxed">
+                                        "Bác sĩ chuyên khoa khám tận tâm, toa thuốc và kết quả xét nghiệm được lưu điện tử rất dễ tra cứu."
+                                    </p>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">BN</div>
+                                    <div>
+                                        <h5 class="font-bold text-slate-800 text-xs">Người bệnh H2T</h5>
+                                        <span class="text-[11px] text-slate-400">Đánh giá dịch vụ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </section>
 
@@ -615,153 +571,32 @@
                         <span class="text-[10px] font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded-full">Cập nhật 24/7</span>
                     </div>
 
-                    <!-- Danh sách bài viết có thanh cuộn (4 bài hiện rõ + 5 bài cuộn) -->
+                    <!-- Danh sách bài viết có thanh cuộn từ CSDL -->
                     <div class="article-scroll-container max-h-[480px] overflow-y-auto space-y-3 pr-1.5">
-                        
-                        <!-- Bài 1 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-medical-100 text-medical-700 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-lungs text-medical-600"></i>
+                        {% if articles %}
+                            {% for art in articles %}
+                            <a href="{{ url_for('article_detail', slug=art.slug) }}" class="block p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
+                                <div class="flex items-start gap-3">
+                                    {% if art.image %}
+                                    <img src="{{ art.image }}" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
+                                    {% else %}
+                                    <div class="w-14 h-14 rounded-lg bg-medical-100 text-medical-700 flex items-center justify-center shrink-0 text-lg font-bold">
+                                        <i class="{{ art.category_icon or 'fa-solid fa-newspaper' }} text-medical-600"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="space-y-1">
+                                        <span class="text-[10px] font-bold text-medical-700 uppercase bg-medical-100/80 px-2 py-0.5 rounded">{{ art.category_name }}</span>
+                                        <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug line-clamp-2">
+                                            {{ art.title }}
+                                        </h5>
+                                        <span class="text-[10px] text-slate-400 block">{{ art.published_at }} • {{ art.read_time }} phút đọc</span>
+                                    </div>
                                 </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-medical-700 uppercase bg-medical-100/80 px-2 py-0.5 rounded">Hô hấp</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Phòng ngừa các bệnh lý viêm đường hô hấp thời điểm giao mùa
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">24/09/2026 • 5 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 2 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-heart-pulse"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-rose-700 uppercase bg-rose-100 px-2 py-0.5 rounded">Tim mạch</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        5 Dấu hiệu cảnh báo sớm bệnh lý mạch vành chớ nên bỏ qua
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">22/09/2026 • 6 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 3 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-vial-virus"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-blue-700 uppercase bg-blue-100 px-2 py-0.5 rounded">Xét nghiệm</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Những điều cần chuẩn bị trước khi xét nghiệm đường huyết & men gan
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">20/09/2026 • 4 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 4 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-apple-whole"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-amber-700 uppercase bg-amber-100 px-2 py-0.5 rounded">Dinh dưỡng</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Chế độ dinh dưỡng khoa học hỗ trợ kiểm soát huyết áp hiệu quả
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">18/09/2026 • 5 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 5 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-shield-virus"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-teal-700 uppercase bg-teal-100 px-2 py-0.5 rounded">Tiêm chủng</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Lịch tiêm phòng vắc xin quan trọng dành cho trẻ từ 0 - 24 tháng tuổi
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">16/09/2026 • 7 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 6 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-brain"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-purple-700 uppercase bg-purple-100 px-2 py-0.5 rounded">Thần kinh</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Cách phân biệt đau nửa đầu Migraine và đau đầu do căng thẳng
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">14/09/2026 • 4 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 7 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-bone"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-100 px-2 py-0.5 rounded">Cơ xương khớp</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Bí quyết bảo vệ sụn khớp và phòng thoái hóa cột sống cổ cho dân văn phòng
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">12/09/2026 • 6 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 8 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-tooth"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-cyan-700 uppercase bg-cyan-100 px-2 py-0.5 rounded">Nha khoa</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Khi nào nên nhổ răng khôn? Những lưu ý quan trọng trước và sau nhổ
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">10/09/2026 • 5 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
-                        <!-- Bài 9 -->
-                        <article class="p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
-                            <div class="flex items-start gap-3">
-                                <div class="w-14 h-14 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 text-lg font-bold">
-                                    <i class="fa-solid fa-capsules"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-bold text-indigo-700 uppercase bg-indigo-100 px-2 py-0.5 rounded">Dược lâm sàng</span>
-                                    <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug">
-                                        Sử dụng kháng sinh đúng cách: Cảnh báo nguy cơ kháng thuốc nguy hiểm
-                                    </h5>
-                                    <span class="text-[10px] text-slate-400 block">08/09/2026 • 6 phút đọc</span>
-                                </div>
-                            </div>
-                        </article>
-
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="py-8 text-center text-xs text-slate-400">Đang cập nhật bài viết mới...</div>
+                        {% endif %}
                     </div>
 
                     <!-- Nút xem tất cả bài viết -->

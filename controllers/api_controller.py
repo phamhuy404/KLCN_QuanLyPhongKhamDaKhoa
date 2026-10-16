@@ -14,7 +14,7 @@ def book_appointment():
     """API đặt lịch hẹn khám bệnh."""
     data = request.get_json() or {}
     user = session.get('user')
-    patient_id = data.get('patient_id') or (user.get('patient_id') if user else 1)
+    patient_id = data.get('patient_id') or (user.get('patient_id') or user.get('benh_nhan_id') if user else None) or 1
 
     chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
     bac_si_id = data.get('bac_si_id')

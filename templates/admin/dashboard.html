@@ -14,20 +14,42 @@
     <!-- Welcome Banner -->
     <div class="bg-gradient-to-r from-medical-600 to-teal-500 rounded-2xl p-6 text-white shadow-xl shadow-medical-500/10 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold">Xin chào, Bác sĩ Quân! 👋</h2>
-            <p class="text-medical-100 mt-1 text-sm">Hôm nay phòng khám có tổng cộng <span class="font-semibold underline">124 lượt khám</span>, hiện tại đang chờ khám 18 bệnh nhân.</p>
+            <h2 class="text-2xl font-bold">Xin chào, {{ curr_user.get('ho_ten', 'Quản trị viên') }}! 👋</h2>
+            <p class="text-medical-100 mt-1 text-sm">Hệ thống đang phục vụ <span class="font-semibold underline">{{ stats.total_patients if stats else 0 }} hồ sơ bệnh nhân</span> trong CSDL, hiện có <span class="font-semibold underline">{{ stats.waiting_appointments if stats else 0 }} lịch hẹn đang chờ</span>.</p>
         </div>
         <div class="flex gap-3">
             <div class="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/20 text-center">
                 <span class="block text-xs text-medical-100">Thời gian</span>
-                <span class="font-bold text-lg" id="current-time">09:45 AM</span>
+                <span class="font-bold text-lg" id="dashboard-current-time">--:--</span>
             </div>
             <div class="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/20 text-center">
                 <span class="block text-xs text-medical-100">Ngày</span>
-                <span class="font-bold text-lg" id="current-date">17/09/2026</span>
+                <span class="font-bold text-lg" id="dashboard-current-date">--/--/----</span>
             </div>
         </div>
     </div>
+    <script>
+        function updateDashboardClock() {
+            const now = new Date();
+            const timeEl = document.getElementById('dashboard-current-time');
+            const dateEl = document.getElementById('dashboard-current-date');
+            if (timeEl) {
+                let hours = now.getHours();
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12 || 12;
+                timeEl.textContent = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+            }
+            if (dateEl) {
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                dateEl.textContent = `${dd}/${mm}/${yyyy}`;
+            }
+        }
+        updateDashboardClock();
+        setInterval(updateDashboardClock, 1000);
+    </script>
 
     <!-- STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

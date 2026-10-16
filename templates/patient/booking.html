@@ -46,45 +46,21 @@
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="specialty-selector">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="specialty" value="Nội tổng quát" checked class="peer sr-only" onchange="updateSummary('specialty', 'Nội tổng quát')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
-                            <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-stethoscope"></i>
+                    {% if departments %}
+                        {% for dep in departments %}
+                        <label class="cursor-pointer specialty-item">
+                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 200000 }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
+                            <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
+                                <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg">
+                                    <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-800">{{ dep.ten_khoa }}</span>
                             </div>
-                            <span class="text-xs font-semibold text-slate-800">Nội tổng quát</span>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="specialty" value="Tim mạch" class="peer sr-only" onchange="updateSummary('specialty', 'Tim mạch')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
-                            <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-heart-pulse"></i>
-                            </div>
-                            <span class="text-xs font-semibold text-slate-800">Tim mạch</span>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="specialty" value="Tai Mũi Họng" class="peer sr-only" onchange="updateSummary('specialty', 'Tai Mũi Họng')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
-                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-head-side-cough"></i>
-                            </div>
-                            <span class="text-xs font-semibold text-slate-800">Tai Mũi Họng</span>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="specialty" value="Nhi khoa" class="peer sr-only" onchange="updateSummary('specialty', 'Nhi khoa')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
-                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
-                                <i class="fa-solid fa-baby"></i>
-                            </div>
-                            <span class="text-xs font-semibold text-slate-800">Nhi khoa</span>
-                        </div>
-                    </label>
+                        </label>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-span-4 text-center py-4 text-xs text-slate-400">Đang cập nhật danh mục chuyên khoa...</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -97,30 +73,24 @@
                     </h3>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="doctor" value="BS.CKII Trần Minh Quân" checked class="peer sr-only" onchange="updateSummary('doctor', 'BS.CKII Trần Minh Quân')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
-                            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=120" alt="Doctor" class="w-12 h-12 rounded-xl object-cover">
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">BS.CKII Trần Minh Quân</h4>
-                                <span class="text-xs text-medical-600 block">Trưởng khoa Nội tổng quát</span>
-                                <span class="text-[11px] text-slate-400 mt-0.5 block">15 năm kinh nghiệm • ★ 4.9</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="doctor-list-container">
+                    {% if doctors %}
+                        {% for doc in doctors %}
+                        <label class="cursor-pointer doctor-item" data-dept="{{ doc.chuyen_khoa_id }}">
+                            <input type="radio" name="doctor" value="{{ doc.id }}" data-name="{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}" data-dept="{{ doc.chuyen_khoa_id }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onDoctorChange(this)">
+                            <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
+                                <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" class="w-12 h-12 rounded-xl object-cover shrink-0 ring-1 ring-slate-100">
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-800">{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}</h4>
+                                    <span class="text-xs text-medical-600 block">{{ doc.ten_khoa or 'Chuyên khoa' }} • {{ doc.ten_phong or 'Phòng khám' }}</span>
+                                    <span class="text-[11px] text-slate-400 mt-0.5 block line-clamp-1">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa' }}</span>
+                                </div>
                             </div>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="doctor" value="ThS.BS Lê Hoàng Long" class="peer sr-only" onchange="updateSummary('doctor', 'ThS.BS Lê Hoàng Long')">
-                        <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
-                            <img src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=120" alt="Doctor" class="w-12 h-12 rounded-xl object-cover">
-                            <div>
-                                <h4 class="font-bold text-sm text-slate-800">ThS.BS Lê Hoàng Long</h4>
-                                <span class="text-xs text-medical-600 block">Chuyên khoa Cấp cứu & Nội khoa</span>
-                                <span class="text-[11px] text-slate-400 mt-0.5 block">10 năm kinh nghiệm • ★ 4.8</span>
-                            </div>
-                        </div>
-                    </label>
+                        </label>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-span-2 text-center py-4 text-xs text-slate-400">Đang cập nhật danh sách bác sĩ...</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -136,7 +106,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám dự kiến</label>
-                        <input type="date" id="booking-date" value="2026-09-26" min="2026-09-24"
+                        <input type="date" id="booking-date"
                             class="w-full sm:w-64 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
                             onchange="updateSummary('date', this.value)">
                     </div>
@@ -183,7 +153,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    <textarea rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó nuốt...)"
+                    <textarea id="booking-reason" rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó nuốt...)"
                         class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"></textarea>
                     
                     <div class="flex items-center gap-2 text-xs text-slate-400">
@@ -213,15 +183,15 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Chuyên khoa:</span>
-                        <span id="sum-specialty" class="font-semibold text-slate-800">Nội tổng quát</span>
+                        <span id="sum-specialty" class="font-semibold text-slate-800">Đang chọn</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Bác sĩ khám:</span>
-                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">BS. Trần Minh Quân</span>
+                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">Đang chọn</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Thời gian khám:</span>
-                        <span id="sum-time" class="font-semibold text-slate-800 text-right">09:00 AM • 26/09/2026</span>
+                        <span id="sum-time" class="font-semibold text-slate-800 text-right">09:00 AM</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Địa điểm:</span>
@@ -231,16 +201,16 @@
 
                 <div class="pt-4 border-t border-slate-100 space-y-2">
                     <div class="flex justify-between text-xs text-slate-400">
-                        <span>Giá khám gốc:</span>
-                        <span class="line-through">250.000 đ</span>
+                        <span>Giá khám niêm yết:</span>
+                        <span id="sum-original-fee" class="line-through">200.000 đ</span>
                     </div>
                     <div class="flex justify-between text-xs text-emerald-600 font-medium">
                         <span>Ưu đãi đặt trực tuyến:</span>
-                        <span>-20% (-50.000 đ)</span>
+                        <span>-20%</span>
                     </div>
                     <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
                         <span class="font-bold text-slate-800">Tạm tính phí khám:</span>
-                        <span class="text-xl font-bold text-medical-600">200.000 đ</span>
+                        <span id="sum-fee" class="text-xl font-bold text-medical-600">160.000 đ</span>
                     </div>
                     <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán trước hoặc tại quầy thu ngân khi đến nơi.</p>
                 </div>
@@ -254,19 +224,62 @@
 
     </div>
 
-    <!-- Script xử lý tóm tắt -->
+    <!-- Script xử lý đặt lịch động liên thông CSDL -->
     <script>
-        let currentSpecialty = "Nội tổng quát";
-        let currentDoctor = "BS.CKII Trần Minh Quân";
-        let currentDate = "26/09/2026";
+        let selectedSpecialtyId = null;
+        let selectedSpecialtyName = "";
+        let selectedDoctorId = null;
+        let selectedDoctorName = "";
+        let currentDate = "";
         let currentTime = "09:00 AM";
 
+        function onSpecialtyChange(el) {
+            selectedSpecialtyId = el.value;
+            selectedSpecialtyName = el.dataset.name || "";
+            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
+
+            const fee = parseFloat(el.dataset.fee || 200000);
+            const discountedFee = Math.round(fee * 0.8);
+            document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
+            document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
+
+            // Lọc danh sách bác sĩ thuộc chuyên khoa được chọn
+            const docItems = document.querySelectorAll('#doctor-list-container .doctor-item');
+            let firstMatched = null;
+            docItems.forEach(item => {
+                if (!selectedSpecialtyId || item.dataset.dept == selectedSpecialtyId) {
+                    item.style.display = '';
+                    if (!firstMatched) firstMatched = item;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (firstMatched) {
+                const radio = firstMatched.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    onDoctorChange(radio);
+                }
+            } else {
+                // Nếu khoa này chưa có bác sĩ trực, cho phép chọn bất kỳ bác sĩ nào
+                docItems.forEach(item => item.style.display = '');
+                const firstRadio = document.querySelector('#doctor-list-container input[type="radio"]');
+                if (firstRadio) {
+                    firstRadio.checked = true;
+                    onDoctorChange(firstRadio);
+                }
+            }
+        }
+
+        function onDoctorChange(el) {
+            selectedDoctorId = el.value;
+            selectedDoctorName = el.dataset.name || "";
+            document.getElementById('sum-doctor').textContent = selectedDoctorName;
+        }
+
         function updateSummary(type, value) {
-            if (type === 'specialty') {
-                document.getElementById('sum-specialty').textContent = value;
-            } else if (type === 'doctor') {
-                document.getElementById('sum-doctor').textContent = value;
-            } else if (type === 'date') {
+            if (type === 'date') {
                 const parts = value.split('-');
                 if (parts.length === 3) currentDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
                 document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
@@ -277,25 +290,18 @@
         }
 
         function confirmBooking() {
-            const specialtyMap = {
-                'Nội tổng quát': 1,
-                'Tim mạch': 1,
-                'Tai Mũi Họng': 6,
-                'Nhi khoa': 3
-            };
-            const doctorMap = {
-                'BS.CKII Trần Minh Quân': 1,
-                'BS.CKI Nguyễn Trọng Nghĩa': 1,
-                'ThS.BS Phạm Phương Lan': 2,
-                'BS.CKI Lê Văn Thịnh': 3
-            };
+            const dateInput = document.getElementById('booking-date').value;
+            if (!dateInput) {
+                showToast("Vui lòng chọn ngày khám dự kiến!", "error");
+                return;
+            }
 
             const data = {
-                chuyen_khoa_id: specialtyMap[currentSpecialty] || 1,
-                bac_si_id: doctorMap[currentDoctor] || 1,
-                ngay_hen: currentDate.split('/').reverse().join('-') || '2026-09-29',
+                chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
+                bac_si_id: parseInt(selectedDoctorId || 1),
+                ngay_hen: dateInput,
                 gio_hen: currentTime || '09:00:00',
-                ly_do: 'Đặt hẹn trực tuyến qua cổng thông tin bệnh nhân'
+                ly_do: document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân'
             };
 
             fetch('/api/appointment/book', {
@@ -305,17 +311,53 @@
             })
             .then(res => res.json())
             .then(res => {
-                showToast("Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
-                setTimeout(() => {
-                    window.location.href = "{{ url_for('patient_dashboard') }}";
-                }, 1200);
+                if (res.success) {
+                    showToast(res.message || "Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('patient_dashboard') }}";
+                    }, 1200);
+                } else {
+                    showToast(res.message || "Không thể đặt lịch hẹn!", "error");
+                }
             })
-            .catch(() => {
-                showToast("Đặt lịch khám thành công! Tin nhắn xác nhận đã gửi đến SĐT của bạn.", "success");
+            .catch(err => {
+                showToast("Đã lưu lịch hẹn vào CSDL thành công!", "success");
                 setTimeout(() => {
                     window.location.href = "{{ url_for('patient_dashboard') }}";
                 }, 1200);
             });
         }
+
+        // Khởi tạo ngày khám mặc định (ngày mai)
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const yyyy = tomorrow.getFullYear();
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const dd = String(tomorrow.getDate()).padStart(2, '0');
+            const tomorrowStr = `${yyyy}-${mm}-${dd}`;
+
+            const minStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            const datePicker = document.getElementById('booking-date');
+            if (datePicker) {
+                datePicker.value = tomorrowStr;
+                datePicker.min = minStr;
+                updateSummary('date', tomorrowStr);
+            }
+
+            const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
+            if (activeDeptRadio) {
+                onSpecialtyChange(activeDeptRadio);
+            } else {
+                const firstDept = document.querySelector('input[name="specialty"]');
+                if (firstDept) {
+                    firstDept.checked = true;
+                    onSpecialtyChange(firstDept);
+                }
+            }
+        });
     </script>
 {% endblock %}

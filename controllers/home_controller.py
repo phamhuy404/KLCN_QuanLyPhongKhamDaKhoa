@@ -2,6 +2,8 @@ from flask import Blueprint, render_template, request, abort
 from models.article_model import ArticleModel
 from models.clinic_model import ClinicModel
 from models.banner_model import BannerModel
+from models.user_model import UserModel
+from models.feedback_model import FeedbackModel
 
 home_bp = Blueprint('home', __name__)
 
@@ -9,10 +11,21 @@ home_bp = Blueprint('home', __name__)
 @home_bp.route('/home')
 def home():
     """Trang chủ cổng thông tin bệnh viện / phòng khám."""
-    articles = ArticleModel.get_all(limit=5)
+    articles = ArticleModel.get_all(limit=8)
     stats = ClinicModel.get_dashboard_stats()
     banners = BannerModel.get_active()
-    return render_template('home.html', articles=articles, stats=stats, banners=banners)
+    departments = ClinicModel.get_all_departments(active_only=True)
+    doctors = UserModel.get_all_doctors()
+    feedbacks = [f for f in FeedbackModel.get_all() if f.get('diem_danh_gia', 0) >= 4][:4]
+    return render_template(
+        'home.html',
+        articles=articles,
+        stats=stats,
+        banners=banners,
+        departments=departments,
+        doctors=doctors,
+        feedbacks=feedbacks
+    )
 
 @home_bp.route('/articles')
 @home_bp.route('/tin-tuc')

@@ -491,3 +491,51 @@ class ClinicModel:
             'completed_today': completed_today,
             'total_revenue': total_revenue
         }
+
+    @staticmethod
+    def get_report_stats():
+        """Lấy số liệu thống kê chi tiết cho trang báo cáo."""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute('SELECT COUNT(*) as total_visits FROM phieu_kham')
+        total_visits = cursor.fetchone()['total_visits']
+
+        cursor.execute("SELECT COALESCE(SUM(thanh_tien), 0) as total_revenue FROM hoa_don WHERE trang_thai = 'Đã thanh toán'")
+        total_revenue = cursor.fetchone()['total_revenue']
+
+        cursor.execute('SELECT COUNT(*) as total_patients FROM benh_nhan')
+        total_patients = cursor.fetchone()['total_patients']
+
+        cursor.execute("SELECT COUNT(*) as bhyt_patients FROM benh_nhan WHERE bhyt IS NOT NULL AND bhyt != ''")
+        bhyt_patients = cursor.fetchone()['bhyt_patients']
+        bhyt_ratio = round((bhyt_patients / total_patients * 100), 1) if total_patients > 0 else 0
+
+        cursor.execute('''
+            SELECT hinh_thuc_thanh_toan, COUNT(*) as so_luong, COALESCE(SUM(thanh_tien), 0) as doanh_thu
+            FROM hoa_don
+            WHERE trang_thai = 'Đã thanh toán'
+            GROUP BY hinh_thuc_thanh_toan
+        ''')
+        payment_stats = [dict(r) for r in cursor.fetchall()]
+
+        cursor.execute('''
+            SELECT ck.ten_khoa, COUNT(pk.id) as so_luot_kham
+            FROM chuyen_khoa ck
+            LEFT JOIN bac_si bs ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phieu_kham pk ON pk.bac_si_id = bs.id
+            GROUP BY ck.id, ck.ten_khoa
+            ORDER BY so_luot_kham DESC
+        ''')
+        department_visits = [dict(r) for r in cursor.fetchall()]
+
+        conn.close()
+        return {
+            'total_visits': total_visits,
+            'total_revenue': total_revenue,
+            'total_patients': total_patients,
+            'bhyt_patients': bhyt_patients,
+            'bhyt_ratio': bhyt_ratio,
+            'payment_stats': payment_stats,
+            'department_visits': department_visits
+        }

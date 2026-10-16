@@ -114,8 +114,9 @@ def billing():
 def reports():
     """Báo cáo thống kê doanh thu, lưu lượng bệnh nhân và hiệu suất phòng khám."""
     stats = ClinicModel.get_dashboard_stats()
+    report_stats = ClinicModel.get_report_stats()
     invoices = BillingModel.get_all()
-    return render_template('admin/reports.html', active_page='admin_reports', stats=stats, invoices=invoices)
+    return render_template('admin/reports.html', active_page='admin_reports', stats=stats, report_stats=report_stats, invoices=invoices)
 
 @admin_bp.route('/catalogs')
 @roles_required('ADMIN')

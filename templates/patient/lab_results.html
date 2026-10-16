@@ -53,38 +53,24 @@
         </div>
     </div>
 
+    {% set all_cls = [] %}
     {% if patient and patient.lich_su_kham %}
-        {% set encounters_with_cls = patient.lich_su_kham | selectattr('can_lam_sang') | list %}
-        {% if encounters_with_cls %}
-            <div class="bg-white rounded-2xl border border-teal-200 p-5 space-y-3 bg-teal-50/20">
-                <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-microscope text-teal-600"></i> Các chỉ định Cận Lâm Sàng & Kết quả từ CSDL phòng khám:
-                </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    {% for enc in encounters_with_cls %}
-                        {% for cls in enc.can_lam_sang %}
-                        <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <strong class="text-slate-900">{{ cls.ten }}</strong>
-                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">{{ cls.trang_thai or 'Đã có KQ' }}</span>
-                            </div>
-                            <p class="text-teal-800 font-medium">Kết quả: {{ cls.ket_qua or 'Bình thường' }}</p>
-                            <span class="text-slate-400 text-[11px] block">Người thực hiện: {{ cls.bac_si_thuc_hien or 'KTV Xét nghiệm' }} • {{ cls.loai }}</span>
-                        </div>
-                        {% endfor %}
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
+        {% for enc in patient.lich_su_kham %}
+            {% if enc.can_lam_sang %}
+                {% for cls in enc.can_lam_sang %}
+                    {% set _ = all_cls.append({'cls': cls, 'enc': enc}) %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
     {% endif %}
 
-    <!-- Tóm tắt chỉ số -->
+    <!-- Tóm tắt chỉ số Cận lâm sàng từ CSDL -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs text-slate-400 font-medium">Tổng số chỉ số</span>
-                <h3 class="text-2xl font-bold text-slate-800 mt-1">14</h3>
-                <span class="text-[11px] text-slate-500">Thuộc 3 danh mục cận lâm sàng</span>
+                <span class="text-xs text-slate-400 font-medium">Tổng chỉ định CLS</span>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ all_cls|length }}</h3>
+                <span class="text-[11px] text-slate-500">Trong toàn bộ lịch sử khám</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-list-check"></i>
@@ -93,9 +79,9 @@
 
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs text-slate-400 font-medium">Chỉ số trong chuẩn</span>
-                <h3 class="text-2xl font-bold text-emerald-600 mt-1">13</h3>
-                <span class="text-[11px] text-emerald-600 font-medium">Đạt khoảng tham chiếu bình thường</span>
+                <span class="text-xs text-slate-400 font-medium">Đã có kết quả</span>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ all_cls|selectattr('cls.trang_thai', 'defined')|list|length }}</h3>
+                <span class="text-[11px] text-emerald-600 font-medium">Đã được bác sĩ ký duyệt</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-circle-check"></i>
@@ -104,173 +90,76 @@
 
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs text-slate-400 font-medium">Cần lưu ý theo dõi</span>
-                <h3 class="text-2xl font-bold text-amber-500 mt-1">01</h3>
-                <span class="text-[11px] text-amber-600 font-medium">Bạch cầu WBC tăng nhẹ (do viêm họng)</span>
+                <span class="text-xs text-slate-400 font-medium">Đợt khám liên quan</span>
+                <h3 class="text-2xl font-bold text-teal-600 mt-1">{{ patient.lich_su_kham|length if patient and patient.lich_su_kham else 0 }}</h3>
+                <span class="text-[11px] text-teal-600 font-medium">Đồng bộ từ hồ sơ EMR</span>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-file-waveform"></i>
             </div>
         </div>
     </div>
 
-    <!-- Bảng Chi Tiết Kết Quả: Huyết Học (Tổng phân tích tế bào máu) -->
+    <!-- Bảng Chi Tiết Kết Quả Xét Nghiệm & Cận Lâm Sàng từ CSDL -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-droplet text-rose-500"></i> I. Huyết học - Tổng phân tích tế bào máu (CBC)
+                <i class="fa-solid fa-microscope text-medical-600"></i> Danh Sách Kết Quả Xét Nghiệm & Chẩn Đoán Hình Ảnh (CSDL)
             </h3>
-            <span class="text-xs text-slate-400">Máy phân tích tự động Sysmex XN-1000</span>
+            <span class="text-xs text-slate-400 font-medium">Đồng bộ tự động từ phòng LAB</span>
         </div>
 
+        {% if all_cls|length > 0 %}
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-50 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100">
-                        <th class="py-3 px-5">Tên xét nghiệm</th>
-                        <th class="py-3 px-5">Kết quả</th>
-                        <th class="py-3 px-5">Đơn vị</th>
-                        <th class="py-3 px-5">Khoảng tham chiếu chuẩn</th>
-                        <th class="py-3 px-5 text-center">Đánh giá</th>
+                        <th class="py-3 px-5">Tên xét nghiệm / Kỹ thuật</th>
+                        <th class="py-3 px-5">Phân loại</th>
+                        <th class="py-3 px-5">Đợt khám</th>
+                        <th class="py-3 px-5">Kết quả phân tích</th>
+                        <th class="py-3 px-5">Người thực hiện</th>
+                        <th class="py-3 px-5 text-center">Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-slate-700">
-                    <tr class="hover:bg-amber-50/40 transition-colors">
+                    {% for item in all_cls %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
                         <td class="py-3.5 px-5 font-bold text-slate-900">
-                            WBC (Số lượng bạch cầu)
-                            <span class="text-[11px] font-normal text-slate-400 block">White Blood Cell</span>
+                            {{ item.cls.ten }}
                         </td>
-                        <td class="py-3.5 px-5 font-bold text-amber-600 text-sm">11.2</td>
-                        <td class="py-3.5 px-5">G/L</td>
-                        <td class="py-3.5 px-5">4.0 - 10.0</td>
+                        <td class="py-3.5 px-5 text-slate-600">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">{{ item.cls.loai or 'Xét nghiệm' }}</span>
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-600 font-mono text-[11px]">
+                            {{ item.enc.ma_phieu or 'EMR' }} • {{ item.enc.thoi_gian_kham }}
+                        </td>
+                        <td class="py-3.5 px-5 font-semibold text-teal-800">
+                            {{ item.cls.ket_qua or 'Bình thường trong giới hạn tham chiếu' }}
+                        </td>
+                        <td class="py-3.5 px-5 text-slate-500">
+                            {{ item.cls.bac_si_thuc_hien or item.enc.bac_si or 'KTV Xét nghiệm' }}
+                        </td>
                         <td class="py-3.5 px-5 text-center">
-                            <span class="bg-amber-100 text-amber-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">
-                                <i class="fa-solid fa-arrow-trend-up mr-0.5"></i> Tăng nhẹ
+                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">
+                                {{ item.cls.trang_thai or 'Đã có kết quả' }}
                             </span>
                         </td>
                     </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">
-                            RBC (Số lượng hồng cầu)
-                            <span class="text-[11px] font-normal text-slate-400 block">Red Blood Cell</span>
-                        </td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">4.85</td>
-                        <td class="py-3.5 px-5">T/L</td>
-                        <td class="py-3.5 px-5">4.2 - 5.4</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">
-                            HGB (Huyết sắc tố)
-                            <span class="text-[11px] font-normal text-slate-400 block">Hemoglobin</span>
-                        </td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">145</td>
-                        <td class="py-3.5 px-5">g/L</td>
-                        <td class="py-3.5 px-5">130 - 170</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">
-                            PLT (Số lượng tiểu cầu)
-                            <span class="text-[11px] font-normal text-slate-400 block">Platelets</span>
-                        </td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">240</td>
-                        <td class="py-3.5 px-5">G/L</td>
-                        <td class="py-3.5 px-5">150 - 450</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- Bảng Chi Tiết Kết Quả: Sinh Hóa Máu (Gan, Thận, Đường) -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-flask-vial text-medical-600"></i> II. Sinh hóa máu & Chức năng Gan - Thận
-            </h3>
-            <span class="text-xs text-slate-400">Máy Roche Cobas 6000</span>
+        {% else %}
+        <div class="py-12 px-6 text-center text-slate-400 space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-flask-vial"></i>
+            </div>
+            <h4 class="font-bold text-slate-700 text-sm">Chưa có chỉ định cận lâm sàng</h4>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">
+                Hồ sơ của bạn hiện tại chưa có y lệnh cận lâm sàng hoặc xét nghiệm máu nào. Khi bác sĩ ra chỉ định trong đợt khám, kết quả phân tích từ phòng xét nghiệm sẽ tự động xuất hiện tại đây.
+            </p>
         </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="bg-slate-50 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-100">
-                        <th class="py-3 px-5">Tên xét nghiệm</th>
-                        <th class="py-3 px-5">Kết quả</th>
-                        <th class="py-3 px-5">Đơn vị</th>
-                        <th class="py-3 px-5">Khoảng tham chiếu chuẩn</th>
-                        <th class="py-3 px-5 text-center">Đánh giá</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-slate-700">
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">Glucose (Đường huyết lúc đói)</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">5.2</td>
-                        <td class="py-3.5 px-5">mmol/L</td>
-                        <td class="py-3.5 px-5">3.9 - 6.4</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">AST / GOT (Men gan)</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">26.4</td>
-                        <td class="py-3.5 px-5">U/L</td>
-                        <td class="py-3.5 px-5">&lt; 40.0</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">ALT / GPT (Men gan)</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">29.1</td>
-                        <td class="py-3.5 px-5">U/L</td>
-                        <td class="py-3.5 px-5">&lt; 41.0</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-                        <td class="py-3.5 px-5 font-bold text-slate-900">Creatinine (Chức năng thận)</td>
-                        <td class="py-3.5 px-5 font-bold text-slate-800 text-sm">82.0</td>
-                        <td class="py-3.5 px-5">µmol/L</td>
-                        <td class="py-3.5 px-5">62 - 106</td>
-                        <td class="py-3.5 px-5 text-center">
-                            <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Bình thường</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Chẩn đoán hình ảnh: X-Quang -->
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-        <div class="flex items-center justify-between">
-            <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-x-ray text-blue-600"></i> III. Chẩn đoán hình ảnh: X-Quang Ngực thẳng (KTS)
-            </h3>
-            <span class="text-xs text-slate-400">Khoa Chẩn đoán hình ảnh</span>
-        </div>
-
-        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-2">
-            <p><strong class="text-slate-800">Mô tả hình ảnh:</strong> Trường phổi hai bên sáng đều, không thấy tổn thương thâm nhiễm nhu mô phổi khu trú. Bóng tim không to, chỉ số tim/lồng ngực trong giới hạn bình thường. Góc sườn hoành hai bên sáng nhọn.</p>
-            <p><strong class="text-slate-800">Kết luận:</strong> <span class="font-bold text-emerald-700">Chưa thấy hình ảnh tổn thương cấp tính trên phim chụp X-quang phổi.</span></p>
-        </div>
-
-        <div class="flex items-center justify-between pt-2">
-            <span class="text-xs text-slate-500">Bác sĩ đọc kết quả: <strong>BS. Nguyễn Thanh Tùng</strong></span>
-            <button onclick="showToast('Đang mở xem phim X-quang chuẩn DICOM...', 'info')" class="text-xs font-semibold text-medical-600 hover:text-medical-700 flex items-center gap-1.5 hover:underline">
-                <i class="fa-regular fa-image"></i> Xem phim chụp chất lượng cao
-            </button>
-        </div>
+        {% endif %}
     </div>
 {% endblock %}
