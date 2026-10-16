@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Database backups & local databases
+backups/*.bak
+*.bak
+*.db-journal
+
+# Uploaded media (giu repo nhe, khong commit anh nguoi dung upload)
+static/uploads/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

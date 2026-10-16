@@ -1,5 +1,4 @@
-""""tốt"""
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, jsonify, redirect, url_for, session, flash
 from core.security import roles_required
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
@@ -158,4 +157,305 @@ def backups():
     from models.backup_model import BackupModel
     backup_data = BackupModel.list_backups()
     return render_template('admin/backups.html', active_page='admin_backups', backup_data=backup_data)
+
+@admin_bp.route('/accounts')
+@roles_required('ADMIN')
+def accounts():
+    """Quản lý danh sách tài khoản, phân quyền và khóa/mở tài khoản."""
+    role = request.args.get('role', 'ALL')
+    status = request.args.get('status', 'ALL')
+    search = request.args.get('search', '')
+    page = request.args.get('page', 1, type=int)
+
+    accounts_data = UserModel.get_accounts(
+        role=role, status=status, search=search, page=page, per_page=15
+    )
+    stats = UserModel.get_account_stats()
+    roles = UserModel.get_all_roles()
+
+    return render_template(
+        'admin/accounts.html',
+        active_page='admin_accounts',
+        accounts=accounts_data.get('items', []),
+        pagination=accounts_data,
+        stats=stats,
+        roles=roles,
+        current_role=role,
+        current_status=status
+    )
+
+@admin_bp.route('/accounts/reset-password', methods=['POST'])
+@roles_required('ADMIN')
+def reset_account_password():
+    """Đặt lại mật khẩu cho tài khoản người dùng."""
+    req_json = request.get_json(silent=True) or {}
+    account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
+    new_password = req_json.get('new_password') or request.form.get('new_password')
+    curr_user = session.get('user')
+    success, msg = UserModel.reset_account_password(account_id, new_password, audit_user=curr_user)
+    return jsonify({'success': success, 'message': msg})
+
+@admin_bp.route('/accounts/toggle-status/<int:account_id>', methods=['POST'])
+@admin_bp.route('/accounts/toggle-status', methods=['POST'])
+@roles_required('ADMIN')
+def toggle_account_status(account_id=None):
+    """Bật/tắt trạng thái hoạt động của tài khoản."""
+    if not account_id:
+        req_json = request.get_json(silent=True) or {}
+        account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
+    curr_user = session.get('user')
+    success, res = UserModel.toggle_account_status(account_id, audit_user=curr_user)
+    return jsonify({'success': success, 'new_status': res, 'status': res, 'message': 'Đã thay đổi trạng thái thành công'})
+
+@admin_bp.route('/accounts/create-staff', methods=['POST'])
+@roles_required('ADMIN')
+def create_staff_account():
+    """Tạo mới tài khoản nhân viên / tiếp tân / bác sĩ từ trang Quản lý Tài khoản."""
+    data = request.form.to_dict()
+    curr_user = session.get('user')
+    success, res = UserModel.create_staff(data, audit_user=curr_user)
+    if success:
+        flash(f"Đã tạo thành công tài khoản cho {data.get('ho_ten')}!", 'success')
+    else:
+        flash(f"Lỗi tạo tài khoản: {res}", 'error')
+
+    role = request.form.get('redirect_role') or 'ALL'
+    return redirect(url_for('admin.accounts', role=role))
+
+@admin_bp.route('/doctors')
+def doctors():
+    """Danh sách đội ngũ bác sĩ chuyên khoa."""
+    doctors_list = UserModel.get_all_doctors()
+    departments = ClinicModel.get_all_departments(active_only=True)
+    return render_template('admin/doctors.html', active_page='admin_doctors', doctors=doctors_list, departments=departments)
+
+@admin_bp.route('/doctors/<int:doctor_id>')
+def doctor_detail(doctor_id):
+    """Hồ sơ chi tiết y khoa 360 độ của bác sĩ kèm kiểm soát quyền truy cập."""
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+    user_doctor_id = curr_user.get('bac_si_id')
+
+    # Bác sĩ chỉ có quyền xem hồ sơ và bệnh nhân của chính mình
+    if user_role == 'BACSI':
+        if not user_doctor_id or int(user_doctor_id) != int(doctor_id):
+            flash('Bạn chỉ có quyền xem hồ sơ và danh sách bệnh nhân của chính mình.', 'warning')
+            if user_doctor_id:
+                return redirect(url_for('admin.doctor_detail', doctor_id=user_doctor_id))
+            abort(403)
+
+    doctor = UserModel.get_doctor_by_id(doctor_id)
+    if not doctor:
+        abort(404)
+
+    # Lấy lịch làm việc/ca trực của bác sĩ
+    from models.schedule_model import ScheduleModel
+    schedules = ScheduleModel.get_all(filter_doctor_id=doctor_id)
+
+    # Lấy danh sách bệnh nhân đặt lịch hẹn
+    appointments = UserModel.get_doctor_appointments(doctor_id)
+
+    # Lấy danh sách bệnh nhân đã thăm khám EMR
+    visits = UserModel.get_doctor_visits(doctor_id)
+
+    return render_template(
+        'admin/doctor_detail.html',
+        active_page='admin_doctors',
+        doctor=doctor,
+        schedules=schedules,
+        appointments=appointments,
+        visits=visits
+    )
+
+@admin_bp.route('/my-doctor-profile')
+def my_doctor_profile():
+    """Điều hướng nhanh đến hồ sơ của bác sĩ đang đăng nhập."""
+    curr_user = session.get('user', {})
+    doctor_id = curr_user.get('bac_si_id')
+    if not doctor_id:
+        return redirect(url_for('admin.dashboard'))
+    return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
+
+@admin_bp.route('/doctors/<int:doctor_id>/avatar', methods=['POST'])
+def doctor_update_avatar(doctor_id):
+    """Cập nhật ảnh đại diện bác sĩ hỗ trợ upload nén WebP hoặc dán URL."""
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+    user_doctor_id = curr_user.get('bac_si_id')
+
+    if user_role == 'BACSI' and (not user_doctor_id or int(user_doctor_id) != int(doctor_id)):
+        abort(403)
+
+    image_file = request.files.get('avatar_file')
+    avatar_url = (request.form.get('avatar_url') or '').strip()
+
+    source = image_file if (image_file and getattr(image_file, 'filename', None)) else avatar_url
+    if not source:
+        flash('Vui lòng chọn ảnh hoặc nhập URL hợp lệ.', 'warning')
+        return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
+
+    from core.image_service import process_image_input
+    final_path, err = process_image_input(source, category='bac_si', quality=85)
+    if err:
+        flash(err, 'error')
+        return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
+
+    if not final_path:
+        final_path = avatar_url
+
+    UserModel.update_doctor_avatar(doctor_id, final_path)
+    flash('Đã cập nhật ảnh đại diện bác sĩ thành công!', 'success')
+    return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
+
+@admin_bp.route('/articles')
+def articles():
+    """Quản lý danh sách bài viết cẩm nang y tế."""
+    from models.article_model import ArticleModel
+    category = request.args.get('category', 'ALL')
+    status = request.args.get('status', 'ALL')
+    search = request.args.get('search', '')
+
+    articles_list = ArticleModel.get_all_admin(category=category, search=search, status=status)
+    categories = ArticleModel.get_categories()
+    return render_template(
+        'admin/articles.html',
+        active_page='admin_articles',
+        articles=articles_list,
+        categories=categories,
+        current_cat=category,
+        current_status=status
+    )
+
+@admin_bp.route('/articles/create', methods=['GET', 'POST'])
+def article_create():
+    """Soạn thảo và đăng tải bài viết mới."""
+    from models.article_model import ArticleModel
+    if request.method == 'POST':
+        curr_user = session.get('user', {})
+        data = request.form.to_dict()
+        data['tac_gia_id'] = curr_user.get('staff_id') or curr_user.get('id') or 1
+
+        # Xử lý tệp ảnh bìa nếu upload từ máy tính hoặc dán link URL
+        image_file = request.files.get('image_file')
+        raw_image_url = (data.get('hinh_anh') or '').strip()
+        source = image_file if (image_file and getattr(image_file, 'filename', None)) else raw_image_url
+        if source:
+            from core.image_service import process_image_input
+            web_path, err = process_image_input(source, category='bai_viet', quality=82)
+            if not err and web_path:
+                data['hinh_anh'] = web_path
+
+        success, res = ArticleModel.create(data)
+        if success:
+            return redirect(url_for('admin.articles'))
+        return render_template(
+            'admin/article_editor.html',
+            active_page='admin_articles',
+            error=res,
+            categories=ArticleModel.get_categories(),
+            article=data
+        )
+
+    categories = ArticleModel.get_categories()
+    return render_template('admin/article_editor.html', active_page='admin_articles', categories=categories, article=None)
+
+@admin_bp.route('/articles/edit/<int:article_id>', methods=['GET', 'POST'])
+def article_edit(article_id):
+    """Chỉnh sửa bài viết đã có."""
+    from models.article_model import ArticleModel
+    article = ArticleModel.get_by_id(article_id)
+    if not article:
+        abort(404)
+
+    if request.method == 'POST':
+        data = request.form.to_dict()
+        image_file = request.files.get('image_file')
+        raw_image_url = (data.get('hinh_anh') or '').strip()
+        source = image_file if (image_file and getattr(image_file, 'filename', None)) else raw_image_url
+        if source and source != article.get('hinh_anh'):
+            from core.image_service import process_image_input
+            web_path, err = process_image_input(source, category='bai_viet', quality=82)
+            if not err and web_path:
+                data['hinh_anh'] = web_path
+
+        success, res = ArticleModel.update(article_id, data)
+        if success:
+            return redirect(url_for('admin.articles'))
+        return render_template(
+            'admin/article_editor.html',
+            active_page='admin_articles',
+            error=res,
+            categories=ArticleModel.get_categories(),
+            article=article
+        )
+
+    categories = ArticleModel.get_categories()
+    return render_template('admin/article_editor.html', active_page='admin_articles', categories=categories, article=article)
+
+@admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
+def article_delete(article_id):
+    """Xóa bài viết."""
+    from models.article_model import ArticleModel
+    success, msg = ArticleModel.delete(article_id)
+    return jsonify({'success': success, 'message': msg})
+
+@admin_bp.route('/banners')
+@roles_required('ADMIN')
+def banners():
+    """Trang quản trị các banner slider trang chủ."""
+    from models.banner_model import BannerModel
+    all_banners = BannerModel.get_all()
+    active_count = len([b for b in all_banners if b.get('trang_thai') == 1])
+    return render_template(
+        'admin/banners.html',
+        active_page='admin_banners',
+        banners=all_banners,
+        active_count=active_count
+    )
+
+@admin_bp.route('/banners/create', methods=['POST'])
+@roles_required('ADMIN')
+def banner_create():
+    """Tạo banner mới."""
+    from models.banner_model import BannerModel
+    data = request.form.to_dict()
+    image_file = request.files.get('image_file')
+    success, msg = BannerModel.create(data, image_file=image_file)
+    if success:
+        flash(msg, 'success')
+    else:
+        flash(msg, 'error')
+    return redirect(url_for('admin.banners'))
+
+@admin_bp.route('/banners/edit/<int:banner_id>', methods=['POST'])
+@roles_required('ADMIN')
+def banner_edit(banner_id):
+    """Cập nhật banner."""
+    from models.banner_model import BannerModel
+    data = request.form.to_dict()
+    image_file = request.files.get('image_file')
+    success, msg = BannerModel.update(banner_id, data, image_file=image_file)
+    if success:
+        flash(msg, 'success')
+    else:
+        flash(msg, 'error')
+    return redirect(url_for('admin.banners'))
+
+@admin_bp.route('/banners/delete/<int:banner_id>', methods=['POST'])
+@roles_required('ADMIN')
+def banner_delete(banner_id):
+    """Xóa banner."""
+    from models.banner_model import BannerModel
+    success, msg = BannerModel.delete(banner_id)
+    return jsonify({'success': success, 'message': msg})
+
+@admin_bp.route('/banners/toggle/<int:banner_id>', methods=['POST'])
+@roles_required('ADMIN')
+def banner_toggle(banner_id):
+    """Bật hoặc tắt trạng thái hiển thị của banner."""
+    from models.banner_model import BannerModel
+    success, res = BannerModel.toggle_status(banner_id)
+    return jsonify({'success': success, 'status': res})
+
+
 

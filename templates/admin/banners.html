@@ -1,0 +1,407 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quản lý Banner Trang Chủ{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Header Trang & Thao tác -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Giao diện</span>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-slate-600 font-semibold">Quản lý Banner</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-images"></i>
+                </span>
+                Quản lý Banner & Slider Trang Chủ
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Tùy chỉnh các slide quảng bá, thông điệp y tế và hình ảnh xuất hiện trên trang chủ phòng khám.
+            </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <a href="{{ url_for('home.home') }}" target="_blank"
+               class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-arrow-up-right-from-square text-teal-600"></i>
+                <span>Xem Trang Chủ</span>
+            </a>
+
+            <button type="button" onclick="openCreateBannerModal()"
+                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Thêm Banner Mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Thống kê Banner -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Tổng số banner</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ banners|length }}</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đang hiển thị trên trang chủ</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ active_count }}</h4>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-xl shrink-0">
+                <i class="fa-solid fa-eye-slash"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Đang tạm ẩn</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ banners|length - active_count }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Danh sách Banner -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-medical-600"></i>
+                Danh Sách Slider Hoạt Động (Xếp theo Thứ Tự)
+            </h3>
+            <span class="text-xs text-slate-400">Các slide hiển thị xoay vòng tự động mỗi 5 giây</span>
+        </div>
+
+        <div class="divide-y divide-slate-100">
+            {% for b in banners %}
+            <div class="p-5 hover:bg-slate-50/70 transition-colors flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                
+                <!-- Ảnh & Thông tin -->
+                <div class="flex items-start sm:items-center gap-4 w-full lg:w-2/3">
+                    <!-- Ảnh xem trước -->
+                    <div class="relative w-36 sm:w-44 h-24 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-sm">
+                        <img src="{{ b.hinh_anh }}" alt="{{ b.tieu_de }}" class="w-full h-full object-cover"
+                             onerror="this.src='https://placehold.co/600x400?text=Loi+Anh'">
+                        <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white text-[10px] font-bold">
+                            #{{ b.thu_tu }}
+                        </span>
+                    </div>
+
+                    <!-- Nội dung banner -->
+                    <div class="space-y-1.5 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            {% if b.phu_de %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                {{ b.phu_de }}
+                            </span>
+                            {% endif %}
+                            
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if b.trang_thai == 1 %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+                                {% if b.trang_thai == 1 %}Đang hiển thị{% else %}Tạm ẩn{% endif %}
+                            </span>
+                        </div>
+
+                        <h4 class="font-bold text-sm text-slate-900 truncate">{{ b.tieu_de }}</h4>
+                        <p class="text-xs text-slate-500 line-clamp-2">{{ b.mo_ta or 'Không có mô tả chi tiết' }}</p>
+
+                        <div class="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
+                            <span><i class="fa-solid fa-link text-slate-300 mr-1"></i> {{ b.link_lien_ket or '/booking' }}</span>
+                            <span>•</span>
+                            <span><i class="fa-solid fa-tag text-slate-300 mr-1"></i> Nút: {{ b.text_nut or 'Đăng ký' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thao tác -->
+                <div class="flex items-center gap-2 self-end lg:self-center shrink-0">
+                    <!-- Nút Bật / Tắt trạng thái -->
+                    <button type="button" onclick="toggleBannerStatus({{ b.id }})"
+                            class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all {% if b.trang_thai == 1 %}border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100{% else %}border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100{% endif %}"
+                            title="Bật/Tắt hiển thị">
+                        {% if b.trang_thai == 1 %}
+                            <i class="fa-solid fa-eye-slash mr-1"></i> Ẩn
+                        {% else %}
+                            <i class="fa-solid fa-eye mr-1"></i> Hiện
+                        {% endif %}
+                    </button>
+
+                    <!-- Nút Chỉnh sửa -->
+                    <button type="button" onclick='openEditBannerModal({{ b|tojson }})'
+                            class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all flex items-center gap-1.5"
+                            title="Chỉnh sửa banner">
+                        <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+                        <span>Sửa</span>
+                    </button>
+
+                    <!-- Nút Xóa -->
+                    <button type="button" onclick="deleteBanner({{ b.id }}, '{{ b.tieu_de|replace("'", "\\'") }}')"
+                            class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-all flex items-center gap-1.5"
+                            title="Xóa banner">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Xóa</span>
+                    </button>
+                </div>
+
+            </div>
+            {% else %}
+            <div class="p-12 text-center text-slate-400">
+                <i class="fa-regular fa-image text-4xl mb-3 block text-slate-300"></i>
+                Chưa có banner nào. Hãy bấm "Thêm Banner Mới" để tạo slide đầu tiên.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Thêm / Chỉnh Sửa Banner -->
+<div id="banner-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-150">
+        
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 id="modal-title" class="font-bold text-base text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-medical-600"></i>
+                Thêm Banner Mới
+            </h3>
+            <button type="button" onclick="closeBannerModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="banner-form" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <input type="hidden" name="banner_id" id="form-banner-id">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                        Tiêu đề chính <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="tieu_de" id="form-tieu-de" required
+                           placeholder="Ví dụ: Chăm sóc bằng tài năng, y đức và sự thấu cảm"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                        Phụ đề / Huy hiệu (Badge)
+                    </label>
+                    <input type="text" name="phu_de" id="form-phu-de"
+                           placeholder="Ví dụ: Tiêu chuẩn chất lượng quốc tế"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                        Thứ tự hiển thị (Thấp xếp trước)
+                    </label>
+                    <input type="number" name="thu_tu" id="form-thu-tu" value="1" min="0" max="999"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Mô tả ngắn
+                </label>
+                <textarea name="mo_ta" id="form-mo-ta" rows="2"
+                          placeholder="Mô tả tóm tắt giá trị dịch vụ hiển thị dưới tiêu đề..."
+                          class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500"></textarea>
+            </div>
+
+            <!-- Khối Hình Ảnh: Upload File nén WebP HOẶC Dán Link URL -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-between">
+                    <span><i class="fa-solid fa-image text-medical-600 mr-1.5"></i> Hình Ảnh Banner</span>
+                    <span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <i class="fa-solid fa-bolt mr-1"></i> Tự động nén WebP siêu nhẹ
+                    </span>
+                </label>
+
+                <!-- Tùy chọn 1: Upload File máy tính -->
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-600 mb-1">Cách 1: Tải ảnh từ máy tính (Tự động nén WebP dưới 80KB)</span>
+                    <input type="file" name="image_file" id="form-image-file" accept="image/*" onchange="previewSelectedImage(event)"
+                           class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-medical-50 file:text-medical-700 hover:file:bg-medical-100 cursor-pointer">
+                </div>
+
+                <!-- Tùy chọn 2: Dán URL ảnh từ Internet -->
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-600 mb-1">Cách 2: Hoặc dán đường dẫn ảnh mạng (Unsplash, CDN...)</span>
+                    <input type="text" name="hinh_anh" id="form-image-url" oninput="previewUrlImage(this.value)"
+                           placeholder="https://images.unsplash.com/photo-..."
+                           class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-medical-500">
+                </div>
+
+                <!-- Khung xem trước ảnh -->
+                <div class="border border-dashed border-slate-300 rounded-xl p-2 bg-white text-center">
+                    <img id="form-image-preview" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600"
+                         class="w-full h-32 object-cover rounded-lg" onerror="this.src='https://placehold.co/600x300?text=Xem+Truoc+Anh'">
+                    <span class="text-[10px] text-slate-400 block mt-1">Ảnh xem trước hiển thị trên slide</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                        Chữ hiển thị trên Nút (CTA)
+                    </label>
+                    <input type="text" name="text_nut" id="form-text-nut" value="ĐĂNG KÝ KHÁM NGAY"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                        Đường dẫn nút bấm
+                    </label>
+                    <input type="text" name="link_lien_ket" id="form-link-lien-ket" value="/booking"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Trạng thái xuất bản
+                </label>
+                <select name="trang_thai" id="form-trang-thai"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-medical-500">
+                    <option value="1">Hiển thị ngay trên trang chủ</option>
+                    <option value="0">Tạm ẩn (Lưu nháp)</option>
+                </select>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeBannerModal()"
+                        class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold">
+                    Hủy bỏ
+                </button>
+                <button type="submit"
+                        class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span id="submit-btn-text">Lưu Banner</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    const bannerModal = document.getElementById('banner-modal');
+    const bannerForm = document.getElementById('banner-form');
+    const modalTitle = document.getElementById('modal-title');
+    const submitBtnText = document.getElementById('submit-btn-text');
+
+    function openCreateBannerModal() {
+        bannerForm.reset();
+        document.getElementById('form-banner-id').value = '';
+        document.getElementById('form-thu-tu').value = '{{ banners|length + 1 }}';
+        document.getElementById('form-image-preview').src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600';
+        document.getElementById('form-image-url').value = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600';
+        modalTitle.innerHTML = '<i class="fa-solid fa-plus text-medical-600"></i> Thêm Banner Mới';
+        submitBtnText.innerText = 'Xuất Bản Banner';
+        bannerForm.action = "{{ url_for('admin.banner_create') }}";
+        bannerModal.classList.remove('hidden');
+    }
+
+    function openEditBannerModal(banner) {
+        document.getElementById('form-banner-id').value = banner.id;
+        document.getElementById('form-tieu-de').value = banner.tieu_de || '';
+        document.getElementById('form-phu_de').value = banner.phu_de || '';
+        document.getElementById('form-mo-ta').value = banner.mo_ta || '';
+        document.getElementById('form-image-url').value = banner.hinh_anh || '';
+        document.getElementById('form-image-preview').src = banner.hinh_anh || '';
+        document.getElementById('form-text-nut').value = banner.text_nut || 'ĐĂNG KÝ KHÁM NGAY';
+        document.getElementById('form-link-lien-ket').value = banner.link_lien_ket || '/booking';
+        document.getElementById('form-thu-tu').value = banner.thu_tu || 1;
+        document.getElementById('form-trang-thai').value = banner.trang_thai;
+
+        modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square text-blue-600"></i> Chỉnh Sửa Banner #' + banner.id;
+        submitBtnText.innerText = 'Cập Nhật Thay Đổi';
+        bannerForm.action = "/admin/banners/edit/" + banner.id;
+        bannerModal.classList.remove('hidden');
+    }
+
+    function closeBannerModal() {
+        bannerModal.classList.add('hidden');
+    }
+
+    function previewSelectedImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('form-image-preview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function previewUrlImage(url) {
+        if (url && url.trim().length > 5) {
+            document.getElementById('form-image-preview').src = url.trim();
+        }
+    }
+
+    function toggleBannerStatus(bannerId) {
+        fetch('/admin/banners/toggle/' + bannerId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.showToast) {
+                    showToast('Đã đổi trạng thái hiển thị của banner!', 'success');
+                }
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                alert('Lỗi: ' + (data.message || 'Không thể đổi trạng thái'));
+            }
+        })
+        .catch(err => alert('Lỗi kết nối máy chủ: ' + err));
+    }
+
+    function deleteBanner(bannerId, bannerTitle) {
+        if (!confirm('Bạn có chắc chắn muốn xóa banner "' + bannerTitle + '" không?')) {
+            return;
+        }
+
+        fetch('/admin/banners/delete/' + bannerId, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.showToast) {
+                    showToast('Đã xóa banner thành công!', 'success');
+                }
+                setTimeout(() => window.location.reload(), 500);
+            } else {
+                alert('Lỗi: ' + (data.message || 'Không thể xóa banner'));
+            }
+        })
+        .catch(err => alert('Lỗi kết nối máy chủ: ' + err));
+    }
+</script>
+{% endblock %}

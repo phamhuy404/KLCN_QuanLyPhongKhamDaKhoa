@@ -1,0 +1,469 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Hồ Sơ Bác Sĩ {{ doctor.ho_ten }}{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Header Breadcrumb & Thao Tác -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <a href="{{ url_for('admin.doctors') }}" class="hover:text-medical-600">Danh sách Bác sĩ</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">{{ doctor.ho_ten }}</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-user-doctor"></i>
+                </span>
+                Hồ Sơ Y Khoa & Quản Lý Ca Khám Bác Sĩ
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                <span>Chuyên khoa: <strong class="text-teal-700">{{ doctor.ten_khoa }}</strong></span>
+                <span>•</span>
+                <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-shield-halved text-xs"></i> Khu vực riêng tư của Bác sĩ
+                </span>
+            </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <a href="{{ url_for('admin.doctors') }}"
+               class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Danh Sách</span>
+            </a>
+
+            <button type="button" onclick="openAvatarModal()"
+                    class="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm border border-teal-200">
+                <i class="fa-solid fa-camera"></i>
+                <span>Đổi Ảnh Đại Diện</span>
+            </button>
+
+            <button type="button" onclick="window.print()"
+                    class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-print"></i>
+                <span>In Hồ Sơ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Thẻ Profile Bác Sĩ Chi Tiết -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+            <div class="flex items-center gap-5">
+                <!-- Avatar Bác Sĩ -->
+                <div class="relative group shrink-0">
+                    {% if doctor.avatar and doctor.avatar != 'default_doctor.png' %}
+                    <img src="{{ doctor.avatar }}" alt="{{ doctor.ho_ten }}"
+                         class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-teal-200 shadow-md">
+                    {% else %}
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-teal-600 to-medical-500 text-white flex items-center justify-center text-3xl sm:text-4xl font-bold shadow-lg shadow-teal-500/20">
+                        {{ doctor.ho_ten[0] }}
+                    </div>
+                    {% endif %}
+                    
+                    <button type="button" onclick="openAvatarModal()" title="Cập nhật ảnh"
+                            class="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-white border border-slate-200 shadow text-teal-600 flex items-center justify-center text-xs hover:bg-teal-50 transition-colors">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900">{{ doctor.ho_ten }}</h3>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                            {{ doctor.hoc_vi }}
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {{ doctor.trang_thai_lam_viec or 'Đang làm việc' }}
+                        </span>
+                    </div>
+
+                    <p class="text-xs font-semibold text-slate-700">
+                        <i class="fa-solid fa-stethoscope text-teal-600 mr-1"></i> Chuyên khoa: <span class="text-teal-700 font-bold">{{ doctor.ten_khoa }}</span>
+                        <span class="mx-2 text-slate-300">|</span>
+                        <i class="fa-solid fa-door-open text-slate-400 mr-1"></i> {{ doctor.ten_phong or 'Phòng khám đa khoa' }}
+                    </p>
+
+                    <div class="flex items-center flex-wrap gap-y-1 gap-x-4 text-xs text-slate-500 pt-1">
+                        <span><i class="fa-solid fa-id-badge text-slate-400 mr-1"></i> Mã NV: <strong class="font-mono text-slate-700">{{ doctor.ma_nhan_vien or 'BS' ~ doctor.id }}</strong></span>
+                        <span><i class="fa-solid fa-phone text-slate-400 mr-1"></i> <strong class="font-mono text-slate-700">{{ doctor.sdt }}</strong></span>
+                        <span><i class="fa-solid fa-envelope text-slate-400 mr-1"></i> {{ doctor.email or 'bs@h2tcare.vn' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khối Chỉ Số Khám & Giá Dịch Vụ -->
+            <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs w-full lg:w-auto shrink-0">
+                <div>
+                    <div class="text-slate-400 text-[11px]">Giá khám niêm yết:</div>
+                    <div class="font-mono font-bold text-base text-medical-700">
+                        {{ "{:,.0f}".format(doctor.gia_kham or 150000) }} đ
+                    </div>
+                    <span class="text-[10px] text-slate-400">Đã gồm BHYT đồng chi trả</span>
+                </div>
+                <div class="w-px h-10 bg-slate-200 mx-1"></div>
+                <div>
+                    <div class="text-slate-400 text-[11px]">Bệnh nhân đăng ký:</div>
+                    <div class="font-mono font-bold text-base text-amber-600">
+                        {{ appointments|length }} bệnh nhân
+                    </div>
+                    <span class="text-[10px] text-amber-700 font-semibold">Theo lịch hẹn</span>
+                </div>
+                <div class="w-px h-10 bg-slate-200 mx-1"></div>
+                <div>
+                    <div class="text-slate-400 text-[11px]">Tổng ca đã khám:</div>
+                    <div class="font-mono font-bold text-base text-teal-700">
+                        {{ doctor.total_visits }} ca EMR
+                    </div>
+                    <span class="text-[10px] text-emerald-600 font-semibold">Hoàn tất</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông Tin Kinh Nghiệm & Tài Khoản -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
+            <div class="md:col-span-2">
+                <span class="text-slate-400 block text-[11px] font-semibold">Kinh nghiệm & Hướng nghiên cứu chuyên sâu:</span>
+                <p class="font-medium text-slate-800 mt-1 leading-relaxed">
+                    {{ doctor.kinh_nghiem or 'Bác sĩ có nhiều năm kinh nghiệm công tác tại các bệnh viện tuyến đầu, chuyên môn vững vàng trong chẩn đoán và điều trị bệnh lý chuyên khoa.' }}
+                </p>
+            </div>
+            <div>
+                <span class="text-slate-400 block text-[11px] font-semibold">Tài khoản & Phiên đăng nhập:</span>
+                <p class="font-mono font-semibold text-slate-800 mt-1">Username: {{ doctor.username }}</p>
+                <p class="text-[11px] text-slate-500 font-mono mt-0.5">Đăng nhập cuối: {{ doctor.lan_dang_nhap_cuoi or 'Gần đây' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Các Tab Quản Lý Chuyên Môn: Bệnh Nhân Đăng Ký | Lịch Trực | Lịch Sử Khám -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        
+        <!-- Thanh Tab Tiêu Đề -->
+        <div class="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50/60 overflow-x-auto no-scrollbar text-xs font-bold">
+            <button type="button" onclick="switchDoctorTab('tab-appointments')" id="btn-tab-appointments"
+                    class="doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 bg-white text-medical-700 shadow-sm border border-slate-200">
+                <i class="fa-solid fa-calendar-check text-medical-600"></i>
+                <span>Bệnh Nhân Đăng Ký Khám ({{ appointments|length }})</span>
+            </button>
+
+            <button type="button" onclick="switchDoctorTab('tab-schedules')" id="btn-tab-schedules"
+                    class="doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/80">
+                <i class="fa-solid fa-clock text-teal-600"></i>
+                <span>Lịch Làm Việc & Ca Trực ({{ schedules|length }})</span>
+            </button>
+
+            <button type="button" onclick="switchDoctorTab('tab-visits')" id="btn-tab-visits"
+                    class="doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/80">
+                <i class="fa-solid fa-file-medical text-blue-600"></i>
+                <span>Lịch Sử Khám Bệnh EMR ({{ visits|length }})</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: Danh Sách Bệnh Nhân Đăng Ký Khám (Lịch Hẹn) -->
+        <div id="tab-appointments" class="doctor-tab-content p-6 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check text-medical-600"></i> Danh Sách Bệnh Nhân Đăng Ký Hẹn Khám
+                    </h4>
+                    <p class="text-xs text-slate-400">Các ca hẹn đặt trực tuyến hoặc tiếp nhận tại quầy phân bổ cho bác sĩ</p>
+                </div>
+
+                <!-- Ô tìm kiếm nhanh trong danh sách bệnh nhân -->
+                <div class="w-full sm:w-64">
+                    <input type="text" id="search-appointments" onkeyup="filterAppointmentsTable(this.value)"
+                           placeholder="Tìm theo tên BN, SĐT, mã BN..."
+                           class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            {% if appointments %}
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs whitespace-nowrap" id="table-appointments">
+                    <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100 uppercase text-[10px]">
+                        <tr>
+                            <th class="py-3 px-3.5">Mã Hẹn</th>
+                            <th class="py-3 px-3.5">Ngày & Ca Khám</th>
+                            <th class="py-3 px-3.5">Bệnh Nhân</th>
+                            <th class="py-3 px-3.5">Thông Tin Y Tế</th>
+                            <th class="py-3 px-3.5">Triệu Chứng / Lý Do Khám</th>
+                            <th class="py-3 px-3.5 text-center">Trạng Thái</th>
+                            <th class="py-3 px-3.5 text-center">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for a in appointments %}
+                        <tr class="hover:bg-slate-50/70 transition-colors appointment-row"
+                            data-search="{{ a.ten_benh_nhan|lower }} {{ a.ma_benh_nhan|lower }} {{ a.sdt_benh_nhan }}">
+                            <td class="py-3 px-3.5 font-mono font-bold text-medical-700">
+                                #{{ a.ma_lich_hen or 'LH' ~ a.id }}
+                            </td>
+                            <td class="py-3 px-3.5">
+                                <span class="font-bold text-slate-900 block">{{ a.ngay_hen }}</span>
+                                <span class="text-[10px] text-slate-400 font-semibold">
+                                    {{ 'Sáng' if a.ca_kham == 1 else ('Chiều' if a.ca_kham == 2 else 'Cả ngày') }} • {{ a.gio_hen or 'Trong ca' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3.5">
+                                <div class="font-bold text-slate-900 text-sm">{{ a.ten_benh_nhan }}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">
+                                    {{ a.ma_benh_nhan }} • {{ a.gioi_tinh }} • {{ a.sdt_benh_nhan }}
+                                </div>
+                            </td>
+                            <td class="py-3 px-3.5">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    Máu: {{ a.nhom_mau or 'Chưa rõ' }}
+                                </span>
+                                {% if a.di_ung and a.di_ung != 'Không có' %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 ml-1" title="Dị ứng: {{ a.di_ung }}">
+                                    Dị ứng!
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-3.5 max-w-xs truncate text-slate-700" title="{{ a.ly_do_kham or a.trieu_chung }}">
+                                {{ a.ly_do_kham or a.trieu_chung or 'Khám tổng quát định kỳ' }}
+                            </td>
+                            <td class="py-3 px-3.5 text-center">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold {% if a.trang_thai in ['Đã tiếp nhận', 'Đang khám'] %}bg-teal-50 text-teal-700 border border-teal-200{% elif a.trang_thai == 'Hoàn thành' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+                                    {{ a.trang_thai or 'Chờ xác nhận' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3.5 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a href="{{ url_for('admin.emr') }}" 
+                                       class="px-2.5 py-1 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-[11px] transition-colors" title="Vào phòng khám EMR">
+                                        <i class="fa-solid fa-stethoscope mr-1"></i> Khám EMR
+                                    </a>
+                                    <a href="{{ url_for('admin.patient_detail', patient_id=a.benh_nhan_id) }}" 
+                                       class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors" title="Hồ sơ 360 độ">
+                                        <i class="fa-solid fa-address-card"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                <i class="fa-regular fa-calendar-xmark text-3xl mb-2 text-slate-300 block"></i>
+                Hiện chưa có lịch hẹn đăng ký khám mới nào với bác sĩ {{ doctor.ho_ten }}.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 2: Lịch Làm Việc & Ca Trực -->
+        <div id="tab-schedules" class="doctor-tab-content p-6 space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-teal-600"></i> Lịch Trực & Ca Khám Phân Công (14 Ngày Tới)
+                    </h4>
+                    <p class="text-xs text-slate-400">Các ca trực sáng/chiều đã được điều phối tại các phòng khám chuyên khoa</p>
+                </div>
+            </div>
+
+            {% if schedules %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {% for s in schedules %}
+                <div class="p-4 rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50 shadow-sm space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-day text-teal-600"></i> {{ s.ngay_lam }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                            {{ s.ten_ca }}
+                        </span>
+                    </div>
+
+                    <div class="text-xs text-slate-600 space-y-1 pt-1 border-t border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 text-[11px]">Phòng khám:</span>
+                            <span class="font-bold text-slate-800">{{ s.ten_phong }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 text-[11px]">Khung giờ khám:</span>
+                            <span class="font-mono text-slate-700">{{ s.gio_bat_dau or '07:30' }} - {{ s.gio_ket_thuc or '11:30' }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-400 text-[11px]">Số ca tối đa:</span>
+                            <span class="font-bold text-emerald-700">{{ s.so_luong_kham_toi_da or 20 }} lượt</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                <i class="fa-regular fa-clock text-3xl mb-2 text-slate-300 block"></i>
+                Bác sĩ chưa có lịch trực nào được phân bổ trong thời gian này.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- TAB 3: Lịch Sử Các Ca Khám EMR -->
+        <div id="tab-visits" class="doctor-tab-content p-6 space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-file-medical text-blue-600"></i> Lịch Sử Thăm Khám Lâm Sàng (Bệnh Án Điện Tử)
+                    </h4>
+                    <p class="text-xs text-slate-400">Toàn bộ phiếu khám bệnh do bác sĩ {{ doctor.ho_ten }} trực tiếp chẩn đoán</p>
+                </div>
+            </div>
+
+            {% if visits %}
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100 uppercase text-[10px]">
+                        <tr>
+                            <th class="py-3 px-3.5">Mã Phiếu</th>
+                            <th class="py-3 px-3.5">Thời Gian Khám</th>
+                            <th class="py-3 px-3.5">Bệnh Nhân</th>
+                            <th class="py-3 px-3.5">Chẩn Đoán ICD-10</th>
+                            <th class="py-3 px-3.5">Phòng Khám</th>
+                            <th class="py-3 px-3.5 text-center">Trạng Thái</th>
+                            <th class="py-3 px-3.5 text-center">Hồ Sơ 360°</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for v in visits %}
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                            <td class="py-3 px-3.5 font-mono font-bold text-medical-700">#{{ v.ma_phieu }}</td>
+                            <td class="py-3 px-3.5 text-slate-600">{{ v.thoi_gian_kham }}</td>
+                            <td class="py-3 px-3.5">
+                                <span class="font-bold text-slate-900 block">{{ v.ten_benh_nhan }}</span>
+                                <span class="text-[10px] text-slate-400 font-mono">{{ v.ma_benh_nhan }} • {{ v.sdt_benh_nhan }}</span>
+                            </td>
+                            <td class="py-3 px-3.5 font-medium text-slate-800 max-w-xs truncate" title="{{ v.chan_doan_icd }}">
+                                {{ v.chan_doan_icd or 'Đang chẩn đoán lâm sàng' }}
+                            </td>
+                            <td class="py-3 px-3.5 text-slate-600">{{ v.ten_phong or 'Phòng khám tổng hợp' }}</td>
+                            <td class="py-3 px-3.5 text-center">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    {{ v.trang_thai or 'Hoàn thành' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3.5 text-center">
+                                <a href="{{ url_for('admin.patient_detail', patient_id=v.benh_nhan_id) }}"
+                                   class="text-medical-600 hover:text-medical-800 font-bold hover:underline">
+                                    Xem bệnh án
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400">
+                <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                Bác sĩ chưa có ca khám bệnh EMR nào được lưu trong cơ sở dữ liệu.
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal Đổi Ảnh Đại Diện Bác Sĩ -->
+<div id="avatar-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-camera text-teal-600"></i> Cập Nhật Ảnh Chân Dung Bác Sĩ
+            </h3>
+            <button type="button" onclick="closeAvatarModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('admin.doctor_update_avatar', doctor_id=doctor.id) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Cách 1: Tải ảnh từ máy tính (Nén WebP tự động)
+                </label>
+                <input type="file" name="avatar_file" accept="image/*"
+                       class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
+            </div>
+
+            <div class="relative flex items-center justify-center">
+                <div class="border-t border-slate-200 w-full"></div>
+                <span class="bg-white px-2 text-[10px] text-slate-400 uppercase font-semibold absolute">hoặc</span>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">
+                    Cách 2: Nhập đường dẫn ảnh trực tiếp (URL)
+                </label>
+                <input type="text" name="avatar_url" placeholder="https://..."
+                       value="{{ doctor.avatar if doctor.avatar and doctor.avatar != 'default_doctor.png' else '' }}"
+                       class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-teal-500">
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeAvatarModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold">
+                    Hủy
+                </button>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20">
+                    Lưu Ảnh Mới
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function switchDoctorTab(tabId) {
+        document.querySelectorAll('.doctor-tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.doctor-tab-btn').forEach(btn => {
+            btn.className = 'doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/80';
+        });
+
+        const activeContent = document.getElementById(tabId);
+        if (activeContent) activeContent.classList.remove('hidden');
+
+        const activeBtn = document.getElementById('btn-' + tabId);
+        if (activeBtn) {
+            activeBtn.className = 'doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 bg-white text-medical-700 shadow-sm border border-slate-200';
+        }
+    }
+
+    function filterAppointmentsTable(keyword) {
+        const query = (keyword || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('.appointment-row');
+        rows.forEach(row => {
+            const searchData = row.getAttribute('data-search') || '';
+            if (!query || searchData.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function openAvatarModal() {
+        document.getElementById('avatar-modal').classList.remove('hidden');
+    }
+
+    function closeAvatarModal() {
+        document.getElementById('avatar-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

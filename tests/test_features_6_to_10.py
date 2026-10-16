@@ -408,6 +408,105 @@ class Features6To10TestCase(unittest.TestCase):
         self.assertEqual(t1_ton_sau_hoan, t1_ton_ban_dau, "Sau khi hủy đơn có hoàn kho, số lượng tồn phải trở về ban đầu")
         conn.close()
 
+    def test_08_banner_and_doctor_profile_privacy(self):
+        """Kiểm tra quản lý banner trang chủ và phân quyền riêng tư hồ sơ bác sĩ."""
+        from models.banner_model import BannerModel
+
+        # 1. Kiểm tra CRUD banner
+        ok_create, msg_create = BannerModel.create({
+            'tieu_de': 'Khám sức khỏe công nghệ cao 2026',
+            'phu_de': 'Ưu đãi đặc biệt',
+            'mo_ta': 'Gói khám tầm soát sức khỏe toàn diện cho gia đình',
+            'hinh_anh': 'https://images.unsplash.com/photo-test',
+            'link_lien_ket': '/booking',
+            'text_nut': 'Đăng ký ngay',
+            'thu_tu': 99,
+            'trang_thai': 1
+        })
+        self.assertTrue(ok_create, f"Tạo banner thất bại: {msg_create}")
+
+        banners = BannerModel.get_all()
+        created_banner = next((b for b in banners if b['tieu_de'] == 'Khám sức khỏe công nghệ cao 2026'), None)
+        self.assertIsNotNone(created_banner, "Banner vừa tạo phải xuất hiện trong danh sách")
+
+        # 2. Toggle trạng thái banner
+        ok_toggle, new_status = BannerModel.toggle_status(created_banner['id'])
+        self.assertTrue(ok_toggle)
+        self.assertEqual(new_status, 0)
+
+        # 3. Xóa banner dọn dẹp
+        ok_del, _ = BannerModel.delete(created_banner['id'])
+        self.assertTrue(ok_del)
+
+        # 4. Kiểm tra phân quyền bác sĩ: Bác sĩ chỉ xem được hồ sơ của chính mình
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {'id': 2, 'username': 'bs_quan', 'vai_tro': 'BACSI', 'bac_si_id': 1}
+
+        res_own = self.client.get('/admin/doctors/1')
+        self.assertEqual(res_own.status_code, 200, "Bác sĩ phải xem được hồ sơ của chính mình")
+
+        res_other = self.client.get('/admin/doctors/2')
+        self.assertEqual(res_other.status_code, 302, "Bác sĩ xem hồ sơ bác sĩ khác phải bị điều hướng về hồ sơ của mình")
+        self.assertEqual(res_other.headers.get('Location'), '/admin/doctors/1')
+
+    def test_09_multi_format_and_url_image_recognition(self):
+        """Kiểm tra nhận diện đa định dạng ảnh (PNG, GIF, BMP, TIFF, SVG), Base64, URL và avatar bệnh nhân."""
+        import base64
+        import io
+        from PIL import Image
+        from core.image_service import process_image_input, save_and_compress_image, delete_uploaded_image
+
+        # 1. Kiểm tra nén các định dạng ảnh khác nhau sang WebP
+        for fmt in ['PNG', 'BMP', 'GIF', 'TIFF']:
+            im = Image.new('RGB', (100, 100), color='blue')
+            buf = io.BytesIO()
+            im.save(buf, format=fmt)
+            raw_bytes = buf.getvalue()
+
+            web_path, err = process_image_input(raw_bytes, category='benh_nhan', quality=80)
+            self.assertIsNone(err, f"Xử lý định dạng {fmt} không được có lỗi: {err}")
+            self.assertTrue(web_path.endswith('.webp'), f"Định dạng {fmt} phải được nén thành file .webp")
+            delete_uploaded_image(web_path)
+
+        # 2. Kiểm tra định dạng SVG vector
+        svg_content = b'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="green" /></svg>'
+        web_svg, err_svg = process_image_input(svg_content, category='bai_viet')
+        self.assertIsNone(err_svg)
+        self.assertTrue(web_svg.endswith('.svg'), "Định dạng SVG phải được lưu dạng .svg an toàn")
+        delete_uploaded_image(web_svg)
+
+        # 3. Kiểm tra Base64 Data URI
+        im = Image.new('RGB', (80, 80), color='purple')
+        buf = io.BytesIO()
+        im.save(buf, format='PNG')
+        data_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+
+        web_b64, err_b64 = process_image_input(data_uri, category='bac_si', quality=85)
+        self.assertIsNone(err_b64)
+        self.assertTrue(web_b64.endswith('.webp'), "Chuỗi Base64 Data URI phải được giải mã và nén thành .webp")
+        delete_uploaded_image(web_b64)
+
+        # 4. Kiểm tra URL ảnh ngoại tuyến / trực tuyến (fallback an toàn)
+        url_input = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200"
+        web_url, err_url = process_image_input(url_input, category='banners', quality=82)
+        self.assertIsNone(err_url)
+        self.assertTrue(web_url.startswith('/static/uploads/') or web_url.startswith('http'), "URL phải được tải nén hoặc fallback an toàn")
+        if web_url.startswith('/static/uploads/'):
+            delete_uploaded_image(web_url)
+
+        # 5. Kiểm tra cập nhật avatar bệnh nhân qua endpoint /patient/profile/avatar
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {'id': 5, 'username': '0901234567', 'vai_tro': 'BENHNHAN', 'benh_nhan_id': 1}
+
+        res_post = self.client.post('/patient/profile/avatar', data={
+            'avatar_url': 'https://images.unsplash.com/photo-sample'
+        }, follow_redirects=True)
+        self.assertEqual(res_post.status_code, 200)
+        self.assertIn('Cập nhật ảnh đại diện thành công', res_post.get_data(as_text=True))
+
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -37,6 +37,7 @@ IF OBJECT_ID('lich_hen', 'U') IS NOT NULL DROP TABLE lich_hen;
 IF OBJECT_ID('lich_lam_viec', 'U') IS NOT NULL DROP TABLE lich_lam_viec;
 IF OBJECT_ID('phan_hoi', 'U') IS NOT NULL DROP TABLE phan_hoi;
 IF OBJECT_ID('hom_thu_gop_y', 'U') IS NOT NULL DROP TABLE hom_thu_gop_y;
+IF OBJECT_ID('banner', 'U') IS NOT NULL DROP TABLE banner;
 IF OBJECT_ID('thong_bao', 'U') IS NOT NULL DROP TABLE thong_bao;
 IF OBJECT_ID('bai_viet', 'U') IS NOT NULL DROP TABLE bai_viet;
 IF OBJECT_ID('benh_nhan', 'U') IS NOT NULL DROP TABLE benh_nhan;
@@ -267,6 +268,10 @@ CREATE TABLE chi_tiet_chi_dinh (
     ktv_thuc_hien NVARCHAR(100),
     thoi_gian_thuc_hien DATETIME,
     trang_thai NVARCHAR(50) DEFAULT N'Hoàn thành',
+    bac_si_duyet NVARCHAR(100) NULL,
+    thoi_gian_duyet DATETIME NULL,
+    ghi_chu_duyet NVARCHAR(MAX) NULL,
+    nguoi_nhap NVARCHAR(100) NULL,
     FOREIGN KEY (phieu_chi_dinh_id) REFERENCES phieu_chi_dinh(id) ON DELETE CASCADE,
     FOREIGN KEY (dich_vu_id) REFERENCES dich_vu(id)
 );
@@ -279,6 +284,9 @@ CREATE TABLE don_thuoc (
     thoi_gian_ke DATETIME DEFAULT GETDATE(),
     loi_dan NVARCHAR(MAX),
     trang_thai NVARCHAR(50) DEFAULT N'Đã cấp thuốc',
+    ly_do_huy NVARCHAR(MAX) NULL,
+    nguoi_huy NVARCHAR(100) NULL,
+    thoi_gian_huy DATETIME NULL,
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE CASCADE,
     FOREIGN KEY (bac_si_id) REFERENCES bac_si(id)
 );
@@ -407,6 +415,33 @@ CREATE TABLE bai_viet (
 );
 GO
 
+CREATE TABLE audit_log (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    table_name NVARCHAR(50) NOT NULL,
+    row_id INT NOT NULL,
+    action NVARCHAR(50) NOT NULL,
+    performed_by INT NULL,
+    performed_by_name NVARCHAR(100) NULL,
+    performed_at DATETIME DEFAULT GETDATE(),
+    reason NVARCHAR(MAX) NULL,
+    before_json NVARCHAR(MAX) NULL,
+    after_json NVARCHAR(MAX) NULL
+);
+GO
+
+CREATE TABLE banner (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    tieu_de NVARCHAR(255) NOT NULL,
+    phu_de NVARCHAR(255) NULL,
+    mo_ta NVARCHAR(MAX) NULL,
+    hinh_anh NVARCHAR(500) NOT NULL,
+    link_lien_ket NVARCHAR(255) DEFAULT '/booking',
+    text_nut NVARCHAR(50) DEFAULT N'Đăng ký khám ngay',
+    thu_tu INT DEFAULT 0,
+    trang_thai BIT DEFAULT 1,
+    ngay_tao DATETIME DEFAULT GETDATE()
+);
+GO
 
 -- 4. TẠO CÁC CHỈ MỤC (INDEXES)
 CREATE INDEX idx_benhnhan_sdt ON benh_nhan(sdt);
@@ -486,18 +521,42 @@ INSERT INTO thuoc (id, ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, d
 SET IDENTITY_INSERT thuoc OFF;
 GO
 
--- TÀI KHOẢN DUY NHẤT: 1 ADMIN VÀ 1 BỆNH NHÂN
+-- DỮ LIỆU TÀI KHOẢN MẪU: 1 ADMIN, 1 BỆNH NHÂN, 3 BÁC SĨ CHUYÊN KHOA
 SET IDENTITY_INSERT tai_khoan ON;
 INSERT INTO tai_khoan (id, vai_tro_id, username, password, email, sdt) VALUES
 (1, 1, 'admin', 'scrypt:32768:8:1$wte2IwGnBVO1lRWL$3da8cd29b71656229c22086ff7164745647f790916b2f3949a826972b6c8f4896f4fd90b2856affb5af79c1274b86fc0d20e1ee0da464623a7117faa4984e03c', 'admin@phongkham.com', '0999999999'),
-(2, 6, '0901234567', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'baonam@gmail.com', '0901234567');
+(2, 6, '0901234567', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'baonam@gmail.com', '0901234567'),
+(3, 3, 'bs_quan', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_quan@h2tcare.vn', '0912345678'),
+(4, 3, 'bs_mai', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_mai@h2tcare.vn', '0923456789'),
+(5, 3, 'bs_nam', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_nam@h2tcare.vn', '0934567890'),
+(6, 2, 'letan_lan', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'lan.letan@h2tcare.vn', '0908111222'),
+(7, 2, 'letan_huyen', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'huyen.letan@h2tcare.vn', '0908222333'),
+(8, 2, 'letan_thao', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'thao.letan@h2tcare.vn', '0908333444'),
+(9, 4, 'duocsi_minh', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'minh.duocsi@h2tcare.vn', '0908555666'),
+(10, 5, 'ktv_duc', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'duc.ktv@h2tcare.vn', '0908777888');
 SET IDENTITY_INSERT tai_khoan OFF;
 GO
 
 SET IDENTITY_INSERT nhan_vien ON;
 INSERT INTO nhan_vien (id, tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu) VALUES
-(1, 1, 'NV001', N'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', N'140 Lê Trọng Tấn, Tân Phú, TP.HCM', N'Quản trị viên');
+(1, 1, 'NV001', N'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', N'140 Lê Trọng Tấn, Tân Phú, TP.HCM', N'Quản trị viên'),
+(2, 3, 'BS001', N'BS. Trần Minh Quân', 1, '1985-06-15', '0912345678', 'bs_quan@h2tcare.vn', '079085000101', N'Quận 10, TP.HCM', N'Bác sĩ chuyên khoa Nội'),
+(3, 4, 'BS002', N'BS. Lê Thị Mai', 0, '1989-09-20', '0923456789', 'bs_mai@h2tcare.vn', '079089000102', N'Quận 5, TP.HCM', N'Bác sĩ chuyên khoa Nhi'),
+(4, 5, 'BS003', N'BS. Nguyễn Hoàng Nam', 1, '1980-03-25', '0934567890', 'bs_nam@h2tcare.vn', '079080000103', N'Quận Tân Bình, TP.HCM', N'Bác sĩ chuyên khoa Ngoại'),
+(5, 6, 'NV002', N'Nguyễn Thị Lan', 0, '1995-04-12', '0908111222', 'lan.letan@h2tcare.vn', '079195000101', N'Quận Tân Phú, TP.HCM', N'Lễ tân trưởng - Quầy tiếp đón Tầng 1'),
+(6, 7, 'NV003', N'Trần Thu Huyền', 0, '1997-08-20', '0908222333', 'huyen.letan@h2tcare.vn', '079197000102', N'Quận Bình Tân, TP.HCM', N'Tiếp đón & Điều phối lịch hẹn - Quầy A'),
+(7, 8, 'NV004', N'Lê Phương Thảo', 0, '1996-11-05', '0908333444', 'thao.letan@h2tcare.vn', '079196000103', N'Quận 10, TP.HCM', N'Thu ngân viện phí & Tiếp nhận BHYT'),
+(8, 9, 'NV005', N'Dược sĩ Phạm Hoàng Minh', 1, '1992-03-15', '0908555666', 'minh.duocsi@h2tcare.vn', '079192000104', N'Quận 5, TP.HCM', N'Dược sĩ chuyên trách cấp phát thuốc'),
+(9, 10, 'NV006', N'KTV. Võ Anh Đức', 1, '1993-07-22', '0908777888', 'duc.ktv@h2tcare.vn', '079193000105', N'Quận Tân Bình, TP.HCM', N'Kỹ thuật viên xét nghiệm & Chẩn đoán hình ảnh');
 SET IDENTITY_INSERT nhan_vien OFF;
+GO
+
+SET IDENTITY_INSERT bac_si ON;
+INSERT INTO bac_si (id, nhan_vien_id, chuyen_khoa_id, phong_kham_chinh_id, hoc_vi, kinh_nghiem, gia_kham, trang_thai_lam_viec) VALUES
+(1, 2, 1, 1, N'ThS.BS', N'12 năm kinh nghiệm chẩn đoán và điều trị bệnh lý tim mạch, hô hấp và nội tiết tại BV Chợ Rẫy.', 150000.00, N'Đang làm việc'),
+(2, 3, 3, 4, N'BSCKI', N'8 năm công tác tại BV Nhi Đồng 1, chuyên sâu hô hấp, tiêu hóa và dinh dưỡng trẻ em.', 150000.00, N'Đang làm việc'),
+(3, 4, 2, 3, N'BSCKII', N'15 năm phẫu thuật ngoại khoa tổng quát, chấn thương chỉnh hình và tiểu phẫu.', 180000.00, N'Đang làm việc');
+SET IDENTITY_INSERT bac_si OFF;
 GO
 
 SET IDENTITY_INSERT benh_nhan ON;
@@ -519,3 +578,12 @@ INSERT INTO bai_viet (id, tac_gia_id, tieu_de, slug, danh_muc, tom_tat, noi_dung
 (3, 1, N'Khám sức khỏe tổng quát định kỳ: Lợi ích vàng không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', N'Tin Tức Phòng Khám', N'Tầm soát sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn nguy hiểm như cao huyết áp, tiểu đường, gan nhiễm mỡ, gout ngay từ giai đoạn chưa có biểu hiện triệu chứng.', N'Nội dung chi tiết về các gói khám tổng quát tại H2T Healthcare...', 'kham-tong-quat.jpg', 580, '2026-09-23 10:00:00', 1);
 SET IDENTITY_INSERT bai_viet OFF;
 GO
+
+SET IDENTITY_INSERT banner ON;
+INSERT INTO banner (id, tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai) VALUES
+(1, N'Chăm sóc bằng tài năng, y đức và sự thấu cảm', N'Tiêu chuẩn chất lượng quốc tế', N'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', N'ĐĂNG KÝ KHÁM NGAY', 1, 1),
+(2, N'Đội ngũ chuyên gia & Bác sĩ đầu ngành', N'Chuyên môn vững vàng', N'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', N'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
+(3, N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', N'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
+SET IDENTITY_INSERT banner OFF;
+GO
+

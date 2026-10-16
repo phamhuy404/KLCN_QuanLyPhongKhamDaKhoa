@@ -13,6 +13,7 @@ Danh sách thư viện đã được tinh giản tối đa:
 - flask: Framework phát triển web kiến trúc MVC.
 - pymysql: Driver kết nối CSDL MySQL / MariaDB.
 - pyodbc: Driver kết nối CSDL Microsoft SQL Server.
+- pillow: Thư viện xử lý hình ảnh, nén WebP tự động siêu nhẹ.
 
 
 II. CẤU HÌNH CƠ SỞ DỮ LIỆU (CHỌN 1 TRONG 3 CƠ CHẾ)
@@ -21,14 +22,14 @@ Mở file config.py để chọn loại cơ sở dữ liệu bằng cách thay �
 CÁCH 1: DÙNG SQLITE (MẶC ĐỊNH - CHẠY NGAY, KHÔNG CẦN CÀI SERVER DATABASE)
 1. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlite'
-2. Hệ thống tự động tạo file phongkham.db, khởi tạo bảng dữ liệu và 2 tài khoản mẫu chuẩn. Không cần cài đặt bất kỳ phần mềm CSDL nào.
+2. Hệ thống tự động tạo file phongkham.db, khởi tạo bảng dữ liệu và tài khoản mẫu chuẩn. Không cần cài đặt bất kỳ phần mềm CSDL nào.
 
 CÁCH 2: DÙNG MICROSOFT SQL SERVER (SSMS)
 1. Mở SQL Server Management Studio (SSMS), kết nối máy chủ SQL Server nội bộ.
 2. Mở file cosodulieu.sql và nhấn Execute (F5) để tạo database quan_ly_phong_kham và bảng dữ liệu sạch.
 3. Trong file config.py, thiết lập:
 DB_ENGINE = 'sqlserver'
-4. Kiểm tra cấu hình kết nối trong SQLSERVER_CONFIG (mặc định Server: localhost, Database: quan_ly_phong_kham, Trusted_Connection: yes).
+4. Kiểm tra cấu hình kết nối trong SQLSERVER_CONFIG (hệ thống tự động thử kết nối lần lượt localhost, .\SQLEXPRESS, localhost\SQLEXPRESS).
 
 CÁCH 3: DÙNG MYSQL / MARIADB (XAMPP / PHPMYADMIN / DOCKER)
 1. Khởi động dịch vụ MySQL (ví dụ trên XAMPP Control Panel).
@@ -38,25 +39,69 @@ DB_ENGINE = 'mysql'
 4. Kiểm tra thông số tài khoản trong MYSQL_CONFIG (user, password, port nếu có thay đổi).
 
 
-III. KHỞI CHẠY ỨNG DỤNG WEB
-1. Chạy lệnh:
+III. KHỞI CHẠY ỨNG DỤNG WEB VÀ TEST TỰ ĐỘNG
+1. Khởi chạy máy chủ:
 python app.py
 
 2. Mở trình duyệt truy cập:
 http://127.0.0.1:5000
 
+3. Chạy bộ kiểm thử tự động (Automated Tests):
+python -m unittest discover tests
+
 
 IV. TÀI KHOẢN ĐĂNG NHẬP HỆ THỐNG
-Dữ liệu khởi tạo được làm sạch hoàn toàn (các bảng khám chữa bệnh, lịch hẹn, đơn thuốc, hóa đơn đều ở trạng thái trống để người dùng tự tạo mới và trải nghiệm thực tế):
+Dữ liệu khởi tạo được chuẩn hóa và làm sạch đầy đủ:
 
-1. Tài khoản Quản trị viên & Bác sĩ (Admin):
+1. Tài khoản Quản trị viên (Admin):
 - Tên đăng nhập: admin
 - Mật khẩu: admin123
-- Phạm vi quyền: Toàn quyền quản trị phòng khám, quản lý bệnh nhân, tiếp nhận cấp số, phòng khám EMR, chỉ định xét nghiệm, quản lý kho thuốc, thu viện phí và báo cáo doanh thu.
+- Phạm vi quyền: Toàn quyền quản trị phòng khám, quản lý danh sách bác sĩ, tùy chỉnh banner trang chủ, quản lý tài khoản, tiếp nhận cấp số, phòng khám EMR, chỉ định xét nghiệm, quản lý kho thuốc, thu viện phí và báo cáo doanh thu.
 
-2. Tài khoản Bệnh nhân mẫu:
+2. Danh sách Tài khoản Bác sĩ chuyên khoa:
+- Bác sĩ Nội tổng quát:
+  + Tên đăng nhập: bs_quan
+  + Mật khẩu: Password@123
+  + Họ tên: ThS.BS Trần Minh Quân (Trưởng khoa Nội, Phòng khám PK101, SĐT: 0912345678)
+- Bác sĩ Nhi khoa:
+  + Tên đăng nhập: bs_mai
+  + Mật khẩu: Password@123
+  + Họ tên: BSCKI Lê Thị Mai (Bác sĩ Nhi khoa, Phòng khám PK201, SĐT: 0923456789)
+- Bác sĩ Ngoại khoa:
+  + Tên đăng nhập: bs_nam
+  + Mật khẩu: Password@123
+  + Họ tên: BSCKII Nguyễn Hoàng Nam (Bác sĩ Ngoại khoa, Phòng khám PK103, SĐT: 0934567890)
+- Phạm vi quyền Bác sĩ: Thăm khám EMR, chẩn đoán ICD-10, ra y lệnh cận lâm sàng, kê toa thuốc và truy cập hồ sơ chuyên môn riêng (/admin/doctors/<id>). Lưu ý: Bác sĩ chỉ xem được danh sách bệnh nhân và lịch trực của chính mình.
+
+3. Danh sách Tài khoản Lễ tân & Tiếp đón (Receptionist):
+- Lễ tân trưởng:
+  + Tên đăng nhập: letan_lan
+  + Mật khẩu: Password@123
+  + Họ tên: Nguyễn Thị Lan (Lễ tân trưởng - Quầy tiếp đón Tầng 1, SĐT: 0908111222)
+- Tiếp đón & Điều phối:
+  + Tên đăng nhập: letan_huyen
+  + Mật khẩu: Password@123
+  + Họ tên: Trần Thu Huyền (Tiếp đón & Điều phối lịch hẹn - Quầy A, SĐT: 0908222333)
+- Thu ngân viện phí:
+  + Tên đăng nhập: letan_thao
+  + Mật khẩu: Password@123
+  + Họ tên: Lê Phương Thảo (Thu ngân viện phí & Tiếp nhận BHYT, SĐT: 0908333444)
+- Phạm vi quyền Lễ tân: Tiếp đón bệnh nhân, xếp số thứ tự khám, điều phối lịch hẹn và thu ngân viện phí.
+
+4. Danh sách Nhân viên Dược & Kỹ thuật viên (CLS):
+- Dược sĩ phụ trách kho thuốc:
+  + Tên đăng nhập: duocsi_minh
+  + Mật khẩu: Password@123
+  + Họ tên: Dược sĩ Phạm Hoàng Minh (Dược sĩ chuyên trách cấp phát thuốc, SĐT: 0908555666)
+- Kỹ thuật viên Xét nghiệm:
+  + Tên đăng nhập: ktv_duc
+  + Mật khẩu: Password@123
+  + Họ tên: KTV. Võ Anh Đức (Kỹ thuật viên xét nghiệm & Cận lâm sàng, SĐT: 0908777888)
+
+5. Tài khoản Bệnh nhân mẫu:
 - Tên đăng nhập / Số điện thoại: 0901234567
 - Mật khẩu: 123456
+- Họ tên: Hoàng Bảo Nam (Mã BN: BN2609001, Thẻ BHYT: GD4797931100001)
 - Phạm vi quyền: Cổng bệnh nhân cá nhân, đặt lịch khám trực tuyến, tra cứu hồ sơ bệnh án 360 độ, theo dõi lịch sử kê đơn, xem kết quả xét nghiệm và hóa đơn viện phí.
 
 
@@ -64,11 +109,11 @@ V. SƠ ĐỒ CÁC NHÓM TRANG VÀ LUỒNG CHỨC NĂNG LIÊN QUAN
 Hệ thống được chia thành 4 phân hệ chính hoạt động liên thông dữ liệu:
 
 1. Phân hệ Khách & Công khai (Guest):
-- Trang chủ (/): Giới thiệu dịch vụ y tế, đội ngũ bác sĩ, chuyên khoa, bảng giá dịch vụ và phản hồi của bệnh nhân.
-- Đặt lịch khám trực tuyến (/booking): Cho phép người dùng đăng ký lịch hẹn khám, chọn khoa khám, ngày giờ và mô tả triệu chứng. Lịch hẹn sau khi đặt sẽ tự động xuất hiện trên màn hình quản lý của Admin và trang theo dõi của Bệnh nhân.
+- Trang chủ (/): Giới thiệu dịch vụ y tế, hệ thống banner slider động tùy chỉnh từ CSDL, đội ngũ bác sĩ, chuyên khoa, bảng giá dịch vụ và phản hồi của bệnh nhân.
+- Đặt lịch khám trực tuyến (/booking): Cho phép người dùng đăng ký lịch hẹn khám, chọn bác sĩ hoặc chuyên khoa, ngày giờ và mô tả triệu chứng. Lịch hẹn sau khi đặt sẽ tự động xuất hiện trên màn hình quản lý của Admin và trang theo dõi của Bệnh nhân.
 - Cẩm nang bài viết y tế (/articles): Chuyên trang tin tức sức khỏe, tích hợp tìm kiếm gần đúng thông minh (Live Fuzzy Search) và lọc theo chuyên mục (Tim mạch, Nhi khoa, Da liễu, Nội tiết, Xương khớp, v.v.).
 - Chi tiết bài viết (/articles/<slug>): Hiển thị nội dung chi tiết bài viết y khoa, lượt xem và gợi ý bài viết liên quan.
-- Đăng nhập (/login) & Đăng ký (/register): Xác thực người dùng, tự động phân luồng điều hướng theo vai trò (Admin vào cổng quản trị, Bệnh nhân vào cổng cá nhân).
+- Đăng nhập (/login) & Đăng ký (/register): Xác thực người dùng, tự động phân luồng điều hướng theo vai trò (Admin/Bác sĩ vào cổng quản trị, Bệnh nhân vào cổng cá nhân).
 
 2. Phân hệ Cổng Bệnh nhân (Patient Portal):
 - Tổng quan sức khỏe (/patient): Bảng điều khiển theo dõi lịch hẹn sắp tới, đợt khám gần nhất và thẻ thao tác nhanh.
@@ -78,6 +123,12 @@ Hệ thống được chia thành 4 phân hệ chính hoạt động liên thôn
 
 3. Phân hệ Quản trị & Y tế (Admin & Bác sĩ):
 - Bảng điều khiển trung tâm (/admin): Tổng quan thống kê số lượt khám trong ngày, số ca chờ, doanh thu tạm tính và biểu đồ hoạt động.
+- Quản lý Banner Trang chủ (/admin/banners): Tùy chỉnh danh sách banner slider xuất hiện trên trang chủ, thay đổi thứ tự ưu tiên, nội dung chữ, nút kêu gọi hành động (CTA), hỗ trợ tải ảnh nén WebP tự động hoặc nhập link URL trực tiếp.
+- Quản lý Bác sĩ (/admin/doctors): Danh sách bác sĩ phòng khám, chuyên khoa, phòng trực, thông tin liên hệ và lịch làm việc 14 ngày tới kèm bộ lọc nhanh và tìm kiếm gần đúng.
+- Hồ sơ Bác sĩ 360 độ (/admin/doctors/<id>): Xem chi tiết hồ sơ chuyên môn, lịch trực phân công, danh sách các bệnh nhân đăng ký khám (Lịch hẹn trực tuyến) và lịch sử các ca khám EMR. (Cơ chế bảo mật: Bác sĩ chỉ xem được hồ sơ của chính mình).
+- Điều hướng nhanh hồ sơ cá nhân (/admin/my-doctor-profile): Tự động điều hướng bác sĩ đang đăng nhập tới trang hồ sơ cá nhân của mình.
+- Quản lý Tài khoản (/admin/accounts): Thống kê số lượng tài khoản theo vai trò (Admin, Bác sĩ, Bệnh nhân), đổi trạng thái kích hoạt/khóa tài khoản một chạm và đặt lại mật khẩu an toàn.
+- Quản trị Bài viết Y tế (/admin/articles, /admin/articles/create, /admin/articles/edit/<id>): Quản lý cẩm nang y khoa CMS, hỗ trợ tải ảnh bìa nén WebP tự động hoặc dán URL.
 - Quản lý danh sách bệnh nhân (/admin/patients): Quản lý toàn bộ hồ sơ bệnh nhân, hỗ trợ bộ lọc y tế nâng cao và tìm kiếm tức thì đa tiêu chí (Mã BN, Họ tên không dấu, SĐT, CCCD, BHYT, Nhóm máu, Dị ứng, Tiền sử bệnh).
 - Hồ sơ bệnh nhân 360 độ (/admin/patients/<id>): Xem toàn cảnh chi tiết tiền sử, diễn biến các đợt khám, kết quả xét nghiệm và lịch sử dùng thuốc của từng bệnh nhân.
 - Quầy tiếp nhận & Cấp số thứ tự (/admin/reception): Tiếp nhận bệnh nhân nhanh một chạm, phân luồng vào các phòng khám chuyên khoa (Nội tổng quát, Tim mạch, Tai mũi họng, Nhi khoa) và in phiếu số thứ tự.
@@ -101,49 +152,57 @@ Cấu trúc dự án tuân thủ nghiêm ngặt mô hình MVC:
 
 1. Thư mục controllers/ (Tầng Điều Khiển - Xử lý logic và điều hướng):
 - auth_controller.py: Chứa logic đăng nhập, đăng ký tài khoản bệnh nhân, đăng xuất và kiểm tra phân quyền phiên làm việc.
-- home_controller.py: Xử lý hiển thị trang chủ, quy trình tiếp nhận lịch đặt hẹn online và danh sách bài viết y tế.
+- home_controller.py: Xử lý hiển thị trang chủ (kèm slider banner động), quy trình tiếp nhận lịch đặt hẹn online và danh sách bài viết y tế.
 - patient_controller.py: Quản lý toàn bộ các màn hình hiển thị và cập nhật hồ sơ phía bệnh nhân.
-- admin_controller.py: Quản lý toàn bộ luồng hiển thị nghiệp vụ phía bác sĩ và quản trị viên.
+- admin_controller.py: Quản lý toàn bộ luồng hiển thị nghiệp vụ phía bác sĩ và quản trị viên (Banner, Bác sĩ, Tài khoản, Bài viết, EMR, Tiếp nhận, Viện phí, Kho dược, Báo cáo).
 - api_controller.py: Tiếp nhận các yêu cầu AJAX/fetch gửi từ giao diện, xử lý nghiệp vụ nhanh và trả về phản hồi JSON.
--> Khi muốn thay đổi quy tắc kiểm tra quyền, thêm đường dẫn URL (route) mới hoặc thay đổi luồng xử lý form, chỉnh sửa các file trong thư mục này.
+Khi muốn thay đổi quy tắc kiểm tra quyền, thêm đường dẫn URL (route) mới hoặc thay đổi luồng xử lý form, chỉnh sửa các file trong thư mục này.
 
 2. Thư mục models/ (Tầng Dữ Liệu - Tương tác trực tiếp với Database):
-- user_model.py: Truy vấn thông tin tài khoản, kiểm tra mật khẩu hash, phân quyền vai trò.
+- banner_model.py: Quản lý dữ liệu banner trang chủ (lấy banner kích hoạt, tạo mới, chỉnh sửa, xóa và đổi trạng thái).
+- user_model.py: Truy vấn thông tin tài khoản, bác sĩ, nhân sự, lịch hẹn và lịch sử khám của bác sĩ, kiểm tra mật khẩu hash, phân quyền vai trò.
 - patient_model.py: Thêm mới, cập nhật hồ sơ bệnh nhân, lấy toàn diện lịch sử khám bệnh 360 độ kèm toa thuốc và chỉ định cận lâm sàng.
 - appointment_model.py: Xử lý lưu trữ và cập nhật trạng thái lịch hẹn khám.
-- article_model.py: Truy vấn bài viết y khoa từ CSDL, tích hợp thuật toán chuẩn hóa không dấu và tìm kiếm gần đúng tiếng Việt (fuzzy matching).
+- article_model.py: Quản lý cẩm nang y tế, tìm kiếm gần đúng tiếng Việt (fuzzy matching) và các thao tác CRUD bài viết.
 - inventory_model.py: Quản lý danh mục dược phẩm, cập nhật số lượng tồn kho và ghi nhận lịch sử xuất nhập kho.
 - medical_service_model.py: Quản lý bảng giá dịch vụ khám và kỹ thuật cận lâm sàng.
--> Khi muốn sửa câu lệnh SQL, bổ sung cột dữ liệu mới hoặc thay đổi cách lưu trữ, chỉnh sửa các file trong thư mục này.
+- schedule_model.py: Quản lý ca trực, lịch công tác và kiểm tra xung đột lịch của bác sĩ.
+- notification_model.py: Quản lý thông báo người dùng và hệ thống.
+- feedback_model.py: Quản lý ý kiến đánh giá và phản hồi của bệnh nhân.
+- backup_model.py: Quản lý sao lưu và phục hồi dữ liệu hệ thống.
+Khi muốn sửa câu lệnh SQL, bổ sung cột dữ liệu mới hoặc thay đổi cách lưu trữ, chỉnh sửa các file trong thư mục này.
 
 3. Thư mục templates/ (Tầng Giao Diện - Mã nguồn HTML Jinja2):
 - templates/layouts/: Chứa khung layout chuẩn (base.html và footer.html).
-- templates/admin/: Giao diện các phân hệ quản trị (patients.html, appointments.html, emr.html, lab.html, pharmacy.html, billing.html, reception.html, reports.html).
+- templates/admin/: Giao diện các phân hệ quản trị (banners.html, doctors.html, doctor_detail.html, accounts.html, articles.html, article_editor.html, patients.html, appointments.html, emr.html, lab.html, pharmacy.html, billing.html, reception.html, reports.html).
+- templates/admin/components/: Thanh điều hướng trên cùng (header.html) và thanh điều hướng bên trái (sidebar.html).
 - templates/patient/: Giao diện cổng bệnh nhân (dashboard.html, profile.html, records.html, lab_results.html, booking.html).
-- templates/articles.html và article_detail.html: Giao diện cẩm nang y tế và chi tiết bài viết.
--> Khi muốn thay đổi giao diện, thêm nút bấm, sửa bảng hiển thị hoặc form nhập liệu, chỉnh sửa các file HTML tương ứng trong thư mục này.
+- templates/articles.html và article_detail.html: Giao diện cẩm nang y tế và chi tiết bài viết công khai.
+Khi muốn thay đổi giao diện, thêm nút bấm, sửa bảng hiển thị hoặc form nhập liệu, chỉnh sửa các file HTML tương ứng trong thư mục này.
 
 4. Thư mục static/ (Tài nguyên tĩnh frontend):
-- static/js/main.js: File kịch bản JavaScript dùng chung toàn bộ dự án, bao gồm:
+- static/uploads/: Thư mục lưu trữ hình ảnh tải lên, được phân tách thành 4 thư mục con chuyên biệt (đã loại trừ khỏi Git để giữ repo nhẹ):
+  + static/uploads/benh_nhan/: Ảnh đại diện, ảnh thẻ BHYT của bệnh nhân.
+  + static/uploads/bac_si/: Ảnh chân dung đại diện của bác sĩ.
+  + static/uploads/bai_viet/: Ảnh bìa minh họa của các bài viết y khoa.
+  + static/uploads/banners/: Ảnh nền banner quảng bá trên trang chủ.
+- static/js/main.js: File kịch bản JavaScript dùng chung toàn bộ dự án:
   + Bộ máy tìm kiếm gần đúng toàn cục (window.fuzzyMatch, window.fuzzyMatchRecord, window.removeVietnameseTones, window.levenshteinDistance).
   + Bộ chọn thẻ danh mục y tế chuẩn hóa (window.initCatalogTagSelector).
-  + Đồng hồ thời gian thực và quản lý ghim mở rộng menu sidebar.
+  + Hệ thống thông báo nổi (Toast Notification) và đồng hồ thời gian thực.
 - static/css/custom.css: Các định dạng CSS tùy biến giao diện ngoài Tailwind CSS.
-- static/img/: Thư mục lưu trữ hình ảnh minh họa bài viết và biểu tượng phòng khám.
--> Khi muốn tinh chỉnh thuật toán tìm kiếm gần đúng, đổi màu sắc hoặc sửa hiệu ứng giao diện, chỉnh sửa các file tại đây.
+- static/img/: Thư mục lưu trữ hình ảnh minh họa bài viết và biểu tượng phòng khám mặc định.
 
 5. Thư mục data/catalogs/ (Danh mục y tế chuẩn hóa dạng text thuần):
 - nhom_mau.txt: Chứa 8 nhóm máu cơ bản và giá trị mặc định Chưa rõ.
 - bien_the_nhom_mau.txt: Chứa danh sách các biến thể nhóm máu và kháng thể bất thường phổ biến (Weak D, Bombay, Anti-Kell, v.v.).
 - di_ung.txt: Chứa danh sách các nhóm thuốc, thực phẩm và tác nhân dị ứng thường gặp.
 - tien_su_benh.txt: Chứa danh sách các bệnh lý nền mạn tính phổ biến.
--> Khi muốn bổ sung thêm nhóm máu mới, thêm loại dị ứng hoặc bệnh lý nền mới để giao diện tự động nhận diện và gợi ý, chỉ cần mở file .txt tương ứng và gõ thêm một dòng mới. Hoàn toàn không cần can thiệp vào mã nguồn code.
 
 6. Thư mục core/ (Tầng cốt lõi hệ thống):
-- database.py: Khởi tạo kết nối đa cơ sở dữ liệu (SQLite, SQL Server, MySQL), thực hiện migration cấu trúc bảng tự động khi có cập nhật mới.
+- image_service.py: Xử lý tối ưu hình ảnh tải lên: Tự động xoay ảnh theo EXIF, resize theo kích thước chuẩn từng loại và nén sang định dạng WebP (giảm 95% dung lượng, giữ file dưới 80KB).
+- database.py: Khởi tạo kết nối đa cơ sở dữ liệu (SQLite, SQL Server, MySQL), tự động thử kết nối dự phòng (auto-fallback), thực hiện migration cấu trúc bảng tự động khi có cập nhật mới.
 - catalog.py: Đọc các file danh mục từ thư mục data/catalogs/ và cung cấp cho controller nạp ra giao diện.
-
-7. File config.py (Tệp cấu hình hệ thống):
-- Chứa thiết lập lựa chọn loại CSDL (DB_ENGINE).
-- Cấu hình chuỗi kết nối cho SQL Server và MySQL.
-- Thiết lập khóa bảo mật SECRET_KEY và các hằng số vận hành hệ thống.
+- security.py: Mã hóa mật khẩu bảo mật (Werkzeug SHA256) và quản lý token.
+- audit.py: Ghi nhật ký thao tác và thay đổi dữ liệu hệ thống (Audit Log).
+- notification_service.py: Quản lý và phát thông báo hệ thống.

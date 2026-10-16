@@ -1,0 +1,558 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Phân Mục Quản Lý Tài Khoản{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- 1. Header Trang & Các Nút Thao Tác Nhanh -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Tài khoản & Phân quyền</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-users-gear"></i>
+                </span>
+                Quản Lý Tài Khoản Theo Bộ Phận
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Phân chia theo từng bộ phận chức năng: Tiếp tân, Bác sĩ, Dược sĩ, Kỹ thuật viên, Bệnh nhân và Quản trị viên.
+            </p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2.5">
+            <!-- Nút Mở Modal Thêm Nhân Sự Mới -->
+            <button type="button" onclick="openCreateStaffModal('{{ current_role if current_role in ['LETAN', 'BACSI', 'DUOCSI', 'KTV'] else 'LETAN' }}')" 
+                    class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Thêm Nhân Sự Mới</span>
+            </button>
+
+            <!-- Nút Tải file mẫu Excel/CSV -->
+            <button type="button" onclick="downloadSampleTemplate()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu Excel">
+                <i class="fa-solid fa-file-circle-question text-teal-600"></i>
+                <span class="hidden md:inline">File Mẫu</span>
+            </button>
+
+            <!-- Nút Xuất file Excel -->
+            <button type="button" onclick="exportAccountsToCSV()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất danh sách ra file Excel CSV">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span class="hidden md:inline">Xuất Excel</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Hệ Thống Mục / Tabs Phân Chia Rõ Ràng Từng Bộ Phận -->
+    <div class="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            
+            <!-- Mục 1: Tất Cả Tài Khoản -->
+            <a href="{{ url_for('admin.accounts', role='ALL') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'ALL' %}bg-slate-900 text-white shadow-md shadow-slate-900/20{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                <i class="fa-solid fa-users text-sm"></i>
+                <span>Tất Cả</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'ALL' %}bg-slate-800 text-slate-200{% else %}bg-slate-200 text-slate-700{% endif %} font-mono">
+                    {{ stats.total }}
+                </span>
+            </a>
+
+            <!-- Mục 2: Lễ Tân & Tiếp Đón -->
+            <a href="{{ url_for('admin.accounts', role='LETAN') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'LETAN' %}bg-sky-600 text-white shadow-md shadow-sky-600/20{% else %}text-slate-600 hover:bg-sky-50 hover:text-sky-700{% endif %}">
+                <i class="fa-solid fa-bell-concierge text-sm"></i>
+                <span>Lễ Tân & Tiếp Đón</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'LETAN' %}bg-sky-700 text-sky-100{% else %}bg-sky-100 text-sky-800{% endif %} font-mono">
+                    {{ stats.letan or 0 }}
+                </span>
+            </a>
+
+            <!-- Mục 3: Bác Sĩ Chuyên Khoa -->
+            <a href="{{ url_for('admin.accounts', role='BACSI') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'BACSI' %}bg-teal-600 text-white shadow-md shadow-teal-600/20{% else %}text-slate-600 hover:bg-teal-50 hover:text-teal-700{% endif %}">
+                <i class="fa-solid fa-user-doctor text-sm"></i>
+                <span>Bác Sĩ Chuyên Khoa</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'BACSI' %}bg-teal-700 text-teal-100{% else %}bg-teal-100 text-teal-800{% endif %} font-mono">
+                    {{ stats.doctor or 0 }}
+                </span>
+            </a>
+
+            <!-- Mục 4: Dược Sĩ & Kho Dược -->
+            <a href="{{ url_for('admin.accounts', role='DUOCSI') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'DUOCSI' %}bg-purple-600 text-white shadow-md shadow-purple-600/20{% else %}text-slate-600 hover:bg-purple-50 hover:text-purple-700{% endif %}">
+                <i class="fa-solid fa-prescription-bottle-medical text-sm"></i>
+                <span>Dược Sĩ & Kho Thuốc</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'DUOCSI' %}bg-purple-700 text-purple-100{% else %}bg-purple-100 text-purple-800{% endif %} font-mono">
+                    {{ stats.duocsi or 0 }}
+                </span>
+            </a>
+
+            <!-- Mục 5: Kỹ Thuật Viên Xét Nghiệm CLS -->
+            <a href="{{ url_for('admin.accounts', role='KTV') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'KTV' %}bg-amber-600 text-white shadow-md shadow-amber-600/20{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-700{% endif %}">
+                <i class="fa-solid fa-vial-virus text-sm"></i>
+                <span>Kỹ Thuật Viên CLS</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'KTV' %}bg-amber-700 text-amber-100{% else %}bg-amber-100 text-amber-800{% endif %} font-mono">
+                    {{ stats.ktv or 0 }}
+                </span>
+            </a>
+
+            <!-- Mục 6: Khách Hàng / Bệnh Nhân -->
+            <a href="{{ url_for('admin.accounts', role='BENHNHAN') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'BENHNHAN' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/20{% else %}text-slate-600 hover:bg-emerald-50 hover:text-emerald-700{% endif %}">
+                <i class="fa-solid fa-hospital-user text-sm"></i>
+                <span>Bệnh Nhân</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'BENHNHAN' %}bg-emerald-700 text-emerald-100{% else %}bg-emerald-100 text-emerald-800{% endif %} font-mono">
+                    {{ stats.patient or 0 }}
+                </span>
+            </a>
+
+            <!-- Mục 7: Quản Trị Viên -->
+            <a href="{{ url_for('admin.accounts', role='ADMIN') }}" 
+               class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'ADMIN' %}bg-rose-600 text-white shadow-md shadow-rose-600/20{% else %}text-slate-600 hover:bg-rose-50 hover:text-rose-700{% endif %}">
+                <i class="fa-solid fa-shield-halved text-sm"></i>
+                <span>Quản Trị Viên</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'ADMIN' %}bg-rose-700 text-rose-100{% else %}bg-rose-100 text-rose-800{% endif %} font-mono">
+                    {{ stats.admin or 0 }}
+                </span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- 3. Banner Ngữ Cảnh Từng Mục & Công Cụ Tìm Kiếm -->
+    <div class="p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 
+        {% if current_role == 'LETAN' %}bg-gradient-to-r from-sky-50 to-blue-50/40 border-sky-200
+        {% elif current_role == 'BACSI' %}bg-gradient-to-r from-teal-50 to-emerald-50/40 border-teal-200
+        {% elif current_role == 'DUOCSI' %}bg-gradient-to-r from-purple-50 to-indigo-50/40 border-purple-200
+        {% elif current_role == 'KTV' %}bg-gradient-to-r from-amber-50 to-orange-50/40 border-amber-200
+        {% elif current_role == 'BENHNHAN' %}bg-gradient-to-r from-emerald-50 to-teal-50/40 border-emerald-200
+        {% elif current_role == 'ADMIN' %}bg-gradient-to-r from-rose-50 to-red-50/40 border-rose-200
+        {% else %}bg-gradient-to-r from-slate-50 to-white border-slate-200{% endif %}">
+        
+        <div class="space-y-1">
+            <h3 class="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                {% if current_role == 'LETAN' %}
+                    <i class="fa-solid fa-bell-concierge text-sky-600"></i>
+                    Bộ Phận Lễ Tân & Tiếp Đón Bệnh Nhân
+                {% elif current_role == 'BACSI' %}
+                    <i class="fa-solid fa-user-doctor text-teal-600"></i>
+                    Đội Ngũ Bác Sĩ Chuyên Khoa Khám Chữa Bệnh
+                {% elif current_role == 'DUOCSI' %}
+                    <i class="fa-solid fa-prescription-bottle-medical text-purple-600"></i>
+                    Bộ Phận Dược Sĩ & Cấp Phát Thuốc Toa
+                {% elif current_role == 'KTV' %}
+                    <i class="fa-solid fa-vial-virus text-amber-600"></i>
+                    Kỹ Thuật Viên Xét Nghiệm & Chẩn Đoán Hình Ảnh
+                {% elif current_role == 'BENHNHAN' %}
+                    <i class="fa-solid fa-hospital-user text-emerald-600"></i>
+                    Danh Sách Tài Khoản Cổng Bệnh Nhân (Patient Portal)
+                {% elif current_role == 'ADMIN' %}
+                    <i class="fa-solid fa-shield-halved text-rose-600"></i>
+                    Tài Khoản Quản Trị Viên Hệ Thống (System Admin)
+                {% else %}
+                    <i class="fa-solid fa-users text-slate-700"></i>
+                    Toàn Bộ Tài Khoản Đang Hoạt Động Trên Hệ Thống
+                {% endif %}
+            </h3>
+            <p class="text-xs text-slate-500">
+                {% if current_role == 'LETAN' %}
+                    Tiếp nhận bệnh nhân, đặt lịch khám tại quầy, quản lý hàng chờ và thu ngân viện phí.
+                {% elif current_role == 'BACSI' %}
+                    Bác sĩ trực tiếp thực hiện thăm khám EMR, chỉ định xét nghiệm và kê đơn thuốc.
+                {% elif current_role == 'DUOCSI' %}
+                    Duyệt đơn thuốc bác sĩ đã kê, kiểm tra tương tác thuốc và xuất kho cấp phát.
+                {% elif current_role == 'KTV' %}
+                    Tiếp nhận chỉ định CLS, chạy mẫu xét nghiệm huyết học/hóa sinh và nhập kết quả.
+                {% elif current_role == 'BENHNHAN' %}
+                    Khách hàng đăng ký khám trực tuyến, xem hồ sơ bệnh án điện tử và tra cứu viện phí.
+                {% elif current_role == 'ADMIN' %}
+                    Toàn quyền cấu hình phòng khám, quản lý bảng giá, phân quyền và sao lưu dữ liệu.
+                {% else %}
+                    Tổng hợp toàn bộ người dùng, nhân sự y tế và khách hàng bệnh nhân của phòng khám.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <!-- Form Tìm kiếm nhanh -->
+            <form method="GET" action="{{ url_for('admin.accounts') }}" class="relative w-full sm:w-64">
+                <input type="hidden" name="role" value="{{ current_role }}">
+                <input type="text" name="search" value="{{ current_search }}" placeholder="Tìm theo tên, SĐT, username..." 
+                       class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+            </form>
+
+            {% if current_role == 'BACSI' %}
+            <a href="{{ url_for('admin.doctors') }}" class="px-3.5 py-2 rounded-xl bg-white hover:bg-teal-50 text-teal-700 border border-teal-200 font-bold text-xs whitespace-nowrap shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-id-card-clip"></i>
+                <span>Xem Thẻ Bác Sĩ</span>
+            </a>
+            {% elif current_role in ['LETAN', 'DUOCSI', 'KTV'] %}
+            <button type="button" onclick="openCreateStaffModal('{{ current_role }}')" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs whitespace-nowrap shadow-sm transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-plus text-medical-600"></i>
+                <span>Thêm Mới</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 4. Bảng Danh Sách Tài Khoản Theo Mục Được Chọn -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap" id="accounts-table">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4">Mã / ID</th>
+                        <th class="py-3.5 px-4">Tên Đăng Nhập</th>
+                        <th class="py-3.5 px-4">Họ & Tên Chủ Sở Hữu</th>
+                        <th class="py-3.5 px-4">Bộ Phận / Vai Trò</th>
+                        <th class="py-3.5 px-4">Liên Hệ (SĐT / Email)</th>
+                        <th class="py-3.5 px-4">Lần Đăng Nhập Cuối</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for a in accounts %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-4 font-mono font-bold text-slate-700">
+                            {{ a.ma_dinh_danh }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-bold text-slate-900 font-mono text-xs">{{ a.username }}</span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0
+                                    {% if a.ma_vai_tro == 'ADMIN' %}bg-rose-100 text-rose-700
+                                    {% elif a.ma_vai_tro == 'BACSI' %}bg-teal-100 text-teal-700
+                                    {% elif a.ma_vai_tro == 'LETAN' %}bg-sky-100 text-sky-700
+                                    {% elif a.ma_vai_tro == 'DUOCSI' %}bg-purple-100 text-purple-700
+                                    {% elif a.ma_vai_tro == 'KTV' %}bg-amber-100 text-amber-700
+                                    {% else %}bg-emerald-100 text-emerald-700{% endif %}">
+                                    {{ a.ho_ten[:1] if a.ho_ten else 'U' }}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-900 block">{{ a.ho_ten }}</span>
+                                    <span class="text-[10px] text-slate-400 block">{{ a.loai_doi_tuong }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold 
+                                {% if a.ma_vai_tro == 'ADMIN' %}bg-rose-50 text-rose-700 border border-rose-200
+                                {% elif a.ma_vai_tro == 'BACSI' %}bg-teal-50 text-teal-700 border border-teal-200
+                                {% elif a.ma_vai_tro == 'LETAN' %}bg-sky-50 text-sky-700 border border-sky-200
+                                {% elif a.ma_vai_tro == 'DUOCSI' %}bg-purple-50 text-purple-700 border border-purple-200
+                                {% elif a.ma_vai_tro == 'KTV' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+                                {{ a.ten_vai_tro }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-mono text-slate-800 block">{{ a.sdt or '---' }}</span>
+                            <span class="text-[10px] text-slate-400 block">{{ a.email or '---' }}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
+                            {{ a.lan_dang_nhap_cuoi or 'Chưa đăng nhập' }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span id="badge-status-{{ a.id }}" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold {% if a.trang_thai %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-400{% endif %}">
+                                {{ 'Hoạt động' if a.trang_thai else 'Vô hiệu hóa' }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
+                                        class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Đặt lại mật khẩu">
+                                    <i class="fa-solid fa-key text-[10px]"></i> Đổi MK
+                                </button>
+                                <button type="button" onclick="toggleAccount('{{ a.id }}')" 
+                                        class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors" title="Khóa / Mở khóa tài khoản">
+                                    <i class="fa-solid fa-power-off text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="p-12 text-center text-slate-400">
+                            <i class="fa-regular fa-folder-open text-3xl mb-2 text-slate-300 block"></i>
+                            Không tìm thấy tài khoản nào trong mục này.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal 1: Đặt Lại Mật Khẩu -->
+<div id="reset-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-key text-medical-600"></i> Đổi Mật Khẩu Tài Khoản
+            </h3>
+            <button onclick="closeResetModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+            <span class="text-slate-400">Tài khoản:</span> <strong id="reset-target-user" class="text-slate-900 font-mono">user123</strong>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+            <input type="text" id="reset-target-pwd" value="Password@123" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button type="button" onclick="closeResetModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">Hủy</button>
+            <button type="button" onclick="saveNewAccountPassword()" class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">Lưu Mật Khẩu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Thêm Mới Nhân Sự / Tiếp Tân / Bác Sĩ -->
+<div id="create-staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-medical-600"></i> Cấp Tài Khoản Nhân Sự Mới
+            </h3>
+            <button type="button" onclick="closeCreateStaffModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <form action="{{ url_for('admin.create_staff_account') }}" method="POST" class="space-y-3.5">
+            <input type="hidden" name="redirect_role" value="{{ current_role }}">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Họ và tên nhân sự <span class="text-rose-500">*</span></label>
+                    <input type="text" name="ho_ten" required placeholder="Ví dụ: Nguyễn Thị Mai" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Bộ phận / Vai trò <span class="text-rose-500">*</span></label>
+                    <select name="vai_tro_id" id="modal-staff-role" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                        <option value="2">Lễ tân & Tiếp đón (LETAN)</option>
+                        <option value="3">Bác sĩ chuyên khoa (BACSI)</option>
+                        <option value="4">Dược sĩ / Kho dược (DUOCSI)</option>
+                        <option value="5">Kỹ thuật viên xét nghiệm (KTV)</option>
+                        <option value="1">Quản trị viên (ADMIN)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Tên đăng nhập <span class="text-rose-500">*</span></label>
+                    <input type="text" name="username" required placeholder="letan_mai" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Mật khẩu khởi tạo</label>
+                    <input type="text" name="password" value="Password@123" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Số điện thoại <span class="text-rose-500">*</span></label>
+                    <input type="tel" name="sdt" required placeholder="0908xxxxxx" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Số CCCD (12 số)</label>
+                    <input type="text" name="cccd" placeholder="07909500xxxx" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Email liên hệ</label>
+                    <input type="email" name="email" placeholder="mai.letan@h2tcare.vn" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Chức vụ & Vị trí làm việc <span class="text-rose-500">*</span></label>
+                    <input type="text" name="chuc_vu" required placeholder="Ví dụ: Tiếp đón & Điều phối lịch hẹn - Quầy A" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Địa chỉ thường trú</label>
+                    <input type="text" name="dia_chi" placeholder="Quận/Huyện, TP.HCM" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeCreateStaffModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">Hủy</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">Lưu & Cấp Tài Khoản</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="application/json" id="accounts-data">
+    {{ accounts | tojson | safe }}
+</script>
+<script>
+    let currentAccounts = JSON.parse(document.getElementById('accounts-data').textContent || '[]');
+    let activeResetAccountId = null;
+
+    // 1. TẢI FILE MẪU EXCEL ĐỂ TIỆN THÊM TÀI KHOẢN
+    function downloadSampleTemplate() {
+        const headers = ['Mã Định Danh', 'Tên Đăng Nhập', 'Mật Khẩu Mặc Định', 'Họ Và Tên', 'Vai Trò (ADMIN/BACSI/LETAN/DUOCSI/KTV/BENHNHAN)', 'Số Điện Thoại', 'Email'];
+        const sampleRows = [
+            ['NV0010', 'letan_lan', 'Password@123', 'Nguyễn Thị Lan', 'LETAN', '0908111222', 'lan.letan@h2tcare.vn'],
+            ['NV0011', 'bs_quan', 'Password@123', 'BS. Trần Minh Quân', 'BACSI', '0912345678', 'bs_quan@h2tcare.vn'],
+            ['BN2609999', '0901234567', '123456', 'Hoàng Bảo Nam', 'BENHNHAN', '0901234567', 'baonam@gmail.com']
+        ];
+
+        let csv = '\uFEFF' + headers.map(h => `"${h}"`).join(',') + '\r\n';
+        sampleRows.forEach(r => {
+            csv += r.map(v => `"${v}"`).join(',') + '\r\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'mau_nhap_tai_khoan_h2t.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (typeof showToast === 'function') {
+            showToast('Đã tải xuống file mẫu Excel thành công!', 'info');
+        }
+    }
+
+    // 2. XUẤT DANH SÁCH TÀI KHOẢN HIỆN TẠI RA FILE EXCEL
+    function exportAccountsToCSV() {
+        if (!currentAccounts || currentAccounts.length === 0) {
+            alert('Không có dữ liệu tài khoản để xuất!');
+            return;
+        }
+
+        const headers = ['ID', 'Mã Định Danh', 'Tên Đăng Nhập', 'Họ Và Tên', 'Mã Vai Trò', 'Tên Vai Trò', 'Số Điện Thoại', 'Email', 'Trạng Thái', 'Ngày Tạo', 'Lần Đăng Nhập Cuối'];
+        let csv = '\uFEFF' + headers.map(h => `"${h}"`).join(',') + '\r\n';
+
+        currentAccounts.forEach(a => {
+            const row = [
+                a.id,
+                a.ma_dinh_danh || '',
+                a.username || '',
+                a.ho_ten || '',
+                a.ma_vai_tro || '',
+                a.ten_vai_tro || '',
+                a.sdt || '',
+                a.email || '',
+                a.trang_thai ? 'Hoạt động' : 'Vô hiệu hóa',
+                a.ngay_tao || '',
+                a.lan_dang_nhap_cuoi || ''
+            ];
+            csv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\r\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `danh_sach_tai_khoan_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        if (typeof showToast === 'function') {
+            showToast('Đã xuất file Excel (CSV BOM tiếng Việt) thành công!', 'success');
+        }
+    }
+
+    // 3. BẬT/TẮT KHÓA TÀI KHOẢN AJAX
+    function toggleAccount(accountId) {
+        fetch(`/admin/accounts/toggle-status/${accountId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById(`badge-status-${accountId}`);
+                    if (data.new_status === 1) {
+                        badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700';
+                        badge.innerText = 'Hoạt động';
+                        if (typeof showToast === 'function') showToast('Đã mở khóa tài khoản thành công!', 'success');
+                    } else {
+                        badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-400';
+                        badge.innerText = 'Vô hiệu hóa';
+                        if (typeof showToast === 'function') showToast('Đã khóa tài khoản thành công!', 'warning');
+                    }
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            })
+            .catch(err => alert('Lỗi kết nối: ' + err.message));
+    }
+
+    // 4. ĐẶT LẠI MẬT KHẨU
+    function openResetPasswordModal(id, username) {
+        activeResetAccountId = id;
+        document.getElementById('reset-target-user').innerText = username;
+        document.getElementById('reset-modal').classList.remove('hidden');
+    }
+
+    function closeResetModal() {
+        document.getElementById('reset-modal').classList.add('hidden');
+    }
+
+    function saveNewAccountPassword() {
+        const pwd = document.getElementById('reset-target-pwd').value.trim();
+        if (!pwd || pwd.length < 6) {
+            alert('Mật khẩu tối thiểu 6 ký tự!');
+            return;
+        }
+
+        fetch('/admin/accounts/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ account_id: activeResetAccountId, new_password: pwd })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeResetModal();
+                if (typeof showToast === 'function') showToast('Đã đổi mật khẩu thành công!', 'success');
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        })
+        .catch(err => alert('Lỗi: ' + err.message));
+    }
+
+    // 5. MODAL TẠO NHÂN SỰ MỚI
+    function openCreateStaffModal(roleCode) {
+        const roleSelect = document.getElementById('modal-staff-role');
+        if (roleSelect) {
+            if (roleCode === 'LETAN') roleSelect.value = '2';
+            else if (roleCode === 'BACSI') roleSelect.value = '3';
+            else if (roleCode === 'DUOCSI') roleSelect.value = '4';
+            else if (roleCode === 'KTV') roleSelect.value = '5';
+            else if (roleCode === 'ADMIN') roleSelect.value = '1';
+        }
+        document.getElementById('create-staff-modal').classList.remove('hidden');
+    }
+
+    function closeCreateStaffModal() {
+        document.getElementById('create-staff-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

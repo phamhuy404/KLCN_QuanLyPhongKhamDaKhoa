@@ -263,7 +263,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
 
     def test_11_schedule_conflict_detection(self):
         """Kiểm tra chống trùng lịch làm việc: cùng bác sĩ hoặc cùng phòng trong 1 ca trực, và chặn ngày quá khứ"""
-        future_date = (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d')
+        future_date = (datetime.now() + timedelta(days=45)).strftime('%Y-%m-%d')
         ca_lam = 1
         room_id = 1
         doctor_id = 1

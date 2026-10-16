@@ -274,10 +274,10 @@ class UserModel:
         sdt = data.get('sdt', '').strip()
         chuc_vu = data.get('chuc_vu', '').strip()
         vai_tro_id = data.get('vai_tro_id', 2)
-        email = data.get('email', '').strip()
+        email = data.get('email', '').strip() or None
         username = data.get('username', '').strip() or sdt
         password = data.get('password', 'Staff@123')
-        cccd = data.get('cccd', '').strip()
+        cccd = data.get('cccd', '').strip() or None
         gioi_tinh = int(data.get('gioi_tinh', 1))
         ngay_sinh = data.get('ngay_sinh')
         dia_chi = data.get('dia_chi', '').strip()
@@ -512,7 +512,7 @@ class UserModel:
             return False, f'Lỗi xóa nhân sự: {str(e)}'
 
     @staticmethod
-    def get_accounts(role=None, search=None, page=1, per_page=20):
+    def get_accounts(role=None, status=None, search=None, page=1, per_page=20):
         """Xem danh sách tài khoản bệnh nhân và nhân viên, tìm kiếm và phân trang."""
         conn = get_db()
         cursor = conn.cursor()
@@ -539,6 +539,10 @@ class UserModel:
             sql += ' AND v.ma_vai_tro = ?'
             params.append(role)
 
+        if status is not None and str(status).upper() != 'ALL':
+            sql += ' AND t.trang_thai = ?'
+            params.append(int(status))
+
         if search:
             s = f"%{search.strip()}%"
             sql += ' AND (t.username LIKE ? OR t.sdt LIKE ? OR t.email LIKE ? OR nv.ho_ten LIKE ? OR bn.ho_ten LIKE ?)'
@@ -559,6 +563,7 @@ class UserModel:
 
         return {
             'accounts': items,
+            'items': items,
             'total': total,
             'page': page,
             'per_page': per_page,
@@ -724,3 +729,136 @@ class UserModel:
             conn.rollback()
             conn.close()
             return False, str(e)
+
+    @staticmethod
+    def get_doctor_by_id(doctor_id):
+        """Lấy thông tin chi tiết đầy đủ của một bác sĩ phục vụ trang hồ sơ bác sĩ 360 độ."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+                   nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.sdt, nv.email, nv.gioi_tinh,
+                   nv.ngay_sinh, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.trang_thai,
+                   t.id AS tai_khoan_id, t.username, t.ngay_tao, t.lan_dang_nhap_cuoi,
+                   ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                   pk.id AS phong_kham_id, pk.ten_phong
+            FROM bac_si bs
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+            WHERE bs.id = ?
+        ''', (doctor_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return None
+
+        doctor = dict(row)
+
+        # Đếm số ca khám
+        cursor.execute("SELECT COUNT(*) AS total_visits FROM phieu_kham WHERE bac_si_id = ?", (doctor_id,))
+        cnt_row = cursor.fetchone()
+        doctor["total_visits"] = cnt_row["total_visits"] if cnt_row else 0
+
+        # Lấy 5 ca khám gần nhất (tương thích đa CSDL)
+        cursor.execute('''
+            SELECT pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.chan_doan_icd,
+                   bn.id AS benh_nhan_id, bn.ma_benh_nhan, bn.ho_ten AS benh_nhan_ten, bn.gioi_tinh, bn.sdt
+            FROM phieu_kham pk
+            JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+            WHERE pk.bac_si_id = ?
+            ORDER BY pk.thoi_gian_kham DESC
+        ''', (doctor_id,))
+        recent = cursor.fetchall()
+        doctor["recent_patients"] = [dict(r) for r in recent[:5]] if recent else []
+
+        conn.close()
+        return doctor
+
+    @staticmethod
+    def get_doctor_appointments(doctor_id):
+        """Lấy danh sách các lịch hẹn bệnh nhân đăng ký khám với bác sĩ."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT lh.*, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan,
+                   bn.gioi_tinh, bn.ngay_sinh, bn.nhom_mau, bn.di_ung, bn.tien_su_benh,
+                   ck.ten_khoa
+            FROM lich_hen lh
+            JOIN benh_nhan bn ON lh.benh_nhan_id = bn.id
+            LEFT JOIN chuyen_khoa ck ON lh.chuyen_khoa_id = ck.id
+            WHERE lh.bac_si_id = ?
+            ORDER BY lh.ngay_hen DESC, lh.gio_hen DESC
+        ''', (doctor_id,))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+
+    @staticmethod
+    def get_doctor_visits(doctor_id):
+        """Lấy toàn bộ lịch sử các ca khám bệnh do bác sĩ đảm nhiệm."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT pk.*, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan,
+                   bn.gioi_tinh, bn.ngay_sinh, bn.nhom_mau, bn.di_ung, bn.tien_su_benh,
+                   ph.ten_phong
+            FROM phieu_kham pk
+            JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+            LEFT JOIN phong_kham ph ON pk.phong_kham_id = ph.id
+            WHERE pk.bac_si_id = ?
+            ORDER BY pk.thoi_gian_kham DESC
+        ''', (doctor_id,))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+
+    @staticmethod
+    def update_doctor_avatar(doctor_id, avatar_path):
+        """Cập nhật ảnh đại diện bác sĩ."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE bac_si SET avatar = ? WHERE id = ?', (avatar_path, doctor_id))
+            conn.commit()
+            conn.close()
+            return True, 'Cập nhật ảnh đại diện thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+
+    @staticmethod
+    def get_account_stats():
+        """Thống kê số lượng tài khoản theo vai trò."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) AS total FROM tai_khoan")
+        total = cursor.fetchone()["total"]
+
+        cursor.execute("SELECT COUNT(*) AS active FROM tai_khoan WHERE trang_thai = 1")
+        active = cursor.fetchone()["active"]
+
+        cursor.execute('''
+            SELECT v.ma_vai_tro, COUNT(t.id) AS count
+            FROM tai_khoan t
+            JOIN vai_tro v ON t.vai_tro_id = v.id
+            GROUP BY v.ma_vai_tro
+        ''')
+        role_counts = {r["ma_vai_tro"]: r["count"] for r in cursor.fetchall()}
+        conn.close()
+
+        return {
+            "total": total,
+            "active": active,
+            "inactive": total - active,
+            "admin": role_counts.get("ADMIN", 0),
+            "doctor": role_counts.get("BACSI", 0),
+            "letan": role_counts.get("LETAN", 0),
+            "duocsi": role_counts.get("DUOCSI", 0),
+            "ktv": role_counts.get("KTV", 0),
+            "staff": role_counts.get("LETAN", 0) + role_counts.get("DUOCSI", 0) + role_counts.get("KTV", 0),
+            "patient": role_counts.get("BENHNHAN", 0),
+        }
+

@@ -286,3 +286,19 @@ class PatientModel:
             conn.close()
             return False, str(e)
 
+    @staticmethod
+    def update_patient_avatar(patient_id, avatar_path):
+        """Cập nhật đường dẫn ảnh đại diện cho hồ sơ bệnh nhân."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('UPDATE benh_nhan SET avatar = ? WHERE id = ?', (avatar_path, patient_id))
+            conn.commit()
+            conn.close()
+            return True, "Cập nhật ảnh đại diện thành công."
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+
+

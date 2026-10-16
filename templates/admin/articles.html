@@ -1,0 +1,171 @@
+﻿{% extends "layouts/base.html" %}
+
+{% block title %}H2T Healthcare - Quß║ún l├╜ Cß║⌐m Nang Y Khoa & B├ái Viß║┐t{% endblock %}
+
+{% block sidebar %}
+{% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+{% include "admin/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Trang -->
+    <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quß║ún trß╗ï</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Tin tß╗⌐c & Cß║⌐m nang</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base">
+                    <i class="fa-solid fa-newspaper"></i>
+                </span>
+                Quß║ún l├╜ B├ái Viß║┐t & Cß║⌐m Nang Sß╗⌐c Khß╗Åe
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">
+                Bi├¬n tß║¡p, xuß║Ñt bß║ún v├á ph├ón loß║íi b├ái viß║┐t y tß║┐ cß╗Öng ─æß╗ông do ─æß╗Öi ng┼⌐ y b├íc s─⌐ ph├▓ng kh├ím chia sß║╗.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="{{ url_for('admin.article_create') }}"
+                class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-pen-nib"></i>
+                <span>Viß║┐t & ─É─âng B├ái Mß╗¢i</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Thanh t├¼m kiß║┐m v├á bß╗Ö lß╗ìc danh mß╗Ñc -->
+    <div
+        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            <a href="{{ url_for('admin.articles', category='ALL') }}"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap {% if current_cat == 'ALL' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Tß║Ñt cß║ú chuy├¬n mß╗Ñc
+            </a>
+            {% for cat in categories %}
+            <a href="{{ url_for('admin.articles', category=cat.name) }}"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap {% if current_cat == cat.name %}bg-medical-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                <i class="{{ cat.icon }} text-[10px] mr-1"></i> {{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="GET" action="{{ url_for('admin.articles') }}" class="w-full sm:w-72 relative">
+            <input type="text" name="search" placeholder="T├¼m ti├¬u ─æß╗ü, t├│m tß║»t b├ái viß║┐t..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+        </form>
+    </div>
+
+    <!-- Bß║úng danh s├ích b├ái viß║┐t -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+                <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4">B├ái Viß║┐t</th>
+                        <th class="py-3.5 px-4">Chuy├¬n Mß╗Ñc</th>
+                        <th class="py-3.5 px-4">T├íc Giß║ú</th>
+                        <th class="py-3.5 px-4">Ng├áy Xuß║Ñt Bß║ún</th>
+                        <th class="py-3.5 px-4 text-center">L╞░ß╗út Xem</th>
+                        <th class="py-3.5 px-4 text-center">Trß║íng Th├íi</th>
+                        <th class="py-3.5 px-4 text-center">Thao T├íc</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for b in articles %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-3">
+                                {% if b.hinh_anh %}
+                                <img src="{{ b.hinh_anh }}"
+                                    class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200">
+                                {% else %}
+                                <div
+                                    class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
+                                    <i class="fa-regular fa-newspaper"></i>
+                                </div>
+                                {% endif %}
+                                <div class="max-w-md">
+                                    <a href="{{ url_for('admin.article_edit', article_id=b.id) }}"
+                                        class="font-bold text-slate-900 hover:text-medical-600 block line-clamp-1">
+                                        {{ b.tieu_de }}
+                                    </a>
+                                    <span class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{{ b.tom_tat or 'Ch╞░a
+                                        c├│ t├│m tß║»t' }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700">
+                                {{ b.danh_muc }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-semibold text-slate-800">{{ b.tac_gia or 'H2T Care' }}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-500 font-mono">
+                            {{ (b.ngay_dang|string)[:10] if b.ngay_dang else '---' }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-mono font-bold text-slate-700">
+                            {{ b.luot_xem or 0 }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <span
+                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold {% if b.trang_thai == 1 %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                                {{ '─É├ú xuß║Ñt bß║ún' if b.trang_thai == 1 else 'Bß║ún nh├íp' }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <a href="{{ url_for('admin.article_edit', article_id=b.id) }}"
+                                    class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1"
+                                    title="Sß╗¡a b├ái viß║┐t">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> Sß╗¡a
+                                </a>
+                                <button type="button" onclick="deleteArticle({{ b.id }})"
+                                    class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center"
+                                    title="X├│a b├ái viß║┐t">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400">Ch╞░a c├│ b├ái viß║┐t n├áo trong chuy├¬n mß╗Ñc
+                            n├áy.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function deleteArticle(articleId) {
+        if (!confirm('Bß║ín c├│ chß║»c chß║»n muß╗æn x├│a b├ái viß║┐t n├áy kh├┤ng?')) return;
+
+        fetch(`/admin/articles/delete/${articleId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showAppNotification({ title: '─É├ú x├│a b├ái viß║┐t! ≡ƒùæ∩╕Å', message: data.message, type: 'success' });
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    alert('Lß╗ùi: ' + data.message);
+                }
+            });
+    }
+</script>
+{% endblock %}

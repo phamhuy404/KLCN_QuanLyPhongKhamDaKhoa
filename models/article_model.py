@@ -1,5 +1,6 @@
 import unicodedata
 import re
+from datetime import datetime
 from core.database import get_db
 
 def remove_vietnamese_tones(text):
@@ -85,7 +86,6 @@ class ArticleModel:
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
 
-        # Áp dụng tìm kiếm gần đúng nếu có search
         if search and search.strip():
             filtered_rows = []
             for r in rows:
@@ -159,3 +159,128 @@ class ArticleModel:
             'author_title': r.get('tac_gia_chuc_vu') or 'Ban Biên Tập Y Khoa',
             'tags': ['sức khoẻ', 'y tế', 'phòng khám']
         }
+
+    @staticmethod
+    def get_by_id(article_id):
+        """Lấy thông tin chi tiết một bài viết theo ID phục vụ trang sửa bài."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT bv.*, nv.ho_ten AS tac_gia, nv.chuc_vu AS tac_gia_chuc_vu
+            FROM bai_viet bv
+            LEFT JOIN nhan_vien nv ON bv.tac_gia_id = nv.id
+            WHERE bv.id = ?
+        ''', (article_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_all_admin(category=None, search=None, status='ALL'):
+        """Lấy tất cả bài viết cho trang Quản trị Admin (gồm cả nháp và đã đăng)."""
+        conn = get_db()
+        cursor = conn.cursor()
+        sql = '''
+            SELECT bv.*, nv.ho_ten AS tac_gia, nv.chuc_vu AS tac_gia_chuc_vu
+            FROM bai_viet bv
+            LEFT JOIN nhan_vien nv ON bv.tac_gia_id = nv.id
+            WHERE 1=1
+        '''
+        params = []
+        if status != 'ALL':
+            sql += ' AND bv.trang_thai = ?'
+            params.append(int(status))
+        if category and category != 'ALL':
+            sql += ' AND (bv.danh_muc = ? OR bv.danh_muc LIKE ?)'
+            params.extend([category, f'%{category}%'])
+        if search and search.strip():
+            s = f"%{search.strip()}%"
+            sql += ' AND (bv.tieu_de LIKE ? OR bv.tom_tat LIKE ? OR nv.ho_ten LIKE ?)'
+            params.extend([s, s, s])
+
+        sql += ' ORDER BY bv.id DESC'
+        cursor.execute(sql, tuple(params))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+
+    @staticmethod
+    def create(data):
+        """Thêm bài viết mới vào CSDL."""
+        tieu_de = data.get('tieu_de', '').strip()
+        slug = data.get('slug', '').strip()
+        tom_tat = data.get('tom_tat', '').strip()
+        noi_dung = data.get('noi_dung', '').strip()
+        danh_muc = data.get('danh_muc', 'Sức khoẻ tổng quát').strip()
+        hinh_anh = data.get('hinh_anh', '').strip()
+        tac_gia_id = data.get('tac_gia_id') or 1
+        trang_thai = int(data.get('trang_thai', 1))
+
+        if not tieu_de or not noi_dung:
+            return False, 'Tiêu đề và nội dung bài viết không được để trống!'
+
+        if not slug:
+            slug = remove_vietnamese_tones(tieu_de)
+            slug = re.sub(r'[^a-z0-9]+', '-', slug).strip('-')
+            slug = f"{slug}-{int(datetime.now().timestamp())}"
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            ngay_dang = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute('''
+                INSERT INTO bai_viet (tieu_de, slug, tom_tat, noi_dung, danh_muc, hinh_anh, ngay_dang, luot_xem, tac_gia_id, trang_thai)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            ''', (tieu_de, slug, tom_tat, noi_dung, danh_muc, hinh_anh, ngay_dang, tac_gia_id, trang_thai))
+            new_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            return True, new_id
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f'Lỗi lưu bài viết: {str(e)}'
+
+    @staticmethod
+    def update(article_id, data):
+        """Cập nhật bài viết."""
+        tieu_de = data.get('tieu_de', '').strip()
+        tom_tat = data.get('tom_tat', '').strip()
+        noi_dung = data.get('noi_dung', '').strip()
+        danh_muc = data.get('danh_muc', '').strip()
+        hinh_anh = data.get('hinh_anh', '').strip()
+        trang_thai = int(data.get('trang_thai', 1))
+
+        if not tieu_de or not noi_dung:
+            return False, 'Tiêu đề và nội dung không được để trống!'
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                UPDATE bai_viet
+                SET tieu_de = ?, tom_tat = ?, noi_dung = ?, danh_muc = ?, hinh_anh = ?, trang_thai = ?
+                WHERE id = ?
+            ''', (tieu_de, tom_tat, noi_dung, danh_muc, hinh_anh, trang_thai, article_id))
+            conn.commit()
+            conn.close()
+            return True, 'Cập nhật bài viết thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f'Lỗi cập nhật bài viết: {str(e)}'
+
+    @staticmethod
+    def delete(article_id):
+        """Xóa bài viết."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM bai_viet WHERE id = ?', (article_id,))
+            conn.commit()
+            conn.close()
+            return True, 'Đã xóa bài viết thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f'Lỗi xóa bài viết: {str(e)}'

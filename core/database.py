@@ -99,23 +99,23 @@ def get_db():
     elif engine == 'sqlserver':
         import pyodbc
         cfg = config.SQLSERVER_CONFIG
-        if cfg.get('trusted_connection', 'yes').lower() == 'yes':
-            conn_str = (
-                f"DRIVER={cfg['driver']};"
-                f"SERVER={cfg['server']};"
-                f"DATABASE={cfg['database']};"
-                f"Trusted_Connection=yes;"
-            )
-        else:
-            conn_str = (
-                f"DRIVER={cfg['driver']};"
-                f"SERVER={cfg['server']};"
-                f"DATABASE={cfg['database']};"
-                f"UID={cfg['uid']};"
-                f"PWD={cfg['pwd']};"
-            )
-        conn = pyodbc.connect(conn_str)
-        return UnifiedConnection(conn, 'sqlserver')
+        servers_to_try = [cfg.get('server', 'localhost'), 'localhost', r'.\SQLEXPRESS', r'localhost\SQLEXPRESS', '.']
+        seen = set()
+        unique_servers = [s for s in servers_to_try if s and not (s in seen or seen.add(s))]
+
+        last_err = None
+        for srv in unique_servers:
+            if cfg.get('trusted_connection', 'yes').lower() == 'yes':
+                conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};Trusted_Connection=yes;"
+            else:
+                conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};UID={cfg['uid']};PWD={cfg['pwd']};"
+            try:
+                conn = pyodbc.connect(conn_str, timeout=3)
+                return UnifiedConnection(conn, 'sqlserver')
+            except Exception as e:
+                last_err = e
+                continue
+        raise last_err
 
 
     elif engine == 'mysql':
@@ -634,6 +634,8 @@ def ensure_schema_updates(conn, engine):
             cols = [c['name'] for c in cursor.fetchall()]
             if 'ghi_chu_nhom_mau' not in cols:
                 cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau TEXT")
+            if 'avatar' not in cols:
+                cursor.execute("ALTER TABLE benh_nhan ADD COLUMN avatar TEXT")
 
             # 2. chuyen_khoa: trang_thai
             cursor.execute("PRAGMA table_info(chuyen_khoa)")
@@ -710,11 +712,38 @@ def ensure_schema_updates(conn, engine):
                     thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
+
+            # 9. banner
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS banner (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tieu_de TEXT NOT NULL,
+                    phu_de TEXT,
+                    mo_ta TEXT,
+                    hinh_anh TEXT NOT NULL,
+                    link_lien_ket TEXT DEFAULT '/booking',
+                    text_nut TEXT DEFAULT 'Đăng ký khám ngay',
+                    thu_tu INTEGER DEFAULT 0,
+                    trang_thai INTEGER DEFAULT 1,
+                    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute("SELECT COUNT(*) AS cnt FROM banner")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.executemany('''
+                    INSERT INTO banner (tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', [
+                    ('Chăm sóc bằng tài năng, y đức và sự thấu cảm', 'Tiêu chuẩn chất lượng quốc tế', 'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', 'ĐĂNG KÝ KHÁM NGAY', 1, 1),
+                    ('Đội ngũ chuyên gia & Bác sĩ đầu ngành', 'Chuyên môn vững vàng', 'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', 'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
+                    ('Hệ thống Bệnh án điện tử EMR 360°', 'Công nghệ y tế số 4.0', 'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', 'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1)
+                ])
             conn.commit()
 
         elif engine == 'sqlserver':
             stmts = [
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'ghi_chu_nhom_mau') ALTER TABLE benh_nhan ADD ghi_chu_nhom_mau NVARCHAR(255) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'avatar') ALTER TABLE benh_nhan ADD avatar NVARCHAR(500) NULL;",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chuyen_khoa') AND name = 'trang_thai') ALTER TABLE chuyen_khoa ADD trang_thai BIT DEFAULT 1;",
                 "UPDATE chuyen_khoa SET trang_thai = 1 WHERE trang_thai IS NULL;",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dich_vu') AND name = 'trang_thai') ALTER TABLE dich_vu ADD trang_thai BIT DEFAULT 1;",
@@ -760,6 +789,36 @@ def ensure_schema_updates(conn, engine):
                         thoi_gian DATETIME DEFAULT GETDATE()
                     );
                 END
+                """,
+                "IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'audit_log') CREATE TABLE audit_log (id INT IDENTITY(1,1) PRIMARY KEY, table_name NVARCHAR(50) NOT NULL, row_id INT NOT NULL, action NVARCHAR(50) NOT NULL, performed_by INT NULL, performed_by_name NVARCHAR(100) NULL, performed_at DATETIME DEFAULT GETDATE(), reason NVARCHAR(MAX) NULL, before_json NVARCHAR(MAX) NULL, after_json NVARCHAR(MAX) NULL);",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chi_tiet_chi_dinh') AND name = 'bac_si_duyet') ALTER TABLE chi_tiet_chi_dinh ADD bac_si_duyet NVARCHAR(100) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chi_tiet_chi_dinh') AND name = 'thoi_gian_duyet') ALTER TABLE chi_tiet_chi_dinh ADD thoi_gian_duyet DATETIME NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chi_tiet_chi_dinh') AND name = 'ghi_chu_duyet') ALTER TABLE chi_tiet_chi_dinh ADD ghi_chu_duyet NVARCHAR(MAX) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('chi_tiet_chi_dinh') AND name = 'nguoi_nhap') ALTER TABLE chi_tiet_chi_dinh ADD nguoi_nhap NVARCHAR(100) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'ly_do_huy') ALTER TABLE don_thuoc ADD ly_do_huy NVARCHAR(MAX) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'nguoi_huy') ALTER TABLE don_thuoc ADD nguoi_huy NVARCHAR(100) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'thoi_gian_huy') ALTER TABLE don_thuoc ADD thoi_gian_huy DATETIME NULL;",
+                """
+                IF OBJECT_ID('banner', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE banner (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        tieu_de NVARCHAR(255) NOT NULL,
+                        phu_de NVARCHAR(255) NULL,
+                        mo_ta NVARCHAR(MAX) NULL,
+                        hinh_anh NVARCHAR(500) NOT NULL,
+                        link_lien_ket NVARCHAR(255) DEFAULT '/booking',
+                        text_nut NVARCHAR(50) DEFAULT N'Đăng ký khám ngay',
+                        thu_tu INT DEFAULT 0,
+                        trang_thai BIT DEFAULT 1,
+                        ngay_tao DATETIME DEFAULT GETDATE()
+                    );
+                    INSERT INTO banner (tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai)
+                    VALUES 
+                    (N'Chăm sóc bằng tài năng, y đức và sự thấu cảm', N'Tiêu chuẩn chất lượng quốc tế', N'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', N'ĐĂNG KÝ KHÁM NGAY', 1, 1),
+                    (N'Đội ngũ chuyên gia & Bác sĩ đầu ngành', N'Chuyên môn vững vàng', N'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', N'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
+                    (N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', N'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
+                END
                 """
             ]
             for s in stmts:
@@ -767,10 +826,14 @@ def ensure_schema_updates(conn, engine):
             conn.commit()
 
         elif engine == 'mysql':
-            # 1. benh_nhan: ghi_chu_nhom_mau
+            # 1. benh_nhan: ghi_chu_nhom_mau, avatar
             cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'benh_nhan' AND column_name = 'ghi_chu_nhom_mau'")
             if cursor.fetchone()['cnt'] == 0:
                 cursor.execute("ALTER TABLE benh_nhan ADD COLUMN ghi_chu_nhom_mau VARCHAR(255) NULL")
+
+            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'benh_nhan' AND column_name = 'avatar'")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.execute("ALTER TABLE benh_nhan ADD COLUMN avatar VARCHAR(500) NULL")
 
             # 2. chuyen_khoa: trang_thai
             cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'chuyen_khoa' AND column_name = 'trang_thai'")
@@ -842,7 +905,110 @@ def ensure_schema_updates(conn, engine):
                     thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
+
+            # 9. banner
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS banner (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    tieu_de VARCHAR(255) NOT NULL,
+                    phu_de VARCHAR(255) NULL,
+                    mo_ta TEXT NULL,
+                    hinh_anh VARCHAR(500) NOT NULL,
+                    link_lien_ket VARCHAR(255) DEFAULT '/booking',
+                    text_nut VARCHAR(50) DEFAULT 'Đăng ký khám ngay',
+                    thu_tu INT DEFAULT 0,
+                    trang_thai TINYINT(1) DEFAULT 1,
+                    ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ''')
+            cursor.execute("SELECT COUNT(*) as cnt FROM banner")
+            if cursor.fetchone()['cnt'] == 0:
+                cursor.executemany('''
+                    INSERT INTO banner (tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', [
+                    ('Chăm sóc bằng tài năng, y đức và sự thấu cảm', 'Tiêu chuẩn chất lượng quốc tế', 'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', 'ĐĂNG KÝ KHÁM NGAY', 1, 1),
+                    ('Đội ngũ chuyên gia & Bác sĩ đầu ngành', 'Chuyên môn vững vàng', 'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', 'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
+                    ('Hệ thống Bệnh án điện tử EMR 360°', 'Công nghệ y tế số 4.0', 'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', 'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1)
+                ])
             conn.commit()
+
+        # Tự động nạp các tài khoản Lễ tân & Nhân sự mẫu nếu chưa tồn tại
+        try:
+            cursor.execute("SELECT id FROM tai_khoan WHERE username = 'letan_lan'")
+            if not cursor.fetchone():
+                from models.user_model import UserModel
+                seed_staff = [
+                    {
+                        'ho_ten': 'Nguyễn Thị Lan',
+                        'username': 'letan_lan',
+                        'password': 'Password@123',
+                        'sdt': '0908111222',
+                        'email': 'lan.letan@h2tcare.vn',
+                        'cccd': '079195000101',
+                        'chuc_vu': 'Lễ tân trưởng - Quầy tiếp đón Tầng 1',
+                        'vai_tro_id': 2,
+                        'gioi_tinh': 0,
+                        'ngay_sinh': '1995-04-12',
+                        'dia_chi': 'Quận Tân Phú, TP.HCM'
+                    },
+                    {
+                        'ho_ten': 'Trần Thu Huyền',
+                        'username': 'letan_huyen',
+                        'password': 'Password@123',
+                        'sdt': '0908222333',
+                        'email': 'huyen.letan@h2tcare.vn',
+                        'cccd': '079197000102',
+                        'chuc_vu': 'Tiếp đón & Điều phối lịch hẹn - Quầy A',
+                        'vai_tro_id': 2,
+                        'gioi_tinh': 0,
+                        'ngay_sinh': '1997-08-20',
+                        'dia_chi': 'Quận Bình Tân, TP.HCM'
+                    },
+                    {
+                        'ho_ten': 'Lê Phương Thảo',
+                        'username': 'letan_thao',
+                        'password': 'Password@123',
+                        'sdt': '0908333444',
+                        'email': 'thao.letan@h2tcare.vn',
+                        'cccd': '079196000103',
+                        'chuc_vu': 'Thu ngân viện phí & Tiếp nhận BHYT',
+                        'vai_tro_id': 2,
+                        'gioi_tinh': 0,
+                        'ngay_sinh': '1996-11-05',
+                        'dia_chi': 'Quận 10, TP.HCM'
+                    },
+                    {
+                        'ho_ten': 'Dược sĩ Phạm Hoàng Minh',
+                        'username': 'duocsi_minh',
+                        'password': 'Password@123',
+                        'sdt': '0908555666',
+                        'email': 'minh.duocsi@h2tcare.vn',
+                        'cccd': '079192000104',
+                        'chuc_vu': 'Dược sĩ chuyên trách cấp phát thuốc',
+                        'vai_tro_id': 4,
+                        'gioi_tinh': 1,
+                        'ngay_sinh': '1992-03-15',
+                        'dia_chi': 'Quận 5, TP.HCM'
+                    },
+                    {
+                        'ho_ten': 'KTV. Võ Anh Đức',
+                        'username': 'ktv_duc',
+                        'password': 'Password@123',
+                        'sdt': '0908777888',
+                        'email': 'duc.ktv@h2tcare.vn',
+                        'cccd': '079193000105',
+                        'chuc_vu': 'Kỹ thuật viên xét nghiệm & Chẩn đoán hình ảnh',
+                        'vai_tro_id': 5,
+                        'gioi_tinh': 1,
+                        'ngay_sinh': '1993-07-22',
+                        'dia_chi': 'Quận Tân Bình, TP.HCM'
+                    }
+                ]
+                for s in seed_staff:
+                    UserModel.create_staff(s)
+        except Exception:
+            pass
 
     except Exception as e:
         print("[Database] Luu y cap nhat schema tu dong:", e)

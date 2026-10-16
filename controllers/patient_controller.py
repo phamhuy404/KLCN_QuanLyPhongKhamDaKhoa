@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from core.security import login_required
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
@@ -89,6 +89,38 @@ def profile():
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
     return render_template('patient/profile.html', active_page='profile', patient=patient)
+
+@patient_bp.route('/profile/avatar', methods=['POST'])
+@login_required
+def profile_avatar():
+    """Cập nhật ảnh đại diện bệnh nhân hỗ trợ tải tệp đa định dạng hoặc dán link URL."""
+    from core.image_service import process_image_input
+    patient_id = _get_current_patient_id()
+    if not patient_id:
+        flash('Không tìm thấy thông tin bệnh nhân.', 'error')
+        return redirect(url_for('patient.profile'))
+
+    image_file = request.files.get('avatar_file')
+    avatar_url = (request.form.get('avatar_url') or '').strip()
+
+    source = image_file if (image_file and getattr(image_file, 'filename', None)) else avatar_url
+    if not source:
+        flash('Vui lòng chọn tệp ảnh hoặc nhập đường dẫn ảnh hợp lệ.', 'warning')
+        return redirect(url_for('patient.profile'))
+
+    final_path, err = process_image_input(source, category='benh_nhan', quality=85)
+    if err:
+        flash(err, 'error')
+        return redirect(url_for('patient.profile'))
+
+    if final_path:
+        PatientModel.update_patient_avatar(patient_id, final_path)
+        flash('Cập nhật ảnh đại diện thành công!', 'success')
+    else:
+        flash('Không thể xử lý hình ảnh đã cung cấp.', 'error')
+
+    return redirect(url_for('patient.profile'))
+
 
 @patient_bp.route('/feedbacks', methods=['GET', 'POST'])
 @login_required
