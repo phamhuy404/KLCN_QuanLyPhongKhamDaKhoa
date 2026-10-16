@@ -185,14 +185,16 @@ TEST CHỨC NĂNG 3: GỬI THÔNG BÁO NHẮC LỊCH KHÁM VÀ TÁI KHÁM
 --------------------------------------------------------------------------------
 - Bước 1: Đăng nhập Admin, vào http://127.0.0.1:5000/admin/appointments
   Tạo 1 lịch hẹn khám cho ngày mai cho bệnh nhân Hoàng Bảo Nam (0901234567).
-- Bước 2: Mở Console trình duyệt của Admin (F12) hoặc gọi POST qua Postman đến endpoint:
-  http://127.0.0.1:5000/api/notifications/trigger-reminders
-  * Kết quả: Trả về JSON thông báo appointments_reminded = 1, in_app_sent = 1.
+- Bước 2: Đăng nhập Admin và gọi POST qua Postman đến endpoint:
+  http://127.0.0.1:5000/api/notifications/run-reminders
+  * Kết quả: JSON trả về success = true; số lượt gửi nằm trong stats.appointments_reminded
+    và stats.in_app_sent. Hệ thống chỉ gửi cho lịch hẹn/lịch tái khám hôm nay hoặc ngày mai
+    chưa được nhắc trước đó; nếu không có lịch phù hợp, các số đếm có thể bằng 0.
 - Bước 3: Đăng nhập tài khoản bệnh nhân 0901234567, truy cập:
   http://127.0.0.1:5000/patient/notifications
   * Kết quả: Hiển thị thông báo nhắc lịch khám: "Nhắc lịch khám bệnh: LH2609xxx..."
     kèm thời gian, chuyên khoa và địa điểm phòng khám.
-- Bước 4 (Kiểm tra chống gửi trùng): Gọi lại endpoint POST /api/notifications/trigger-reminders.
+- Bước 4 (Kiểm tra chống gửi trùng): Gọi lại endpoint POST /api/notifications/run-reminders.
   * Kết quả: appointments_reminded = 0 (Hệ thống tự nhận diện đã gửi trong bảng
     lich_su_nhac_nho và không gửi lặp lại).
 
