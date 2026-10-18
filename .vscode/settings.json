@@ -3,5 +3,6 @@
     "files.associations": {
         "*.html": "jinja-html"
     },
-    "html.format.templating": true
+    "html.format.templating": true,
+    "markdown.validate.enabled": true
 }
