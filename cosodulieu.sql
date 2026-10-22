@@ -1,7 +1,7 @@
--- CƠ SỞ DỮ LIỆU HỆ THỐNG QUẢN LÝ PHÒNG KHÁM ĐA KHOA (H2T HEALTHCARE HIS / EMR)
--- PHIÊN BẢN CHUẨN: MICROSOFT SQL SERVER 2016 / 2019 / 2022 (T-SQL)
+-- CO SO DU LIEU HE THONG QUAN LY PHONG KHAM DA KHOA (H2T HEALTHCARE HIS / EMR)
+-- PHIEN BAN CHUAN: MICROSOFT SQL SERVER 2016 / 2019 / 2022 (T-SQL)
 
--- 1. TẠO VÀ CHỌN CƠ SỞ DỮ LIỆU
+-- 1. TAO VA CHON CO SO DU LIEU
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'quan_ly_phong_kham')
 BEGIN
     CREATE DATABASE quan_ly_phong_kham;
@@ -15,7 +15,7 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
--- 2. XÓA KHÓA NGOẠI VÀ BẢNG CŨ NẾU ĐÃ TỒN TẠI
+-- 2. XOA KHOA NGOAI VA BANG CU NEU DA TON TAI
 DECLARE @sql NVARCHAR(MAX) = N'';
 SELECT @sql += N'ALTER TABLE ' + QUOTENAME(s.name) + N'.' + QUOTENAME(t.name) + 
                N' DROP CONSTRAINT ' + QUOTENAME(f.name) + N';'
@@ -37,8 +37,11 @@ IF OBJECT_ID('lich_hen', 'U') IS NOT NULL DROP TABLE lich_hen;
 IF OBJECT_ID('lich_lam_viec', 'U') IS NOT NULL DROP TABLE lich_lam_viec;
 IF OBJECT_ID('phan_hoi', 'U') IS NOT NULL DROP TABLE phan_hoi;
 IF OBJECT_ID('hom_thu_gop_y', 'U') IS NOT NULL DROP TABLE hom_thu_gop_y;
-IF OBJECT_ID('banner', 'U') IS NOT NULL DROP TABLE banner;
 IF OBJECT_ID('thong_bao', 'U') IS NOT NULL DROP TABLE thong_bao;
+IF OBJECT_ID('lich_su_nhac_nho', 'U') IS NOT NULL DROP TABLE lich_su_nhac_nho;
+IF OBJECT_ID('lich_su_sao_luu', 'U') IS NOT NULL DROP TABLE lich_su_sao_luu;
+IF OBJECT_ID('banner', 'U') IS NOT NULL DROP TABLE banner;
+IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
 IF OBJECT_ID('bai_viet', 'U') IS NOT NULL DROP TABLE bai_viet;
 IF OBJECT_ID('benh_nhan', 'U') IS NOT NULL DROP TABLE benh_nhan;
 IF OBJECT_ID('bac_si', 'U') IS NOT NULL DROP TABLE bac_si;
@@ -51,7 +54,7 @@ IF OBJECT_ID('chuyen_khoa', 'U') IS NOT NULL DROP TABLE chuyen_khoa;
 IF OBJECT_ID('vai_tro', 'U') IS NOT NULL DROP TABLE vai_tro;
 GO
 
--- 3. TẠO CÁC BẢNG DỮ LIỆU
+-- 3. TAO CAC BANG DU LIEU
 CREATE TABLE vai_tro (
     id INT IDENTITY(1,1) PRIMARY KEY,
     ma_vai_tro NVARCHAR(30) NOT NULL UNIQUE,
@@ -165,6 +168,8 @@ CREATE TABLE benh_nhan (
     bhyt NVARCHAR(30),
     dia_chi NVARCHAR(255),
     nhom_mau NVARCHAR(10) DEFAULT N'Chưa rõ',
+    ghi_chu_nhom_mau NVARCHAR(255) NULL,
+    avatar NVARCHAR(500) NULL,
     di_ung NVARCHAR(MAX),
     tien_su_benh NVARCHAR(MAX),
     tien_su_gia_dinh NVARCHAR(MAX),
@@ -194,15 +199,23 @@ CREATE TABLE chi_so_sinh_ton (
 
 CREATE TABLE lich_lam_viec (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    bac_si_id INT NOT NULL,
-    phong_kham_id INT NOT NULL,
+    nhan_vien_id INT NULL,
+    bac_si_id INT NULL,
+    phong_kham_id INT NULL,
     ngay_lam DATE NOT NULL,
     ca_lam TINYINT NOT NULL,
     gio_bat_dau TIME DEFAULT '07:00:00',
     gio_ket_thuc TIME DEFAULT '11:30:00',
     so_luong_kham_toi_da INT DEFAULT 20,
     so_luong_da_dang_ky INT DEFAULT 0,
-    FOREIGN KEY (bac_si_id) REFERENCES bac_si(id) ON DELETE CASCADE,
+    trang_thai BIT DEFAULT 1,
+    trang_thai_duyet NVARCHAR(50) DEFAULT 'DA_DUYET',
+    ly_do_huy NVARCHAR(MAX) NULL,
+    nguoi_duyet_id INT NULL,
+    ngay_duyet DATETIME NULL,
+    ghi_chu NVARCHAR(MAX) NULL,
+    FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+    FOREIGN KEY (bac_si_id) REFERENCES bac_si(id),
     FOREIGN KEY (phong_kham_id) REFERENCES phong_kham(id)
 );
 
@@ -374,16 +387,13 @@ CREATE TABLE lich_su_nhac_nho (
     id INT IDENTITY(1,1) PRIMARY KEY,
     lich_hen_id INT NULL,
     phieu_kham_id INT NULL,
-    benh_nhan_id INT NOT NULL,
+    benh_nhan_id INT NULL,
     loai_nhac NVARCHAR(50) NOT NULL,
     ngay_nhac DATE NULL,
     kenh_gui NVARCHAR(20) DEFAULT 'IN_APP',
     trang_thai NVARCHAR(50) DEFAULT 'THANH_CONG',
     loi_gui NVARCHAR(MAX) NULL,
-    thoi_gian_gui DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id),
-    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
-    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
+    thoi_gian_gui DATETIME DEFAULT GETDATE()
 );
 
 CREATE TABLE lich_su_sao_luu (
@@ -413,7 +423,19 @@ CREATE TABLE bai_viet (
     trang_thai BIT DEFAULT 1,
     FOREIGN KEY (tac_gia_id) REFERENCES nhan_vien(id)
 );
-GO
+
+CREATE TABLE banner (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    tieu_de NVARCHAR(255) NOT NULL,
+    phu_de NVARCHAR(255) NULL,
+    mo_ta NVARCHAR(MAX) NULL,
+    hinh_anh NVARCHAR(500) NOT NULL,
+    link_lien_ket NVARCHAR(255) DEFAULT '/booking',
+    text_nut NVARCHAR(50) DEFAULT N'Đăng ký khám ngay',
+    thu_tu INT DEFAULT 0,
+    trang_thai BIT DEFAULT 1,
+    ngay_tao DATETIME DEFAULT GETDATE()
+);
 
 CREATE TABLE audit_log (
     id INT IDENTITY(1,1) PRIMARY KEY,
@@ -429,21 +451,7 @@ CREATE TABLE audit_log (
 );
 GO
 
-CREATE TABLE banner (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    tieu_de NVARCHAR(255) NOT NULL,
-    phu_de NVARCHAR(255) NULL,
-    mo_ta NVARCHAR(MAX) NULL,
-    hinh_anh NVARCHAR(500) NOT NULL,
-    link_lien_ket NVARCHAR(255) DEFAULT '/booking',
-    text_nut NVARCHAR(50) DEFAULT N'Đăng ký khám ngay',
-    thu_tu INT DEFAULT 0,
-    trang_thai BIT DEFAULT 1,
-    ngay_tao DATETIME DEFAULT GETDATE()
-);
-GO
-
--- 4. TẠO CÁC CHỈ MỤC (INDEXES)
+-- 4. TAO CAC CHI MUC (INDEXES)
 CREATE INDEX idx_benhnhan_sdt ON benh_nhan(sdt);
 CREATE INDEX idx_benhnhan_cccd ON benh_nhan(cccd);
 CREATE INDEX idx_benhnhan_ma ON benh_nhan(ma_benh_nhan);
@@ -451,9 +459,10 @@ CREATE INDEX idx_lichhen_ngay ON lich_hen(ngay_hen);
 CREATE INDEX idx_lichhen_trangthai ON lich_hen(trang_thai);
 CREATE INDEX idx_phieukham_ngay ON phieu_kham(thoi_gian_kham);
 CREATE INDEX idx_hoadon_ngay ON hoa_don(thoi_gian_thanh_toan);
+CREATE INDEX idx_lichlamviec_ngay ON lich_lam_viec(ngay_lam);
 GO
 
--- 5. NẠP DỮ LIỆU BAN ĐẦU (CHỈ 1 ADMIN VÀ 1 BỆNH NHÂN)
+-- 5. NAP DU LIEU BAN DAU
 SET IDENTITY_INSERT vai_tro ON;
 INSERT INTO vai_tro (id, ma_vai_tro, ten_vai_tro, mo_ta) VALUES
 (1, 'ADMIN', N'Quản trị viên', N'Toàn quyền cấu hình và quản trị hệ thống phòng khám'),
@@ -466,15 +475,15 @@ SET IDENTITY_INSERT vai_tro OFF;
 GO
 
 SET IDENTITY_INSERT chuyen_khoa ON;
-INSERT INTO chuyen_khoa (id, ma_khoa, ten_khoa, mo_ta, icon, gia_kham_mac_dinh) VALUES
-(1, 'KHOA_NOI', N'Khoa Nội Tổng Quát', N'Khám, chẩn đoán và điều trị bệnh lý tim mạch, tiêu hóa, hô hấp, cơ xương khớp', 'fa-stethoscope', 150000.00),
-(2, 'KHOA_NGOAI', N'Khoa Ngoại Tổng Quát', N'Khám và điều trị ngoại khoa, tiểu phẫu, xử lý vết thương', 'fa-syringe', 150000.00),
-(3, 'KHOA_NHI', N'Khoa Nhi', N'Chăm sóc và điều trị chuyên sâu bệnh lý trẻ em, tư vấn dinh dưỡng', 'fa-baby', 120000.00),
-(4, 'KHOA_RHM', N'Khoa Răng Hàm Mặt', N'Nha khoa tổng quát, nhổ răng khôn, niềng răng, cạo vôi răng', 'fa-tooth', 150000.00),
-(5, 'KHOA_SAN', N'Khoa Sản - Phụ Khoa', N'Quản lý thai kỳ, siêu âm 4D, tầm soát và điều trị phụ khoa', 'fa-person-pregnant', 180000.00),
-(6, 'KHOA_TMH', N'Khoa Tai Mũi Họng', N'Nội soi tai mũi họng, điều trị viêm xoang, viêm họng hạt, viêm amidan', 'fa-head-side-cough', 150000.00),
-(7, 'KHOA_MAT', N'Khoa Mắt', N'Đo tật khúc xạ, khám và điều trị bệnh lý đáy mắt, giác mạc', 'fa-eye', 150000.00),
-(8, 'KHOA_CLS', N'Khoa Cận Lâm Sàng', N'Trung tâm xét nghiệm hóa sinh, huyết học và chẩn đoán hình ảnh', 'fa-vial', 100000.00);
+INSERT INTO chuyen_khoa (id, ma_khoa, ten_khoa, mo_ta, icon, gia_kham_mac_dinh, trang_thai) VALUES
+(1, 'KHOA_NOI', N'Khoa Nội Tổng Quát', N'Khám, chẩn đoán và điều trị bệnh lý tim mạch, tiêu hóa, hô hấp, cơ xương khớp', 'fa-stethoscope', 150000.00, 1),
+(2, 'KHOA_NGOAI', N'Khoa Ngoại Tổng Quát', N'Khám và điều trị ngoại khoa, tiểu phẫu, xử lý vết thương', 'fa-syringe', 150000.00, 1),
+(3, 'KHOA_NHI', N'Khoa Nhi', N'Chăm sóc và điều trị chuyên sâu bệnh lý trẻ em, tư vấn dinh dưỡng', 'fa-baby', 120000.00, 1),
+(4, 'KHOA_RHM', N'Khoa Răng Hàm Mặt', N'Nha khoa tổng quát, nhổ răng khôn, niềng răng, cạo vôi răng', 'fa-tooth', 150000.00, 1),
+(5, 'KHOA_SAN', N'Khoa Sản - Phụ Khoa', N'Quản lý thai kỳ, siêu âm 4D, tầm soát và điều trị phụ khoa', 'fa-person-pregnant', 180000.00, 1),
+(6, 'KHOA_TMH', N'Khoa Tai Mũi Họng', N'Nội soi tai mũi họng, điều trị viêm xoang, viêm họng hạt, viêm amidan', 'fa-head-side-cough', 150000.00, 1),
+(7, 'KHOA_MAT', N'Khoa Mắt', N'Đo tật khúc xạ, khám và điều trị bệnh lý đáy mắt, giác mạc', 'fa-eye', 150000.00, 1),
+(8, 'KHOA_CLS', N'Khoa Cận Lâm Sàng', N'Trung tâm xét nghiệm hóa sinh, huyết học và chẩn đoán hình ảnh', 'fa-vial', 100000.00, 1);
 SET IDENTITY_INSERT chuyen_khoa OFF;
 GO
 
@@ -492,62 +501,62 @@ SET IDENTITY_INSERT phong_kham OFF;
 GO
 
 SET IDENTITY_INSERT dich_vu ON;
-INSERT INTO dich_vu (id, chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta) VALUES
-(1, 1, 'DV_KHAM_NOI', N'Khám Nội Tổng Quát', N'Khám bệnh', 150000.00, 80, N'Khám và tư vấn toàn diện các bệnh lý nội khoa'),
-(2, 3, 'DV_KHAM_NHI', N'Khám Nhi Khoa', N'Khám bệnh', 120000.00, 80, N'Khám và tư vấn sức khỏe trẻ em'),
-(3, 2, 'DV_KHAM_NGOAI', N'Khám Ngoại Khoa', N'Khám bệnh', 150000.00, 80, N'Khám và tư vấn tiểu phẫu ngoại khoa'),
-(4, 4, 'DV_NHO_RANG', N'Tiểu phẫu Nhổ răng khôn', N'Thủ thuật', 1000000.00, 0, N'Nhổ răng khôn mọc lệch, không đau'),
-(5, 4, 'DV_CAO_VOI', N'Cạo vôi răng & Đánh bóng', N'Thủ thuật', 200000.00, 0, N'Làm sạch mảng bám cao răng bằng sóng siêu âm'),
-(6, 8, 'DV_SIEU_AM', N'Siêu âm Doppler màu ổ bụng tổng quát', N'Chẩn đoán hình ảnh', 250000.00, 50, N'Khảo sát gan, mật, tụy, lách, thận, bàng quang'),
-(7, 8, 'DV_XN_MAU', N'Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)', N'Xét nghiệm', 150000.00, 80, N'Kiểm tra hồng cầu, bạch cầu, tiểu cầu, thiếu máu'),
-(8, 8, 'DV_XN_NT', N'Tổng phân tích nước tiểu 10 thông số', N'Xét nghiệm', 100000.00, 80, N'Kiểm tra đường, đạm, tế bào vi thể nước tiểu'),
-(9, 8, 'DV_XQUANG', N'Chụp X-Quang Tim Phổi thẳng kỹ thuật số', N'Chẩn đoán hình ảnh', 200000.00, 70, N'Kiểm tra tổn thương nhu mô phổi, bóng tim'),
-(10, 8, 'DV_ECG', N'Đo điện tim đồ 12 chuyển đạo (ECG)', N'Thăm dò chức năng', 150000.00, 70, N'Khảo sát nhịp xoang, rối loạn dẫn truyền tim');
+INSERT INTO dich_vu (id, chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta, trang_thai) VALUES
+(1, 1, 'DV_KHAM_NOI', N'Khám Nội Tổng Quát', N'Khám bệnh', 150000.00, 80, N'Khám và tư vấn toàn diện các bệnh lý nội khoa', 1),
+(2, 3, 'DV_KHAM_NHI', N'Khám Nhi Khoa', N'Khám bệnh', 120000.00, 80, N'Khám và tư vấn sức khỏe trẻ em', 1),
+(3, 2, 'DV_KHAM_NGOAI', N'Khám Ngoại Khoa', N'Khám bệnh', 150000.00, 80, N'Khám và tư vấn tiểu phẫu ngoại khoa', 1),
+(4, 4, 'DV_NHO_RANG', N'Tiểu phẫu Nhổ răng khôn', N'Thủ thuật', 1000000.00, 0, N'Nhổ răng khôn mọc lệch, không đau', 1),
+(5, 4, 'DV_CAO_VOI', N'Cạo vôi răng & Đánh bóng', N'Thủ thuật', 200000.00, 0, N'Làm sạch mảng bám cao răng bằng sóng siêu âm', 1),
+(6, 8, 'DV_SIEU_AM', N'Siêu âm Doppler màu ổ bụng tổng quát', N'Chẩn đoán hình ảnh', 250000.00, 50, N'Khảo sát gan, mật, tụy, lách, thận, bàng quang', 1),
+(7, 8, 'DV_XN_MAU', N'Tổng phân tích tế bào máu ngoại vi (CBC 18 chỉ số)', N'Xét nghiệm', 150000.00, 80, N'Kiểm tra hồng cầu, bạch cầu, tiểu cầu, thiếu máu', 1),
+(8, 8, 'DV_XN_NT', N'Tổng phân tích nước tiểu 10 thông số', N'Xét nghiệm', 100000.00, 80, N'Kiểm tra đường, đạm, tế bào vi thể nước tiểu', 1),
+(9, 8, 'DV_XQUANG', N'Chụp X-Quang Tim Phổi thẳng kỹ thuật số', N'Chẩn đoán hình ảnh', 200000.00, 70, N'Kiểm tra tổn thương nhu mô phổi, bóng tim', 1),
+(10, 8, 'DV_ECG', N'Đo điện tim đồ 12 chuyển đạo (ECG)', N'Thăm dò chức năng', 150000.00, 70, N'Khảo sát nhịp xoang, rối loạn dẫn truyền tim', 1);
 SET IDENTITY_INSERT dich_vu OFF;
 GO
 
 SET IDENTITY_INSERT thuoc ON;
-INSERT INTO thuoc (id, ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung) VALUES
-(1, 'TH001', N'Paracetamol 500mg', 'Paracetamol', '500mg', N'Viên', 2000.00, 5000, N'Dược Hậu Giang', N'Việt Nam', N'Uống 1-2 viên khi sốt trên 38.5°C hoặc đau nhức'),
-(2, 'TH002', N'Amoxicillin 500mg', 'Amoxicillin trihydrat', '500mg', N'Viên', 3000.00, 2000, 'Imexpharm', N'Việt Nam', N'Kháng sinh: Uống 1 viên sau ăn, ngày 2 lần'),
-(3, 'TH003', N'Oresol 245', 'Glucose, Natri clorid, Kali clorid', '245 mOsm/L', N'Gói', 5000.00, 1000, 'Traphaco', N'Việt Nam', N'Pha đúng 1 gói với 200ml nước sôi để nguội'),
-(4, 'TH004', N'Loratadin 10mg', 'Loratadin', '10mg', N'Viên', 4000.00, 1500, 'Pymepharco', N'Việt Nam', N'Thuốc kháng histamin: Uống 1 viên vào buổi tối'),
-(5, 'TH005', N'Esomeprazole 40mg', 'Esomeprazole magnesium', '40mg', N'Viên', 12000.00, 3000, 'AstraZeneca', N'Thụy Điển', N'Giảm tiết acid dạ dày: Uống 1 viên trước bữa ăn sáng 30 phút'),
-(6, 'TH006', N'Phosphalugel 20g', 'Aluminium phosphate', '20g', N'Gói', 5000.00, 2500, 'Boehringer Ingelheim', N'Pháp', N'Uống 1 gói khi có cơn đau thượng vị'),
-(7, 'TH007', N'Men vi sinh Enterogermina', 'Bacillus clausii', '2 tỷ bào tử/5ml', N'Ống', 9000.00, 1200, 'Sanofi', N'Ý', N'Uống trực tiếp 1-2 ống/ngày sau bữa ăn'),
-(8, 'TH008', N'Ibuprofen 400mg', 'Ibuprofen', '400mg', N'Viên', 3500.00, 2500, 'Stada', N'Việt Nam', N'Kháng viêm giảm đau cơ xương khớp, uống sau ăn no'),
-(9, 'TH009', N'Siro ho thảo dược Prospan', 'Cao khô lá thường xuân', '100ml', N'Chai', 75000.00, 300, 'Engelhard', N'Đức', N'Uống 5ml/lần, ngày 3 lần sau ăn'),
-(10, 'TH010', N'Nước muối sinh lý NaCl 0.9%', 'Natri Clorid 0.9%', '500ml', N'Chai', 10000.00, 800, 'Pharmedic', N'Việt Nam', N'Dùng súc miệng họng hoặc rửa vết thương');
+INSERT INTO thuoc (id, ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung, trang_thai) VALUES
+(1, 'TH001', N'Paracetamol 500mg', 'Paracetamol', '500mg', N'Viên', 2000.00, 5000, N'Dược Hậu Giang', N'Việt Nam', N'Uống 1-2 viên khi sốt trên 38.5°C hoặc đau nhức', 1),
+(2, 'TH002', N'Amoxicillin 500mg', 'Amoxicillin trihydrat', '500mg', N'Viên', 3000.00, 2000, 'Imexpharm', N'Việt Nam', N'Kháng sinh: Uống 1 viên sau ăn, ngày 2 lần', 1),
+(3, 'TH003', N'Oresol 245', 'Glucose, Natri clorid, Kali clorid', '245 mOsm/L', N'Gói', 5000.00, 1000, 'Traphaco', N'Việt Nam', N'Pha đúng 1 gói với 200ml nước sôi để nguội', 1),
+(4, 'TH004', N'Loratadin 10mg', 'Loratadin', '10mg', N'Viên', 4000.00, 1500, 'Pymepharco', N'Việt Nam', N'Thuốc kháng histamin: Uống 1 viên vào buổi tối', 1),
+(5, 'TH005', N'Esomeprazole 40mg', 'Esomeprazole magnesium', '40mg', N'Viên', 12000.00, 3000, 'AstraZeneca', N'Thụy Điển', N'Giảm tiết acid dạ dày: Uống 1 viên trước bữa ăn sáng 30 phút', 1),
+(6, 'TH006', N'Phosphalugel 20g', 'Aluminium phosphate', '20g', N'Gói', 5000.00, 2500, 'Boehringer Ingelheim', N'Pháp', N'Uống 1 gói khi có cơn đau thượng vị', 1),
+(7, 'TH007', N'Men vi sinh Enterogermina', 'Bacillus clausii', '2 tỷ bào tử/5ml', N'Ống', 9000.00, 1200, 'Sanofi', N'Ý', N'Uống trực tiếp 1-2 ống/ngày sau bữa ăn', 1),
+(8, 'TH008', N'Ibuprofen 400mg', 'Ibuprofen', '400mg', N'Viên', 3500.00, 2500, 'Stada', N'Việt Nam', N'Kháng viêm giảm đau cơ xương khớp, uống sau ăn no', 1),
+(9, 'TH009', N'Siro ho thảo dược Prospan', 'Cao khô lá thường xuân', '100ml', N'Chai', 75000.00, 300, 'Engelhard', N'Đức', N'Uống 5ml/lần, ngày 3 lần sau ăn', 1),
+(10, 'TH010', N'Nước muối sinh lý NaCl 0.9%', 'Natri Clorid 0.9%', '500ml', N'Chai', 10000.00, 800, 'Pharmedic', N'Việt Nam', N'Dùng súc miệng họng hoặc rửa vết thương', 1);
 SET IDENTITY_INSERT thuoc OFF;
 GO
 
--- DỮ LIỆU TÀI KHOẢN MẪU: 1 ADMIN, 1 BỆNH NHÂN, 3 BÁC SĨ CHUYÊN KHOA
+-- 10 TAI KHOAN CHUAN MOI VAI TRO
 SET IDENTITY_INSERT tai_khoan ON;
-INSERT INTO tai_khoan (id, vai_tro_id, username, password, email, sdt) VALUES
-(1, 1, 'admin', 'scrypt:32768:8:1$wte2IwGnBVO1lRWL$3da8cd29b71656229c22086ff7164745647f790916b2f3949a826972b6c8f4896f4fd90b2856affb5af79c1274b86fc0d20e1ee0da464623a7117faa4984e03c', 'admin@phongkham.com', '0999999999'),
-(2, 6, '0901234567', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'baonam@gmail.com', '0901234567'),
-(3, 3, 'bs_quan', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_quan@h2tcare.vn', '0912345678'),
-(4, 3, 'bs_mai', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_mai@h2tcare.vn', '0923456789'),
-(5, 3, 'bs_nam', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'bs_nam@h2tcare.vn', '0934567890'),
-(6, 2, 'letan_lan', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'lan.letan@h2tcare.vn', '0908111222'),
-(7, 2, 'letan_huyen', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'huyen.letan@h2tcare.vn', '0908222333'),
-(8, 2, 'letan_thao', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'thao.letan@h2tcare.vn', '0908333444'),
-(9, 4, 'duocsi_minh', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'minh.duocsi@h2tcare.vn', '0908555666'),
-(10, 5, 'ktv_duc', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'duc.ktv@h2tcare.vn', '0908777888');
+INSERT INTO tai_khoan (id, vai_tro_id, username, password, email, sdt, trang_thai) VALUES
+(1, 1, 'admin', 'scrypt:32768:8:1$wte2IwGnBVO1lRWL$3da8cd29b71656229c22086ff7164745647f790916b2f3949a826972b6c8f4896f4fd90b2856affb5af79c1274b86fc0d20e1ee0da464623a7117faa4984e03c', 'admin@phongkham.com', '0999999999', 1),
+(2, 6, '0901234567', 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79', 'baonam@gmail.com', '0901234567', 1),
+(3, 3, 'bs_quan', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'bs_quan@h2tcare.vn', '0912345678', 1),
+(4, 3, 'bs_mai', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'bs_mai@h2tcare.vn', '0923456789', 1),
+(5, 3, 'bs_nam', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'bs_nam@h2tcare.vn', '0934567890', 1),
+(6, 2, 'letan_lan', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'lan.letan@h2tcare.vn', '0908111222', 1),
+(7, 2, 'letan_huyen', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'huyen.letan@h2tcare.vn', '0908222333', 1),
+(8, 2, 'letan_thao', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'thao.letan@h2tcare.vn', '0908333444', 1),
+(9, 4, 'duocsi_minh', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'minh.duocsi@h2tcare.vn', '0908555666', 1),
+(10, 5, 'ktv_duc', 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a', 'duc.ktv@h2tcare.vn', '0908777888', 1);
 SET IDENTITY_INSERT tai_khoan OFF;
 GO
 
 SET IDENTITY_INSERT nhan_vien ON;
-INSERT INTO nhan_vien (id, tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu) VALUES
-(1, 1, 'NV001', N'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', N'140 Lê Trọng Tấn, Tân Phú, TP.HCM', N'Quản trị viên'),
-(2, 3, 'BS001', N'BS. Trần Minh Quân', 1, '1985-06-15', '0912345678', 'bs_quan@h2tcare.vn', '079085000101', N'Quận 10, TP.HCM', N'Bác sĩ chuyên khoa Nội'),
-(3, 4, 'BS002', N'BS. Lê Thị Mai', 0, '1989-09-20', '0923456789', 'bs_mai@h2tcare.vn', '079089000102', N'Quận 5, TP.HCM', N'Bác sĩ chuyên khoa Nhi'),
-(4, 5, 'BS003', N'BS. Nguyễn Hoàng Nam', 1, '1980-03-25', '0934567890', 'bs_nam@h2tcare.vn', '079080000103', N'Quận Tân Bình, TP.HCM', N'Bác sĩ chuyên khoa Ngoại'),
-(5, 6, 'NV002', N'Nguyễn Thị Lan', 0, '1995-04-12', '0908111222', 'lan.letan@h2tcare.vn', '079195000101', N'Quận Tân Phú, TP.HCM', N'Lễ tân trưởng - Quầy tiếp đón Tầng 1'),
-(6, 7, 'NV003', N'Trần Thu Huyền', 0, '1997-08-20', '0908222333', 'huyen.letan@h2tcare.vn', '079197000102', N'Quận Bình Tân, TP.HCM', N'Tiếp đón & Điều phối lịch hẹn - Quầy A'),
-(7, 8, 'NV004', N'Lê Phương Thảo', 0, '1996-11-05', '0908333444', 'thao.letan@h2tcare.vn', '079196000103', N'Quận 10, TP.HCM', N'Thu ngân viện phí & Tiếp nhận BHYT'),
-(8, 9, 'NV005', N'Dược sĩ Phạm Hoàng Minh', 1, '1992-03-15', '0908555666', 'minh.duocsi@h2tcare.vn', '079192000104', N'Quận 5, TP.HCM', N'Dược sĩ chuyên trách cấp phát thuốc'),
-(9, 10, 'NV006', N'KTV. Võ Anh Đức', 1, '1993-07-22', '0908777888', 'duc.ktv@h2tcare.vn', '079193000105', N'Quận Tân Bình, TP.HCM', N'Kỹ thuật viên xét nghiệm & Chẩn đoán hình ảnh');
+INSERT INTO nhan_vien (id, tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu, trang_thai) VALUES
+(1, 1, 'NV001', N'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', N'140 Lê Trọng Tấn, Tân Phú, TP.HCM', N'Quản trị viên', 1),
+(2, 3, 'BS001', N'BS. Trần Minh Quân', 1, '1985-06-15', '0912345678', 'bs_quan@h2tcare.vn', '079085000101', N'Quận 10, TP.HCM', N'Bác sĩ chuyên khoa Nội', 1),
+(3, 4, 'BS002', N'BS. Lê Thị Mai', 0, '1989-09-20', '0923456789', 'bs_mai@h2tcare.vn', '079089000102', N'Quận 5, TP.HCM', N'Bác sĩ chuyên khoa Nhi', 1),
+(4, 5, 'BS003', N'BS. Nguyễn Hoàng Nam', 1, '1980-03-25', '0934567890', 'bs_nam@h2tcare.vn', '079080000103', N'Quận Tân Bình, TP.HCM', N'Bác sĩ chuyên khoa Ngoại', 1),
+(5, 6, 'NV002', N'Nguyễn Thị Lan', 0, '1995-04-12', '0908111222', 'lan.letan@h2tcare.vn', '079195000101', N'Quận Tân Phú, TP.HCM', N'Lễ tân trưởng - Quầy tiếp đón Tầng 1', 1),
+(6, 7, 'NV003', N'Trần Thu Huyền', 0, '1997-08-20', '0908222333', 'huyen.letan@h2tcare.vn', '079197000102', N'Quận Bình Tân, TP.HCM', N'Tiếp đón & Điều phối lịch hẹn - Quầy A', 1),
+(7, 8, 'NV004', N'Lê Phương Thảo', 0, '1996-11-05', '0908333444', 'thao.letan@h2tcare.vn', '079196000103', N'Quận 10, TP.HCM', N'Thu ngân viện phí & Tiếp nhận BHYT', 1),
+(8, 9, 'NV005', N'Dược sĩ Phạm Hoàng Minh', 1, '1992-03-15', '0908555666', 'minh.duocsi@h2tcare.vn', '079192000104', N'Quận 5, TP.HCM', N'Dược sĩ chuyên trách cấp phát thuốc', 1),
+(9, 10, 'NV006', N'KTV. Võ Anh Đức', 1, '1993-07-22', '0908777888', 'duc.ktv@h2tcare.vn', '079193000105', N'Quận Tân Bình, TP.HCM', N'Kỹ thuật viên xét nghiệm & Chẩn đoán hình ảnh', 1);
 SET IDENTITY_INSERT nhan_vien OFF;
 GO
 
@@ -586,4 +595,3 @@ INSERT INTO banner (id, tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nu
 (3, N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', N'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
 SET IDENTITY_INSERT banner OFF;
 GO
-

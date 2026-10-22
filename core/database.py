@@ -14,6 +14,15 @@ class UnifiedCursor:
     def execute(self, sql, params=()):
         if self._engine == 'mysql':
             sql = sql.replace('?', '%s')
+            if 'GETDATE()' in sql.upper():
+                import re
+                sql = re.sub(r'CAST\(GETDATE\(\)\s+AS\s+DATE\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
+                sql = re.sub(r'GETDATE\(\)', 'NOW()', sql, flags=re.IGNORECASE)
+        elif self._engine == 'sqlite':
+            if 'GETDATE()' in sql.upper():
+                import re
+                sql = re.sub(r'CAST\(GETDATE\(\)\s+AS\s+DATE\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
+                sql = re.sub(r'GETDATE\(\)', 'CURRENT_TIMESTAMP', sql, flags=re.IGNORECASE)
         if params:
             self._cur.execute(sql, params)
         else:
@@ -33,6 +42,15 @@ class UnifiedCursor:
     def executemany(self, sql, seq_of_params):
         if self._engine == 'mysql':
             sql = sql.replace('?', '%s')
+            if 'GETDATE()' in sql.upper():
+                import re
+                sql = re.sub(r'CAST\(GETDATE\(\)\s+AS\s+DATE\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
+                sql = re.sub(r'GETDATE\(\)', 'NOW()', sql, flags=re.IGNORECASE)
+        elif self._engine == 'sqlite':
+            if 'GETDATE()' in sql.upper():
+                import re
+                sql = re.sub(r'CAST\(GETDATE\(\)\s+AS\s+DATE\)', 'CURRENT_DATE', sql, flags=re.IGNORECASE)
+                sql = re.sub(r'GETDATE\(\)', 'CURRENT_TIMESTAMP', sql, flags=re.IGNORECASE)
         return self._cur.executemany(sql, seq_of_params)
 
     def _convert_row(self, row):
@@ -91,9 +109,10 @@ def get_db():
     engine = getattr(config, 'DB_ENGINE', 'sqlserver')
 
     if engine == 'sqlite':
-        conn = sqlite3.connect(config.DB_FILE)
+        conn = sqlite3.connect(config.DB_FILE, timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
+        conn.execute("PRAGMA busy_timeout = 30000;")
         return UnifiedConnection(conn, 'sqlite')
 
     elif engine == 'sqlserver':
@@ -136,7 +155,7 @@ def get_db():
         raise ValueError(f"Hệ CSDL không hợp lệ: {engine}")
 
 def init_sqlite_db():
-    """Khởi tạo cấu trúc bảng và nạp dữ liệu tối thiểu cho SQLite."""
+    """Khởi tạo cấu trúc bảng đầy đủ 27 bảng và nạp dữ liệu chuẩn cho SQLite."""
     conn = sqlite3.connect(config.DB_FILE)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -156,7 +175,8 @@ def init_sqlite_db():
         ten_khoa TEXT NOT NULL,
         mo_ta TEXT,
         icon TEXT DEFAULT 'fa-stethoscope',
-        gia_kham_mac_dinh REAL DEFAULT 150000.0
+        gia_kham_mac_dinh REAL DEFAULT 150000.0,
+        trang_thai INTEGER DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS phong_kham (
@@ -178,6 +198,7 @@ def init_sqlite_db():
         don_gia REAL NOT NULL DEFAULT 0.0,
         bhyt_chi_tra_pt INTEGER DEFAULT 0,
         mo_ta TEXT,
+        trang_thai INTEGER DEFAULT 1,
         FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
     );
 
@@ -236,7 +257,7 @@ def init_sqlite_db():
         avatar TEXT DEFAULT 'default_doctor.png',
         gia_kham REAL DEFAULT 150000.0,
         trang_thai_lam_viec TEXT DEFAULT 'Đang làm việc',
-        FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+        FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id) ON DELETE CASCADE,
         FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id),
         FOREIGN KEY (phong_kham_chinh_id) REFERENCES phong_kham(id)
     );
@@ -255,6 +276,7 @@ def init_sqlite_db():
         dia_chi TEXT,
         nhom_mau TEXT DEFAULT 'Chưa rõ',
         ghi_chu_nhom_mau TEXT,
+        avatar TEXT,
         di_ung TEXT,
         tien_su_benh TEXT,
         tien_su_gia_dinh TEXT,
@@ -263,7 +285,7 @@ def init_sqlite_db():
         nguoi_than_quan_he TEXT,
         co_tai_khoan INTEGER DEFAULT 0,
         ngay_tao DATE DEFAULT (CURRENT_DATE),
-        FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
+        FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS chi_so_sinh_ton (
@@ -279,19 +301,27 @@ def init_sqlite_db():
         bmi TEXT DEFAULT '22.5 (Bình thường)',
         thoi_gian_do DATETIME DEFAULT CURRENT_TIMESTAMP,
         ghi_chu TEXT,
-        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
+        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS lich_lam_viec (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        bac_si_id INTEGER NOT NULL,
-        phong_kham_id INTEGER NOT NULL,
+        nhan_vien_id INTEGER,
+        bac_si_id INTEGER,
+        phong_kham_id INTEGER,
         ngay_lam DATE NOT NULL,
         ca_lam INTEGER NOT NULL,
         gio_bat_dau TIME DEFAULT '07:00:00',
         gio_ket_thuc TIME DEFAULT '11:30:00',
         so_luong_kham_toi_da INTEGER DEFAULT 20,
         so_luong_da_dang_ky INTEGER DEFAULT 0,
+        trang_thai INTEGER DEFAULT 1,
+        trang_thai_duyet TEXT DEFAULT 'DA_DUYET',
+        ly_do_huy TEXT,
+        nguoi_duyet_id INTEGER,
+        ngay_duyet DATETIME,
+        ghi_chu TEXT,
+        FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
         FOREIGN KEY (bac_si_id) REFERENCES bac_si(id),
         FOREIGN KEY (phong_kham_id) REFERENCES phong_kham(id)
     );
@@ -309,7 +339,7 @@ def init_sqlite_db():
         loai_lich_hen INTEGER DEFAULT 1,
         trang_thai TEXT DEFAULT 'Chờ xác nhận',
         ngay_dat DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
+        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE,
         FOREIGN KEY (bac_si_id) REFERENCES bac_si(id),
         FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id),
         FOREIGN KEY (phong_kham_id) REFERENCES phong_kham(id)
@@ -319,7 +349,7 @@ def init_sqlite_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ma_phieu TEXT NOT NULL UNIQUE,
         benh_nhan_id INTEGER NOT NULL,
-        bac_si_id INTEGER NOT NULL,
+        bac_si_id INTEGER,
         phong_kham_id INTEGER NOT NULL,
         lich_hen_id INTEGER,
         thoi_gian_kham DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -341,11 +371,11 @@ def init_sqlite_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ma_chi_dinh TEXT NOT NULL UNIQUE,
         phieu_kham_id INTEGER NOT NULL,
-        bac_si_id INTEGER NOT NULL,
+        bac_si_id INTEGER,
         thoi_gian_chi_dinh DATETIME DEFAULT CURRENT_TIMESTAMP,
         ghi_chu TEXT,
         trang_thai TEXT DEFAULT 'Hoàn thành',
-        FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
+        FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE CASCADE,
         FOREIGN KEY (bac_si_id) REFERENCES bac_si(id)
     );
 
@@ -358,7 +388,11 @@ def init_sqlite_db():
         ktv_thuc_hien TEXT,
         thoi_gian_thuc_hien DATETIME,
         trang_thai TEXT DEFAULT 'Hoàn thành',
-        FOREIGN KEY (phieu_chi_dinh_id) REFERENCES phieu_chi_dinh(id),
+        bac_si_duyet TEXT,
+        thoi_gian_duyet DATETIME,
+        ghi_chu_duyet TEXT,
+        nguoi_nhap TEXT,
+        FOREIGN KEY (phieu_chi_dinh_id) REFERENCES phieu_chi_dinh(id) ON DELETE CASCADE,
         FOREIGN KEY (dich_vu_id) REFERENCES dich_vu(id)
     );
 
@@ -366,11 +400,14 @@ def init_sqlite_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ma_don_thuoc TEXT NOT NULL UNIQUE,
         phieu_kham_id INTEGER NOT NULL,
-        bac_si_id INTEGER NOT NULL,
+        bac_si_id INTEGER,
         thoi_gian_ke DATETIME DEFAULT CURRENT_TIMESTAMP,
         loi_dan TEXT,
         trang_thai TEXT DEFAULT 'Đã cấp thuốc',
-        FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
+        ly_do_huy TEXT,
+        nguoi_huy TEXT,
+        thoi_gian_huy DATETIME,
+        FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE CASCADE,
         FOREIGN KEY (bac_si_id) REFERENCES bac_si(id)
     );
 
@@ -381,7 +418,7 @@ def init_sqlite_db():
         so_luong INTEGER NOT NULL DEFAULT 1,
         lieu_dung TEXT,
         cach_dung TEXT,
-        FOREIGN KEY (don_thuoc_id) REFERENCES don_thuoc(id),
+        FOREIGN KEY (don_thuoc_id) REFERENCES don_thuoc(id) ON DELETE CASCADE,
         FOREIGN KEY (thuoc_id) REFERENCES thuoc(id)
     );
 
@@ -411,7 +448,7 @@ def init_sqlite_db():
         so_luong INTEGER DEFAULT 1,
         don_gia REAL DEFAULT 0.0,
         thanh_tien REAL DEFAULT 0.0,
-        FOREIGN KEY (hoa_don_id) REFERENCES hoa_don(id)
+        FOREIGN KEY (hoa_don_id) REFERENCES hoa_don(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS thong_bao (
@@ -420,19 +457,25 @@ def init_sqlite_db():
         tieu_de TEXT NOT NULL,
         noi_dung TEXT NOT NULL,
         loai_thong_bao TEXT DEFAULT 'Hệ thống',
+        lien_ket TEXT,
         da_doc INTEGER DEFAULT 0,
         thoi_gian_tao DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
+        FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS phan_hoi (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         benh_nhan_id INTEGER NOT NULL,
         phieu_kham_id INTEGER,
+        chu_de TEXT DEFAULT 'Dịch vụ khám bệnh',
         diem_danh_gia INTEGER NOT NULL,
         noi_dung TEXT,
+        trang_thai TEXT DEFAULT 'Chờ tiếp nhận',
+        tra_loi TEXT,
+        ngay_tra_loi DATETIME,
+        nguoi_tra_loi TEXT,
         thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
+        FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE,
         FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
     );
 
@@ -445,6 +488,32 @@ def init_sqlite_db():
         noi_dung TEXT NOT NULL,
         ngay_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
         trang_thai TEXT DEFAULT 'Chưa xử lý'
+    );
+
+    CREATE TABLE IF NOT EXISTS lich_su_nhac_nho (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lich_hen_id INTEGER,
+        phieu_kham_id INTEGER,
+        benh_nhan_id INTEGER,
+        loai_nhac TEXT NOT NULL,
+        ngay_nhac TEXT,
+        kenh_gui TEXT DEFAULT 'IN_APP',
+        trang_thai TEXT DEFAULT 'THANH_CONG',
+        loi_gui TEXT,
+        thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS lich_su_sao_luu (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        loai_thao_tac TEXT NOT NULL,
+        ten_tap_tin TEXT NOT NULL,
+        duong_dan TEXT,
+        loai_csdl TEXT NOT NULL,
+        dung_luong INTEGER DEFAULT 0,
+        nguoi_thuc_hien TEXT,
+        trang_thai TEXT DEFAULT 'SUCCESS',
+        ghi_chu TEXT,
+        thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS bai_viet (
@@ -462,6 +531,19 @@ def init_sqlite_db():
         FOREIGN KEY (tac_gia_id) REFERENCES nhan_vien(id)
     );
 
+    CREATE TABLE IF NOT EXISTS banner (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tieu_de TEXT NOT NULL,
+        phu_de TEXT,
+        mo_ta TEXT,
+        hinh_anh TEXT NOT NULL,
+        link_lien_ket TEXT DEFAULT '/booking',
+        text_nut TEXT DEFAULT 'Đăng ký khám ngay',
+        thu_tu INTEGER DEFAULT 0,
+        trang_thai INTEGER DEFAULT 1,
+        ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT NOT NULL,
@@ -474,39 +556,18 @@ def init_sqlite_db():
         before_json TEXT,
         after_json TEXT
     );
+
+    CREATE INDEX IF NOT EXISTS idx_benhnhan_sdt ON benh_nhan(sdt);
+    CREATE INDEX IF NOT EXISTS idx_benhnhan_cccd ON benh_nhan(cccd);
+    CREATE INDEX IF NOT EXISTS idx_benhnhan_ma ON benh_nhan(ma_benh_nhan);
+    CREATE INDEX IF NOT EXISTS idx_lichhen_ngay ON lich_hen(ngay_hen);
+    CREATE INDEX IF NOT EXISTS idx_lichhen_trangthai ON lich_hen(trang_thai);
+    CREATE INDEX IF NOT EXISTS idx_phieukham_ngay ON phieu_kham(thoi_gian_kham);
+    CREATE INDEX IF NOT EXISTS idx_hoadon_ngay ON hoa_don(thoi_gian_thanh_toan);
+    CREATE INDEX IF NOT EXISTS idx_lichlamviec_ngay ON lich_lam_viec(ngay_lam);
     ''')
 
-    # Bổ sung các cột mới nếu bảng đã tồn tại (cho SQLite)
-    try:
-        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN bac_si_duyet TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN thoi_gian_duyet DATETIME")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN ghi_chu_duyet TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE chi_tiet_chi_dinh ADD COLUMN nguoi_nhap TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN ly_do_huy TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN nguoi_huy TEXT")
-    except Exception:
-        pass
-    try:
-        cursor.execute("ALTER TABLE don_thuoc ADD COLUMN thoi_gian_huy DATETIME")
-    except Exception:
-        pass
-
-    # Kiểm tra nếu chưa có tài khoản nào thì nạp seed tối thiểu (1 admin, 1 bệnh nhân)
+    # Seed data neu bang tai_khoan con trong
     cursor.execute("SELECT COUNT(*) as cnt FROM tai_khoan")
     if cursor.fetchone()['cnt'] == 0:
         _seed_minimal_data(cursor)
@@ -515,7 +576,7 @@ def init_sqlite_db():
     conn.close()
 
 def _seed_minimal_data(cursor):
-    """Nạp danh mục cơ sở và đúng 1 tài khoản admin, 1 tài khoản bệnh nhân."""
+    """Nạp danh mục cơ sở và 10 tài khoản mẫu chuẩn cho tất cả các vai trò."""
     # 1. Bảng Vai trò
     cursor.executemany('''
         INSERT OR IGNORE INTO vai_tro (id, ma_vai_tro, ten_vai_tro, mo_ta) VALUES (?, ?, ?, ?)
@@ -530,7 +591,7 @@ def _seed_minimal_data(cursor):
 
     # 2. Chuyên khoa
     cursor.executemany('''
-        INSERT OR IGNORE INTO chuyen_khoa (id, ma_khoa, ten_khoa, mo_ta, icon, gia_kham_mac_dinh) VALUES (?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO chuyen_khoa (id, ma_khoa, ten_khoa, mo_ta, icon, gia_kham_mac_dinh, trang_thai) VALUES (?, ?, ?, ?, ?, ?, 1)
     ''', [
         (1, 'KHOA_NOI', 'Khoa Nội Tổng Quát', 'Khám, chẩn đoán và điều trị bệnh lý tim mạch, tiêu hóa, hô hấp', 'fa-stethoscope', 150000.0),
         (2, 'KHOA_NGOAI', 'Khoa Ngoại Tổng Quát', 'Khám và điều trị ngoại khoa, tiểu phẫu, xử lý vết thương', 'fa-syringe', 150000.0),
@@ -556,9 +617,9 @@ def _seed_minimal_data(cursor):
         (8, 8, 'CDHA01', 'Phòng Siêu Âm Màu & Chụp X-Quang', 'Tầng 1 - Khu C', 1)
     ])
 
-    # 4. Dịch vụ y tế cơ bản
+    # 4. Dịch vụ y tế
     cursor.executemany('''
-        INSERT OR IGNORE INTO dich_vu (id, chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO dich_vu (id, chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
     ''', [
         (1, 1, 'DV_KHAM_NOI', 'Khám Nội Tổng Quát', 'Khám bệnh', 150000.0, 80, 'Khám và tư vấn toàn diện các bệnh lý nội khoa'),
         (2, 3, 'DV_KHAM_NHI', 'Khám Nhi Khoa', 'Khám bệnh', 120000.0, 80, 'Khám và tư vấn sức khỏe trẻ em'),
@@ -574,7 +635,7 @@ def _seed_minimal_data(cursor):
 
     # 5. Danh mục thuốc ban đầu
     cursor.executemany('''
-        INSERT OR IGNORE INTO thuoc (id, ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO thuoc (id, ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     ''', [
         (1, 'TH001', 'Paracetamol 500mg', 'Paracetamol', '500mg', 'Viên', 2000.0, 5000, 'Dược Hậu Giang', 'Việt Nam', 'Uống 1-2 viên khi sốt trên 38.5°C'),
         (2, 'TH002', 'Amoxicillin 500mg', 'Amoxicillin trihydrat', '500mg', 'Viên', 3000.0, 2000, 'Imexpharm', 'Việt Nam', 'Kháng sinh: Uống 1 viên sau ăn, ngày 2 lần'),
@@ -588,23 +649,54 @@ def _seed_minimal_data(cursor):
         (10, 'TH010', 'Nước muối sinh lý NaCl 0.9%', 'Natri Clorid 0.9%', '500ml', 'Chai', 10000.0, 800, 'Pharmedic', 'Việt Nam', 'Súc miệng họng hoặc rửa vết thương')
     ])
 
-    # 6. ĐÚNG 1 TÀI KHOẢN ADMIN (admin / admin123)
-    admin_pwd_hash = 'scrypt:32768:8:1$wte2IwGnBVO1lRWL$3da8cd29b71656229c22086ff7164745647f790916b2f3949a826972b6c8f4896f4fd90b2856affb5af79c1274b86fc0d20e1ee0da464623a7117faa4984e03c'
-    cursor.execute('''
-        INSERT OR IGNORE INTO tai_khoan (id, vai_tro_id, username, password, email, sdt, trang_thai)
-        VALUES (1, 1, 'admin', ?, 'admin@phongkham.com', '0999999999', 1)
-    ''', (admin_pwd_hash,))
-    cursor.execute('''
-        INSERT OR IGNORE INTO nhan_vien (id, tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu)
-        VALUES (1, 1, 'NV001', 'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', '140 Lê Trọng Tấn, Tân Phú, TP.HCM', 'Quản trị viên')
-    ''')
+    admin_hash = 'scrypt:32768:8:1$wte2IwGnBVO1lRWL$3da8cd29b71656229c22086ff7164745647f790916b2f3949a826972b6c8f4896f4fd90b2856affb5af79c1274b86fc0d20e1ee0da464623a7117faa4984e03c'
+    patient_hash = 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79'
+    staff_hash = 'scrypt:32768:8:1$xVLVsUp0aCxQtgJP$76c1b7ab226530947e1a994f31637655478671824ce7548814992af5cd3e25773990c663771c84f196aabe31f75f151f117c32e15cec5d39edeeba441a82011a'
 
-    # 7. ĐÚNG 1 TÀI KHOẢN BỆNH NHÂN (0901234567 / 123456)
-    patient_pwd_hash = 'scrypt:32768:8:1$pj1f2Ryp5cA64fb5$f5bf70980bc4c70015007a5a00f2e5ccc0fc41168d5dbc0bf6bf6ba432babaf7f3f5f0c487e79171c2d7d31de72f4b4fc68053e117a8622d244506fd8a0dca79'
-    cursor.execute('''
+    # 6. 10 Tài khoản chuẩn
+    cursor.executemany('''
         INSERT OR IGNORE INTO tai_khoan (id, vai_tro_id, username, password, email, sdt, trang_thai)
-        VALUES (2, 6, '0901234567', ?, 'baonam@gmail.com', '0901234567', 1)
-    ''', (patient_pwd_hash,))
+        VALUES (?, ?, ?, ?, ?, ?, 1)
+    ''', [
+        (1, 1, 'admin', admin_hash, 'admin@phongkham.com', '0999999999'),
+        (2, 6, '0901234567', patient_hash, 'baonam@gmail.com', '0901234567'),
+        (3, 3, 'bs_quan', staff_hash, 'bs_quan@h2tcare.vn', '0912345678'),
+        (4, 3, 'bs_mai', staff_hash, 'bs_mai@h2tcare.vn', '0923456789'),
+        (5, 3, 'bs_nam', staff_hash, 'bs_nam@h2tcare.vn', '0934567890'),
+        (6, 2, 'letan_lan', staff_hash, 'lan.letan@h2tcare.vn', '0908111222'),
+        (7, 2, 'letan_huyen', staff_hash, 'huyen.letan@h2tcare.vn', '0908222333'),
+        (8, 2, 'letan_thao', staff_hash, 'thao.letan@h2tcare.vn', '0908333444'),
+        (9, 4, 'duocsi_minh', staff_hash, 'minh.duocsi@h2tcare.vn', '0908555666'),
+        (10, 5, 'ktv_duc', staff_hash, 'duc.ktv@h2tcare.vn', '0908777888')
+    ])
+
+    # 7. Nhân viên
+    cursor.executemany('''
+        INSERT OR IGNORE INTO nhan_vien (id, tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu, trang_thai)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    ''', [
+        (1, 1, 'NV001', 'Admin Hệ Thống', 1, '1988-01-01', '0999999999', 'admin@phongkham.com', '079088000001', '140 Lê Trọng Tấn, Tân Phú, TP.HCM', 'Quản trị viên'),
+        (2, 3, 'BS001', 'BS. Trần Minh Quân', 1, '1985-06-15', '0912345678', 'bs_quan@h2tcare.vn', '079085000101', 'Quận 10, TP.HCM', 'Bác sĩ chuyên khoa Nội'),
+        (3, 4, 'BS002', 'BS. Lê Thị Mai', 0, '1989-09-20', '0923456789', 'bs_mai@h2tcare.vn', '079089000102', 'Quận 5, TP.HCM', 'Bác sĩ chuyên khoa Nhi'),
+        (4, 5, 'BS003', 'BS. Nguyễn Hoàng Nam', 1, '1980-03-25', '0934567890', 'bs_nam@h2tcare.vn', '079080000103', 'Quận Tân Bình, TP.HCM', 'Bác sĩ chuyên khoa Ngoại'),
+        (5, 6, 'NV002', 'Nguyễn Thị Lan', 0, '1995-04-12', '0908111222', 'lan.letan@h2tcare.vn', '079195000101', 'Quận Tân Phú, TP.HCM', 'Lễ tân trưởng - Quầy tiếp đón Tầng 1'),
+        (6, 7, 'NV003', 'Trần Thu Huyền', 0, '1997-08-20', '0908222333', 'huyen.letan@h2tcare.vn', '079197000102', 'Quận Bình Tân, TP.HCM', 'Tiếp đón & Điều phối lịch hẹn - Quầy A'),
+        (7, 8, 'NV004', 'Lê Phương Thảo', 0, '1996-11-05', '0908333444', 'thao.letan@h2tcare.vn', '079196000103', 'Quận 10, TP.HCM', 'Thu ngân viện phí & Tiếp nhận BHYT'),
+        (8, 9, 'NV005', 'Dược sĩ Phạm Hoàng Minh', 1, '1992-03-15', '0908555666', 'minh.duocsi@h2tcare.vn', '079192000104', 'Quận 5, TP.HCM', 'Dược sĩ chuyên trách cấp phát thuốc'),
+        (9, 10, 'NV006', 'KTV. Võ Anh Đức', 1, '1993-07-22', '0908777888', 'duc.ktv@h2tcare.vn', '079193000105', 'Quận Tân Bình, TP.HCM', 'Kỹ thuật viên xét nghiệm & Chẩn đoán hình ảnh')
+    ])
+
+    # 8. Bác sĩ
+    cursor.executemany('''
+        INSERT OR IGNORE INTO bac_si (id, nhan_vien_id, chuyen_khoa_id, phong_kham_chinh_id, hoc_vi, kinh_nghiem, gia_kham, trang_thai_lam_viec)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Đang làm việc')
+    ''', [
+        (1, 2, 1, 1, 'ThS.BS', '12 năm kinh nghiệm chẩn đoán và điều trị bệnh lý tim mạch, hô hấp và nội tiết tại BV Chợ Rẫy.', 150000.0),
+        (2, 3, 3, 4, 'BSCKI', '8 năm công tác tại BV Nhi Đồng 1, chuyên sâu hô hấp, tiêu hóa và dinh dưỡng trẻ em.', 150000.0),
+        (3, 4, 2, 3, 'BSCKII', '15 năm phẫu thuật ngoại khoa tổng quát, chấn thương chỉnh hình và tiểu phẫu.', 180000.0)
+    ])
+
+    # 9. Bệnh nhân & Chỉ số sinh tồn
     cursor.execute('''
         INSERT OR IGNORE INTO benh_nhan (id, tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su_benh, co_tai_khoan)
         VALUES (1, 2, 'BN2609001', 'Hoàng Bảo Nam', '1990-05-12', 'Nam', '0901234567', 'baonam@gmail.com', '079090000001', 'GD4797931100001', 'Quận 1, TP.HCM', 'O+', 'Không có', 'Đau dạ dày nhẹ', 1)
@@ -614,14 +706,24 @@ def _seed_minimal_data(cursor):
         VALUES (1, 1, '75 lần/phút', '36.8 °C', '120/80 mmHg', '99 %', '18 lần/phút', '170 cm', '65 kg', '22.5 (Bình thường)')
     ''')
 
-    # 8. Bài viết y tế mẫu
+    # 10. Bài viết y tế mẫu
     cursor.executemany('''
         INSERT OR IGNORE INTO bai_viet (id, tac_gia_id, tieu_de, slug, danh_muc, tom_tat, noi_dung, hinh_anh, luot_xem, ngay_dang, trang_thai)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     ''', [
-        (1, 1, 'Bệnh cảm cúm mùa giao mùa và cách phòng ngừa hiệu quả', 'benh-cam-cum-mua-giao-mua', 'Cẩm Nang Y Tế', 'Thời tiết chuyển mùa là điều kiện thuận lợi cho virus cúm phát triển. Nhận biết triệu chứng sớm và chế độ dinh dưỡng tăng cường miễn dịch là chìa khóa bảo vệ sức khỏe cả gia đình.', 'Nội dung chi tiết hướng dẫn phòng ngừa cảm cúm: giữ ấm cơ thể, rửa tay thường xuyên với xà phòng, tiêm vắc xin cúm hằng năm, bổ sung vitamin C và uống đủ nước...', 'cam-cum.jpg', 320, '2026-09-20 08:00:00', 1),
-        (2, 1, 'Chăm sóc sức khỏe răng miệng cho trẻ đúng cách từ nhỏ', 'cham-soc-rang-mieng-cho-tre', 'Nhi Khoa', 'Sâu răng ở trẻ em diễn tiến rất nhanh và ảnh hưởng trực tiếp đến quá trình mọc răng vĩnh viễn sau này. Bố mẹ cần lưu ý hướng dẫn bé chải răng đúng cách và khám định kỳ 6 tháng/lần.', 'Nội dung chi tiết hướng dẫn phụ huynh lựa chọn bàn chải lông mềm, kem đánh răng phù hợp lứa tuổi...', 'rang-mieng-tre.jpg', 215, '2026-09-21 09:30:00', 1),
-        (3, 1, 'Khám sức khỏe tổng quát định kỳ: Lợi ích vàng không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', 'Tin Tức Phòng Khám', 'Tầm soát sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn nguy hiểm như cao huyết áp, tiểu đường, gan nhiễm mỡ, gout ngay từ giai đoạn chưa có biểu hiện triệu chứng.', 'Nội dung chi tiết về các gói khám tổng quát định kỳ...', 'kham-tong-quat.jpg', 580, '2026-09-23 10:00:00', 1)
+        (1, 1, 'Bệnh cảm cúm mùa giao mùa và cách phòng ngừa hiệu quả', 'benh-cam-cum-mua-giao-mua', 'Cẩm Nang Y Tế', 'Thời tiết chuyển mùa là điều kiện thuận lợi cho virus cúm phát triển. Nhận biết triệu chứng sớm và chế độ dinh dưỡng tăng cường miễn dịch là chìa khóa bảo vệ sức khỏe cả gia đình.', 'Nội dung chi tiết hướng dẫn phòng ngừa cảm cúm: giữ ấm cơ thể, rửa tay thường xuyên với xà phòng, tiêm vắc xin cúm hằng năm, bổ sung vitamin C và uống đủ nước...', 'cam-cum.jpg', 320, '2026-09-20 08:00:00'),
+        (2, 1, 'Chăm sóc sức khỏe răng miệng cho trẻ đúng cách từ nhỏ', 'cham-soc-rang-mieng-cho-tre', 'Nhi Khoa', 'Sâu răng ở trẻ em diễn tiến rất nhanh và ảnh hưởng trực tiếp đến quá trình mọc răng vĩnh viễn sau này. Bố mẹ cần lưu ý hướng dẫn bé chải răng đúng cách và khám định kỳ 6 tháng/lần.', 'Nội dung chi tiết hướng dẫn phụ huynh lựa chọn bàn chải lông mềm, kem đánh răng phù hợp lứa tuổi...', 'rang-mieng-tre.jpg', 215, '2026-09-21 09:30:00'),
+        (3, 1, 'Khám sức khỏe tổng quát định kỳ: Lợi ích vàng không thể bỏ qua', 'kham-suc-khoe-tong-quat-dinh-ky', 'Tin Tức Phòng Khám', 'Tầm soát sức khỏe định kỳ giúp phát hiện sớm các bệnh lý tiềm ẩn nguy hiểm như cao huyết áp, tiểu đường, gan nhiễm mỡ, gout ngay từ giai đoạn chưa có biểu hiện triệu chứng.', 'Nội dung chi tiết về các gói khám tổng quát định kỳ...', 'kham-tong-quat.jpg', 580, '2026-09-23 10:00:00')
+    ])
+
+    # 11. Banner slider
+    cursor.executemany('''
+        INSERT OR IGNORE INTO banner (id, tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+    ''', [
+        (1, 'Chăm sóc bằng tài năng, y đức và sự thấu cảm', 'Tiêu chuẩn chất lượng quốc tế', 'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', 'ĐĂNG KÝ KHÁM NGAY', 1),
+        (2, 'Đội ngũ chuyên gia & Bác sĩ đầu ngành', 'Chuyên môn vững vàng', 'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', 'TÌM BÁC SĨ CHUYÊN KHOA', 2),
+        (3, 'Hệ thống Bệnh án điện tử EMR 360°', 'Công nghệ y tế số 4.0', 'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', 'CỔNG THÔNG TIN BỆNH NHÂN', 3)
     ])
 
 def ensure_schema_updates(conn, engine):
@@ -629,7 +731,7 @@ def ensure_schema_updates(conn, engine):
     cursor = conn.cursor()
     try:
         if engine == 'sqlite':
-            # 1. benh_nhan: ghi_chu_nhom_mau
+            # 1. benh_nhan: ghi_chu_nhom_mau, avatar
             cursor.execute("PRAGMA table_info(benh_nhan)")
             cols = [c['name'] for c in cursor.fetchall()]
             if 'ghi_chu_nhom_mau' not in cols:
@@ -651,34 +753,68 @@ def ensure_schema_updates(conn, engine):
                 cursor.execute("ALTER TABLE dich_vu ADD COLUMN trang_thai INTEGER DEFAULT 1")
                 cursor.execute("UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL")
 
-            # 4. lich_lam_viec: trang_thai
+            # 4. lich_lam_viec
             cursor.execute("PRAGMA table_info(lich_lam_viec)")
             cols = [c['name'] for c in cursor.fetchall()]
-            if 'trang_thai' not in cols:
-                cursor.execute("ALTER TABLE lich_lam_viec ADD COLUMN trang_thai INTEGER DEFAULT 1")
-                cursor.execute("UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL")
+            llv_needed = [
+                ('nhan_vien_id', 'INTEGER'),
+                ('trang_thai', 'INTEGER DEFAULT 1'),
+                ('trang_thai_duyet', "TEXT DEFAULT 'DA_DUYET'"),
+                ('ly_do_huy', 'TEXT'),
+                ('nguoi_duyet_id', 'INTEGER'),
+                ('ngay_duyet', 'DATETIME'),
+                ('ghi_chu', 'TEXT')
+            ]
+            for c_name, c_type in llv_needed:
+                if c_name not in cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE lich_lam_viec ADD COLUMN {c_name} {c_type}")
+                    except Exception:
+                        pass
+            cursor.execute("UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL")
+            cursor.execute("UPDATE lich_lam_viec SET trang_thai_duyet = 'DA_DUYET' WHERE trang_thai_duyet IS NULL")
+            try:
+                cursor.execute("UPDATE lich_lam_viec SET nhan_vien_id = (SELECT nhan_vien_id FROM bac_si WHERE bac_si.id = lich_lam_viec.bac_si_id) WHERE nhan_vien_id IS NULL AND bac_si_id IS NOT NULL")
+            except Exception:
+                pass
 
-            # 5. phan_hoi: chu_de, trang_thai, tra_loi, ngay_tra_loi, nguoi_tra_loi
+            # 5. chi_tiet_chi_dinh
+            cursor.execute("PRAGMA table_info(chi_tiet_chi_dinh)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            for c_name, c_type in [('bac_si_duyet', 'TEXT'), ('thoi_gian_duyet', 'DATETIME'), ('ghi_chu_duyet', 'TEXT'), ('nguoi_nhap', 'TEXT')]:
+                if c_name not in cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE chi_tiet_chi_dinh ADD COLUMN {c_name} {c_type}")
+                    except Exception:
+                        pass
+
+            # 6. don_thuoc
+            cursor.execute("PRAGMA table_info(don_thuoc)")
+            cols = [c['name'] for c in cursor.fetchall()]
+            for c_name, c_type in [('ly_do_huy', 'TEXT'), ('nguoi_huy', 'TEXT'), ('thoi_gian_huy', 'DATETIME')]:
+                if c_name not in cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE don_thuoc ADD COLUMN {c_name} {c_type}")
+                    except Exception:
+                        pass
+
+            # 7. phan_hoi
             cursor.execute("PRAGMA table_info(phan_hoi)")
             cols = [c['name'] for c in cursor.fetchall()]
-            if 'chu_de' not in cols:
-                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN chu_de TEXT DEFAULT 'Dịch vụ khám bệnh'")
-            if 'trang_thai' not in cols:
-                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN trang_thai TEXT DEFAULT 'Chờ tiếp nhận'")
-            if 'tra_loi' not in cols:
-                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN tra_loi TEXT")
-            if 'ngay_tra_loi' not in cols:
-                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN ngay_tra_loi DATETIME")
-            if 'nguoi_tra_loi' not in cols:
-                cursor.execute("ALTER TABLE phan_hoi ADD COLUMN nguoi_tra_loi TEXT")
+            for c_name, c_type in [('chu_de', "TEXT DEFAULT 'Dịch vụ khám bệnh'"), ('trang_thai', "TEXT DEFAULT 'Chờ tiếp nhận'"), ('tra_loi', 'TEXT'), ('ngay_tra_loi', 'DATETIME'), ('nguoi_tra_loi', 'TEXT')]:
+                if c_name not in cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE phan_hoi ADD COLUMN {c_name} {c_type}")
+                    except Exception:
+                        pass
 
-            # 6. thong_bao: lien_ket
+            # 8. thong_bao: lien_ket
             cursor.execute("PRAGMA table_info(thong_bao)")
             cols = [c['name'] for c in cursor.fetchall()]
             if 'lien_ket' not in cols:
                 cursor.execute("ALTER TABLE thong_bao ADD COLUMN lien_ket TEXT")
 
-            # 7. lich_su_nhac_nho
+            # 9. Cac bang bo sung
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS lich_su_nhac_nho (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -691,13 +827,12 @@ def ensure_schema_updates(conn, engine):
                     trang_thai TEXT DEFAULT 'THANH_CONG',
                     loi_gui TEXT,
                     thoi_gian_gui DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id),
-                    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id),
-                    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id)
+                    FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id) ON DELETE SET NULL,
+                    FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE SET NULL,
+                    FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE
                 );
             ''')
 
-            # 8. lich_su_sao_luu
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS lich_su_sao_luu (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -713,7 +848,6 @@ def ensure_schema_updates(conn, engine):
                 );
             ''')
 
-            # 9. banner
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS banner (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -728,6 +862,22 @@ def ensure_schema_updates(conn, engine):
                     ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    table_name TEXT NOT NULL,
+                    row_id INTEGER NOT NULL,
+                    action TEXT NOT NULL,
+                    performed_by INTEGER,
+                    performed_by_name TEXT,
+                    performed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    reason TEXT,
+                    before_json TEXT,
+                    after_json TEXT
+                );
+            ''')
+
             cursor.execute("SELECT COUNT(*) AS cnt FROM banner")
             if cursor.fetchone()['cnt'] == 0:
                 cursor.executemany('''
@@ -750,6 +900,13 @@ def ensure_schema_updates(conn, engine):
                 "UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL;",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'trang_thai') ALTER TABLE lich_lam_viec ADD trang_thai BIT DEFAULT 1;",
                 "UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'nhan_vien_id') ALTER TABLE lich_lam_viec ADD nhan_vien_id INT NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'trang_thai_duyet') ALTER TABLE lich_lam_viec ADD trang_thai_duyet NVARCHAR(50) DEFAULT 'DA_DUYET';",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'ly_do_huy') ALTER TABLE lich_lam_viec ADD ly_do_huy NVARCHAR(MAX) NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'nguoi_duyet_id') ALTER TABLE lich_lam_viec ADD nguoi_duyet_id INT NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'ngay_duyet') ALTER TABLE lich_lam_viec ADD ngay_duyet DATETIME NULL;",
+                "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_lam_viec') AND name = 'ghi_chu') ALTER TABLE lich_lam_viec ADD ghi_chu NVARCHAR(MAX) NULL;",
+                "UPDATE lich_lam_viec SET nhan_vien_id = (SELECT nhan_vien_id FROM bac_si WHERE bac_si.id = lich_lam_viec.bac_si_id) WHERE nhan_vien_id IS NULL AND bac_si_id IS NOT NULL;",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'chu_de') ALTER TABLE phan_hoi ADD chu_de NVARCHAR(100) DEFAULT N'Dịch vụ khám bệnh';",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'trang_thai') ALTER TABLE phan_hoi ADD trang_thai NVARCHAR(50) DEFAULT N'Chờ tiếp nhận';",
                 "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phan_hoi') AND name = 'tra_loi') ALTER TABLE phan_hoi ADD tra_loi NVARCHAR(MAX) NULL;",
@@ -817,7 +974,7 @@ def ensure_schema_updates(conn, engine):
                     VALUES 
                     (N'Chăm sóc bằng tài năng, y đức và sự thấu cảm', N'Tiêu chuẩn chất lượng quốc tế', N'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', N'ĐĂNG KÝ KHÁM NGAY', 1, 1),
                     (N'Đội ngũ chuyên gia & Bác sĩ đầu ngành', N'Chuyên môn vững vàng', N'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', N'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
-                    (N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', N'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
+                    (N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', 'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
                 END
                 """
             ]
@@ -838,22 +995,60 @@ def ensure_schema_updates(conn, engine):
             # 2. chuyen_khoa: trang_thai
             cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'chuyen_khoa' AND column_name = 'trang_thai'")
             if cursor.fetchone()['cnt'] == 0:
-                cursor.execute("ALTER TABLE chuyen_khoa ADD COLUMN trang_thai BIT DEFAULT 1")
+                cursor.execute("ALTER TABLE chuyen_khoa ADD COLUMN trang_thai TINYINT(1) DEFAULT 1")
                 cursor.execute("UPDATE chuyen_khoa SET trang_thai = 1 WHERE trang_thai IS NULL")
 
             # 3. dich_vu: trang_thai
             cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'dich_vu' AND column_name = 'trang_thai'")
             if cursor.fetchone()['cnt'] == 0:
-                cursor.execute("ALTER TABLE dich_vu ADD COLUMN trang_thai BIT DEFAULT 1")
+                cursor.execute("ALTER TABLE dich_vu ADD COLUMN trang_thai TINYINT(1) DEFAULT 1")
                 cursor.execute("UPDATE dich_vu SET trang_thai = 1 WHERE trang_thai IS NULL")
 
-            # 4. lich_lam_viec: trang_thai
-            cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'lich_lam_viec' AND column_name = 'trang_thai'")
-            if cursor.fetchone()['cnt'] == 0:
-                cursor.execute("ALTER TABLE lich_lam_viec ADD COLUMN trang_thai BIT DEFAULT 1")
-                cursor.execute("UPDATE lich_lam_viec SET trang_thai = 1 WHERE trang_thai IS NULL")
+            # 4. lich_lam_viec
+            llv_cols = [
+                ('nhan_vien_id', 'INT NULL'),
+                ('trang_thai', 'TINYINT(1) DEFAULT 1'),
+                ('trang_thai_duyet', "VARCHAR(50) DEFAULT 'DA_DUYET'"),
+                ('ly_do_huy', 'TEXT NULL'),
+                ('nguoi_duyet_id', 'INT NULL'),
+                ('ngay_duyet', 'DATETIME NULL'),
+                ('ghi_chu', 'TEXT NULL')
+            ]
+            for col_name, col_type in llv_cols:
+                cursor.execute(f"SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'lich_lam_viec' AND column_name = '{col_name}'")
+                if cursor.fetchone()['cnt'] == 0:
+                    cursor.execute(f"ALTER TABLE lich_lam_viec ADD COLUMN {col_name} {col_type}")
+            try:
+                cursor.execute("ALTER TABLE lich_lam_viec MODIFY COLUMN bac_si_id INT NULL")
+                cursor.execute("ALTER TABLE lich_lam_viec MODIFY COLUMN phong_kham_id INT NULL")
+                cursor.execute("UPDATE lich_lam_viec SET nhan_vien_id = (SELECT nhan_vien_id FROM bac_si WHERE bac_si.id = lich_lam_viec.bac_si_id) WHERE nhan_vien_id IS NULL AND bac_si_id IS NOT NULL")
+            except Exception:
+                pass
 
-            # 5. phan_hoi
+            # 5. chi_tiet_chi_dinh
+            ctcd_cols = [
+                ('bac_si_duyet', 'VARCHAR(100) NULL'),
+                ('thoi_gian_duyet', 'DATETIME NULL'),
+                ('ghi_chu_duyet', 'TEXT NULL'),
+                ('nguoi_nhap', 'VARCHAR(100) NULL')
+            ]
+            for col_name, col_type in ctcd_cols:
+                cursor.execute(f"SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'chi_tiet_chi_dinh' AND column_name = '{col_name}'")
+                if cursor.fetchone()['cnt'] == 0:
+                    cursor.execute(f"ALTER TABLE chi_tiet_chi_dinh ADD COLUMN {col_name} {col_type}")
+
+            # 6. don_thuoc
+            dt_cols = [
+                ('ly_do_huy', 'TEXT NULL'),
+                ('nguoi_huy', 'VARCHAR(100) NULL'),
+                ('thoi_gian_huy', 'DATETIME NULL')
+            ]
+            for col_name, col_type in dt_cols:
+                cursor.execute(f"SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'don_thuoc' AND column_name = '{col_name}'")
+                if cursor.fetchone()['cnt'] == 0:
+                    cursor.execute(f"ALTER TABLE don_thuoc ADD COLUMN {col_name} {col_type}")
+
+            # 7. phan_hoi
             col_specs = [
                 ('chu_de', "VARCHAR(100) DEFAULT 'Dịch vụ khám bệnh'"),
                 ('trang_thai', "VARCHAR(50) DEFAULT 'Chờ tiếp nhận'"),
@@ -866,12 +1061,12 @@ def ensure_schema_updates(conn, engine):
                 if cursor.fetchone()['cnt'] == 0:
                     cursor.execute(f"ALTER TABLE phan_hoi ADD COLUMN {col_name} {col_type}")
 
-            # 6. thong_bao: lien_ket
+            # 8. thong_bao: lien_ket
             cursor.execute("SELECT COUNT(*) as cnt FROM information_schema.columns WHERE table_name = 'thong_bao' AND column_name = 'lien_ket'")
             if cursor.fetchone()['cnt'] == 0:
                 cursor.execute("ALTER TABLE thong_bao ADD COLUMN lien_ket VARCHAR(255) NULL")
 
-            # 7. lich_su_nhac_nho
+            # 9. lich_su_nhac_nho
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS lich_su_nhac_nho (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -887,10 +1082,10 @@ def ensure_schema_updates(conn, engine):
                     FOREIGN KEY (lich_hen_id) REFERENCES lich_hen(id) ON DELETE SET NULL,
                     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE SET NULL,
                     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE
-                );
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ''')
 
-            # 8. lich_su_sao_luu
+            # 10. lich_su_sao_luu
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS lich_su_sao_luu (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -903,10 +1098,10 @@ def ensure_schema_updates(conn, engine):
                     trang_thai VARCHAR(50) DEFAULT 'SUCCESS',
                     ghi_chu TEXT NULL,
                     thoi_gian DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ''')
 
-            # 9. banner
+            # 11. banner
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS banner (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -919,8 +1114,25 @@ def ensure_schema_updates(conn, engine):
                     thu_tu INT DEFAULT 0,
                     trang_thai TINYINT(1) DEFAULT 1,
                     ngay_tao DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             ''')
+
+            # 12. audit_log
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    table_name VARCHAR(50) NOT NULL,
+                    row_id INT NOT NULL,
+                    action VARCHAR(50) NOT NULL,
+                    performed_by INT NULL,
+                    performed_by_name VARCHAR(100) NULL,
+                    performed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    reason TEXT NULL,
+                    before_json TEXT NULL,
+                    after_json TEXT NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ''')
+
             cursor.execute("SELECT COUNT(*) as cnt FROM banner")
             if cursor.fetchone()['cnt'] == 0:
                 cursor.executemany('''
@@ -933,8 +1145,64 @@ def ensure_schema_updates(conn, engine):
                 ])
             conn.commit()
 
-        # Tự động nạp các tài khoản Lễ tân & Nhân sự mẫu nếu chưa tồn tại
+        # Tu dong nap 10 tai khoan chuan neu chua ton tai tren ca 3 he CSDL
         try:
+            cursor.execute("SELECT id FROM tai_khoan WHERE username = 'bs_quan'")
+            if not cursor.fetchone():
+                from models.user_model import UserModel
+                seed_doctors = [
+                    {
+                        'ho_ten': 'BS. Trần Minh Quân',
+                        'username': 'bs_quan',
+                        'password': 'Password@123',
+                        'sdt': '0912345678',
+                        'email': 'bs_quan@h2tcare.vn',
+                        'cccd': '079085000101',
+                        'chuc_vu': 'Bác sĩ chuyên khoa Nội',
+                        'vai_tro_id': 3,
+                        'gioi_tinh': 1,
+                        'ngay_sinh': '1985-06-15',
+                        'dia_chi': 'Quận 10, TP.HCM',
+                        'chuyen_khoa_id': 1,
+                        'phong_kham_id': 1,
+                        'hoc_vi': 'ThS.BS'
+                    },
+                    {
+                        'ho_ten': 'BS. Lê Thị Mai',
+                        'username': 'bs_mai',
+                        'password': 'Password@123',
+                        'sdt': '0923456789',
+                        'email': 'bs_mai@h2tcare.vn',
+                        'cccd': '079089000102',
+                        'chuc_vu': 'Bác sĩ chuyên khoa Nhi',
+                        'vai_tro_id': 3,
+                        'gioi_tinh': 0,
+                        'ngay_sinh': '1989-09-20',
+                        'dia_chi': 'Quận 5, TP.HCM',
+                        'chuyen_khoa_id': 3,
+                        'phong_kham_id': 4,
+                        'hoc_vi': 'BSCKI'
+                    },
+                    {
+                        'ho_ten': 'BS. Nguyễn Hoàng Nam',
+                        'username': 'bs_nam',
+                        'password': 'Password@123',
+                        'sdt': '0934567890',
+                        'email': 'bs_nam@h2tcare.vn',
+                        'cccd': '079080000103',
+                        'chuc_vu': 'Bác sĩ chuyên khoa Ngoại',
+                        'vai_tro_id': 3,
+                        'gioi_tinh': 1,
+                        'ngay_sinh': '1980-03-25',
+                        'dia_chi': 'Quận Tân Bình, TP.HCM',
+                        'chuyen_khoa_id': 2,
+                        'phong_kham_id': 3,
+                        'hoc_vi': 'BSCKII'
+                    }
+                ]
+                for d in seed_doctors:
+                    UserModel.create_staff(d)
+
             cursor.execute("SELECT id FROM tai_khoan WHERE username = 'letan_lan'")
             if not cursor.fetchone():
                 from models.user_model import UserModel
@@ -1007,13 +1275,13 @@ def ensure_schema_updates(conn, engine):
                 ]
                 for s in seed_staff:
                     UserModel.create_staff(s)
-        except Exception:
-            pass
+        except Exception as seed_err:
+            print("[Database] Luu y seed tai khoan:", seed_err)
 
     except Exception as e:
         print("[Database] Luu y cap nhat schema tu dong:", e)
 
-# Ánh xạ tương thích ngược
+# Anh xa tuong thich nguoc
 ensure_patient_blood_columns = ensure_schema_updates
 
 def init_db():
@@ -1047,4 +1315,3 @@ def init_db():
             conn.close()
         except Exception as e:
             print("[Database] Canh bao ket noi MySQL:", e)
-
