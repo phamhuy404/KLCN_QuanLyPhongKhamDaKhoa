@@ -618,3 +618,59 @@ class ScheduleModel:
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return rows
+
+    @staticmethod
+    def get_week_days(start_date=None):
+        """Trả về danh sách 7 ngày trong tuần từ Thứ 2 đến Chủ nhật."""
+        if not start_date:
+            today = date.today()
+        elif isinstance(start_date, str):
+            today = datetime.strptime(str(start_date)[:10], '%Y-%m-%d').date()
+        else:
+            today = start_date
+
+        monday = today - timedelta(days=today.weekday())
+        day_names = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật']
+        today_str = str(date.today())
+
+        days = []
+        for i in range(7):
+            d = monday + timedelta(days=i)
+            d_str = str(d)
+            days.append({
+                'date_str': d_str,
+                'day_name': day_names[i],
+                'display_date': d.strftime('%d/%m/%Y'),
+                'short_date': d.strftime('%d/%m'),
+                'is_today': (d_str == today_str)
+            })
+        return days
+
+    @staticmethod
+    def register_multiple_schedules(user, shifts, phong_kham_id=None, ghi_chu=None):
+        """Nhân viên đăng ký nhiều ca làm việc cùng lúc trong 2 tuần tiếp theo."""
+        if not user or not user.get('id'):
+            return False, "Vui lòng đăng nhập để đăng ký ca trực!", []
+        if not shifts or not isinstance(shifts, list):
+            return False, "Vui lòng chọn ít nhất một ca làm việc!", []
+
+        success_count = 0
+        errors = []
+        for s in shifts:
+            ngay = s.get('ngay_lam')
+            ca = s.get('ca_lam')
+            pk = s.get('phong_kham_id') or phong_kham_id
+            note = s.get('ghi_chu') or ghi_chu
+            ok, msg = ScheduleModel.register_schedule(user, ngay, ca, pk, note)
+            if ok:
+                success_count += 1
+            else:
+                ca_name = ScheduleModel.CA_LAM_INFO.get(int(ca or 1), {}).get('ten', f'Ca {ca}')
+                errors.append(f"{ngay} ({ca_name}): {msg}")
+
+        if success_count == len(shifts):
+            return True, f"Đăng ký thành công toàn bộ {success_count} ca làm việc!", success_count, errors
+        elif success_count > 0:
+            return True, f"Đã đăng ký thành công {success_count}/{len(shifts)} ca! (Chi tiết lỗi: {'; '.join(errors)})", success_count, errors
+        else:
+            return False, f"Đăng ký thất bại: {'; '.join(errors)}", 0, errors

@@ -746,6 +746,21 @@ def register_schedule():
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
 
+@api_bp.route('/schedule/register-multiple', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+def register_multiple_schedules():
+    """API nhân viên đăng ký nhiều ca làm việc cùng lúc trong 2 tuần tiếp theo."""
+    from models.schedule_model import ScheduleModel
+    data = request.get_json() or {}
+    user = session.get('user')
+    shifts = data.get('shifts', [])
+    pk_id = data.get('phong_kham_id')
+    ghi_chu = data.get('ghi_chu')
+    ok, msg, success_count, errors = ScheduleModel.register_multiple_schedules(user, shifts, pk_id, ghi_chu)
+    if ok:
+        return jsonify({'success': True, 'message': msg, 'count': success_count, 'errors': errors})
+    return jsonify({'success': False, 'message': msg, 'count': success_count, 'errors': errors}), 400
+
 @api_bp.route('/schedule/cancel-request', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def cancel_request_schedule():

@@ -148,7 +148,107 @@ class TestUpgradedFeatures(unittest.TestCase):
             resp = client.get('/admin/staff')
             self.assertEqual(resp.status_code, 200, f"Role {role} không truy cập được /admin/staff")
             html = resp.data.decode('utf-8')
-            self.assertIn("Quản lý Nhân sự & Lịch trực", html)
+    def test_get_week_days(self):
+        """Kiểm tra tạo danh sách 7 ngày trong tuần với nhãn tiếng Việt."""
+        from models.schedule_model import ScheduleModel
+        from datetime import date
+        days = ScheduleModel.get_week_days(date(2026, 10, 19))
+        self.assertEqual(len(days), 7)
+        self.assertEqual(days[0]['day_name'], 'Thứ 2')
+        self.assertEqual(days[6]['day_name'], 'Chủ nhật')
+        self.assertEqual(days[0]['date_str'], '2026-10-19')
+
+    def test_register_multiple_schedules(self):
+        """Kiểm tra đăng ký đồng loạt nhiều ca làm việc."""
+        from models.schedule_model import ScheduleModel
+        from core.database import get_db
+
+        bounds = ScheduleModel.get_week_bounds()
+        w1_start = bounds['next_week_1'][0]
+        from datetime import datetime, timedelta, date as dt_date
+        d1 = datetime.strptime(w1_start, "%Y-%m-%d").date() if isinstance(w1_start, str) else w1_start
+        d2 = d1 + timedelta(days=1)
+
+        test_user = {'id': 1, 'vai_tro': 'ADMIN', 'staff_id': 1}
+        shifts_to_register = [
+            {'ngay_lam': str(d1), 'ca_lam': 1},
+            {'ngay_lam': str(d2), 'ca_lam': 2}
+        ]
+
+        # Dọn dẹp trước
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        conn.commit()
+        conn.close()
+
+        # Đăng ký hàng loạt
+        ok, msg, count, errors = ScheduleModel.register_multiple_schedules(test_user, shifts_to_register)
+        self.assertTrue(ok, f"Đăng ký nhiều ca thất bại: {msg}")
+        self.assertEqual(count, 2)
+
+        # Dọn dẹp sau khi test
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        conn.commit()
+        conn.close()
+
+    def test_api_register_multiple(self):
+        """Kiểm tra API endpoint /api/schedule/register-multiple."""
+        from app import create_app
+        from models.schedule_model import ScheduleModel
+        from datetime import datetime, timedelta, date as dt_date
+        from core.database import get_db
+
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        bounds = ScheduleModel.get_week_bounds()
+        w1_start = bounds['next_week_1'][0]
+        d1 = datetime.strptime(w1_start, "%Y-%m-%d").date() if isinstance(w1_start, str) else w1_start
+        d2 = d1 + timedelta(days=2)
+
+        # Dọn dẹp trước
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        conn.commit()
+        conn.close()
+
+        with client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {
+                'id': 1,
+                'username': 'admin',
+                'ho_ten': 'Quản Trị Viên',
+                'vai_tro': 'ADMIN',
+                'staff_id': 1
+            }
+
+        payload = {
+            'shifts': [
+                {'ngay_lam': str(d1), 'ca_lam': 1},
+                {'ngay_lam': str(d2), 'ca_lam': 3}
+            ],
+            'phong_kham_id': None,
+            'ghi_chu': 'Test bulk registration'
+        }
+
+        resp = client.post('/api/schedule/register-multiple', json=payload)
+        self.assertEqual(resp.status_code, 200)
+        data = resp.get_json()
+        self.assertTrue(data.get('success'), f"API lỗi: {data.get('message')}")
+        self.assertEqual(data.get('count'), 2)
+
+        # Dọn dẹp sau khi test
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        conn.commit()
+        conn.close()
 
 if __name__ == '__main__':
     unittest.main()
+

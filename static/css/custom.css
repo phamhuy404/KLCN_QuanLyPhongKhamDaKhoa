@@ -233,3 +233,77 @@ html {
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
+
+/* Lưới thời khóa biểu y tế */
+.schedule-grid-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.schedule-grid-table th,
+.schedule-grid-table td {
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.schedule-grid-table tr:last-child td {
+    border-bottom: none;
+}
+
+.schedule-grid-table th:last-child,
+.schedule-grid-table td:last-child {
+    border-right: none;
+}
+
+/* Cột ca trực màu vàng kem đặc trưng */
+.schedule-col-shift {
+    background-color: #fef9c3;
+    color: #451a03;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Thẻ ca làm đã đăng ký (Màu xanh lá) */
+.schedule-card-registered {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: 1px solid #047857;
+    border-radius: 0.65rem;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-card-registered:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+}
+
+/* Thẻ ca làm chưa đăng ký (Màu xanh dương) */
+.schedule-card-unregistered {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    border: 1px solid #075985;
+    border-radius: 0.65rem;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-card-unregistered:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+}
+
+/* Ô chọn đăng ký ca trực */
+.register-slot-card {
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.register-slot-card.is-selected {
+    border-color: #4f46e5 !important;
+    background-color: #eef2ff !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35), 0 4px 8px rgba(79, 70, 229, 0.15);
+    transform: scale(0.98);
+}

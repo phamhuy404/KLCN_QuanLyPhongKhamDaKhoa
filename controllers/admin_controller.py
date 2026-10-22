@@ -155,6 +155,14 @@ def staff():
     departments = ClinicModel.get_all_departments(active_only=True)
     rooms = ClinicModel.get_all_rooms(active_only=True)
     week_bounds = ScheduleModel.get_week_bounds()
+    current_week_days = ScheduleModel.get_week_days(week_bounds['current_week'][0])
+    next_week_1_days = ScheduleModel.get_week_days(week_bounds['next_week_1'][0])
+    next_week_2_days = ScheduleModel.get_week_days(week_bounds['next_week_2'][0])
+    shifts_info = [
+        {'id': 1, 'ca_id': 1, 'ten': 'Sáng', 'ten_ca': 'Sáng', 'gio': '07:00 - 11:30', 'gio_lam_viec': '07:00 - 11:30', 'icon': 'fa-solid fa-sun', 'icon_color': 'text-amber-500'},
+        {'id': 2, 'ca_id': 2, 'ten': 'Chiều', 'ten_ca': 'Chiều', 'gio': '13:30 - 17:00', 'gio_lam_viec': '13:30 - 17:00', 'icon': 'fa-solid fa-cloud-sun', 'icon_color': 'text-amber-600'},
+        {'id': 3, 'ca_id': 3, 'ten': 'Tối', 'ten_ca': 'Tối', 'gio': '17:30 - 20:30', 'gio_lam_viec': '17:30 - 20:30', 'icon': 'fa-solid fa-moon', 'icon_color': 'text-indigo-900'},
+    ]
 
     pending_approvals = []
     if user_role in ['ADMIN', 'LETAN']:
@@ -176,6 +184,10 @@ def staff():
         departments=departments,
         rooms=rooms,
         week_bounds=week_bounds,
+        current_week_days=current_week_days,
+        next_week_1_days=next_week_1_days,
+        next_week_2_days=next_week_2_days,
+        shifts_info=shifts_info,
         pending_approvals=pending_approvals,
         active_tab=active_tab
     )
