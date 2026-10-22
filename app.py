@@ -93,10 +93,21 @@ def create_app():
                 except Exception:
                     return flask_url_for(endpoint, **values)
 
+        import config
+        clinic_info = {
+            'address': getattr(config, 'CLINIC_ADDRESS', '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh'),
+            'lat': getattr(config, 'CLINIC_LATITUDE', 10.806689),
+            'lng': getattr(config, 'CLINIC_LONGITUDE', 106.628581),
+            'maps_api_key': getattr(config, 'GOOGLE_MAPS_API_KEY', ''),
+            'maps_search_url': f"https://www.google.com/maps/search/?api=1&query={getattr(config, 'CLINIC_LATITUDE', 10.806689)},{getattr(config, 'CLINIC_LONGITUDE', 106.628581)}",
+            'maps_dir_url': f"https://www.google.com/maps/dir/?api=1&destination=140+L%C3%AA+Tr%E1%BB%8Dng+T%E1%BA%A5n,+T%C3%A2y+Th%E1%BA%A1nh,+T%C3%A2n+Ph%C3%BA,+TP.+H%E1%BB%93+Ch%C3%AD+Minh"
+        }
+
         return dict(
             current_user=session.get('user'),
             curr_user=session.get('user') or {},
             catalogs=get_all_catalogs(),
+            clinic_info=clinic_info,
             url_for=smart_url_for,
             str=str
         )

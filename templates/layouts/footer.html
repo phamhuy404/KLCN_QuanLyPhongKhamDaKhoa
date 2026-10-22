@@ -1,10 +1,10 @@
 <!-- FOOTER CHUNG HỆ THỐNG PHÒNG KHÁM / BỆNH VIỆN H2T HEALTHCARE -->
 <footer class="bg-white border-t border-slate-200 mt-auto text-slate-600 text-xs">
-    <div class="max-w-7xl mx-auto px-6 py-10">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div class="max-w-7xl mx-auto px-6 py-9">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- Cột 1: Thông tin thương hiệu & Địa chỉ -->
-            <div class="space-y-3.5">
+            <!-- Cột 1: Thông tin thương hiệu & Địa chỉ (4 cols) -->
+            <div class="lg:col-span-4 space-y-2.5">
                 <a href="{{ url_for('home') }}" class="flex items-center gap-2.5 group cursor-pointer" title="Về trang chủ">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-medical-400 flex items-center justify-center text-white shadow-md shadow-medical-500/20 shrink-0 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-heart-pulse text-base"></i>
@@ -19,113 +19,139 @@
                     Hệ thống chăm sóc sức khỏe toàn diện, ứng dụng công nghệ khám chữa bệnh và bệnh án điện tử thông minh.
                 </p>
 
-                <div class="space-y-1.5 pt-1 text-slate-600">
-                    <div class="flex items-start gap-2.5">
-                        <i class="fa-solid fa-location-dot text-medical-600 mt-0.5 text-sm shrink-0"></i>
-                        <span><strong>Địa chỉ:</strong> 140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh</span>
+                <div class="space-y-1.5 text-slate-600 text-xs pt-0.5">
+                    <div class="flex items-start gap-2">
+                        <i class="fa-solid fa-location-dot text-medical-600 mt-0.5 shrink-0 text-sm"></i>
+                        <div>
+                            <strong>Địa chỉ:</strong> 
+                            <a href="{{ clinic_info.maps_dir_url if clinic_info else 'https://maps.google.com/?q=140+L%C3%AA+Tr%E1%BB%8Dng+T%E1%BA%A5n,+T%C3%A2y+Th%E1%BA%A1nh,+T%C3%A2n+Ph%C3%BA,+TP.+H%E1%BB%93+Ch%C3%AD+Minh' }}" 
+                               target="_blank" rel="noopener noreferrer" 
+                               class="hover:text-medical-600 hover:underline transition-colors" 
+                               title="Bấm để mở chỉ đường trên Google Maps">
+                                {{ clinic_info.address if clinic_info else '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh' }}
+                            </a>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2.5">
-                        <i class="fa-solid fa-id-card text-medical-600 text-sm shrink-0"></i>
-                        <span><strong>Mã số thuế (MSST):</strong> <span class="font-mono font-semibold text-slate-800">XXXXXXXXXX</span></span>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-medical-600 shrink-0 text-xs"></i>
+                        <span><strong>MSST:</strong> <span class="font-mono font-semibold text-slate-800">XXXXXXXXXX</span></span>
+                        <span class="text-slate-300">•</span>
+                        <a href="mailto:contact@huit.edu.vn" class="text-slate-500 hover:text-medical-600 hover:underline">contact@huit.edu.vn</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Cột 2: Thời gian làm việc -->
-            <div class="space-y-3">
-                <h4 class="font-bold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-regular fa-clock text-medical-600"></i> Thời gian làm việc
+            <!-- Cột 2: Bản đồ Google Maps mở rộng to rõ (3 cols) -->
+            <div class="lg:col-span-3 space-y-2">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-location-dot text-medical-600"></i> Bản đồ phòng khám
+                    </h4>
+                    <a href="{{ clinic_info.maps_dir_url if clinic_info else 'https://maps.google.com/?q=140+L%C3%AA+Tr%E1%BB%8Dng+T%E1%BA%A5n,+T%C3%A2y+Th%E1%BA%A1nh,+T%C3%A2n+Ph%C3%BA,+TP.+H%E1%BB%93+Ch%C3%AD+Minh' }}" 
+                       target="_blank" rel="noopener noreferrer" 
+                       class="text-[11px] text-medical-600 font-bold hover:underline flex items-center gap-1">
+                        Mở lớn <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                    </a>
+                </div>
+
+                <!-- Khung bản đồ Google Maps to rõ, bấm trực tiếp để mở Google Maps -->
+                <div class="relative w-full h-[155px] rounded-xl overflow-hidden border border-slate-200/90 shadow-xs group bg-slate-100">
+                    {% if clinic_info and clinic_info.maps_api_key %}
+                    <iframe 
+                        title="Bản đồ vị trí Bệnh viện H2T Healthcare"
+                        class="w-full h-full border-0 pointer-events-none"
+                        loading="lazy"
+                        src="https://www.google.com/maps/embed/v1/place?key={{ clinic_info.maps_api_key }}&q={{ clinic_info.lat }},{{ clinic_info.lng }}&zoom=15">
+                    </iframe>
+                    {% else %}
+                    <iframe 
+                        title="Bản đồ vị trí Bệnh viện H2T Healthcare"
+                        class="w-full h-full border-0 pointer-events-none"
+                        loading="lazy"
+                        src="https://maps.google.com/maps?q={{ clinic_info.lat if clinic_info else '10.806689' }},{{ clinic_info.lng if clinic_info else '106.628581' }}&t=&z=15&ie=UTF8&iwloc=&output=embed">
+                    </iframe>
+                    {% endif %}
+
+                    <!-- Lớp phủ click mở Google Maps trực tiếp -->
+                    <a href="{{ clinic_info.maps_dir_url if clinic_info else 'https://maps.google.com/?q=140+L%C3%AA+Tr%E1%BB%8Dng+T%E1%BA%A5n,+T%C3%A2y+Th%E1%BA%A1nh,+T%C3%A2n+Ph%C3%BA,+TP.+H%E1%BB%93+Ch%C3%AD+Minh' }}" 
+                       target="_blank" rel="noopener noreferrer" 
+                       class="absolute inset-0 bg-slate-900/0 hover:bg-slate-900/20 transition-all flex items-end justify-end p-2.5 group-hover:backdrop-blur-[0.5px]"
+                       title="Bấm vào để mở Google Maps chỉ đường">
+                        <span class="px-2.5 py-1 bg-white/95 hover:bg-white text-slate-800 text-[10px] font-bold rounded-lg shadow-md border border-slate-200/90 flex items-center gap-1.5 transition-transform group-hover:scale-105 hover:text-medical-600">
+                            <i class="fa-solid fa-diamond-turn-right text-medical-600 text-[10px]"></i>
+                            <span>Chỉ đường trên Google Maps</span>
+                        </span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cột 3: Thời gian làm việc & Hotline (3 cols) -->
+            <div class="lg:col-span-3 space-y-2.5">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-regular fa-clock text-medical-600"></i> Thời gian & Hotline
                 </h4>
                 
-                <ul class="space-y-2.5">
-                    <li class="flex items-start justify-between pb-2 border-b border-slate-100">
+                <ul class="space-y-1.5 text-xs">
+                    <li class="flex items-center justify-between pb-1.5 border-b border-slate-100">
                         <span class="text-slate-500">Cấp cứu & Lưu viện:</span>
                         <span class="font-bold text-rose-600">24/7 (Mỗi ngày)</span>
                     </li>
-                    <li class="flex items-start justify-between pb-2 border-b border-slate-100">
+                    <li class="flex items-center justify-between pb-1.5 border-b border-slate-100">
                         <span class="text-slate-500">Thứ 2 - Thứ 7:</span>
                         <span class="font-semibold text-slate-800">07:00 - 20:00</span>
                     </li>
-                    <li class="flex items-start justify-between pb-2 border-b border-slate-100">
+                    <li class="flex items-center justify-between pb-1.5 border-b border-slate-100">
                         <span class="text-slate-500">Chủ nhật:</span>
                         <span class="font-semibold text-slate-800">07:30 - 12:00</span>
                     </li>
-                    <li class="flex items-start justify-between">
-                        <span class="text-slate-500">Ngày Lễ, Tết:</span>
-                        <span class="font-semibold text-medical-700">Trực cấp cứu</span>
-                    </li>
                 </ul>
-            </div>
 
-            <!-- Cột 3: Hotline & Email liên hệ -->
-            <div class="space-y-3">
-                <h4 class="font-bold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-phone-volume text-medical-600"></i> Đường dây nóng
-                </h4>
-
-                <div class="space-y-2.5">
-                    <div class="p-3 rounded-xl bg-medical-50/70 border border-medical-100">
-                        <span class="text-[11px] text-slate-500 block">Hotline cấp cứu & Đặt hẹn:</span>
-                        <a href="tel:19xxxxxxxx" class="text-base font-extrabold text-medical-700 hover:underline block mt-0.5">
-                            19XX XXXX
-                        </a>
-                        <span class="text-[11px] text-slate-500 mt-1 block">CSKH: <strong class="text-slate-700">(090) 6969 6969</strong></span>
+                <div class="p-2.5 rounded-xl bg-medical-50/70 border border-medical-100 space-y-1">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500">Hotline cấp cứu:</span>
+                        <a href="tel:19xxxxxxxx" class="font-extrabold text-medical-700 hover:underline">19XX XXXX</a>
                     </div>
-
-                    <div class="space-y-1">
-                        <div class="flex items-center gap-2 text-slate-600">
-                            <i class="fa-regular fa-envelope text-medical-600 text-sm"></i>
-                            <span>Email: <a href="mailto:contact@huit.edu.vn" class="text-slate-800 font-semibold hover:text-medical-600 underline">contact@huit.edu.vn</a></span>
-                        </div>
-                        <div class="flex items-center gap-2 text-slate-600">
-                            <i class="fa-solid fa-headset text-medical-600 text-sm"></i>
-                            <span>Hỗ trợ: <a href="mailto:support@huit.edu.vn" class="text-slate-800 font-semibold hover:text-medical-600 underline">support@huit.edu.vn</a></span>
-                        </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Tổng đài CSKH:</span>
+                        <strong class="text-slate-700">(090) 6969 6969</strong>
                     </div>
                 </div>
             </div>
 
-            <!-- Cột 4: Mạng xã hội & Hòm thư góp ý -->
-            <div class="space-y-3.5">
-                <h4 class="font-bold text-slate-900 text-sm uppercase tracking-wider">Kết nối với chúng tôi</h4>
+            <!-- Cột 4: Kết nối & Hòm thư góp ý cân đối (2 cols) -->
+            <div class="lg:col-span-2 space-y-2.5">
+                <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Kết nối</h4>
                 
-                <!-- 3 Icon Mạng Xã Hội: FB, Zalo, Instagram -->
-                <div class="flex items-center gap-2.5">
-                    <!-- Facebook -->
+                <!-- 3 Icon Mạng Xã Hội -->
+                <div class="flex items-center gap-2">
                     <a href=" " target="_blank" rel="noopener noreferrer" 
-                       class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-[#1877F2] text-slate-600 hover:text-white flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-105" 
-                       title="Theo dõi chúng tôi trên Facebook">
-                        <i class="fa-brands fa-facebook-f text-base"></i>
+                       class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#1877F2] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
+                       title="Facebook">
+                        <i class="fa-brands fa-facebook-f text-sm"></i>
                     </a>
-
-                    <!-- Zalo -->
                     <a href=" " target="_blank" rel="noopener noreferrer" 
-                       class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-[#0068FF] text-slate-600 hover:text-white flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-105" 
-                       title="Liên hệ tư vấn qua Zalo">
-                        <span class="font-extrabold text-[11px] tracking-tight">Zalo</span>
+                       class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#0068FF] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
+                       title="Zalo">
+                        <span class="font-extrabold text-[10px]">Zalo</span>
                     </a>
-
-                    <!-- Instagram -->
                     <a href=" " target="_blank" rel="noopener noreferrer" 
-                       class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-slate-600 hover:text-white flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-105" 
-                       title="Theo dõi hình ảnh trên Instagram">
-                        <i class="fa-brands fa-instagram text-base"></i>
+                       class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
+                       title="Instagram">
+                        <i class="fa-brands fa-instagram text-sm"></i>
                     </a>
                 </div>
 
-                <!-- Nút / Icon Hòm thư góp ý -->
-                <div class="pt-2">
-                    <button type="button" onclick="openFeedbackModal()" 
-                        class="w-full p-3 rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-900 border border-amber-200/80 transition-all flex items-center gap-3 text-left group">
-                        <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                            <i class="fa-solid fa-envelope-open-text text-sm"></i>
-                        </div>
-                        <div>
-                            <span class="font-bold text-xs block text-slate-900">Hòm thư góp ý</span>
-                            <span class="text-[11px] text-amber-700">Ý kiến của bạn giúp chúng tôi hoàn thiện hơn</span>
-                        </div>
-                    </button>
-                </div>
+                <!-- Nút Hòm thư góp ý -->
+                <button type="button" onclick="openFeedbackModal()" 
+                    class="w-full mt-2 p-2.5 rounded-xl bg-amber-50/90 hover:bg-amber-100 text-amber-900 border border-amber-200/80 transition flex items-center gap-2.5 group text-left shadow-2xs">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform text-xs shadow-xs">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                    </div>
+                    <div class="leading-tight">
+                        <span class="font-bold text-xs block text-slate-800">Hòm thư góp ý</span>
+                        <span class="text-[10px] text-amber-700">Ý kiến xây dựng BV</span>
+                    </div>
+                </button>
             </div>
 
         </div>
@@ -240,6 +266,31 @@
         } finally {
             button.disabled = false;
             button.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gửi Thư Góp Ý';
+        }
+    }
+
+    // Chỉ đường Google Maps từ vị trí hiện tại của người dùng
+    function openCurrentLocationRoute() {
+        const destLat = {{ (clinic_info.lat if clinic_info else 10.806689)|tojson }};
+        const destLng = {{ (clinic_info.lng if clinic_info else 106.628581)|tojson }};
+        const destAddress = encodeURIComponent({{ (clinic_info.address if clinic_info else '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh')|tojson }});
+        const fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${destAddress}`;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const uLat = pos.coords.latitude;
+                    const uLng = pos.coords.longitude;
+                    const routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}&destination=${destLat},${destLng}&travelmode=driving`;
+                    window.open(routeUrl, '_blank');
+                },
+                (err) => {
+                    window.open(fallbackUrl, '_blank');
+                },
+                { timeout: 6000 }
+            );
+        } else {
+            window.open(fallbackUrl, '_blank');
         }
     }
 </script>

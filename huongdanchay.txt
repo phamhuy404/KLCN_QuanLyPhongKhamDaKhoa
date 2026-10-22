@@ -206,3 +206,20 @@ Khi muốn thay đổi giao diện, thêm nút bấm, sửa bảng hiển thị 
 - security.py: Mã hóa mật khẩu bảo mật (Werkzeug SHA256) và quản lý token.
 - audit.py: Ghi nhật ký thao tác và thay đổi dữ liệu hệ thống (Audit Log).
 - notification_service.py: Quản lý và phát thông báo hệ thống.
+
+V. CẤU HÌNH VÀ NGUYÊN LÝ HOẠT ĐỘNG BẢN ĐỒ GOOGLE MAPS
+1. Cấu hình vị trí phòng khám trong config.py:
+- CLINIC_ADDRESS: Địa chỉ phòng khám hiển thị tại footer và chỉ đường Google Maps.
+- CLINIC_LATITUDE: Vĩ độ (Latitude) của phòng khám.
+- CLINIC_LONGITUDE: Kinh độ (Longitude) của phòng khám.
+- GOOGLE_MAPS_API_KEY: Khóa API Google Maps Embed (tùy chọn, để trống sẽ tự dùng chế độ nhúng miễn phí 100% không cần API key).
+
+2. Hướng dẫn lấy tọa độ chính xác của phòng khám trên Google Maps:
+- Bước 1: Mở trình duyệt web truy cập https://www.google.com/maps
+- Bước 2: Nhập địa chỉ phòng khám vào ô tìm kiếm hoặc nhấp chuột phải trực tiếp vào điểm vị trí phòng khám trên bản đồ.
+- Bước 3: Nhấp vào dòng đầu tiên hiển thị cặp tọa độ (ví dụ: 10.806689, 106.628581) để sao chép vào bộ nhớ tạm.
+- Bước 4: Dán các giá trị vào CLINIC_LATITUDE và CLINIC_LONGITUDE trong config.py hoặc biến môi trường .env.
+
+3. Cơ chế hoạt động thông minh:
+- Fallback tự động: Nếu có API key, hệ thống dùng Google Maps Embed API v1. Nếu không có API key, hệ thống tự động chuyển sang chế độ nhúng tiêu chuẩn (standard embed) đảm bảo luôn hoạt động ổn định, miễn phí và không bị lỗi giới hạn quota.
+- Tương tác người dùng: Bản đồ nằm ở Cột 2 của Footer, nhấp vào bản đồ hoặc địa chỉ ở Cột 1 sẽ mở Google Maps chỉ đường trực tiếp trên tab mới. Khung bản đồ có tính năng chống kẹt chuột khi cuộn trang (pointer-events-none trên iframe và lớp phủ link bên trên).

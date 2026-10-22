@@ -151,6 +151,15 @@ Mở trình duyệt web truy cập: `http://127.0.0.1:5000`
 python -m unittest discover tests
 ```
 
+### Bước 5: Cấu hình vị trí phòng khám & Google Maps (Tùy chọn)
+Trong `config.py`:
+```python
+CLINIC_ADDRESS = '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh'
+CLINIC_LATITUDE = 10.806689
+CLINIC_LONGITUDE = 106.628581
+GOOGLE_MAPS_API_KEY = '' # Để trống để tự dùng chế độ nhúng miễn phí không cần API key
+```
+
 ## Tài Khoản Đăng Nhập Thử Nghiệm
 
 | Vai trò | Tên đăng nhập | Mật khẩu | Thông tin & Phạm vi quyền hạn |
