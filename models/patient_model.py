@@ -47,6 +47,59 @@ class PatientModel:
         return patients_list
 
     @staticmethod
+    def get_by_department(chuyen_khoa_id, include_history=False):
+        """Lấy danh sách bệnh nhân đã từng khám hoặc có lịch hẹn tại một chuyên khoa."""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT DISTINCT
+                b.*,
+                t.username,
+                s.mach, s.nhiet_do, s.huyet_ap, s.spo2, s.nhip_tho, s.chieu_cao, s.can_nang, s.bmi
+            FROM benh_nhan b
+            LEFT JOIN tai_khoan t ON b.tai_khoan_id = t.id
+            LEFT JOIN chi_so_sinh_ton s ON b.id = s.benh_nhan_id
+            WHERE b.id IN (
+                SELECT benh_nhan_id FROM lich_hen WHERE chuyen_khoa_id = ?
+                UNION
+                SELECT pk.benh_nhan_id FROM phieu_kham pk 
+                JOIN phong_kham ph ON pk.phong_kham_id = ph.id 
+                WHERE ph.chuyen_khoa_id = ?
+                UNION
+                SELECT pk.benh_nhan_id FROM phieu_kham pk
+                JOIN bac_si bs ON pk.bac_si_id = bs.id
+                WHERE bs.chuyen_khoa_id = ?
+            )
+            ORDER BY b.id ASC
+        ''', (chuyen_khoa_id, chuyen_khoa_id, chuyen_khoa_id))
+        rows = cursor.fetchall()
+
+        patients_list = []
+        for r in rows:
+            p = dict(r)
+            birth_year = int(str(p['ngay_sinh'])[:4]) if p.get('ngay_sinh') else 1990
+            p['tuoi'] = datetime.now().year - birth_year
+            p['vitals'] = {
+                'mach': p.get('mach') or '75 lần/phút',
+                'nhiet_do': p.get('nhiet_do') or '36.8 °C',
+                'huyet_ap': p.get('huyet_ap') or '120/80 mmHg',
+                'spo2': p.get('spo2') or '99 %',
+                'nhip_tho': p.get('nhip_tho') or '18 lần/phút',
+                'chieu_cao': p.get('chieu_cao') or '170 cm',
+                'can_nang': p.get('can_nang') or '65 kg',
+                'bmi': p.get('bmi') or '22.5 (Bình thường)'
+            }
+            if include_history:
+                p['lich_su_kham'] = PatientModel.get_patient_history(p['id'])
+            else:
+                p['lich_su_kham'] = []
+            patients_list.append(p)
+
+        conn.close()
+        return patients_list
+
+    @staticmethod
     def get_by_id(patient_id):
         """Lấy chi tiết hồ sơ 360 độ của một bệnh nhân theo ID."""
         conn = get_db()

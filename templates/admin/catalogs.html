@@ -23,11 +23,35 @@
                 Cấu hình hệ thống chuyên khoa, phân bổ phòng khám vật lý và bảng giá danh mục dịch vụ cận lâm sàng/thủ thuật trên toàn phòng khám.
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="openCreateModalCurrentTab()" class="px-5 py-2.5 bg-white text-medical-800 rounded-xl font-bold text-sm shadow-lg hover:bg-teal-50 transition-all flex items-center gap-2 hover:scale-[1.02]">
+        <div class="flex items-center flex-wrap gap-2">
+            <button onclick="openCreateModalCurrentTab()" class="px-4 py-2.5 bg-white text-medical-800 rounded-xl font-bold text-xs shadow-lg hover:bg-teal-50 transition-all flex items-center gap-2 hover:scale-[1.02]">
                 <i class="fa-solid fa-plus text-medical-600"></i>
                 <span id="btn-add-label">Thêm Chuyên Khoa Mới</span>
             </button>
+
+            <!-- Tải file mẫu CSV Dịch Vụ -->
+            <a href="{{ url_for('admin.download_sample_csv', module='services') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold text-xs transition-all flex items-center gap-2 backdrop-blur-sm shadow-sm" title="Tải file mẫu CSV dịch vụ">
+                <i class="fa-solid fa-file-circle-question text-teal-200"></i>
+                <span class="hidden md:inline">File Mẫu</span>
+            </a>
+
+            <!-- Xuất danh sách Dịch Vụ ra CSV -->
+            <a href="{{ url_for('admin.export_csv', module='services') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold text-xs transition-all flex items-center gap-2 backdrop-blur-sm shadow-sm" title="Xuất danh mục dịch vụ ra CSV">
+                <i class="fa-solid fa-file-excel text-emerald-200"></i>
+                <span class="hidden md:inline">Xuất CSV</span>
+            </a>
+
+            <!-- Nhập dịch vụ từ CSV -->
+            <button type="button" onclick="document.getElementById('csv-services-input').click()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-semibold text-xs transition-all flex items-center gap-2 backdrop-blur-sm shadow-sm" title="Nhập danh mục dịch vụ kỹ thuật từ CSV">
+                <i class="fa-solid fa-file-arrow-up text-cyan-200"></i>
+                <span class="hidden md:inline">Nhập CSV</span>
+            </button>
+            <form id="csv-services-form" action="{{ url_for('admin.import_csv', module='services') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                <input type="file" id="csv-services-input" name="csv_file" accept=".csv" onchange="document.getElementById('csv-services-form').submit()">
+            </form>
         </div>
     </div>
 

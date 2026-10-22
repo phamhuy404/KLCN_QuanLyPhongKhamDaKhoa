@@ -226,12 +226,12 @@ class UserModel:
         return doctors
 
     @staticmethod
-    def get_all_staff():
-        """Lấy toàn bộ danh sách nhân viên y tế."""
+    def get_all_staff(user_info=None):
+        """Lấy danh sách nhân viên y tế theo phân quyền vai trò."""
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT nv.*, t.username, t.vai_tro_id, v.ma_vai_tro, v.ten_vai_tro,
+            SELECT nv.*, t.username, t.vai_tro_id, t.trang_thai AS account_active, v.ma_vai_tro, v.ten_vai_tro,
                    bs.id AS bac_si_id, bs.chuyen_khoa_id, bs.phong_kham_chinh_id, bs.hoc_vi,
                    ck.ten_khoa, pk.ten_phong
             FROM nhan_vien nv
@@ -244,6 +244,25 @@ class UserModel:
         ''')
         staff_list = [dict(r) for r in cursor.fetchall()]
         conn.close()
+
+        if not user_info:
+            return staff_list
+
+        role = user_info.get('vai_tro')
+        if role == 'ADMIN':
+            return staff_list
+        elif role == 'BACSI':
+            dept_id = user_info.get('chuyen_khoa_id')
+            if not dept_id and user_info.get('bac_si_id'):
+                doc = UserModel.get_doctor_by_id(user_info.get('bac_si_id'))
+                if doc:
+                    dept_id = doc.get('chuyen_khoa_id')
+            if dept_id:
+                return [s for s in staff_list if s.get('ma_vai_tro') == 'BACSI' and s.get('chuyen_khoa_id') == dept_id]
+            return [s for s in staff_list if s.get('ma_vai_tro') == 'BACSI']
+        elif role in ['LETAN', 'DUOCSI', 'KTV']:
+            return [s for s in staff_list if s.get('ma_vai_tro') == role]
+
         return staff_list
 
     @staticmethod
@@ -512,7 +531,7 @@ class UserModel:
             return False, f'Lỗi xóa nhân sự: {str(e)}'
 
     @staticmethod
-    def get_accounts(role=None, status=None, search=None, page=1, per_page=20):
+    def get_accounts(role=None, status=None, search=None, page=1, per_page=20, allowed_roles=None, doctor_dept_id=None):
         """Xem danh sách tài khoản bệnh nhân và nhân viên, tìm kiếm và phân trang."""
         conn = get_db()
         cursor = conn.cursor()
@@ -522,6 +541,7 @@ class UserModel:
                    v.id AS vai_tro_id, v.ma_vai_tro, v.ten_vai_tro,
                    COALESCE(nv.ho_ten, bn.ho_ten, t.username) AS ho_ten,
                    COALESCE(nv.ma_nhan_vien, bn.ma_benh_nhan, '---') AS ma_dinh_danh,
+                   bn.id AS patient_id,
                    CASE 
                        WHEN nv.id IS NOT NULL THEN 'NHAN_VIEN'
                        WHEN bn.id IS NOT NULL THEN 'BENH_NHAN'
@@ -535,9 +555,28 @@ class UserModel:
         '''
         params = []
 
+        if allowed_roles:
+            placeholders = ', '.join(['?'] * len(allowed_roles))
+            sql += f' AND v.ma_vai_tro IN ({placeholders})'
+            params.extend(allowed_roles)
+
         if role and role != 'ALL':
             sql += ' AND v.ma_vai_tro = ?'
             params.append(role)
+
+        if doctor_dept_id and (role == 'BENHNHAN' or (allowed_roles and 'BENHNHAN' in allowed_roles)):
+            sql += ''' AND (v.ma_vai_tro != 'BENHNHAN' OR bn.id IN (
+                SELECT benh_nhan_id FROM lich_hen WHERE chuyen_khoa_id = ?
+                UNION
+                SELECT pk.benh_nhan_id FROM phieu_kham pk 
+                JOIN phong_kham ph ON pk.phong_kham_id = ph.id 
+                WHERE ph.chuyen_khoa_id = ?
+                UNION
+                SELECT pk.benh_nhan_id FROM phieu_kham pk
+                JOIN bac_si bs ON pk.bac_si_id = bs.id
+                WHERE bs.chuyen_khoa_id = ?
+            ))'''
+            params.extend([doctor_dept_id, doctor_dept_id, doctor_dept_id])
 
         if status is not None and str(status).upper() != 'ALL':
             sql += ' AND t.trang_thai = ?'
@@ -622,11 +661,20 @@ class UserModel:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('SELECT id, username, trang_thai FROM tai_khoan WHERE id = ?', (account_id,))
+            cursor.execute('''
+                SELECT t.id, t.username, t.trang_thai, t.vai_tro_id, v.ma_vai_tro 
+                FROM tai_khoan t
+                JOIN vai_tro v ON t.vai_tro_id = v.id
+                WHERE t.id = ?
+            ''', (account_id,))
             acc = cursor.fetchone()
             if not acc:
                 conn.close()
                 return False, 'Không tìm thấy tài khoản!'
+
+            if acc.get('ma_vai_tro') == 'ADMIN' or acc.get('vai_tro_id') == 1 or acc.get('username') == 'admin':
+                conn.close()
+                return False, 'Không thể vô hiệu hóa tài khoản Quản trị viên hệ thống!'
 
             curr = int(acc['trang_thai'] or 0)
             new_st = 0 if curr == 1 else 1

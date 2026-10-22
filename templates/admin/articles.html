@@ -1,6 +1,6 @@
-﻿{% extends "layouts/base.html" %}
+{% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Quß║ún l├╜ Cß║⌐m Nang Y Khoa & B├ái Viß║┐t{% endblock %}
+{% block title %}H2T Healthcare - Quản lý Cẩm Nang Y Khoa & Bài Viết{% endblock %}
 
 {% block sidebar %}
 {% include "admin/components/sidebar.html" %}
@@ -13,42 +13,64 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Header Trang -->
-    <div
-        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+    <!-- Header Trang & Thao tác bài viết / CSV -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quß║ún trß╗ï</a>
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">Tin tß╗⌐c & Cß║⌐m nang</span>
+                <span class="text-medical-600 font-semibold">Tin tức & Cẩm nang</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
                 <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-newspaper"></i>
                 </span>
-                Quß║ún l├╜ B├ái Viß║┐t & Cß║⌐m Nang Sß╗⌐c Khß╗Åe
+                Quản Lý Bài Viết & Cẩm Nang Sức Khỏe
             </h2>
             <p class="text-xs text-slate-500 mt-1">
-                Bi├¬n tß║¡p, xuß║Ñt bß║ún v├á ph├ón loß║íi b├ái viß║┐t y tß║┐ cß╗Öng ─æß╗ông do ─æß╗Öi ng┼⌐ y b├íc s─⌐ ph├▓ng kh├ím chia sß║╗.
+                Biên tập, xuất bản và phân loại bài viết y tế cộng đồng do đội ngũ y bác sĩ phòng khám chia sẻ.
             </p>
         </div>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center flex-wrap gap-2.5">
             <a href="{{ url_for('admin.article_create') }}"
                 class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-pen-nib"></i>
-                <span>Viß║┐t & ─É─âng B├ái Mß╗¢i</span>
+                <span>Viết & Đăng Bài Mới</span>
             </a>
+
+            <!-- Tải file mẫu CSV -->
+            <a href="{{ url_for('admin.download_sample_csv', module='articles') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu CSV bài viết">
+                <i class="fa-solid fa-file-circle-question text-teal-600"></i>
+                <span class="hidden md:inline">File Mẫu</span>
+            </a>
+
+            <!-- Xuất danh sách CSV -->
+            <a href="{{ url_for('admin.export_csv', module='articles') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất danh sách bài viết ra CSV">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span class="hidden md:inline">Xuất CSV</span>
+            </a>
+
+            <!-- Nhập dữ liệu CSV -->
+            <button type="button" onclick="document.getElementById('csv-articles-input').click()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Nhập bài viết từ CSV">
+                <i class="fa-solid fa-file-arrow-up text-blue-600"></i>
+                <span class="hidden md:inline">Nhập CSV</span>
+            </button>
+            <form id="csv-articles-form" action="{{ url_for('admin.import_csv', module='articles') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                <input type="file" id="csv-articles-input" name="csv_file" accept=".csv" onchange="document.getElementById('csv-articles-form').submit()">
+            </form>
         </div>
     </div>
 
-    <!-- Thanh t├¼m kiß║┐m v├á bß╗Ö lß╗ìc danh mß╗Ñc -->
-    <div
-        class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+    <!-- Thanh tìm kiếm và bộ lọc danh mục -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
             <a href="{{ url_for('admin.articles', category='ALL') }}"
                 class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap {% if current_cat == 'ALL' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                Tß║Ñt cß║ú chuy├¬n mß╗Ñc
+                Tất cả chuyên mục
             </a>
             {% for cat in categories %}
             <a href="{{ url_for('admin.articles', category=cat.name) }}"
@@ -59,25 +81,25 @@
         </div>
 
         <form method="GET" action="{{ url_for('admin.articles') }}" class="w-full sm:w-72 relative">
-            <input type="text" name="search" placeholder="T├¼m ti├¬u ─æß╗ü, t├│m tß║»t b├ái viß║┐t..."
+            <input type="text" name="search" placeholder="Tìm tiêu đề, tóm tắt bài viết..."
                 class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
         </form>
     </div>
 
-    <!-- Bß║úng danh s├ích b├ái viß║┐t -->
+    <!-- Bảng danh sách bài viết -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100">
                     <tr>
-                        <th class="py-3.5 px-4">B├ái Viß║┐t</th>
-                        <th class="py-3.5 px-4">Chuy├¬n Mß╗Ñc</th>
-                        <th class="py-3.5 px-4">T├íc Giß║ú</th>
-                        <th class="py-3.5 px-4">Ng├áy Xuß║Ñt Bß║ún</th>
-                        <th class="py-3.5 px-4 text-center">L╞░ß╗út Xem</th>
-                        <th class="py-3.5 px-4 text-center">Trß║íng Th├íi</th>
-                        <th class="py-3.5 px-4 text-center">Thao T├íc</th>
+                        <th class="py-3.5 px-4">Bài Viết</th>
+                        <th class="py-3.5 px-4">Chuyên Mục</th>
+                        <th class="py-3.5 px-4">Tác Giả</th>
+                        <th class="py-3.5 px-4">Ngày Xuất Bản</th>
+                        <th class="py-3.5 px-4 text-center">Lượt Xem</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -99,8 +121,7 @@
                                         class="font-bold text-slate-900 hover:text-medical-600 block line-clamp-1">
                                         {{ b.tieu_de }}
                                     </a>
-                                    <span class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{{ b.tom_tat or 'Ch╞░a
-                                        c├│ t├│m tß║»t' }}</span>
+                                    <span class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{{ b.tom_tat or 'Chưa có tóm tắt' }}</span>
                                 </div>
                             </div>
                         </td>
@@ -121,19 +142,19 @@
                         <td class="py-3.5 px-4 text-center">
                             <span
                                 class="px-2.5 py-0.5 rounded-full text-[10px] font-bold {% if b.trang_thai == 1 %}bg-emerald-50 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
-                                {{ '─É├ú xuß║Ñt bß║ún' if b.trang_thai == 1 else 'Bß║ún nh├íp' }}
+                                {{ 'Đã xuất bản' if b.trang_thai == 1 else 'Bản nháp' }}
                             </span>
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             <div class="flex items-center justify-center gap-1.5">
                                 <a href="{{ url_for('admin.article_edit', article_id=b.id) }}"
                                     class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1"
-                                    title="Sß╗¡a b├ái viß║┐t">
-                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> Sß╗¡a
+                                    title="Sửa bài viết">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> Sửa
                                 </a>
                                 <button type="button" onclick="deleteArticle({{ b.id }})"
                                     class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center"
-                                    title="X├│a b├ái viß║┐t">
+                                    title="Xóa bài viết">
                                     <i class="fa-solid fa-trash text-xs"></i>
                                 </button>
                             </div>
@@ -141,8 +162,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="p-8 text-center text-slate-400">Ch╞░a c├│ b├ái viß║┐t n├áo trong chuy├¬n mß╗Ñc
-                            n├áy.</td>
+                        <td colspan="7" class="p-8 text-center text-slate-400">Chưa có bài viết nào trong chuyên mục này.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -154,16 +174,20 @@
 
 <script>
     function deleteArticle(articleId) {
-        if (!confirm('Bß║ín c├│ chß║»c chß║»n muß╗æn x├│a b├ái viß║┐t n├áy kh├┤ng?')) return;
+        if (!confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return;
 
         fetch(`/admin/articles/delete/${articleId}`, { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    showAppNotification({ title: '─É├ú x├│a b├ái viß║┐t! ≡ƒùæ∩╕Å', message: data.message, type: 'success' });
+                    if (window.showAppNotification) {
+                        showAppNotification({ title: 'Đã xóa bài viết!', message: data.message, type: 'success' });
+                    } else {
+                        alert(data.message || 'Đã xóa bài viết thành công!');
+                    }
                     setTimeout(() => location.reload(), 800);
                 } else {
-                    alert('Lß╗ùi: ' + data.message);
+                    alert('Lỗi: ' + data.message);
                 }
             });
     }

@@ -65,6 +65,125 @@ class AppointmentModel:
         return [a for a in all_appts if a['benh_nhan_id'] == patient_id]
 
     @staticmethod
+    def get_for_user(user):
+        """Lấy danh sách lịch hẹn phù hợp theo vai trò người dùng:
+        - Admin, Lễ tân: Xem tất cả lịch hẹn.
+        - Bác sĩ: Xem lịch hẹn của chính mình VÀ những lịch hẹn chưa có người nhận (cùng chuyên khoa).
+        """
+        all_appts = AppointmentModel.get_all()
+        if not user:
+            return all_appts
+
+        role = user.get('vai_tro')
+        if role != 'BACSI':
+            return all_appts
+
+        doctor_id = user.get('bac_si_id')
+        dept_id = user.get('chuyen_khoa_id')
+        if not dept_id and doctor_id:
+            from models.user_model import UserModel
+            doc = UserModel.get_doctor_by_id(doctor_id)
+            if doc:
+                dept_id = doc.get('chuyen_khoa_id')
+
+        filtered = []
+        for a in all_appts:
+            # 1. Lịch hẹn do chính bác sĩ phụ trách
+            if doctor_id and a.get('bac_si_id') == doctor_id:
+                filtered.append(a)
+            # 2. Hoặc lịch hẹn chưa có người nhận nhưng cùng chuyên khoa
+            elif not a.get('bac_si_id') and dept_id and a.get('chuyen_khoa_id') == dept_id:
+                filtered.append(a)
+
+        return filtered
+
+    @staticmethod
+    def assign_doctor(appointment_id, doctor_id, user_info=None):
+        """Phân công bác sĩ cho lịch hẹn hoặc bác sĩ tự nhận lịch hẹn."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT phong_kham_chinh_id FROM bac_si WHERE id = ?', (doctor_id,))
+            doc_row = cursor.fetchone()
+            phong_kham_id = doc_row.get('phong_kham_chinh_id') if doc_row else None
+
+            cursor.execute('''
+                UPDATE lich_hen
+                SET bac_si_id = ?, phong_kham_id = COALESCE(?, phong_kham_id), trang_thai = 'Đã xác nhận'
+                WHERE id = ?
+            ''', (doctor_id, phong_kham_id, appointment_id))
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='lich_hen',
+                row_id=appointment_id,
+                action='ASSIGN_DOCTOR',
+                performed_by=user_info.get('id') if user_info else None,
+                performed_by_name=user_info.get('ho_ten') if user_info else 'Hệ thống',
+                reason=f"Phân công bác sĩ ID {doctor_id} cho lịch hẹn #{appointment_id}"
+            )
+            return True, "Đã phân công bác sĩ thành công!"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+
+    @staticmethod
+    def get_doctors_with_availability(chuyen_khoa_id, date_str=None):
+        """Lấy danh sách bác sĩ thuộc chuyên khoa kèm số ca trực/lịch trống trong ngày để Admin phân lịch."""
+        if not date_str:
+            date_str = datetime.now().strftime('%Y-%m-%d')
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT 
+                bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.trang_thai_lam_viec,
+                nv.ho_ten, nv.sdt,
+                pk.id AS phong_kham_id, pk.ten_phong,
+                ck.ten_khoa
+            FROM bac_si bs
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+            WHERE bs.chuyen_khoa_id = ? AND bs.trang_thai_lam_viec = 'Đang làm việc'
+            ORDER BY bs.id ASC
+        ''', (chuyen_khoa_id,))
+        docs = [dict(r) for r in cursor.fetchall()]
+
+        # Lấy lịch trực và số lượt đã đặt trong ngày đó
+        for d in docs:
+            cursor.execute('''
+                SELECT id, ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky
+                FROM lich_lam_viec
+                WHERE bac_si_id = ? AND ngay_lam = ? AND trang_thai = 1
+            ''', (d['id'], date_str))
+            shift = cursor.fetchone()
+            if shift:
+                d['has_shift'] = True
+                d['ca_lam'] = shift['ca_lam']
+                d['gio_truc'] = f"{str(shift['gio_bat_dau'])[:5]} - {str(shift['gio_ket_thuc'])[:5]}"
+                d['max_slots'] = shift['so_luong_kham_toi_da']
+                d['booked_slots'] = shift['so_luong_da_dang_ky']
+                d['available_slots'] = max(0, shift['so_luong_kham_toi_da'] - shift['so_luong_da_dang_ky'])
+            else:
+                d['has_shift'] = False
+                d['gio_truc'] = 'Theo ca hành chính'
+                # Đếm số ca hẹn thực tế trong ngày đó
+                cursor.execute('''
+                    SELECT COUNT(*) AS cnt FROM lich_hen
+                    WHERE bac_si_id = ? AND ngay_hen = ? AND trang_thai != 'Đã hủy'
+                ''', (d['id'], date_str))
+                cnt_row = cursor.fetchone()
+                d['booked_slots'] = cnt_row['cnt'] if cnt_row else 0
+                d['max_slots'] = 20
+                d['available_slots'] = max(0, 20 - d['booked_slots'])
+
+        conn.close()
+        return docs
+
+    @staticmethod
     def create(benh_nhan_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do_kham, audit_user=None):
         """Tạo lịch hẹn khám mới kèm kiểm tra ca trực và gửi thông báo in-app."""
         # Kiểm tra ngày giờ hợp lệ (không cho đặt trong quá khứ)

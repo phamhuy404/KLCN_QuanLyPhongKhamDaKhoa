@@ -27,8 +27,18 @@ def dashboard():
 
 @admin_bp.route('/patients')
 def patients():
-    """Quản lý danh sách hồ sơ bệnh nhân."""
-    patients_list = PatientModel.get_all()
+    """Quản lý danh sách hồ sơ bệnh nhân theo phân quyền."""
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+    if user_role == 'BACSI':
+        dept_id = curr_user.get('chuyen_khoa_id')
+        if not dept_id and curr_user.get('bac_si_id'):
+            doc_info = UserModel.get_doctor_by_id(curr_user.get('bac_si_id'))
+            if doc_info:
+                dept_id = doc_info.get('chuyen_khoa_id')
+        patients_list = PatientModel.get_by_department(dept_id) if dept_id else PatientModel.get_all()
+    else:
+        patients_list = PatientModel.get_all()
     return render_template('admin/patients.html', active_page='admin_patients', patients=patients_list)
 
 @admin_bp.route('/patients/<int:patient_id>')
@@ -59,10 +69,13 @@ def patient_details_default():
 
 @admin_bp.route('/appointments')
 def appointments():
-    """Quản lý tiếp nhận và phân bổ lịch hẹn khám."""
-    appointments_list = AppointmentModel.get_all()
+    """Quản lý tiếp nhận và phân bổ lịch hẹn khám theo phân quyền."""
+    curr_user = session.get('user', {})
+    appointments_list = AppointmentModel.get_for_user(curr_user)
     patients_list = PatientModel.get_all()
-    return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments_list, patients=patients_list)
+    doctors = UserModel.get_all_doctors()
+    departments = ClinicModel.get_all_departments()
+    return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments_list, patients=patients_list, doctors=doctors, departments=departments)
 
 @admin_bp.route('/reception')
 def reception():
@@ -119,7 +132,7 @@ def reports():
     return render_template('admin/reports.html', active_page='admin_reports', stats=stats, report_stats=report_stats, invoices=invoices)
 
 @admin_bp.route('/catalogs')
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN', 'DUOCSI')
 def catalogs():
     """Quản lý danh mục y tế: Chuyên khoa, Phòng khám vật lý, Dịch vụ kỹ thuật."""
     departments = ClinicModel.get_all_departments(active_only=False)
@@ -128,18 +141,44 @@ def catalogs():
     return render_template('admin/catalogs.html', active_page='admin_catalogs', departments=departments, rooms=rooms, services=services)
 
 @admin_bp.route('/staff')
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def staff():
     """Quản lý nhân sự y tế, bác sĩ chuyên khoa và lịch làm việc / phân ca trực."""
     from models.schedule_model import ScheduleModel
-    staff_list = UserModel.get_all_staff()
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro', 'ADMIN')
+
+    staff_list = UserModel.get_all_staff(user_info=curr_user)
     doctors = UserModel.get_all_doctors()
-    schedules = ScheduleModel.get_all()
+    schedules = ScheduleModel.get_all(current_user=curr_user)
     roles = UserModel.get_all_roles()
     departments = ClinicModel.get_all_departments(active_only=True)
     rooms = ClinicModel.get_all_rooms(active_only=True)
-    accounts = UserModel.get_accounts()
-    return render_template('admin/staff.html', active_page='admin_staff', staff_list=staff_list, doctors=doctors, schedules=schedules, roles=roles, departments=departments, rooms=rooms, accounts=accounts)
+    week_bounds = ScheduleModel.get_week_bounds()
+
+    pending_approvals = []
+    if user_role in ['ADMIN', 'LETAN']:
+        filter_role = request.args.get('pending_role')
+        filter_ca = request.args.get('pending_ca')
+        pending_approvals = ScheduleModel.get_pending_approvals(filter_role=filter_role, filter_ca=filter_ca)
+
+    active_tab = request.args.get('tab', 'staff')
+
+    return render_template(
+        'admin/staff.html',
+        active_page='admin_staff',
+        curr_user=curr_user,
+        user_role=user_role,
+        staff_list=staff_list,
+        doctors=doctors,
+        schedules=schedules,
+        roles=roles,
+        departments=departments,
+        rooms=rooms,
+        week_bounds=week_bounds,
+        pending_approvals=pending_approvals,
+        active_tab=active_tab
+    )
 
 @admin_bp.route('/feedbacks')
 @roles_required('ADMIN', 'LETAN', 'BACSI')
@@ -160,58 +199,42 @@ def backups():
     return render_template('admin/backups.html', active_page='admin_backups', backup_data=backup_data)
 
 @admin_bp.route('/accounts')
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def accounts():
-    """Quản lý danh sách tài khoản, phân quyền và khóa/mở tài khoản."""
-    role = request.args.get('role', 'ALL')
-    status = request.args.get('status', 'ALL')
-    search = request.args.get('search', '')
-    page = request.args.get('page', 1, type=int)
-
-    accounts_data = UserModel.get_accounts(
-        role=role, status=status, search=search, page=page, per_page=15
-    )
-    stats = UserModel.get_account_stats()
-    roles = UserModel.get_all_roles()
-
-    return render_template(
-        'admin/accounts.html',
-        active_page='admin_accounts',
-        accounts=accounts_data.get('items', []),
-        pagination=accounts_data,
-        stats=stats,
-        roles=roles,
-        current_role=role,
-        current_status=status
-    )
+    """Điều hướng hợp nhất sang phân hệ Quản lý Nhân sự & Lịch trực."""
+    return redirect(url_for('admin.staff', tab='staff'))
 
 @admin_bp.route('/accounts/reset-password', methods=['POST'])
 @roles_required('ADMIN')
 def reset_account_password():
-    """Đặt lại mật khẩu cho tài khoản người dùng."""
+    """Đặt lại mật khẩu cho tài khoản người dùng (Dành riêng cho Admin)."""
     req_json = request.get_json(silent=True) or {}
     account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
     new_password = req_json.get('new_password') or request.form.get('new_password')
     curr_user = session.get('user')
     success, msg = UserModel.reset_account_password(account_id, new_password, audit_user=curr_user)
-    return jsonify({'success': success, 'message': msg})
+    if success:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
 
 @admin_bp.route('/accounts/toggle-status/<int:account_id>', methods=['POST'])
 @admin_bp.route('/accounts/toggle-status', methods=['POST'])
 @roles_required('ADMIN')
 def toggle_account_status(account_id=None):
-    """Bật/tắt trạng thái hoạt động của tài khoản."""
+    """Bật/tắt trạng thái hoạt động của tài khoản (Chặn vô hiệu hóa tài khoản Admin)."""
     if not account_id:
         req_json = request.get_json(silent=True) or {}
         account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
     curr_user = session.get('user')
     success, res = UserModel.toggle_account_status(account_id, audit_user=curr_user)
-    return jsonify({'success': success, 'new_status': res, 'status': res, 'message': 'Đã thay đổi trạng thái thành công'})
+    if not success:
+        return jsonify({'success': False, 'message': res}), 400
+    return jsonify({'success': True, 'new_status': res, 'status': res, 'message': 'Đã thay đổi trạng thái thành công'})
 
 @admin_bp.route('/accounts/create-staff', methods=['POST'])
 @roles_required('ADMIN')
 def create_staff_account():
-    """Tạo mới tài khoản nhân viên / tiếp tân / bác sĩ từ trang Quản lý Tài khoản."""
+    """Tạo mới tài khoản nhân viên / tiếp tân / bác sĩ."""
     data = request.form.to_dict()
     curr_user = session.get('user')
     success, res = UserModel.create_staff(data, audit_user=curr_user)
@@ -220,8 +243,58 @@ def create_staff_account():
     else:
         flash(f"Lỗi tạo tài khoản: {res}", 'error')
 
-    role = request.form.get('redirect_role') or 'ALL'
-    return redirect(url_for('admin.accounts', role=role))
+    return redirect(url_for('admin.staff', tab='staff'))
+
+@admin_bp.route('/sample-csv/<string:module>')
+@roles_required('ADMIN', 'LETAN', 'DUOCSI')
+def download_sample_csv(module):
+    """Tải tệp CSV mẫu chuẩn UTF-8-SIG."""
+    from core.csv_service import CSVService
+    from flask import Response
+    content, filename = CSVService.get_sample_csv(module)
+    if not content:
+        flash(filename, 'error')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+    return Response(
+        content,
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+@admin_bp.route('/export-csv/<string:module>')
+@roles_required('ADMIN', 'LETAN', 'DUOCSI')
+def export_csv(module):
+    """Xuất toàn bộ dữ liệu thực tế ra tệp CSV có BOM tiếng Việt."""
+    from core.csv_service import CSVService
+    from flask import Response
+    content, filename = CSVService.export_csv(module)
+    if not content:
+        flash(filename, 'error')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+    return Response(
+        content,
+        mimetype='text/csv; charset=utf-8',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+@admin_bp.route('/import-csv/<string:module>', methods=['POST'])
+@roles_required('ADMIN', 'LETAN', 'DUOCSI')
+def import_csv(module):
+    """Nhập dữ liệu hàng loạt từ tệp CSV kèm kiểm tra thông minh chống trùng lặp."""
+    from core.csv_service import CSVService
+    file = request.files.get('csv_file')
+    if not file or not file.filename:
+        flash('Vui lòng chọn một tệp CSV để nhập dữ liệu!', 'warning')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+
+    curr_user = session.get('user', {})
+    success, msg, inserted, updated = CSVService.import_csv(module, file.stream, current_user=curr_user)
+    if success:
+        flash(msg, 'success')
+    else:
+        flash(msg, 'error')
+
+    return redirect(request.referrer or url_for('admin.dashboard'))
 
 @admin_bp.route('/doctors')
 def doctors():

@@ -30,6 +30,40 @@ def book_appointment():
         return jsonify({'success': True, 'ma_lich_hen': result, 'message': 'Đặt lịch thành công!'})
     return jsonify({'success': False, 'message': result}), 400
 
+@api_bp.route('/appointment/assign-doctor', methods=['POST'])
+@roles_required('ADMIN', 'BACSI')
+def assign_doctor():
+    """API phân công bác sĩ phụ trách lịch hẹn hoặc bác sĩ tự nhận ca khám."""
+    data = request.get_json() or {}
+    appointment_id = data.get('appointment_id')
+    user = session.get('user', {})
+    user_role = user.get('vai_tro')
+
+    if user_role == 'BACSI':
+        doctor_id = user.get('bac_si_id')
+    else:
+        doctor_id = data.get('bac_si_id')
+
+    if not appointment_id or not doctor_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID lịch hẹn hoặc ID bác sĩ!'}), 400
+
+    success, msg = AppointmentModel.assign_doctor(appointment_id, int(doctor_id), user_info=user)
+    if success:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/doctors/schedule-availability', methods=['GET'])
+@roles_required('ADMIN', 'BACSI', 'LETAN')
+def doctor_schedule_availability():
+    """API tra cứu bác sĩ theo chuyên khoa kèm lịch trực và số lượt còn trống trong ngày."""
+    dept_id = request.args.get('department_id', type=int)
+    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    if not dept_id:
+        return jsonify({'success': False, 'message': 'Thiếu mã chuyên khoa!'}), 400
+
+    docs = AppointmentModel.get_doctors_with_availability(dept_id, date_str)
+    return jsonify({'success': True, 'doctors': docs})
+
 @api_bp.route('/appointment/update-status', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'LETAN')
 def update_appointment_status():
@@ -683,6 +717,7 @@ def create_schedule():
     from models.schedule_model import ScheduleModel
     data = request.get_json() or {}
     bs_id = data.get('bac_si_id')
+    nhan_vien_id = data.get('nhan_vien_id')
     pk_id = data.get('phong_kham_id')
     ngay = data.get('ngay_lam')
     ca = data.get('ca_lam', 1)
@@ -690,10 +725,74 @@ def create_schedule():
     kt = data.get('gio_ket_thuc')
     sl = data.get('so_luong_kham_toi_da', 20)
 
-    ok, res = ScheduleModel.create_schedule(bs_id, pk_id, ngay, ca, bd, kt, sl)
+    ok, res = ScheduleModel.create_schedule(bs_id, pk_id, ngay, ca, bd, kt, sl, nhan_vien_id=nhan_vien_id)
     if ok:
         return jsonify({'success': True, 'schedule_id': res, 'message': 'Thêm lịch làm việc thành công!'})
     return jsonify({'success': False, 'message': res}), 400
+
+@api_bp.route('/schedule/register', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+def register_schedule():
+    """API nhân viên tự đăng ký ca làm trong 2 tuần tiếp theo."""
+    from models.schedule_model import ScheduleModel
+    data = request.get_json() or {}
+    user = session.get('user')
+    ngay = data.get('ngay_lam')
+    ca = data.get('ca_lam', 1)
+    pk_id = data.get('phong_kham_id')
+    ghi_chu = data.get('ghi_chu')
+    ok, msg = ScheduleModel.register_schedule(user, ngay, ca, pk_id, ghi_chu)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/schedule/cancel-request', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+def cancel_request_schedule():
+    """API gửi đơn xin hủy ca trực trong tuần hiện tại."""
+    from models.schedule_model import ScheduleModel
+    data = request.get_json() or {}
+    user = session.get('user')
+    sc_id = data.get('id') or data.get('schedule_id')
+    reason = data.get('ly_do') or data.get('reason')
+    if not sc_id or not reason:
+        return jsonify({'success': False, 'message': 'Thiếu ID ca trực hoặc lý do xin hủy!'}), 400
+    ok, msg = ScheduleModel.request_cancellation(sc_id, user, reason)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/schedule/approve-cancellation', methods=['POST'])
+@roles_required('ADMIN', 'LETAN')
+def approve_cancellation_schedule():
+    """API duyệt hoặc từ chối đơn xin hủy ca trực."""
+    from models.schedule_model import ScheduleModel
+    data = request.get_json() or {}
+    user = session.get('user')
+    sc_id = data.get('id') or data.get('schedule_id')
+    approved = bool(data.get('approved', True))
+    if not sc_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID ca trực!'}), 400
+    ok, msg = ScheduleModel.approve_cancellation(sc_id, user, approved)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/schedule/approve-registration', methods=['POST'])
+@roles_required('ADMIN', 'LETAN')
+def approve_registration_schedule():
+    """API duyệt hoặc từ chối yêu cầu đăng ký ca làm (tối đa 5 người/ca/role)."""
+    from models.schedule_model import ScheduleModel
+    data = request.get_json() or {}
+    user = session.get('user')
+    sc_id = data.get('id') or data.get('schedule_id')
+    approved = bool(data.get('approved', True))
+    if not sc_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID ca trực!'}), 400
+    ok, msg = ScheduleModel.approve_schedule(sc_id, user, approved)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/schedule/update', methods=['POST'])
 @roles_required('ADMIN')
@@ -735,7 +834,7 @@ def toggle_schedule():
     return jsonify({'success': False, 'message': res}), 400
 
 @api_bp.route('/schedule/delete', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def delete_schedule():
     """API xóa ca làm việc."""
     from models.schedule_model import ScheduleModel
@@ -744,7 +843,8 @@ def delete_schedule():
     if not sc_id:
         return jsonify({'success': False, 'message': 'Thiếu ID lịch làm việc!'}), 400
 
-    ok, msg = ScheduleModel.delete_schedule(sc_id)
+    user = session.get('user')
+    ok, msg = ScheduleModel.delete_schedule(sc_id, current_user=user)
     if ok:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400

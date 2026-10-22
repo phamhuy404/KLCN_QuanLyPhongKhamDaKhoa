@@ -32,12 +32,36 @@
             </p>
         </div>
 
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center flex-wrap gap-2.5">
             <button type="button" onclick="openAddMedicineModal()" 
-                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                    class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-plus"></i>
-                <span>Nhập Kho / Thêm Thuốc</span>
+                <span>Thêm Thuốc Mới</span>
             </button>
+
+            <!-- Tải file mẫu CSV Thuốc -->
+            <a href="{{ url_for('admin.download_sample_csv', module='medicines') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu CSV thuốc">
+                <i class="fa-solid fa-file-circle-question text-teal-600"></i>
+                <span class="hidden md:inline">File Mẫu</span>
+            </a>
+
+            <!-- Xuất danh sách Thuốc ra CSV -->
+            <a href="{{ url_for('admin.export_csv', module='medicines') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất kho thuốc ra file CSV">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span class="hidden md:inline">Xuất CSV</span>
+            </a>
+
+            <!-- Nhập thuốc hàng loạt từ CSV -->
+            <button type="button" onclick="document.getElementById('csv-medicines-input').click()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Nhập danh sách thuốc từ CSV (tự động cộng dồn tồn kho nếu trùng)">
+                <i class="fa-solid fa-file-arrow-up text-blue-600"></i>
+                <span class="hidden md:inline">Nhập CSV</span>
+            </button>
+            <form id="csv-medicines-form" action="{{ url_for('admin.import_csv', module='medicines') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                <input type="file" id="csv-medicines-input" name="csv_file" accept=".csv" onchange="document.getElementById('csv-medicines-form').submit()">
+            </form>
         </div>
     </div>
 

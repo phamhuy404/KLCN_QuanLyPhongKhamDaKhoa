@@ -49,6 +49,25 @@ html {
     width: 16.5rem !important;
 }
 
+/* Giữ trạng thái mở tức thì khi chuyển trang, loại bỏ hiệu ứng giật thụt vô thò ra */
+.sidebar-auto-expand.is-hold-open {
+    width: 16.5rem !important;
+    transition: none !important;
+}
+
+.sidebar-auto-expand.is-hold-open .sidebar-text-fade {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateX(0) !important;
+    transition: none !important;
+}
+
+.sidebar-auto-expand.is-hold-open .sidebar-extra-content {
+    opacity: 1 !important;
+    max-height: 120px !important;
+    transition: none !important;
+}
+
 /* 
  * PHẦN CHỮ (TEXT LABELS): 
  * Tuyệt đối không bao giờ bị rớt dòng (white-space: nowrap).

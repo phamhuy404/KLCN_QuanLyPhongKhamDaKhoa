@@ -34,10 +34,34 @@
 
         <div class="flex items-center flex-wrap gap-2.5">
             <button type="button" onclick="openNewAppointmentModal()" 
-                    class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                    class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-calendar-plus"></i>
                 <span>Đặt Lịch Tại Quầy</span>
             </button>
+
+            <!-- Tải file mẫu CSV -->
+            <a href="{{ url_for('admin.download_sample_csv', module='appointments') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu CSV">
+                <i class="fa-solid fa-file-circle-question text-teal-600"></i>
+                <span class="hidden md:inline">File Mẫu</span>
+            </a>
+
+            <!-- Xuất danh sách CSV -->
+            <a href="{{ url_for('admin.export_csv', module='appointments') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất dữ liệu lịch hẹn ra file CSV">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span class="hidden md:inline">Xuất CSV</span>
+            </a>
+
+            <!-- Nhập dữ liệu CSV -->
+            <button type="button" onclick="document.getElementById('csv-appointments-input').click()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Nhập danh sách lịch hẹn từ CSV">
+                <i class="fa-solid fa-file-arrow-up text-blue-600"></i>
+                <span class="hidden md:inline">Nhập CSV</span>
+            </button>
+            <form id="csv-appointments-form" action="{{ url_for('admin.import_csv', module='appointments') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                <input type="file" id="csv-appointments-input" name="csv_file" accept=".csv" onchange="document.getElementById('csv-appointments-form').submit()">
+            </form>
         </div>
     </div>
 
@@ -101,10 +125,10 @@
                 <select id="filter-doctor" onchange="filterAppointments()" 
                         class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
                     <option value="">Tất cả Bác sĩ phụ trách</option>
-                    <option value="Trần Minh Quân">BS. CKII. Trần Minh Quân</option>
-                    <option value="Đỗ Hoàng Yến">BS. CKI. Đỗ Hoàng Yến</option>
-                    <option value="Phan Thu Trang">BS. CKI. Phan Thu Trang</option>
-                    <option value="Nguyễn Trọng Nghĩa">BS. CKI. Nguyễn Trọng Nghĩa</option>
+                    <option value="__unassigned__">⚠️ Chưa phân công bác sĩ</option>
+                    {% for d in doctors %}
+                    <option value="{{ d.ho_ten }}">{{ d.hoc_vi or 'BS' }}. {{ d.ho_ten }} ({{ d.ten_khoa or 'Khoa' }})</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -177,22 +201,20 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Bác sĩ phụ trách <span class="text-rose-500">*</span></label>
-                    <select id="app-doctor" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
-                        <option value="BS. CKII. Trần Minh Quân">BS. CKII. Trần Minh Quân</option>
-                        <option value="BS. CKI. Đỗ Hoàng Yến">BS. CKI. Đỗ Hoàng Yến</option>
-                        <option value="BS. CKI. Phan Thu Trang">BS. CKI. Phan Thu Trang</option>
-                        <option value="BS. CKI. Nguyễn Trọng Nghĩa">BS. CKI. Nguyễn Trọng Nghĩa</option>
+                    <label class="block font-semibold text-slate-700 mb-1">Chuyên khoa <span class="text-rose-500">*</span></label>
+                    <select id="app-dept" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.ten_khoa }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Chuyên khoa</label>
-                    <select id="app-dept" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
-                        <option value="Nội Tổng Quát">Nội Tổng Quát</option>
-                        <option value="Tim Mạch">Tim Mạch</option>
-                        <option value="Nhi Khoa">Nhi Khoa</option>
-                        <option value="Tai Mũi Họng">Tai Mũi Họng</option>
-                        <option value="Tiêu Hóa">Tiêu Hóa</option>
+                    <label class="block font-semibold text-slate-700 mb-1">Bác sĩ phụ trách</label>
+                    <select id="app-doctor" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        <option value="">-- Để phòng khám tự phân công --</option>
+                        {% for d in doctors %}
+                        <option value="{{ d.id }}">{{ d.hoc_vi or 'BS' }}. {{ d.ho_ten }} ({{ d.ten_khoa or 'Chuyên khoa' }})</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -232,10 +254,68 @@
     </div>
 </div>
 
+<!-- Modal Phân công bác sĩ (Admin) -->
+<div id="assign-doctor-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-user-doctor text-medical-600"></i> Phân Công Bác Sĩ Phụ Trách
+            </h3>
+            <button onclick="closeAssignDoctorModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-slate-500">Mã lịch hẹn:</span>
+                <span id="assign-modal-ma-hen" class="font-mono font-bold text-medical-700"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">Bệnh nhân:</span>
+                <span id="assign-modal-benh-nhan" class="font-bold text-slate-800"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">Thời gian khám:</span>
+                <span id="assign-modal-datetime" class="font-semibold text-slate-700"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">Chuyên khoa:</span>
+                <span id="assign-modal-khoa" class="font-semibold text-teal-700"></span>
+            </div>
+        </div>
+
+        <div>
+            <label class="block font-semibold text-slate-700 mb-2 text-xs">
+                Chọn bác sĩ phù hợp (Theo dõi ca trực và lượt trống thực tế):
+            </label>
+            <div id="assign-doctor-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <!-- Danh sách bác sĩ render động qua API -->
+                <div class="text-center py-6 text-slate-400 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin text-base block mb-2 text-medical-600"></i>
+                    Đang tra cứu lịch trực bác sĩ...
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5 text-xs">
+            <button type="button" onclick="closeAssignDoctorModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">
+                Đóng
+            </button>
+            <button type="button" id="btn-confirm-assign" onclick="submitAssignDoctor()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20">
+                Xác Nhận Phân Công
+            </button>
+        </div>
+    </div>
+</div>
+
 <script type="application/json" id="admin-appointments-data">
     {{ appointments | tojson | safe }}
 </script>
 <script>
+    const currentUserRole = "{{ session.get('user', {}).get('vai_tro', '') }}";
+    const currentDoctorId = {{ session.get('user', {}).get('bac_si_id') or 'null' }};
+
     // Dữ liệu lịch hẹn từ CSDL SQL Server
     let rawAppointments = JSON.parse(document.getElementById('admin-appointments-data').textContent || '[]');
     var appointments = (rawAppointments || []).map(a => {
@@ -250,10 +330,12 @@
             gio_hen: a.gio_hen ? a.gio_hen.substring(0, 5) : '08:30',
             ngay_hen: a.ngay_hen || '',
             patient_id: a.benh_nhan_id,
-            benh_nhan: a.ho_ten_benh_nhan || 'Bệnh nhân',
+            benh_nhan: a.ten_benh_nhan || a.ho_ten_benh_nhan || 'Bệnh nhân',
             ma_bn: a.ma_benh_nhan || 'BN',
             sdt: a.sdt_benh_nhan || '',
-            bac_si: a.ho_ten_bac_si || 'BS. CKII. Trần Minh Quân',
+            bac_si_id: a.bac_si_id || null,
+            bac_si: a.ten_bac_si || a.ho_ten_bac_si || '',
+            chuyen_khoa_id: a.chuyen_khoa_id || 1,
             khoa: a.ten_khoa || 'Khoa Nội Tổng Quát',
             ly_do: a.ly_do_kham || 'Khám theo yêu cầu',
             trang_thai: status
@@ -292,6 +374,39 @@
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px]">Đã hủy</span>';
             }
 
+            let doctorCell = '';
+            if (app.bac_si && app.bac_si.trim() !== '') {
+                doctorCell = `
+                    <span class="font-semibold text-slate-800 block">${app.bac_si}</span>
+                    ${currentUserRole === 'ADMIN' && app.trang_thai !== 'cancelled' && app.trang_thai !== 'completed' ? `
+                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
+                                class="text-[10px] text-medical-600 hover:text-medical-800 hover:underline inline-flex items-center gap-1 font-semibold mt-0.5">
+                            <i class="fa-solid fa-pen-to-square"></i> Đổi bác sĩ
+                        </button>
+                    ` : ''}
+                `;
+            } else {
+                doctorCell = `
+                    <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200 inline-block mb-1">
+                        Chưa phân công
+                    </span>
+                    <div>
+                    ${currentUserRole === 'ADMIN' ? `
+                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
+                                class="px-2 py-1 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-[10px] inline-flex items-center gap-1 border border-medical-200 transition-colors">
+                            <i class="fa-solid fa-user-plus text-[9px]"></i> Phân công
+                        </button>
+                    ` : ''}
+                    ${currentUserRole === 'BACSI' ? `
+                        <button type="button" onclick="claimAppointment(${app.id}, '${app.ma_hen}')" 
+                                class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] inline-flex items-center gap-1 border border-emerald-200 transition-colors">
+                            <i class="fa-solid fa-hand-holding-medical text-[9px]"></i> Nhận khám
+                        </button>
+                    ` : ''}
+                    </div>
+                `;
+            }
+
             tr.innerHTML = `
                 <td class="py-3 px-4 font-mono font-bold text-medical-700">${app.ma_hen}</td>
                 <td class="py-3 px-4">
@@ -305,7 +420,7 @@
                     <span class="text-[10px] text-slate-400 font-mono">${app.ma_bn} • ${app.sdt}</span>
                 </td>
                 <td class="py-3 px-4">
-                    <span class="font-semibold text-slate-800">${app.bac_si}</span>
+                    ${doctorCell}
                 </td>
                 <td class="py-3 px-4">
                     <span class="px-2 py-0.5 rounded-lg bg-teal-50 text-teal-700 font-semibold text-[11px]">${app.khoa}</span>
@@ -318,6 +433,20 @@
                 </td>
                 <td class="py-3 px-4 text-center">
                     <div class="flex items-center justify-center gap-1.5">
+                        ${(!app.bac_si_id && currentUserRole === 'BACSI') ? `
+                        <button type="button" onclick="claimAppointment(${app.id}, '${app.ma_hen}')" 
+                                class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Nhận ca khám này">
+                            <i class="fa-solid fa-hand-holding-medical text-xs"></i>
+                            <span>Nhận</span>
+                        </button>
+                        ` : ''}
+                        ${(!app.bac_si_id && currentUserRole === 'ADMIN') ? `
+                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
+                                class="px-2 py-1 rounded-lg bg-medical-600 hover:bg-medical-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Phân công bác sĩ">
+                            <i class="fa-solid fa-user-plus text-xs"></i>
+                            <span>Phân công</span>
+                        </button>
+                        ` : ''}
                         <a href="/admin/emr?patient_id=${app.patient_id}" 
                            class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Bắt đầu khám (EMR)">
                             <i class="fa-solid fa-stethoscope text-xs"></i>
@@ -347,14 +476,20 @@
 
         const filtered = appointments.filter(a => {
             const matchQuery = !query || (window.fuzzyMatchRecord
-                ? window.fuzzyMatchRecord(query, [a.ma_hen, a.benh_nhan, a.sdt, a.bac_si, a.chuyen_khoa, a.ly_do])
+                ? window.fuzzyMatchRecord(query, [a.ma_hen, a.benh_nhan, a.sdt, a.bac_si, a.khoa, a.ly_do])
                 : (
                     a.ma_hen.toLowerCase().includes(query) ||
                     a.benh_nhan.toLowerCase().includes(query) ||
                     a.sdt.toLowerCase().includes(query)
                 ));
 
-            const matchDoc = !docFilter || a.bac_si.includes(docFilter);
+            let matchDoc = true;
+            if (docFilter === '__unassigned__') {
+                matchDoc = !a.bac_si_id || !a.bac_si;
+            } else if (docFilter) {
+                matchDoc = a.bac_si.includes(docFilter);
+            }
+
             const matchStatus = !statusFilter || a.trang_thai === statusFilter;
 
             return matchQuery && matchDoc && matchStatus;
@@ -366,16 +501,12 @@
     // Chuyển đổi trạng thái hẹn qua API
     async function cycleAppointmentStatus(id, currentStatus) {
         let nextStatus = 'waiting';
-        let statusText = 'Chờ khám';
         if (currentStatus === 'waiting') {
             nextStatus = 'confirmed';
-            statusText = 'Đã xác nhận';
         } else if (currentStatus === 'confirmed') {
             nextStatus = 'completed';
-            statusText = 'Đã khám xong';
         } else {
             nextStatus = 'waiting';
-            statusText = 'Chờ khám';
         }
 
         try {
@@ -426,6 +557,124 @@
         }
     }
 
+    // Bác sĩ tự nhận ca khám
+    async function claimAppointment(appointmentId, maHen) {
+        if (!confirm(`Bạn có chắc chắn muốn nhận phụ trách ca khám #${maHen} này không?`)) return;
+        try {
+            const res = await fetch('/api/appointment/assign-doctor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ appointment_id: appointmentId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Bạn đã nhận phụ trách ca khám thành công!');
+                window.location.reload();
+            } else {
+                alert('Lỗi nhận ca khám: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+        }
+    }
+
+    // Modal Phân công bác sĩ (Admin)
+    let currentAssigningAppointmentId = null;
+    let selectedDoctorIdForAssign = null;
+
+    function openAssignDoctorModal(appId, deptId, dateStr, maHen, bnName, gioHen, tenKhoa) {
+        currentAssigningAppointmentId = appId;
+        selectedDoctorIdForAssign = null;
+        document.getElementById('assign-modal-ma-hen').innerText = '#' + maHen;
+        document.getElementById('assign-modal-benh-nhan').innerText = bnName;
+        document.getElementById('assign-modal-datetime').innerText = `${gioHen} ngày ${dateStr}`;
+        document.getElementById('assign-modal-khoa').innerText = tenKhoa;
+        document.getElementById('assign-doctor-modal').classList.remove('hidden');
+
+        const container = document.getElementById('assign-doctor-list');
+        container.innerHTML = `
+            <div class="text-center py-6 text-slate-400 text-xs">
+                <i class="fa-solid fa-spinner fa-spin text-base block mb-2 text-medical-600"></i>
+                Đang tra cứu lịch trực và lượt trống bác sĩ...
+            </div>
+        `;
+
+        fetch(`/api/doctors/schedule-availability?department_id=${deptId}&date=${dateStr}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.doctors || data.doctors.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            <i class="fa-solid fa-user-slash text-xl block mb-2"></i>
+                            Không có bác sĩ khả dụng cho khoa này trong ngày đã chọn.
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = data.doctors.map(d => {
+                    const isFull = d.available_slots <= 0;
+                    return `
+                        <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-medical-500 cursor-pointer transition-all ${isFull ? 'bg-slate-50 opacity-75' : 'bg-white hover:bg-medical-50/30'}">
+                            <div class="flex items-center gap-3">
+                                <input type="radio" name="selected_doctor" value="${d.id}" onchange="selectedDoctorIdForAssign = ${d.id}" ${isFull ? 'disabled' : ''} class="text-medical-600 focus:ring-medical-500">
+                                <div>
+                                    <h5 class="font-bold text-slate-800 text-xs">${d.hoc_vi ? d.hoc_vi + '. ' : ''}${d.ho_ten}</h5>
+                                    <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                                        <span><i class="fa-solid fa-clock text-[10px] text-slate-400"></i> ${d.gio_truc}</span>
+                                        ${d.ten_phong ? `<span>• <i class="fa-solid fa-door-open text-[10px] text-slate-400"></i> ${d.ten_phong}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                ${isFull ? `
+                                    <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">Đã đầy lượt (${d.booked_slots}/${d.max_slots})</span>
+                                ` : `
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">Còn ${d.available_slots} / ${d.max_slots} lượt</span>
+                                `}
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                container.innerHTML = `<div class="text-rose-500 text-center py-4 text-xs">Lỗi kết nối: ${err.message}</div>`;
+            });
+    }
+
+    function closeAssignDoctorModal() {
+        document.getElementById('assign-doctor-modal').classList.add('hidden');
+        currentAssigningAppointmentId = null;
+        selectedDoctorIdForAssign = null;
+    }
+
+    async function submitAssignDoctor() {
+        if (!currentAssigningAppointmentId || !selectedDoctorIdForAssign) {
+            alert('Vui lòng chọn một bác sĩ để phân công!');
+            return;
+        }
+        try {
+            const res = await fetch('/api/appointment/assign-doctor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointment_id: currentAssigningAppointmentId,
+                    bac_si_id: selectedDoctorIdForAssign
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || 'Phân công bác sĩ thành công!');
+                closeAssignDoctorModal();
+                window.location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
+    }
+
     // Modal tạo lịch hẹn mới
     function openNewAppointmentModal() {
         document.getElementById('new-appointment-modal').classList.remove('hidden');
@@ -439,7 +688,9 @@
         e.preventDefault();
         const patientSelect = document.getElementById('app-patient');
         const patientId = parseInt(patientSelect.value);
-        const doctorId = document.getElementById('app-doctor')?.value;
+        const deptId = parseInt(document.getElementById('app-dept').value || '1');
+        const doctorVal = document.getElementById('app-doctor')?.value;
+        const doctorId = doctorVal ? parseInt(doctorVal) : null;
         const date = document.getElementById('app-date').value;
         const time = document.getElementById('app-time').value;
         const reason = document.getElementById('app-reason').value;
@@ -450,6 +701,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     patient_id: patientId,
+                    chuyen_khoa_id: deptId,
                     doctor_id: doctorId,
                     ngay_kham: date,
                     gio_kham: time,

@@ -118,25 +118,51 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDateTime();
     setInterval(updateDateTime, 30000);
 
-    // 2. Quản lý trạng thái Ghim (Pin / Unpin) Sidebar nếu người dùng muốn cố định
+    // 2. Quản lý trạng thái Ghim và Giữ mở khi chuyển trang cho Sidebar
     const sidebar = document.getElementById('app-sidebar');
     const pinBtn = document.getElementById('sidebar-pin-btn');
 
-    if (sidebar && pinBtn) {
-        // Kiểm tra tùy chọn đã lưu trong LocalStorage
+    if (sidebar) {
         const isPinned = localStorage.getItem('h2t_sidebar_pinned') === 'true';
         if (isPinned) {
             sidebar.classList.add('is-pinned');
             updatePinIcon(true);
         }
 
-        pinBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const nowPinned = sidebar.classList.toggle('is-pinned');
-            localStorage.setItem('h2t_sidebar_pinned', nowPinned);
-            updatePinIcon(nowPinned);
-            window.showToast(nowPinned ? 'Đã ghim mở rộng menu' : 'Đã bật chế độ tự động thò thụt khi rê chuột', 'info');
+        // Bỏ class giữ mở sau khi trang đã render ổn định để các tương tác sau đó mượt mà
+        setTimeout(() => {
+            sidebar.classList.remove('is-hold-open');
+        }, 150);
+
+        // Theo dõi chuột để giữ trạng thái mở khi chuyển trang
+        sidebar.addEventListener('mouseenter', () => {
+            sessionStorage.setItem('h2t_sidebar_open', '1');
         });
+
+        sidebar.addEventListener('mouseleave', () => {
+            sessionStorage.removeItem('h2t_sidebar_open');
+            sidebar.classList.remove('is-hold-open');
+        });
+
+        // Ghi nhớ trạng thái mở khi click vào bất kỳ mục liên kết nào trong sidebar
+        sidebar.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                sessionStorage.setItem('h2t_sidebar_open', '1');
+            });
+        });
+
+        if (pinBtn) {
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const nowPinned = sidebar.classList.toggle('is-pinned');
+                localStorage.setItem('h2t_sidebar_pinned', nowPinned);
+                updatePinIcon(nowPinned);
+                if (nowPinned) {
+                    sessionStorage.setItem('h2t_sidebar_open', '1');
+                }
+                window.showToast(nowPinned ? 'Đã ghim cố định mở rộng menu' : 'Đã bật chế độ tự động thò thụt khi rê chuột', 'info');
+            });
+        }
     }
 
     function updatePinIcon(pinned) {
@@ -144,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = pinBtn.querySelector('i');
         if (icon) {
             if (pinned) {
-                icon.className = 'fa-solid fa-thumbtack text-medical-600 rotate-45';
+                icon.className = 'fa-solid fa-thumbtack text-medical-400 rotate-45';
                 pinBtn.title = 'Bỏ ghim (chuyển sang tự động thò thụt)';
             } else {
                 icon.className = 'fa-solid fa-thumbtack text-slate-400';

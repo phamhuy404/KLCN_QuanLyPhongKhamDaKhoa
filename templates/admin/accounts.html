@@ -1,6 +1,10 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Phân Mục Quản Lý Tài Khoản{% endblock %}
+{% set curr_user = session.get('user', {}) %}
+{% set user_role = curr_user.get('vai_tro', 'ADMIN') %}
+{% set is_admin = (user_role == 'ADMIN') %}
+
+{% block title %}H2T Healthcare - {% if is_admin %}Phân Mục Quản Lý Tài Khoản{% else %}Thông Tin Tài Khoản & Nhân Sự{% endif %}{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -17,42 +21,60 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">Tài khoản & Phân quyền</span>
+                <span class="text-medical-600 font-semibold">{% if is_admin %}Tài khoản & Phân quyền{% else %}Thông tin tài khoản{% endif %}</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
                 <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-users-gear"></i>
                 </span>
-                Quản Lý Tài Khoản Theo Bộ Phận
+                {% if is_admin %}Quản Lý Tài Khoản Theo Bộ Phận{% else %}Thông Tin Tài Khoản & Nhân Sự{% endif %}
             </h2>
             <p class="text-xs text-slate-500 mt-1">
+                {% if is_admin %}
                 Phân chia theo từng bộ phận chức năng: Tiếp tân, Bác sĩ, Dược sĩ, Kỹ thuật viên, Bệnh nhân và Quản trị viên.
+                {% else %}
+                Xem danh sách thành viên trong bộ phận làm việc và thông tin người bệnh phòng khám.
+                {% endif %}
             </p>
         </div>
 
         <div class="flex items-center flex-wrap gap-2.5">
-            <!-- Nút Mở Modal Thêm Nhân Sự Mới -->
+            <!-- Nút Mở Modal Thêm Nhân Sự Mới (Chỉ Quản trị viên) -->
+            {% if is_admin %}
             <button type="button" onclick="openCreateStaffModal('{{ current_role if current_role in ['LETAN', 'BACSI', 'DUOCSI', 'KTV'] else 'LETAN' }}')" 
                     class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Thêm Nhân Sự Mới</span>
             </button>
+            {% endif %}
 
-            <!-- Nút Tải file mẫu Excel/CSV -->
-            <button type="button" onclick="downloadSampleTemplate()" 
-                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu Excel">
+            <!-- Nút Tải file mẫu CSV -->
+            <a href="{{ url_for('admin.download_sample_csv', module='accounts') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Tải file mẫu CSV">
                 <i class="fa-solid fa-file-circle-question text-teal-600"></i>
                 <span class="hidden md:inline">File Mẫu</span>
-            </button>
+            </a>
 
-            <!-- Nút Xuất file Excel -->
-            <button type="button" onclick="exportAccountsToCSV()" 
-                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất danh sách ra file Excel CSV">
+            <!-- Nút Xuất file CSV -->
+            <a href="{{ url_for('admin.export_csv', module='accounts') }}" 
+               class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Xuất danh sách ra file CSV">
                 <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                <span class="hidden md:inline">Xuất Excel</span>
+                <span class="hidden md:inline">Xuất CSV</span>
+            </a>
+
+            <!-- Nút Nhập CSV (Chỉ Quản trị viên) -->
+            {% if is_admin %}
+            <button type="button" onclick="document.getElementById('csv-accounts-input').click()" 
+                    class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all flex items-center gap-2 shadow-sm" title="Nhập danh sách từ CSV">
+                <i class="fa-solid fa-file-arrow-up text-blue-600"></i>
+                <span class="hidden md:inline">Nhập CSV</span>
             </button>
+            <form id="csv-accounts-form" action="{{ url_for('admin.import_csv', module='accounts') }}" method="POST" enctype="multipart/form-data" class="hidden">
+                <input type="file" id="csv-accounts-input" name="csv_file" accept=".csv" onchange="document.getElementById('csv-accounts-form').submit()">
+            </form>
+            {% endif %}
         </div>
     </div>
 
@@ -60,6 +82,7 @@
     <div class="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
         <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             
+            {% if is_admin %}
             <!-- Mục 1: Tất Cả Tài Khoản -->
             <a href="{{ url_for('admin.accounts', role='ALL') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'ALL' %}bg-slate-900 text-white shadow-md shadow-slate-900/20{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
@@ -69,7 +92,9 @@
                     {{ stats.total }}
                 </span>
             </a>
+            {% endif %}
 
+            {% if is_admin or user_role == 'LETAN' %}
             <!-- Mục 2: Lễ Tân & Tiếp Đón -->
             <a href="{{ url_for('admin.accounts', role='LETAN') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'LETAN' %}bg-sky-600 text-white shadow-md shadow-sky-600/20{% else %}text-slate-600 hover:bg-sky-50 hover:text-sky-700{% endif %}">
@@ -79,7 +104,9 @@
                     {{ stats.letan or 0 }}
                 </span>
             </a>
+            {% endif %}
 
+            {% if is_admin or user_role == 'BACSI' %}
             <!-- Mục 3: Bác Sĩ Chuyên Khoa -->
             <a href="{{ url_for('admin.accounts', role='BACSI') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'BACSI' %}bg-teal-600 text-white shadow-md shadow-teal-600/20{% else %}text-slate-600 hover:bg-teal-50 hover:text-teal-700{% endif %}">
@@ -89,7 +116,9 @@
                     {{ stats.doctor or 0 }}
                 </span>
             </a>
+            {% endif %}
 
+            {% if is_admin or user_role == 'DUOCSI' %}
             <!-- Mục 4: Dược Sĩ & Kho Dược -->
             <a href="{{ url_for('admin.accounts', role='DUOCSI') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'DUOCSI' %}bg-purple-600 text-white shadow-md shadow-purple-600/20{% else %}text-slate-600 hover:bg-purple-50 hover:text-purple-700{% endif %}">
@@ -99,7 +128,9 @@
                     {{ stats.duocsi or 0 }}
                 </span>
             </a>
+            {% endif %}
 
+            {% if is_admin or user_role == 'KTV' %}
             <!-- Mục 5: Kỹ Thuật Viên Xét Nghiệm CLS -->
             <a href="{{ url_for('admin.accounts', role='KTV') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'KTV' %}bg-amber-600 text-white shadow-md shadow-amber-600/20{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-700{% endif %}">
@@ -109,8 +140,9 @@
                     {{ stats.ktv or 0 }}
                 </span>
             </a>
+            {% endif %}
 
-            <!-- Mục 6: Khách Hàng / Bệnh Nhân -->
+            <!-- Mục 6: Khách Hàng / Bệnh Nhân (Xem được theo phân quyền) -->
             <a href="{{ url_for('admin.accounts', role='BENHNHAN') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'BENHNHAN' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/20{% else %}text-slate-600 hover:bg-emerald-50 hover:text-emerald-700{% endif %}">
                 <i class="fa-solid fa-hospital-user text-sm"></i>
@@ -120,6 +152,7 @@
                 </span>
             </a>
 
+            {% if is_admin %}
             <!-- Mục 7: Quản Trị Viên -->
             <a href="{{ url_for('admin.accounts', role='ADMIN') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'ADMIN' %}bg-rose-600 text-white shadow-md shadow-rose-600/20{% else %}text-slate-600 hover:bg-rose-50 hover:text-rose-700{% endif %}">
@@ -129,6 +162,7 @@
                     {{ stats.admin or 0 }}
                 </span>
             </a>
+            {% endif %}
 
         </div>
     </div>
@@ -277,14 +311,43 @@
                         </td>
                         <td class="py-3.5 px-4 text-center">
                             <div class="flex items-center justify-center gap-1.5">
-                                <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
-                                        class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Đặt lại mật khẩu">
-                                    <i class="fa-solid fa-key text-[10px]"></i> Đổi MK
-                                </button>
-                                <button type="button" onclick="toggleAccount('{{ a.id }}')" 
-                                        class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors" title="Khóa / Mở khóa tài khoản">
-                                    <i class="fa-solid fa-power-off text-xs"></i>
-                                </button>
+                                {% if is_admin %}
+                                    <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
+                                            class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Đặt lại mật khẩu mới">
+                                        <i class="fa-solid fa-key text-[10px]"></i> Đổi MK
+                                    </button>
+                                    {% if a.ma_vai_tro == 'ADMIN' or a.username == 'admin' %}
+                                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-semibold inline-flex items-center gap-1 cursor-not-allowed" title="Tài khoản Quản trị viên được bảo vệ tuyệt đối, không thể vô hiệu hóa">
+                                        <i class="fa-solid fa-shield-halved text-rose-500 text-[10px]"></i> Đã bảo vệ
+                                    </span>
+                                    {% else %}
+                                    <button type="button" onclick="toggleAccount('{{ a.id }}')" 
+                                            class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors" title="Khóa / Mở khóa tài khoản">
+                                        <i class="fa-solid fa-power-off text-xs"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if a.patient_id %}
+                                    <a href="/admin/patients/{{ a.patient_id }}" class="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition-colors" title="Xem chi tiết hồ sơ bệnh nhân">
+                                        <i class="fa-solid fa-id-card text-xs"></i>
+                                    </a>
+                                    {% endif %}
+                                {% else %}
+                                    <!-- Thao tác cho nhân viên chuyên môn (Bác sĩ, Lễ tân, Dược sĩ, KTV) -->
+                                    {% if a.id == curr_user.get('id') %}
+                                    <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
+                                            class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Đổi mật khẩu tài khoản của bạn">
+                                        <i class="fa-solid fa-key text-[10px]"></i> Đổi MK
+                                    </button>
+                                    {% endif %}
+                                    {% if a.patient_id %}
+                                    <a href="/admin/patients/{{ a.patient_id }}" 
+                                       class="px-2.5 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold text-[11px] inline-flex items-center gap-1 transition-colors" 
+                                       title="Xem và chỉnh sửa thông tin bệnh nhân">
+                                        <i class="fa-solid fa-user-pen text-[10px]"></i>
+                                        <span>{% if user_role == 'LETAN' %}Sửa thông tin{% else %}Hồ sơ{% endif %}</span>
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -321,7 +384,7 @@
 
         <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
-            <input type="text" id="reset-target-pwd" value="Password@123" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+            <input type="password" id="reset-target-pwd" placeholder="Nhập mật khẩu mới..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">

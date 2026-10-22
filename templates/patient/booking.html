@@ -74,10 +74,28 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="doctor-list-container">
+                    <!-- Tùy chọn 1: Để phòng khám tự phân công bác sĩ -->
+                    <label class="cursor-pointer doctor-item col-span-1 sm:col-span-2" data-dept="ALL">
+                        <input type="radio" name="doctor" value="" data-name="Để phòng khám tự phân công bác sĩ" data-dept="ALL" checked class="peer sr-only" onchange="onDoctorChange(this)">
+                        <div class="p-4 rounded-xl border-2 border-dashed border-teal-200 bg-teal-50/20 peer-checked:border-medical-500 peer-checked:bg-medical-50/60 peer-checked:shadow-sm hover:border-medical-400 transition-all flex items-center gap-3.5">
+                            <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-user-clock"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-sm text-slate-900">Để phòng khám tự phân công bác sĩ</h4>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold">Linh hoạt</span>
+                                </div>
+                                <span class="text-xs text-medical-700 block mt-0.5">Bác sĩ chuyên khoa đang trực sẽ tiếp nhận hoặc Ban quản trị phân lịch phù hợp</span>
+                                <span class="text-[11px] text-slate-400 mt-0.5 block">Phù hợp khi bạn chưa có bác sĩ quen hoặc cần khung giờ khám linh hoạt</span>
+                            </div>
+                        </div>
+                    </label>
+
                     {% if doctors %}
                         {% for doc in doctors %}
                         <label class="cursor-pointer doctor-item" data-dept="{{ doc.chuyen_khoa_id }}">
-                            <input type="radio" name="doctor" value="{{ doc.id }}" data-name="{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}" data-dept="{{ doc.chuyen_khoa_id }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onDoctorChange(this)">
+                            <input type="radio" name="doctor" value="{{ doc.id }}" data-name="{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}" data-dept="{{ doc.chuyen_khoa_id }}" class="peer sr-only" onchange="onDoctorChange(this)">
                             <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
                                 <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" class="w-12 h-12 rounded-xl object-cover shrink-0 ring-1 ring-slate-100">
                                 <div>
@@ -229,7 +247,7 @@
         let selectedSpecialtyId = null;
         let selectedSpecialtyName = "";
         let selectedDoctorId = null;
-        let selectedDoctorName = "";
+        let selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
         let currentDate = "";
         let currentTime = "09:00 AM";
 
@@ -243,38 +261,20 @@
             document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
             document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
 
-            // Lọc danh sách bác sĩ thuộc chuyên khoa được chọn
+            // Lọc danh sách bác sĩ thuộc chuyên khoa được chọn (giữ tùy chọn ALL luôn hiển thị)
             const docItems = document.querySelectorAll('#doctor-list-container .doctor-item');
-            let firstMatched = null;
             docItems.forEach(item => {
-                if (!selectedSpecialtyId || item.dataset.dept == selectedSpecialtyId) {
+                if (item.dataset.dept === 'ALL' || !selectedSpecialtyId || item.dataset.dept == selectedSpecialtyId) {
                     item.style.display = '';
-                    if (!firstMatched) firstMatched = item;
                 } else {
                     item.style.display = 'none';
                 }
             });
-
-            if (firstMatched) {
-                const radio = firstMatched.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.checked = true;
-                    onDoctorChange(radio);
-                }
-            } else {
-                // Nếu khoa này chưa có bác sĩ trực, cho phép chọn bất kỳ bác sĩ nào
-                docItems.forEach(item => item.style.display = '');
-                const firstRadio = document.querySelector('#doctor-list-container input[type="radio"]');
-                if (firstRadio) {
-                    firstRadio.checked = true;
-                    onDoctorChange(firstRadio);
-                }
-            }
         }
 
         function onDoctorChange(el) {
-            selectedDoctorId = el.value;
-            selectedDoctorName = el.dataset.name || "";
+            selectedDoctorId = el.value ? el.value : null;
+            selectedDoctorName = el.dataset.name || (selectedDoctorId ? "Bác sĩ chuyên khoa" : "Để phòng khám tự phân công bác sĩ");
             document.getElementById('sum-doctor').textContent = selectedDoctorName;
         }
 
@@ -298,7 +298,7 @@
 
             const data = {
                 chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
-                bac_si_id: parseInt(selectedDoctorId || 1),
+                bac_si_id: selectedDoctorId ? parseInt(selectedDoctorId) : null,
                 ngay_hen: dateInput,
                 gio_hen: currentTime || '09:00:00',
                 ly_do: document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân'
