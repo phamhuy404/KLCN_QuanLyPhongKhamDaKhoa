@@ -46,24 +46,12 @@
             </div>
             <div class="mt-3 flex items-center gap-3">
                 <div class="w-12 h-12 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center text-xl font-bold">
-                    {% if backup_data.current_engine == 'sqlite' %}
-                        <i class="fa-solid fa-file-shield"></i>
-                    {% elif backup_data.current_engine == 'sqlserver' %}
-                        <i class="fa-solid fa-server"></i>
-                    {% else %}
-                        <i class="fa-solid fa-database"></i>
-                    {% endif %}
+                    <i class="fa-solid fa-server"></i>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800 uppercase">{{ backup_data.current_engine }}</h3>
+                    <h3 class="text-lg font-bold text-slate-800 uppercase">SQL SERVER</h3>
                     <p class="text-xs text-slate-500">
-                        {% if backup_data.current_engine == 'sqlite' %}
-                            Tự động nạp CSDL file phongkham.db
-                        {% elif backup_data.current_engine == 'sqlserver' %}
-                            Microsoft SQL Server (ODBC T-SQL)
-                        {% else %}
-                            MySQL / MariaDB (mysqldump)
-                        {% endif %}
+                        Microsoft SQL Server (pyodbc T-SQL)
                     </p>
                 </div>
             </div>

@@ -47,7 +47,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Doanh thu viện phí</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='tong_tien')) }} <span class="text-xs font-normal text-slate-400">đ</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(stats.tong_doanh_thu if stats else 0) }} <span class="text-xs font-normal text-slate-400">đ</span></h4>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">BHYT quyết toán</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='tien_bhyt_chi_tra')) }} <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(stats.tong_bhyt if stats else 0) }} <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
             </div>
         </div>
 
@@ -67,7 +67,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Thực thu người bệnh</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(invoices|sum(attribute='thanh_tien')) }} <span class="text-xs font-normal text-emerald-600 font-semibold">đ</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(stats.thuc_thu if stats else 0) }} <span class="text-xs font-normal text-emerald-600 font-semibold">đ</span></h4>
             </div>
         </div>
 
@@ -77,7 +77,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Hóa đơn chờ thu</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ invoices|rejectattr('trang_thai', 'equalto', 'Đã thanh toán')|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">chưa thu</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.so_hoa_don_cho if stats else 0 }} <span class="text-xs font-normal text-amber-600 font-semibold">chưa thu</span></h4>
             </div>
         </div>
     </div>
@@ -164,11 +164,20 @@
             </div>
         </div>
 
+        <!-- Chi tiết các khoản mục thanh toán -->
+        <div id="pay-details-box" class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-2">
+            <span class="font-bold text-slate-700 block text-[11px] uppercase tracking-wider flex items-center justify-between">
+                <span>Chi tiết khoản mục</span>
+                <span id="pay-details-note" class="text-[10px] text-teal-700 font-normal"></span>
+            </span>
+            <div id="pay-details-list" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+        </div>
+
         <!-- Mã VietQR thanh toán tự động -->
         <div class="text-center p-3 bg-white rounded-xl border border-slate-200 space-y-2">
             <span class="text-[11px] font-bold text-slate-600 block">Quét mã VietQR chuyển khoản nhanh</span>
             <div class="w-40 h-40 mx-auto bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 overflow-hidden">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=H2T_CARE_PAYMENT_440000" alt="VietQR" class="w-full h-full object-contain">
+                <img id="pay-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=H2T_CARE" alt="VietQR" class="w-full h-full object-contain">
             </div>
             <span class="text-[10px] text-slate-400 block font-mono">Tự động đối soát giao dịch qua STK 1903686868</span>
         </div>
@@ -189,19 +198,8 @@
 </script>
 <script>
     let rawInvoices = JSON.parse(document.getElementById('billing-invoices-data').textContent || '[]');
-    var invoices = rawInvoices.map(inv => ({
-        id: inv.id,
-        ma_hd: inv.ma_hoa_don,
-        patient_id: inv.benh_nhan_id,
-        benh_nhan: inv.ho_ten_benh_nhan,
-        ma_bn: inv.ma_benh_nhan,
-        tong: inv.tong_tien || 0,
-        bhyt: inv.tien_bhyt_chi_tra || 0,
-        thuc_thu: inv.thanh_tien || 0,
-        khoan_muc: inv.khoan_muc || 'Chi phí khám bệnh & thuốc',
-        phuong_thuc: inv.hinh_thuc_thanh_toan || 'Tiền mặt',
-        status: inv.trang_thai === 'Đã thanh toán' ? 'paid' : 'pending'
-    }));
+    // Toàn bộ dữ liệu, biến số tính toán và bóc tách đã được chuẩn hóa tại BackEnd
+    var invoices = rawInvoices;
 
     let activeInvoiceId = null;
 
@@ -281,6 +279,48 @@
         document.getElementById('pay-total').innerText = `${inv.tong.toLocaleString()} đ`;
         document.getElementById('pay-bhyt').innerText = inv.bhyt > 0 ? `-${inv.bhyt.toLocaleString()} đ` : '0 đ';
         document.getElementById('pay-final').innerText = `${inv.thuc_thu.toLocaleString()} đ`;
+
+        // Render chi tiết các khoản thu
+        const detailsContainer = document.getElementById('pay-details-list');
+        const noteEl = document.getElementById('pay-details-note');
+        const isMedInvoice = (inv.ma_hd && inv.ma_hd.startsWith('HDT'));
+
+        if (noteEl) {
+            noteEl.innerText = isMedInvoice ? '(Toa thuốc mua tại viện - Không kèm đơn giá lẻ)' : '';
+        }
+
+        if (detailsContainer) {
+            if (inv.chi_tiet && inv.chi_tiet.length > 0) {
+                let html = '';
+                inv.chi_tiet.forEach(item => {
+                    const isMed = isMedInvoice || (item.loai_khoan_thu && item.loai_khoan_thu.toLowerCase().includes('thuốc'));
+                    if (isMed) {
+                        html += `
+                            <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+                                <span class="text-slate-700 font-medium">${item.ten_khoan_thu} <span class="text-teal-700 font-mono font-bold">(SL: ${item.so_luong})</span></span>
+                                <span class="font-bold font-mono text-slate-800">${item.thanh_tien.toLocaleString()} đ</span>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+                                <span class="text-slate-700 font-medium">${item.ten_khoan_thu} <span class="text-slate-400 font-mono">(x${item.so_luong})</span></span>
+                                <span class="font-bold font-mono text-slate-800">${item.thanh_tien.toLocaleString()} đ</span>
+                            </div>
+                        `;
+                    }
+                });
+                detailsContainer.innerHTML = html;
+            } else {
+                detailsContainer.innerHTML = `<div class="text-slate-400 py-1 text-center font-medium">${inv.khoan_muc || 'Chi phí khám bệnh & dịch vụ lâm sàng trọn gói'}</div>`;
+            }
+        }
+
+        // Cập nhật mã VietQR
+        const qrImg = document.getElementById('pay-qr-img');
+        if (qrImg) {
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent('VIETQR|MB|1903686868|' + inv.thuc_thu + '|' + inv.ma_hd)}`;
+        }
 
         document.getElementById('payment-modal').classList.remove('hidden');
     }

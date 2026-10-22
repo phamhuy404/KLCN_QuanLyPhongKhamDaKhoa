@@ -41,6 +41,29 @@
         </a>
     </div>
 
+    <!-- THÔNG BÁO NHẮC LỊCH HOẶC TIẾP NHẬN NỔI BẬT -->
+    {% if recent_notifications %}
+        {% for n in recent_notifications[:1] %}
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 text-teal-900 shadow-sm flex items-start gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm shadow-teal-600/20">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="flex-1 text-xs">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-sm text-teal-950">{{ n.tieu_de }}</h4>
+                    <span class="text-[11px] text-teal-700 font-mono">{{ n.thoi_gian_tao }}</span>
+                </div>
+                <p class="text-teal-800 mt-1 leading-relaxed">{{ n.noi_dung }}</p>
+                {% if n.lien_ket %}
+                <a href="{{ n.lien_ket }}" class="inline-flex items-center gap-1 font-bold text-teal-700 hover:text-teal-900 mt-1.5 hover:underline">
+                    Xem chi tiết <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
     <!-- DASHBOARD GRID -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -54,21 +77,20 @@
                     <a href="{{ url_for('patient_booking') }}" class="text-xs text-medical-600 font-semibold hover:underline">Đặt lịch mới</a>
                 </div>
 
-                {% if appointments %}
-                    {% set appt = appointments[0] %}
+                {% if upcoming_appointment %}
                     <div class="p-4 rounded-xl bg-medical-50/50 border border-medical-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div class="flex items-start gap-4">
                             <div class="w-12 h-12 rounded-xl bg-medical-500 text-white flex flex-col items-center justify-center font-bold text-center shrink-0 shadow-md shadow-medical-500/20">
-                                <span class="text-xs uppercase">Th {{ appt.ngay_hen[5:7] if appt.ngay_hen else '09' }}</span>
-                                <span class="text-base leading-none">{{ appt.ngay_hen[8:10] if appt.ngay_hen else '26' }}</span>
+                                <span class="text-xs uppercase">Th {{ upcoming_appointment.ngay_hen[5:7] if upcoming_appointment.ngay_hen else '09' }}</span>
+                                <span class="text-base leading-none">{{ upcoming_appointment.ngay_hen[8:10] if upcoming_appointment.ngay_hen else '26' }}</span>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-bold text-slate-800">{{ appt.ten_khoa or 'Khám Chuyên Khoa' }}</h4>
-                                    <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded">{{ appt.trang_thai }}</span>
+                                    <h4 class="font-bold text-slate-800">{{ upcoming_appointment.ten_khoa or 'Khám Chuyên Khoa' }}</h4>
+                                    <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded">{{ upcoming_appointment.trang_thai }}</span>
                                 </div>
-                                <p class="text-xs text-slate-500 mt-1">Bác sĩ: <strong class="text-slate-700">{{ appt.ho_ten_bac_si or 'BS. CKII Trần Minh Quân' }}</strong> • {{ appt.gio_hen }}</p>
-                                <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-medical-500 mr-1"></i> Phòng khám Đa khoa H2T Healthcare • {{ appt.ten_phong or 'Phòng 101' }}</p>
+                                <p class="text-xs text-slate-500 mt-1">Bác sĩ: <strong class="text-slate-700">{{ upcoming_appointment.ho_ten_bac_si or 'BS. CKII Trần Minh Quân' }}</strong> • {{ upcoming_appointment.gio_hen }}</p>
+                                <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-medical-500 mr-1"></i> Phòng khám Đa khoa H2T Healthcare • {{ upcoming_appointment.ten_phong or 'Phòng 101' }}</p>
                             </div>
                         </div>
                         <div class="flex gap-2 w-full sm:w-auto">

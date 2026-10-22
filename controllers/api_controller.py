@@ -64,6 +64,24 @@ def doctor_schedule_availability():
     docs = AppointmentModel.get_doctors_with_availability(dept_id, date_str)
     return jsonify({'success': True, 'doctors': docs})
 
+@api_bp.route('/doctors/available-by-shift', methods=['GET'])
+def doctors_available_by_shift():
+    """API lấy danh sách bác sĩ có ca trực tương ứng theo ngày và khung giờ khám đã chọn."""
+    from datetime import datetime
+    ngay_kham = request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
+    gio_kham = request.args.get('time') or '08:00'
+    dept_id = request.args.get('department_id', type=int)
+
+    doctors, shift = AppointmentModel.get_doctors_by_shift(ngay_kham, gio_kham, dept_id)
+    shift_names = {1: 'Ca Sáng (07:00 - 11:30)', 2: 'Ca Chiều (13:30 - 17:00)', 3: 'Ca Tối (17:30 - 20:30)'}
+    return jsonify({
+        'success': True,
+        'shift': shift,
+        'shift_name': shift_names.get(shift, 'Ca khám'),
+        'doctors': doctors,
+        'total': len(doctors)
+    })
+
 @api_bp.route('/appointment/update-status', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'LETAN')
 def update_appointment_status():
@@ -247,6 +265,49 @@ def save_emr_examination():
         return jsonify({'success': True, 'ma_phieu': result, 'message': 'Lưu phiếu khám và chuyển toa thành công!'})
     return jsonify({'success': False, 'message': result}), 400
 
+@api_bp.route('/emr/save-normal', methods=['POST'])
+@roles_required('ADMIN', 'BACSI')
+def save_emr_normal():
+    """API bác sĩ hoàn tất phiên khám sức khỏe bình thường (Sức khỏe tốt) và xuất hóa đơn ngay từ BackEnd."""
+    data = request.get_json() or {}
+    patient_id = data.get('patient_id')
+    if not patient_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
+
+    doctor_id = session.get('user', {}).get('bac_si_id') or 1
+    room_id = data.get('room_id', 1)
+
+    # Toàn bộ biến số nghiệp vụ khám bình thường được xử lý và gán mặc định tại BackEnd
+    reason = 'Khám sức khỏe tổng quát'
+    symptoms = 'Không ghi nhận triệu chứng bất thường'
+    diagnosis = 'Z00.0 - Khám sức khỏe tổng quát (Bình thường)'
+    icd = 'Z00.0'
+    treatment = 'Tư vấn chế độ dinh dưỡng và lối sống lành mạnh'
+    advice = 'Duy trì chế độ sinh hoạt điều độ, tái khám định kỳ 6 tháng/lần'
+
+    success, result = MedicalRecordModel.save_examination(
+        patient_id=patient_id,
+        doctor_id=doctor_id,
+        room_id=room_id,
+        reason=reason,
+        symptoms=symptoms,
+        diagnosis=diagnosis,
+        icd=icd,
+        treatment=treatment,
+        advice=advice,
+        reexam_date=None,
+        lab_service_ids=[],
+        medicines=[],
+        audit_user=session.get('user')
+    )
+    if success:
+        return jsonify({
+            'success': True,
+            'ma_phieu': result,
+            'message': 'Đã hoàn tất phiên khám sức khỏe tốt và xuất hóa đơn viện phí tự động từ BackEnd!'
+        })
+    return jsonify({'success': False, 'message': result}), 400
+
 @api_bp.route('/pharmacy/dispense', methods=['POST'])
 @roles_required('ADMIN', 'DUOCSI')
 def dispense_prescription():
@@ -284,13 +345,18 @@ def add_medicine():
     return jsonify({'success': False, 'message': result}), 400
 
 @api_bp.route('/billing/pay', methods=['POST'])
-@roles_required('ADMIN', 'LETAN')
+@roles_required('ADMIN', 'LETAN', 'BENHNHAN')
 def pay_invoice():
-    """API thu ngân xác nhận thanh toán viện phí."""
+    """API thu ngân hoặc bệnh nhân xác nhận thanh toán viện phí."""
     data = request.get_json() or {}
     ma_hd = data.get('ma_hd') or data.get('invoice_id')
     pttt = data.get('hinh_thuc_thanh_toan', 'Tiền mặt')
-    cashier = session.get('user', {}).get('ho_ten', 'Thu ngân')
+    user = session.get('user', {})
+    if user.get('role') == 'BENHNHAN':
+        cashier = 'Cổng VietQR Trực Tuyến'
+        pttt = 'Chuyển khoản VietQR'
+    else:
+        cashier = user.get('ho_ten', 'Thu ngân')
 
     if not ma_hd:
         return jsonify({'success': False, 'message': 'Thiếu mã hóa đơn!'}), 400
@@ -298,9 +364,7 @@ def pay_invoice():
     success, msg = BillingModel.pay_invoice(ma_hd, pttt, cashier)
     return jsonify({'success': success, 'message': msg})
 
-# ==========================================
 # 1. API SAO LƯU VÀ PHỤC HỒI DỮ LIỆU
-# ==========================================
 @api_bp.route('/backup/create', methods=['POST'])
 @roles_required('ADMIN')
 def create_backup():
@@ -351,9 +415,7 @@ def download_backup(filename):
 
     return send_from_directory(backup_dir, safe_filename, as_attachment=True)
 
-# ==========================================
 # 2. API TIẾP NHẬN VÀ PHẢN HỒI BỆNH NHÂN
-# ==========================================
 @api_bp.route('/feedback/submit', methods=['POST'])
 @login_required
 def submit_feedback():
@@ -394,9 +456,7 @@ def reply_feedback():
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
 
-# ==========================================
 # 3. API THÔNG BÁO VÀ NHẮC LỊCH KHÁM
-# ==========================================
 @api_bp.route('/notifications', methods=['GET'])
 @login_required
 def get_notifications():
@@ -443,9 +503,7 @@ def get_smtp_status():
     from core.notification_service import NotificationService
     return jsonify(NotificationService.get_smtp_status())
 
-# ==========================================
 # 4. API QUẢN LÝ DANH MỤC Y TẾ (CHUYÊN KHOA, PHÒNG KHÁM, DỊCH VỤ)
-# ==========================================
 @api_bp.route('/catalog/department/create', methods=['POST'])
 @roles_required('ADMIN')
 def create_department():
@@ -655,9 +713,7 @@ def delete_service():
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
 
-# ==========================================
 # 5. API QUẢN LÝ NHÂN SỰ VÀ LỊCH LÀM VIỆC
-# ==========================================
 @api_bp.route('/staff/create', methods=['POST'])
 @roles_required('ADMIN')
 def create_staff():
@@ -877,9 +933,7 @@ def get_available_doctors():
     return jsonify({'success': True, 'doctors': docs})
 
 
-# =========================================================================
 # 6. QUẢN LÝ TÀI KHOẢN VÀ PHÂN QUYỀN
-# =========================================================================
 
 @api_bp.route('/admin/accounts/list', methods=['GET'])
 @roles_required('ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV')
@@ -972,9 +1026,7 @@ def get_audit_logs():
     return jsonify({'success': True, 'logs': logs})
 
 
-# =========================================================================
 # 8. PHIẾU CHỈ ĐỊNH VÀ KẾT QUẢ XÉT NGHIỆM / CẬN LÂM SÀNG
-# =========================================================================
 
 @api_bp.route('/lab/orders', methods=['GET'])
 @login_required
@@ -991,13 +1043,28 @@ def get_lab_orders_api():
     return jsonify({'success': True, 'orders': orders})
 
 @api_bp.route('/lab/result/save', methods=['POST'])
-@roles_required('ADMIN', 'KTV')
+@roles_required('ADMIN', 'KTV', 'BACSI')
 def save_lab_result():
-    """API kỹ thuật viên nhập/cập nhật kết quả xét nghiệm (Chặn sửa nếu đã duyệt)."""
-    data = request.get_json() or {}
-    chi_tiet_id = data.get('chi_tiet_id') or data.get('order_id')
-    ket_qua = data.get('ket_qua')
-    file_ket_qua = data.get('file_ket_qua')
+    """API kỹ thuật viên nhập/cập nhật kết quả xét nghiệm và tải lên ảnh chụp siêu âm, X-quang."""
+    from core.image_service import process_image_input
+
+    file_ket_qua = None
+    if request.is_json:
+        data = request.get_json() or {}
+        chi_tiet_id = data.get('chi_tiet_id') or data.get('order_id')
+        ket_qua = data.get('ket_qua')
+        file_ket_qua = data.get('file_ket_qua')
+    else:
+        chi_tiet_id = request.form.get('chi_tiet_id') or request.form.get('order_id')
+        ket_qua = request.form.get('ket_qua')
+        file_ket_qua = request.form.get('file_ket_qua')
+
+        image_file = request.files.get('image_file')
+        if image_file and getattr(image_file, 'filename', None):
+            saved_path, err = process_image_input(image_file, 'can_lam_sang')
+            if saved_path:
+                file_ket_qua = saved_path
+
     user = session.get('user')
 
     if not chi_tiet_id or not ket_qua:
@@ -1005,7 +1072,7 @@ def save_lab_result():
 
     ok, msg = MedicalRecordModel.update_lab_result(chi_tiet_id, ket_qua, file_ket_qua=file_ket_qua, audit_user=user)
     if ok:
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'file_ket_qua': file_ket_qua})
     return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/lab/result/approve', methods=['POST'])
@@ -1045,9 +1112,7 @@ def view_lab_result(chi_tiet_id):
     return jsonify({'success': True, 'item': item})
 
 
-# =========================================================================
 # 9. CHỈNH SỬA VÀ QUẢN LÝ BỆNH ÁN ĐIỆN TỬ
-# =========================================================================
 
 @api_bp.route('/emr/detail/<int:record_id>', methods=['GET'])
 @login_required
@@ -1106,9 +1171,7 @@ def get_emr_history(record_id):
     return jsonify({'success': True, 'history': logs})
 
 
-# =========================================================================
 # 10. QUẢN LÝ ĐƠN THUỐC VÀ QUÁ TRÌNH ĐIỀU TRỊ
-# =========================================================================
 
 @api_bp.route('/prescription/detail/<int:prescription_id>', methods=['GET'])
 @login_required
@@ -1182,9 +1245,7 @@ def get_patient_prescriptions():
     return jsonify({'success': True, 'prescriptions': prescriptions})
 
 
-# =========================================================================
 # ALIAS ROUTES — Frontend convenience paths (map to admin routes)
-# =========================================================================
 
 @api_bp.route('/account/toggle', methods=['POST'])
 @roles_required('ADMIN')
@@ -1277,3 +1338,20 @@ def appointment_create_alias():
 def lab_result_save_alias():
     """Alias đơn giản cho lưu kết quả xét nghiệm (dùng bởi lab.html JS)."""
     return save_lab_result()
+
+
+@api_bp.route('/prescription/choose-buying-option', methods=['POST'])
+def choose_prescription_buying_option():
+    """API xử lý lựa chọn nơi mua thuốc của bệnh nhân (Tự mua ngoài hoặc Mua tại bệnh viện)."""
+    data = request.get_json() or {}
+    dt_id = data.get('prescription_id') or data.get('don_thuoc_id')
+    option = data.get('option', 'Mua tại bệnh viện')
+    user = session.get('user', {})
+
+    if not dt_id:
+        return jsonify({'success': False, 'message': 'Thiếu mã đơn thuốc!'}), 400
+
+    success, msg = PharmacyModel.choose_medicine_purchase_option(dt_id, option, audit_user=user)
+    if success:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400

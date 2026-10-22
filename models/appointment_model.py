@@ -28,9 +28,35 @@ class AppointmentModel:
             LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
             ORDER BY lh.ngay_hen DESC, lh.gio_hen DESC
         ''')
-        rows = [dict(r) for r in cursor.fetchall()]
+        rows = cursor.fetchall()
         conn.close()
-        return rows
+
+        results = []
+        for r in rows:
+            item = dict(r)
+            raw_tt = item.get('trang_thai') or ''
+            if raw_tt in ['Đã khám', 'Hoàn thành']:
+                status_code = 'completed'
+            elif raw_tt in ['Đã tiếp nhận', 'Đã duyệt', 'Đã xác nhận']:
+                status_code = 'confirmed'
+            elif raw_tt == 'Đã hủy':
+                status_code = 'cancelled'
+            else:
+                status_code = 'waiting'
+
+            item['status_code'] = status_code
+            item['trang_thai_code'] = status_code
+            item['ma_hen'] = item.get('ma_lich_hen') or f"LH{item['id']}"
+            item['gio_hen_short'] = str(item['gio_hen'])[:5] if item.get('gio_hen') else '08:30'
+            item['benh_nhan'] = item.get('ten_benh_nhan') or 'Bệnh nhân'
+            item['ma_bn'] = item.get('ma_benh_nhan') or 'BN'
+            item['sdt'] = item.get('sdt_benh_nhan') or ''
+            item['bac_si'] = item.get('ten_bac_si') or ''
+            item['khoa'] = item.get('ten_khoa') or 'Khoa Nội Tổng Quát'
+            item['ly_do'] = item.get('ly_do_kham') or 'Khám theo yêu cầu'
+            results.append(item)
+
+        return results
 
     @staticmethod
     def get_by_id(appointment_id):
@@ -56,7 +82,31 @@ class AppointmentModel:
         ''', (appointment_id,))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        if not row:
+            return None
+
+        item = dict(row)
+        raw_tt = item.get('trang_thai') or ''
+        if raw_tt in ['Đã khám', 'Hoàn thành']:
+            status_code = 'completed'
+        elif raw_tt in ['Đã tiếp nhận', 'Đã duyệt', 'Đã xác nhận']:
+            status_code = 'confirmed'
+        elif raw_tt == 'Đã hủy':
+            status_code = 'cancelled'
+        else:
+            status_code = 'waiting'
+
+        item['status_code'] = status_code
+        item['trang_thai_code'] = status_code
+        item['ma_hen'] = item.get('ma_lich_hen') or f"LH{item['id']}"
+        item['gio_hen_short'] = str(item['gio_hen'])[:5] if item.get('gio_hen') else '08:30'
+        item['benh_nhan'] = item.get('ten_benh_nhan') or 'Bệnh nhân'
+        item['ma_bn'] = item.get('ma_benh_nhan') or 'BN'
+        item['sdt'] = item.get('sdt_benh_nhan') or ''
+        item['bac_si'] = item.get('ten_bac_si') or ''
+        item['khoa'] = item.get('ten_khoa') or 'Khoa Nội Tổng Quát'
+        item['ly_do'] = item.get('ly_do_kham') or 'Khám theo yêu cầu'
+        return item
 
     @staticmethod
     def get_by_patient(patient_id):
@@ -80,7 +130,16 @@ class AppointmentModel:
 
         doctor_id = user.get('bac_si_id')
         dept_id = user.get('chuyen_khoa_id')
-        if not dept_id and doctor_id:
+        if not doctor_id and user.get('id'):
+            conn = get_db()
+            c = conn.cursor()
+            c.execute('SELECT bs.id, bs.chuyen_khoa_id FROM bac_si bs JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id WHERE nv.tai_khoan_id = ?', (user['id'],))
+            r = c.fetchone()
+            conn.close()
+            if r:
+                doctor_id = r[0]
+                dept_id = r[1]
+        elif not dept_id and doctor_id:
             from models.user_model import UserModel
             doc = UserModel.get_doctor_by_id(doctor_id)
             if doc:
@@ -88,14 +147,80 @@ class AppointmentModel:
 
         filtered = []
         for a in all_appts:
-            # 1. Lịch hẹn do chính bác sĩ phụ trách
+            # Bác sĩ chỉ thấy các lịch hẹn ĐÃ ĐƯỢC TIẾP NHẬN / DUYỆT bởi Admin hoặc Lễ tân
+            if a.get('trang_thai') in ['Chờ tiếp nhận', 'Chờ xác nhận']:
+                continue
+
+            # 1. Lịch hẹn do chính bác sĩ phụ trách đã được tiếp nhận
             if doctor_id and a.get('bac_si_id') == doctor_id:
                 filtered.append(a)
-            # 2. Hoặc lịch hẹn chưa có người nhận nhưng cùng chuyên khoa
+            # 2. Hoặc lịch hẹn chưa có người nhận nhưng cùng chuyên khoa đã được tiếp nhận
             elif not a.get('bac_si_id') and dept_id and a.get('chuyen_khoa_id') == dept_id:
                 filtered.append(a)
 
         return filtered
+
+    @staticmethod
+    def get_doctors_by_shift(ngay_kham, gio_kham, chuyen_khoa_id=None):
+        """Lấy danh sách các bác sĩ có ca trực tương ứng với ngày và giờ khám được chọn."""
+        t = str(gio_kham).strip()
+        if 'AM' in t or 'PM' in t:
+            try:
+                t = datetime.strptime(t, '%I:%M %p').strftime('%H:%M')
+            except Exception:
+                pass
+        h_m = t[:5]
+        if h_m in ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30']:
+            shift = 1
+        elif h_m in ['14:30', '15:00', '15:30', '16:00']:
+            shift = 2
+        elif h_m in ['18:30', '19:00', '19:30']:
+            shift = 3
+        else:
+            try:
+                hour = int(h_m.split(':')[0])
+                if hour < 12:
+                    shift = 1
+                elif hour < 17:
+                    shift = 2
+                else:
+                    shift = 3
+            except Exception:
+                shift = 1
+
+        work_date_str = str(ngay_kham)[:10]
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        sql = '''
+            SELECT 
+                bs.id, bs.hoc_vi, bs.avatar, bs.kinh_nghiem, bs.gia_kham,
+                nv.ho_ten, nv.sdt,
+                ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                pk.id AS phong_kham_id, pk.ten_phong,
+                llv.ca_lam, llv.gio_bat_dau, llv.gio_ket_thuc,
+                llv.so_luong_kham_toi_da, llv.so_luong_da_dang_ky
+            FROM lich_lam_viec llv
+            JOIN bac_si bs ON llv.bac_si_id = bs.id
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phong_kham pk ON llv.phong_kham_id = pk.id
+            WHERE llv.ngay_lam = ? 
+              AND llv.ca_lam = ?
+              AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+              AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
+        '''
+        params = [work_date_str, shift]
+        if chuyen_khoa_id:
+            sql += ' AND bs.chuyen_khoa_id = ?'
+            params.append(int(chuyen_khoa_id))
+
+        sql += ' ORDER BY bs.id'
+        cursor.execute(sql, tuple(params))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows, shift
 
     @staticmethod
     def assign_doctor(appointment_id, doctor_id, user_info=None):
@@ -251,7 +376,7 @@ class AppointmentModel:
             cursor.execute('''
                 INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, bac_si_id, chuyen_khoa_id, phong_kham_id, ngay_hen, gio_hen, ly_do_kham, trang_thai)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ma_lich_hen, benh_nhan_id, bac_si_id if bac_si_id else None, chuyen_khoa_id, phong_kham_id, work_date_str, gio_hen, ly_do_kham, 'Chờ xác nhận'))
+            ''', (ma_lich_hen, benh_nhan_id, bac_si_id if bac_si_id else None, chuyen_khoa_id, phong_kham_id, work_date_str, gio_hen, ly_do_kham, 'Chờ tiếp nhận'))
             created_appt_id = cursor.lastrowid
 
             # 5. Tạo thông báo In-App cho bệnh nhân
@@ -265,7 +390,7 @@ class AppointmentModel:
                 ''', (
                     bn_row['tai_khoan_id'],
                     f"Đăng ký khám thành công: {ma_lich_hen}",
-                    f"Quý khách đã đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {gio_hen}). Trạng thái: Chờ xác nhận.",
+                    f"Quý khách đã đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {gio_hen}). Trạng thái: Chờ tiếp nhận.",
                     now_str
                 ))
 
@@ -476,6 +601,26 @@ class AppointmentModel:
         cursor = conn.cursor()
         try:
             cursor.execute('UPDATE lich_hen SET trang_thai = ? WHERE id = ?', (new_status, appointment_id))
+
+            # Nếu tiếp nhận hoặc xác nhận lịch hẹn, tự động gửi thông báo in-app cho bệnh nhân
+            if new_status in ['Đã tiếp nhận', 'Đã xác nhận']:
+                cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (appt['benh_nhan_id'],))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    khoa_name = appt.get('ten_khoa') or 'Chuyên khoa'
+                    bs_name = appt.get('ten_bac_si') or 'Bác sĩ phụ trách'
+                    tieu_de = f"Tiếp nhận thành công lịch khám: {appt['ma_lich_hen']}"
+                    noi_dung = (
+                        f"Kính gửi {bn_row['ho_ten']}, lịch hẹn khám bệnh mã {appt['ma_lich_hen']} của bạn "
+                        f"vào ngày {appt['ngay_hen']} lúc {str(appt['gio_hen'])[:5]} tại {khoa_name} ({bs_name}) "
+                        f"đã được nhân viên Lễ tân tiếp nhận thành công. Xin vui lòng có mặt trước giờ khám 15 phút tại Quầy tiếp đón."
+                    )
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Lịch hẹn', '/patient/booking', 0, ?)
+                    ''', (bn_row['tai_khoan_id'], tieu_de, noi_dung, now_str))
+
             conn.commit()
             conn.close()
 

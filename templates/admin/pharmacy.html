@@ -73,7 +73,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Tổng danh mục thuốc</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ medicines|length }} <span class="text-xs font-normal text-slate-400">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.tong_thuoc }} <span class="text-xs font-normal text-slate-400">loại</span></h4>
             </div>
         </div>
 
@@ -83,7 +83,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Sắp hết hàng (&lt; định mức)</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ medicines|selectattr('so_luong_ton', 'le', 50)|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.sap_het_hang }} <span class="text-xs font-normal text-amber-600 font-semibold">loại</span></h4>
             </div>
         </div>
 
@@ -93,7 +93,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Cận hạn dùng (&lt; 3 tháng)</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">1 <span class="text-xs font-normal text-rose-600 font-semibold">loại</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.can_han_dung }} <span class="text-xs font-normal text-rose-600 font-semibold">loại</span></h4>
             </div>
         </div>
 
@@ -103,7 +103,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đơn thuốc chờ phát hôm nay</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ prescriptions|rejectattr('trang_thai', 'equalto', 'Đã phát')|list|length }} <span class="text-xs font-normal text-teal-600 font-semibold">đơn</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.cho_phat }} <span class="text-xs font-normal text-teal-600 font-semibold">đơn</span></h4>
             </div>
         </div>
     </div>

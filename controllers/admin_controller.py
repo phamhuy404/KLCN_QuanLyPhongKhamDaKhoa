@@ -83,12 +83,20 @@ def reception():
     patients_list = PatientModel.get_all()
     appointments_list = AppointmentModel.get_all()
     departments = ClinicModel.get_all_departments()
-    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments)
+
+    stats = {
+        'tong_benh_nhan': len(patients_list),
+        'dang_cho': len([a for a in appointments_list if a.get('trang_thai') not in ['Đang khám', 'Đã khám']]),
+        'dang_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đang khám']),
+        'da_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đã khám'])
+    }
+
+    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments, stats=stats)
 
 @admin_bp.route('/emr')
 def emr():
     """Phân hệ bác sĩ: Bệnh án điện tử EMR, chẩn đoán ICD và ra y lệnh."""
-    patients_list = PatientModel.get_all()
+    patients_list = PatientModel.get_all(include_history=True)
     medicines = PharmacyModel.get_all_medicines()
     services = ClinicModel.get_all_services()
     doctors = UserModel.get_all_doctors()
@@ -100,28 +108,47 @@ def lab():
     patients_list = PatientModel.get_all()
     services = ClinicModel.get_all_services()
     lab_orders = MedicalRecordModel.get_all_lab_orders()
-    return render_template('admin/lab.html', active_page='admin_lab', patients=patients_list, services=services, lab_orders=lab_orders)
+
+    stats = {
+        'cho_thuc_hien': len([o for o in lab_orders if o.get('trang_thai') == 'Chờ thực hiện']),
+        'dang_thuc_hien': len([o for o in lab_orders if o.get('trang_thai') == 'Đang thực hiện']),
+        'da_hoan_thanh': len([o for o in lab_orders if o.get('trang_thai') == 'Đã hoàn thành']),
+        'tong_chi_dinh': len(lab_orders)
+    }
+
+    return render_template('admin/lab.html', active_page='admin_lab', patients=patients_list, services=services, lab_orders=lab_orders, stats=stats)
 
 @admin_bp.route('/pharmacy')
 def pharmacy():
     """Phân hệ dược sĩ: Quản lý kho dược và xuất cấp thuốc theo đơn."""
     medicines = PharmacyModel.get_all_medicines()
     prescriptions = MedicalRecordModel.get_all_prescriptions()
-    return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions)
+
+    stats = {
+        'tong_thuoc': len(medicines),
+        'sap_het_hang': len([m for m in medicines if (m.get('so_luong_ton') or 0) <= 50]),
+        'can_han_dung': 0,
+        'cho_phat': len([p for p in prescriptions if p.get('trang_thai') != 'Đã phát'])
+    }
+
+    return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions, stats=stats)
 
 @admin_bp.route('/billing')
 def billing():
     """Phân hệ thu ngân: Viện phí, chi trả BHYT và xuất hóa đơn điện tử."""
     invoices = BillingModel.get_all()
     
-    # Tiền xử lý dữ liệu: Đảm bảo mọi hóa đơn đều có key 'tien_bhyt_chi_tra' với giá trị hợp lệ
-    # Điều này giúp tránh lỗi Jinja2 khi dùng bộ lọc sum() trên file HTML
-    for inv in invoices:
-        if 'tien_bhyt_chi_tra' not in inv or inv['tien_bhyt_chi_tra'] is None:
-            inv['tien_bhyt_chi_tra'] = 0
+    # Tính toán toàn bộ biến số thống kê tài chính trực tiếp tại BackEnd
+    stats = {
+        'tong_doanh_thu': sum(float(inv.get('tong_tien') or 0) for inv in invoices),
+        'tong_bhyt': sum(float(inv.get('tien_bhyt_chi_tra') or inv.get('tien_bhyt') or 0) for inv in invoices),
+        'thuc_thu': sum(float(inv.get('thanh_tien') or 0) for inv in invoices),
+        'so_hoa_don_cho': len([inv for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán']),
+        'tong_hoa_don': len(invoices)
+    }
             
     patients_list = PatientModel.get_all()
-    return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, patients=patients_list)
+    return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, stats=stats, patients=patients_list)
 
 @admin_bp.route('/reports')
 def reports():
@@ -170,6 +197,10 @@ def staff():
         filter_ca = request.args.get('pending_ca')
         pending_approvals = ScheduleModel.get_pending_approvals(filter_role=filter_role, filter_ca=filter_ca)
 
+    # Phân loại yêu cầu ca trực hoàn toàn tại BackEnd
+    cancel_requests = [item for item in pending_approvals if item.get('trang_thai_duyet') == 'CHO_HUY']
+    reg_requests = [item for item in pending_approvals if item.get('trang_thai_duyet') == 'CHO_DUYET']
+
     active_tab = request.args.get('tab', 'staff')
 
     return render_template(
@@ -189,6 +220,8 @@ def staff():
         next_week_2_days=next_week_2_days,
         shifts_info=shifts_info,
         pending_approvals=pending_approvals,
+        cancel_requests=cancel_requests,
+        reg_requests=reg_requests,
         active_tab=active_tab
     )
 

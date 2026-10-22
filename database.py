@@ -1,6 +1,5 @@
-
-# database.py - Cầu nối tương thích ngược (Backward Compatibility Layer) sang cấu trúc MVC
-from core.database import get_db, init_db, init_sqlite_db, UnifiedConnection, UnifiedCursor
+# database.py - Cầu nối tương thích ngược sang cấu trúc MVC cho Microsoft SQL Server
+from core.database import get_db, init_db, UnifiedConnection, UnifiedCursor
 from models.user_model import UserModel
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
@@ -29,4 +28,3 @@ get_dashboard_stats = ClinicModel.get_dashboard_stats
 
 if __name__ == '__main__':
     init_db()
-

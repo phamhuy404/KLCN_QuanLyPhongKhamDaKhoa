@@ -1,13 +1,55 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Trung Tâm Xét Nghiệm & Cận Lâm Sàng{% endblock %}
+{% block title %}H2T Healthcare - Trung Tâm Xét Nghiệm & Cận Lâm Sàng
+<!-- Modal Phóng To Hình Ảnh Cận Lâm Sàng (Lightbox) -->
+<div id="modal-image-lightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full flex items-center justify-between text-white pb-3">
+        <h4 id="lightbox-title" class="font-bold text-sm">Hình ảnh Cận lâm sàng</h4>
+        <button type="button" onclick="closeLightbox()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg transition-all">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="max-w-4xl max-h-[80vh] w-full bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
+        <img id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
+    </div>
+</div>
+
+{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
+
+<!-- Modal Phóng To Hình Ảnh Cận Lâm Sàng (Lightbox) -->
+<div id="modal-image-lightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full flex items-center justify-between text-white pb-3">
+        <h4 id="lightbox-title" class="font-bold text-sm">Hình ảnh Cận lâm sàng</h4>
+        <button type="button" onclick="closeLightbox()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg transition-all">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="max-w-4xl max-h-[80vh] w-full bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
+        <img id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
+    </div>
+</div>
+
 {% endblock %}
 
 {% block header %}
     {% include "admin/components/header.html" %}
+
+<!-- Modal Phóng To Hình Ảnh Cận Lâm Sàng (Lightbox) -->
+<div id="modal-image-lightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full flex items-center justify-between text-white pb-3">
+        <h4 id="lightbox-title" class="font-bold text-sm">Hình ảnh Cận lâm sàng</h4>
+        <button type="button" onclick="closeLightbox()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg transition-all">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="max-w-4xl max-h-[80vh] w-full bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
+        <img id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
+    </div>
+</div>
+
 {% endblock %}
 
 {% block content %}
@@ -47,7 +89,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Chờ lấy mẫu / Thực hiện</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Chờ thực hiện')|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.cho_thuc_hien }} <span class="text-xs font-normal text-amber-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
@@ -57,7 +99,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang xử lý / Phân tích</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Đang thực hiện')|list|length }} <span class="text-xs font-normal text-blue-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.dang_thuc_hien }} <span class="text-xs font-normal text-blue-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
@@ -67,7 +109,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã có kết quả</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|selectattr('trang_thai', 'equalto', 'Đã hoàn thành')|list|length }} <span class="text-xs font-normal text-emerald-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.da_hoan_thanh }} <span class="text-xs font-normal text-emerald-600 font-semibold">ca</span></h4>
             </div>
         </div>
 
@@ -77,7 +119,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Tổng ca chỉ định</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ lab_orders|length }} <span class="text-xs font-normal text-teal-600 font-semibold">ca</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.tong_chi_dinh }} <span class="text-xs font-normal text-teal-600 font-semibold">ca</span></h4>
             </div>
         </div>
     </div>
@@ -131,6 +173,7 @@
                         <th class="py-3.5 px-4">Phân Loại</th>
                         <th class="py-3.5 px-4">Bác Sĩ Chỉ Định</th>
                         <th class="py-3.5 px-4">Thời Gian</th>
+                        <th class="py-3.5 px-4 text-center">Ảnh Chụp CLS</th>
                         <th class="py-3.5 px-4 text-center">Trạng Thái</th>
                         <th class="py-3.5 px-4 text-center">Thao Tác</th>
                     </tr>
@@ -178,6 +221,23 @@
                 <label class="block font-semibold text-slate-700 mb-1">Kết luận chẩn đoán hình ảnh / xét nghiệm</label>
                 <input type="text" id="modal-conclusion" value="" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
             </div>
+
+            <!-- Upload ảnh chụp siêu âm, X-quang, nội soi -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Tải lên ảnh chụp Cận lâm sàng (Siêu âm, X-Quang, Nội soi...)</span>
+                    <span class="text-[10px] text-slate-400">JPG, PNG, WebP</span>
+                </label>
+                <input type="file" id="modal-lab-image" accept="image/*" onchange="previewLabImage(this)"
+                       class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-medical-50 file:text-medical-700 hover:file:bg-medical-100 cursor-pointer">
+                
+                <div id="modal-image-preview-box" class="mt-2.5 hidden">
+                    <span class="text-[11px] font-bold text-slate-500 block mb-1">Hình ảnh kết quả đính kèm:</span>
+                    <div class="relative rounded-xl border border-slate-200 bg-slate-900 overflow-hidden flex items-center justify-center max-h-48">
+                        <img id="modal-image-preview" src="" alt="Ảnh chụp" class="max-h-48 object-contain">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2.5">
@@ -211,9 +271,10 @@
         loai: o.loai || 'Xét nghiệm',
         bac_si: o.bac_si,
         gio: (o.thoi_gian_chi_dinh || '').toString().slice(11, 16) || '08:30',
-        status: o.trang_thai === 'Đã hoàn thành' ? 'completed' : (o.trang_thai === 'Đang thực hiện' ? 'processing' : 'waiting'),
+        status: o.trang_thai === 'Đã hoàn thành' || o.trang_thai === 'Đã duyệt' ? 'completed' : (o.trang_thai === 'Đang thực hiện' || o.trang_thai === 'Chờ duyệt' ? 'processing' : 'waiting'),
         trang_thai_raw: o.trang_thai || '',
         ket_qua: o.ket_qua || '',
+        file_ket_qua: o.file_ket_qua || '',
         nguoi_nhap: o.nguoi_nhap || '',
         bac_si_duyet: o.bac_si_duyet || ''
     }));
@@ -310,6 +371,19 @@
         document.getElementById('modal-result-detail').value = o.ket_qua || '';
         document.getElementById('modal-conclusion').value = o.ket_qua || '';
 
+        // Reset file input and preview
+        const fileInp = document.getElementById('modal-lab-image');
+        if (fileInp) fileInp.value = '';
+        const previewBox = document.getElementById('modal-image-preview-box');
+        const previewImg = document.getElementById('modal-image-preview');
+        if (o.file_ket_qua) {
+            previewImg.src = o.file_ket_qua;
+            previewBox.classList.remove('hidden');
+        } else {
+            previewImg.src = '';
+            previewBox.classList.add('hidden');
+        }
+
         const isApproved = !!o.bac_si_duyet;
         const warningEl = document.getElementById('modal-approved-warning');
         const saveBtn = document.getElementById('btn-save-result');
@@ -343,6 +417,29 @@
         document.getElementById('result-modal').classList.add('hidden');
     }
 
+    function previewLabImage(input) {
+        const box = document.getElementById('modal-image-preview-box');
+        const img = document.getElementById('modal-image-preview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                box.classList.remove('hidden');
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function openLightbox(src, title) {
+        document.getElementById('lightbox-img').src = src;
+        document.getElementById('lightbox-title').innerText = title || 'Hình ảnh Cận lâm sàng';
+        document.getElementById('modal-image-lightbox').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+        document.getElementById('modal-image-lightbox').classList.add('hidden');
+    }
+
     async function saveLabResult() {
         const orderId = document.getElementById('modal-order-id').value;
         const ketQua = document.getElementById('modal-conclusion').value.trim();
@@ -352,11 +449,19 @@
             return;
         }
 
+        const formData = new FormData();
+        formData.append('chi_tiet_id', orderId);
+        formData.append('ket_qua', ketQua + (moTa ? '\n' + moTa : ''));
+
+        const fileInput = document.getElementById('modal-lab-image');
+        if (fileInput && fileInput.files[0]) {
+            formData.append('image_file', fileInput.files[0]);
+        }
+
         try {
             const res = await fetch('/api/lab/result/save', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chi_tiet_id: parseInt(orderId), ket_qua: ketQua + (moTa ? '\n' + moTa : '') })
+                body: formData
             });
             const data = await res.json();
             if (data.success) {
@@ -364,12 +469,14 @@
                 const o = labOrders.find(x => x.id === parseInt(orderId));
                 if (o) {
                     o.ket_qua = ketQua;
+                    if (data.file_ket_qua) o.file_ket_qua = data.file_ket_qua;
                     o.status = 'processing';
                     o.trang_thai_raw = 'Chờ duyệt';
                 }
                 closeResultModal();
                 filterLabOrders();
-                alert(data.message || 'Đã lưu kết quả xét nghiệm thành công!');
+                alert(data.message || 'Đã lưu kết quả và tải lên hình ảnh thành công!');
+                window.location.reload();
             } else {
                 alert('Lỗi: ' + data.message);
             }
@@ -413,6 +520,20 @@
         renderLabOrders(labOrders);
     });
 </script>
+
+<!-- Modal Phóng To Hình Ảnh Cận Lâm Sàng (Lightbox) -->
+<div id="modal-image-lightbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full flex items-center justify-between text-white pb-3">
+        <h4 id="lightbox-title" class="font-bold text-sm">Hình ảnh Cận lâm sàng</h4>
+        <button type="button" onclick="closeLightbox()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg transition-all">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="max-w-4xl max-h-[80vh] w-full bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
+        <img id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
+    </div>
+</div>
+
 {% endblock %}
 
 

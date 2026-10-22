@@ -33,10 +33,12 @@
         </div>
 
         <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
-            <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=100" class="w-9 h-9 rounded-xl object-cover ring-1 ring-medical-500/20" alt="Avatar">
+            <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                BS
+            </div>
             <div>
-                <h4 class="font-bold text-slate-900 leading-tight">BS. CKII. Trần Minh Quân</h4>
-                <span class="text-teal-700 font-semibold text-[11px]">Phòng 101 - Khoa Nội Tổng Quát</span>
+                <h4 class="font-bold text-slate-900 leading-tight">{{ session.get('user', {}).get('ho_ten', 'BS. CKII. Trần Minh Quân') }}</h4>
+                <span class="text-teal-700 font-semibold text-[11px]">{{ session.get('user', {}).get('chuc_vu', 'Phòng Khám Chuyên Khoa') }}</span>
             </div>
         </div>
     </div>
@@ -48,26 +50,26 @@
         <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <i class="fa-solid fa-users-line text-medical-600"></i> Hàng Đợi Chờ Khám (<span id="waiting-count">3</span>)
+                    <i class="fa-solid fa-users-line text-medical-600"></i> Bệnh Nhân Tiếp Nhận (<span id="waiting-count">{{ patients|length }}</span>)
                 </h3>
                 <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Trực tiếp</span>
             </div>
 
             <!-- Danh sách bệnh nhân chờ -->
-            <div class="space-y-2.5 max-h-[600px] overflow-y-auto pr-1" id="emr-queue-list">
-                {% for p in patients[:5] %}
+            <div class="space-y-2.5 max-h-[640px] overflow-y-auto pr-1" id="emr-queue-list">
+                {% for p in patients %}
                 <div onclick="selectEmrPatient('{{ p.id }}')" id="patient-card-{{ p.id }}" 
                      class="p-3.5 rounded-xl border {% if loop.first %}border-medical-500 bg-medical-50/50{% else %}border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50{% endif %} cursor-pointer transition-all space-y-2">
                     <div class="flex items-center justify-between">
                         <span class="px-2 py-0.5 rounded-lg {% if loop.first %}bg-medical-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %} font-mono font-bold text-xs">STT #{{ "%03d"|format(loop.index) }}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">08:{{ "%02d"|format(10 + loop.index * 15) }}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">{{ p.sdt or '0901234567' }}</span>
                     </div>
                     <div>
                         <h4 class="font-bold text-slate-900 text-sm">{{ p.ho_ten }}</h4>
-                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ p.ma_benh_nhan }} • {{ p.gioi_tinh }} • {{ p.tuoi }}T • {{ 'BHYT' if p.bhyt else 'Dịch vụ' }}</div>
+                        <div class="text-[11px] text-slate-500 font-mono mt-0.5">{{ p.ma_benh_nhan }} • {{ p.gioi_tinh }} • {{ p.nhom_mau or 'Chưa rõ' }} • {{ 'BHYT' if p.bhyt else 'Dịch vụ' }}</div>
                     </div>
                     <p class="text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-slate-100 truncate">
-                        Lý do: {{ p.trieu_chung or p.tien_su_benh or 'Khám sức khỏe tổng quát định kỳ' }}
+                        Lý do: {{ p.trieu_chung or p.tien_su_benh or 'Khám sức khỏe chuyên khoa định kỳ' }}
                     </p>
                 </div>
                 {% endfor %}
@@ -81,23 +83,23 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-700 flex items-center justify-center font-bold text-lg" id="current-patient-avatar">
-                        N
+                        {{ patients[0].ho_ten[0] if patients else 'N' }}
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-slate-900 text-base" id="current-patient-name">Hoàng Bảo Nam</h3>
-                            <span class="font-mono text-xs font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded" id="current-patient-code">BN2609001</span>
-                            <span class="text-xs text-slate-400" id="current-patient-meta">Nam • 36 tuổi</span>
+                            <h3 class="font-bold text-slate-900 text-base" id="current-patient-name">{{ patients[0].ho_ten if patients else 'Chưa chọn' }}</h3>
+                            <span class="font-mono text-xs font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded" id="current-patient-code">{{ patients[0].ma_benh_nhan if patients else '' }}</span>
+                            <span class="text-xs text-slate-400" id="current-patient-meta">{{ patients[0].gioi_tinh if patients else '' }} • {{ patients[0].ngay_sinh if patients else '' }}</span>
                         </div>
                         <div class="flex items-center gap-3 text-xs text-slate-500 mt-1 flex-wrap">
-                            <span class="flex items-center">Nhóm máu: <strong class="text-rose-600 ml-1" id="current-patient-blood">O+</strong> <span id="current-patient-blood-variant" class="hidden text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-semibold ml-1.5"></span></span>
-                            <span>BHYT: <strong class="text-teal-700 font-mono" id="current-patient-bhyt">GD4797931100001</strong></span>
+                            <span class="flex items-center">Nhóm máu: <strong class="text-rose-600 ml-1" id="current-patient-blood">{{ patients[0].nhom_mau if patients else 'O+' }}</strong> <span id="current-patient-blood-variant" class="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-semibold ml-1.5">{{ patients[0].ghi_chu_nhom_mau if patients else '' }}</span></span>
+                            <span>BHYT: <strong class="text-teal-700 font-mono" id="current-patient-bhyt">{{ patients[0].bhyt if patients and patients[0].bhyt else 'Không áp dụng' }}</strong></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <a id="current-patient-dossier-btn" href="/admin/patients/1" target="_blank" 
+                    <a id="current-patient-dossier-btn" href="/admin/patients/{{ patients[0].id if patients else 1 }}" target="_blank" 
                        class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5 transition-all" title="Mở trang hồ sơ 360">
                         <i class="fa-solid fa-folder-open text-slate-500"></i>
                         <span>Xem Hồ Sơ 360</span>
@@ -109,7 +111,7 @@
             <div id="allergy-warning-box" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-800">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-shield-halved text-emerald-600"></i>
-                    <span>Tiền sử dị ứng: <strong id="current-patient-allergy">Không ghi nhận dị ứng</strong></span>
+                    <span>Tiền sử dị ứng: <strong id="current-patient-allergy">{{ patients[0].di_ung if patients and patients[0].di_ung else 'Không ghi nhận dị ứng thuốc' }}</strong></span>
                 </div>
                 <span class="text-[10px] text-emerald-600 font-semibold">An toàn kê đơn</span>
             </div>
@@ -120,10 +122,14 @@
                     1. Khám Lâm Sàng & ICD-10
                 </button>
                 <button type="button" onclick="switchEmrTab('tab-cls')" id="btn-tab-cls" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
-                    2. Chỉ Định Cận Lâm Sàng
+                    2. Chỉ Định Cận Lâm Sàng (X-Quang, Xét nghiệm...)
                 </button>
                 <button type="button" onclick="switchEmrTab('tab-thuoc')" id="btn-tab-thuoc" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
-                    3. Đơn Thuốc Điện Tử
+                    3. Kê Đơn Thuốc & Cảnh Báo Tồn Kho
+                </button>
+                <button type="button" onclick="switchEmrTab('tab-view-cls')" id="btn-tab-view-cls" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-photo-film text-teal-600"></i>
+                    <span>4. Xem Kết Quả CLS & Ảnh Chụp</span>
                 </button>
             </div>
 
@@ -131,124 +137,206 @@
             <div id="tab-kham" class="space-y-4">
                 <!-- Chỉ số sinh hiệu đo trước khi vào phòng khám -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Chỉ số sinh hiệu ghi nhận</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Chỉ số sinh hiệu đo tại phòng khám</label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Huyết áp (mmHg)</span>
-                            <input type="text" value="120/80" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-ha" value="120/80" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Mạch (lần/phút)</span>
-                            <input type="text" value="76" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-mach" value="76" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Thân nhiệt (°C)</span>
-                            <input type="text" value="36.8" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-t" value="36.8" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">SpO2 (%)</span>
-                            <input type="text" value="99" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-spo2" value="99" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Triệu chứng & Quá trình bệnh lý</label>
-                        <textarea rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bệnh nhân đau tức thượng vị khoảng 1 tuần nay, ợ hơi, chướng bụng sau ăn. Không nôn, đại tiện bình thường.</textarea>
+                        <label class="block font-semibold text-slate-700 mb-1">Lý do khám & Triệu chứng lâm sàng <span class="text-rose-500">*</span></label>
+                        <textarea id="emr-symptoms" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bệnh nhân đau âm ỉ thượng vị, ợ hơi, chướng bụng sau ăn. Không sốt, tim phổi bình thường.</textarea>
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Thăm khám thực thể lâm sàng</label>
-                        <textarea rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bụng mềm, ấn đau tức nhẹ vùng thượng vị. Gan lách không sờ chạm, tim đều, phổi thông khí tốt không rale.</textarea>
+                        <label class="block font-semibold text-slate-700 mb-1">Chẩn đoán xác định kèm mã ICD-10 <span class="text-rose-500">*</span></label>
+                        <input type="text" id="emr-icd" value="K29.5 - Viêm dạ dày mạn tính, không đặc hiệu" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Chẩn đoán xác định mã ICD-10 <span class="text-rose-500">*</span></label>
-                        <div class="relative">
-                            <input type="text" value="K29.5 - Viêm dạ dày mạn tính, không xác định" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                        <label class="block font-semibold text-slate-700 mb-1">Hướng điều trị</label>
+                        <input type="text" id="emr-treatment" value="Chỉ định CLS (Xét nghiệm máu, X-quang), điều trị nội khoa kết hợp chế độ ăn uống" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Lời dặn của bác sĩ điều trị</label>
+                            <input type="text" id="emr-advice" value="Ăn uống đúng giờ, kiêng đồ cay nóng chua cay, tái khám đúng hẹn." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                         </div>
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Lời dặn của bác sĩ điều trị</label>
-                        <input type="text" value="Ăn uống đúng bữa, hạn chế đồ cay nóng và rượu bia, tránh thức khuya." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Ngày hẹn tái khám (Nếu có)</label>
+                            <input type="date" id="emr-reexam" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- NỘI DUNG TAB 2: CHỈ ĐỊNH CẬN LÂM SÀNG -->
             <div id="tab-cls" class="space-y-4 hidden text-xs">
-                <div class="p-3 bg-teal-50 border border-teal-100 rounded-xl text-teal-800 text-xs">
-                    Chọn các kỹ thuật cận lâm sàng cần gửi xuống phòng xét nghiệm hoặc chẩn đoán hình ảnh:
+                <div class="p-3 bg-teal-50 border border-teal-200 rounded-xl text-teal-800 text-xs flex items-center justify-between">
+                    <span>Tick chọn các xét nghiệm và kỹ thuật CĐHA cần thực hiện (Y lệnh sẽ được chuyển ngay cho Kỹ thuật viên):</span>
+                    <span class="font-bold text-teal-900" id="cls-selected-count">0 kỹ thuật được chọn</span>
                 </div>
 
-                <div class="space-y-2">
-                    {% for s in services[:4] %}
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                        <input type="checkbox" {% if loop.index <= 2 %}checked{% endif %} class="w-4 h-4 rounded text-medical-600 focus:ring-0">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="cls-service-list">
+                    {% for s in services %}
+                    {% if s.loai_dich_vu in ['Xét nghiệm', 'Chẩn đoán hình ảnh', 'Thăm dò chức năng'] %}
+                    <label class="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-teal-50/40 hover:border-teal-300 cursor-pointer transition-all">
+                        <input type="checkbox" name="cls_service_id" value="{{ s.id }}" onchange="updateClsCount()" class="mt-1 w-4 h-4 rounded text-medical-600 focus:ring-0">
                         <div class="flex-1">
-                            <span class="font-bold text-slate-800 block">{{ s.ten_dich_vu }}</span>
-                            <span class="text-[11px] text-slate-400">{{ s.ten_khoa or 'Cận lâm sàng' }} • {{ s.loai_dich_vu }}</span>
+                            <span class="font-bold text-slate-800 block text-xs">{{ s.ten_dich_vu }}</span>
+                            <span class="text-[11px] text-teal-700 font-medium block">{{ s.loai_dich_vu }} • BHYT: {{ s.bhyt_chi_tra_pt or 0 }}%</span>
+                            <span class="font-mono font-bold text-slate-700 text-xs mt-1 block">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
                         </div>
-                        <span class="font-mono font-semibold text-slate-700">{{ "{:,.0f}".format(s.don_gia or s.gia_dich_vu or 0) }} đ</span>
                     </label>
+                    {% endif %}
                     {% endfor %}
-                </div>
-
-                <div class="flex justify-end">
-                    <a href="{{ url_for('admin_lab') }}" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-paper-plane"></i> Gửi Y Lệnh Cận Lâm Sàng
-                    </a>
                 </div>
             </div>
 
-            <!-- NỘI DUNG TAB 3: ĐƠN THUỐC ĐIỆN TỬ -->
+            <!-- NỘI DUNG TAB 3: KÊ ĐƠN THUỐC ĐIỆN TỬ & CẢNH BÁO TỒN KHO -->
             <div id="tab-thuoc" class="space-y-4 hidden text-xs">
+                
+                <!-- Khung chọn thuốc & Cảnh báo tồn kho -->
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div class="font-bold text-slate-800 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-pills text-medical-600"></i>
+                        Thêm Thuốc Vào Đơn Khám
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                        <div class="sm:col-span-6">
+                            <label class="block font-semibold text-slate-600 mb-1">Chọn loại thuốc từ kho dược</label>
+                            <select id="select-medicine" onchange="onMedicineSelected()" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-medical-500">
+                                <option value="">-- Chọn thuốc --</option>
+                                {% for m in medicines %}
+                                <option value="{{ m.id }}" 
+                                        data-name="{{ m.ten_thuoc }}" 
+                                        data-ton="{{ m.so_luong_ton }}" 
+                                        data-min="{{ m.ton_kho_toi_thieu or 20 }}" 
+                                        data-dvt="{{ m.don_vi_tinh }}" 
+                                        data-price="{{ m.don_gia }}"
+                                        data-usage="{{ m.huong_dan_su_dung or 'Uống 1 viên/lần, ngày 2 lần sau ăn' }}">
+                                    {{ m.ten_thuoc }} (Tồn: {{ m.so_luong_ton }} {{ m.don_vi_tinh }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block font-semibold text-slate-600 mb-1">Số lượng kê</label>
+                            <input type="number" id="input-medicine-qty" min="1" value="10" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div class="sm:col-span-4">
+                            <label class="block font-semibold text-slate-600 mb-1">Liều & Cách dùng</label>
+                            <input type="text" id="input-medicine-usage" value="Uống 1 viên/lần, ngày 2 lần sau ăn" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                        </div>
+                    </div>
+
+                    <!-- BANNER CẢNH BÁO TỒN KHO ÍT (Ẩn/Hiện động) -->
+                    <div id="stock-warning-banner" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+                            <span>
+                                <strong>⚠️ CẢNH BÁO TỒN KHO THẤP:</strong> Thuốc <strong id="warning-med-name"></strong> hiện chỉ còn <strong id="warning-stock-qty" class="text-rose-600 font-mono font-bold"></strong> trong kho dược! Hãy cân nhắc giảm số lượng hoặc kê thuốc thay thế.
+                            </span>
+                        </div>
+                        <span class="text-[10px] bg-amber-200/60 text-amber-900 px-2 py-0.5 rounded font-bold">Ngưỡng báo động: ≤ 20</span>
+                    </div>
+
+                    <!-- Lỗi số lượng vượt quá tồn kho -->
+                    <div id="stock-error-banner" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-circle-xmark text-rose-600 text-base"></i>
+                        <span>
+                            <strong>❌ LỖI KHÔNG ĐỦ THUỐC:</strong> Số lượng kê (<span id="err-requested-qty"></span>) vượt quá số lượng tồn kho hiện tại (<span id="err-avail-qty"></span>)! Vui lòng giảm số lượng.
+                        </span>
+                    </div>
+
+                    <div class="flex justify-end pt-1">
+                        <button type="button" onclick="addMedicineToPrescription()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-plus"></i> Thêm Thuốc Này Vào Toa
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách thuốc đã kê -->
                 <div class="overflow-x-auto border border-slate-100 rounded-xl">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
                             <tr>
                                 <th class="py-2.5 px-3">Tên Thuốc / Biệt Dược</th>
-                                <th class="py-2.5 px-3">Số Lượng</th>
+                                <th class="py-2.5 px-3">Tồn Kho Lúc Kê</th>
+                                <th class="py-2.5 px-3">Số Lượng Kê</th>
                                 <th class="py-2.5 px-3">Cách Dùng</th>
+                                <th class="py-2.5 px-3 text-right">Đơn Giá</th>
+                                <th class="py-2.5 px-3 text-right">Thành Tiền</th>
                                 <th class="py-2.5 px-3 text-center">Xóa</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100" id="prescription-body">
-                            {% for m in medicines[:3] %}
-                            <tr>
-                                <td class="py-2.5 px-3">
-                                    <strong class="text-slate-800">{{ m.ten_thuoc }}</strong>
-                                    <span class="block text-[10px] text-slate-400">{{ m.hoat_chat }}</span>
-                                </td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">20 {{ m.don_vi_tinh }}</td>
-                                <td class="py-2.5 px-3 text-slate-600">{{ m.huong_dan_su_dung or 'Uống sau ăn 30 phút' }}</td>
-                                <td class="py-2.5 px-3 text-center text-rose-500 cursor-pointer" onclick="this.closest('tr').remove()"><i class="fa-solid fa-trash"></i></td>
-                            </tr>
-                            {% endfor %}
+                            <!-- Dữ liệu thuốc kê sẽ được chèn vào đây qua JavaScript -->
                         </tbody>
                     </table>
                 </div>
 
                 <div class="flex items-center justify-between pt-2">
-                    <a href="{{ url_for('admin_pharmacy') }}" class="text-medical-600 font-semibold hover:underline">
-                        <i class="fa-solid fa-pills mr-1"></i> Tra cứu tồn kho thuốc
-                    </a>
-                    <button type="button" onclick="alert('Đã thêm thuốc mới vào đơn')" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">
-                        + Thêm Thuốc
-                    </button>
+                    <span class="text-xs text-slate-500">
+                        Tổng số loại thuốc đã kê: <strong id="total-med-types" class="text-teal-700">0</strong>
+                    </span>
+                    <span class="text-xs font-bold text-slate-800">
+                        Tổng tiền thuốc dự kiến: <strong id="total-med-amount" class="text-emerald-700 font-mono">0 đ</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- NỘI DUNG TAB 4: KẾT QUẢ CLS & HÌNH ẢNH ĐÃ THỰC HIỆN -->
+            <div id="tab-view-cls" class="space-y-4 hidden text-xs">
+                <div class="p-3 bg-teal-50 border border-teal-200 rounded-xl text-teal-800 text-xs flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-photo-film text-teal-600"></i>
+                        <span>Kết quả xét nghiệm, siêu âm, X-Quang đã thực hiện của bệnh nhân để bác sĩ hội chẩn & chẩn đoán:</span>
+                    </span>
+                    <span class="font-bold text-teal-900" id="emr-patient-cls-badge">0 kết quả</span>
+                </div>
+
+                <div id="emr-patient-cls-container" class="space-y-3">
+                    <!-- Sẽ render động theo bệnh nhân đang chọn -->
                 </div>
             </div>
 
             <!-- Footer Action Bar -->
             <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="text-xs text-slate-500">
+                    <i class="fa-solid fa-circle-info text-teal-600 mr-1"></i>
+                    Bấm Hoàn Tất để chốt khám, đẩy chỉ định xuống KTV và chuyển toa sang Dược sĩ.
+                </div>
+
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="printPrescriptionAndOrders()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-print"></i> In Đơn & Phiếu
+                    <button type="button" onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> In Phiếu Khám
                     </button>
-                    <button type="button" onclick="completeExamination()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
-                        <i class="fa-solid fa-circle-check"></i> Hoàn Tất Phiên Khám
+                    <button type="button" onclick="completeNormalExamination()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-teal-500/20 flex items-center gap-1.5 cursor-pointer" title="Áp dụng khi khám lâm sàng bình thường, không cần cận lâm sàng và không cần kê thuốc">
+                        <i class="fa-solid fa-heart-pulse"></i> Sức Khỏe Tốt (Xuất Hóa Đơn Ngay)
+                    </button>
+                    <button type="button" onclick="completeExamination()" class="px-6 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-circle-check"></i> Hoàn Tất & Chuyển Phiên Khám
                     </button>
                 </div>
             </div>
@@ -262,50 +350,67 @@
 <script type="application/json" id="emr-patients-data">
     {{ patients | tojson | safe }}
 </script>
+
 <script>
     let rawPatients = JSON.parse(document.getElementById('emr-patients-data').textContent || '[]');
-    const samplePatients = {};
-    rawPatients.forEach(p => {
-        samplePatients[p.id] = {
-            name: p.ho_ten,
-            code: p.ma_benh_nhan,
-            age: (p.tuoi || 30) + ' tuổi',
-            gender: p.gioi_tinh || 'Nam',
-            blood: p.nhom_mau || 'Chưa rõ',
-            blood_variant: p.ghi_chu_nhom_mau || '',
-            bhyt: p.bhyt || 'Không áp dụng',
-            allergy: p.di_ung || 'Không có',
-            reason: p.trieu_chung || p.tien_su_benh || 'Khám sức khỏe theo yêu cầu'
-        };
+    let currentSelectedPatientId = rawPatients.length > 0 ? rawPatients[0].id : 1;
+    let prescriptionItems = [];
+
+    // Khởi tạo một số thuốc mẫu ban đầu để bác sĩ tiện chỉnh sửa
+    prescriptionItems.push({
+        thuoc_id: 6,
+        ten_thuoc: 'Paracetamol 500mg Hậu Giang',
+        so_luong: 20,
+        don_vi_tinh: 'Viên',
+        so_luong_ton: 5000,
+        don_gia: 2000,
+        lieu_dung: 'Uống 1-2 viên khi sốt trên 38.5°C',
+        cach_dung: 'Uống sau ăn no, cách 4-6h/lần'
     });
+    prescriptionItems.push({
+        thuoc_id: 11,
+        ten_thuoc: 'Esomeprazole 20mg Stada',
+        so_luong: 28,
+        don_vi_tinh: 'Viên',
+        so_luong_ton: 2800,
+        don_gia: 8000,
+        lieu_dung: 'Uống 1 viên/lần, ngày 2 lần',
+        cach_dung: 'Uống trước ăn sáng và ăn tối 30 phút'
+    });
+    renderPrescriptionTable();
+    if (rawPatients.length > 0) {
+        renderPatientClsResults(rawPatients[0]);
+    }
 
     function selectEmrPatient(id) {
-        const p = samplePatients[id];
+        currentSelectedPatientId = parseInt(id);
+        const p = rawPatients.find(x => x.id === currentSelectedPatientId);
         if (!p) return;
 
-        document.getElementById('current-patient-name').innerText = p.name;
-        document.getElementById('current-patient-avatar').innerText = p.name.charAt(0);
-        document.getElementById('current-patient-code').innerText = p.code;
-        document.getElementById('current-patient-meta').innerText = `${p.gender} • ${p.age}`;
-        document.getElementById('current-patient-blood').innerText = p.blood;
+        document.getElementById('current-patient-name').innerText = p.ho_ten;
+        document.getElementById('current-patient-avatar').innerText = p.ho_ten.charAt(0);
+        document.getElementById('current-patient-code').innerText = p.ma_benh_nhan;
+        document.getElementById('current-patient-meta').innerText = `${p.gioi_tinh || 'Nam'} • ${p.ngay_sinh || ''}`;
+        document.getElementById('current-patient-blood').innerText = p.nhom_mau || 'Chưa rõ';
+        
         const variantEl = document.getElementById('current-patient-blood-variant');
         if (variantEl) {
-            if (p.blood_variant) {
-                variantEl.innerText = p.blood_variant;
-                variantEl.classList.remove('hidden');
-            } else {
-                variantEl.classList.add('hidden');
-            }
+            variantEl.innerText = p.ghi_chu_nhom_mau || '';
+            variantEl.style.display = p.ghi_chu_nhom_mau ? 'inline-block' : 'none';
         }
-        document.getElementById('current-patient-bhyt').innerText = p.bhyt;
-        document.getElementById('current-patient-allergy').innerText = p.allergy;
+
+        document.getElementById('current-patient-bhyt').innerText = p.bhyt || 'Không áp dụng';
+        document.getElementById('current-patient-allergy').innerText = p.di_ung || 'Không ghi nhận dị ứng';
         document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
 
+        // Render danh sách kết quả cận lâm sàng của bệnh nhân
+        renderPatientClsResults(p);
+
         // Reset highlight card
-        Object.keys(samplePatients).forEach(k => {
-            const card = document.getElementById(`patient-card-${k}`);
+        rawPatients.forEach(item => {
+            const card = document.getElementById(`patient-card-${item.id}`);
             if (card) {
-                if (parseInt(k) === parseInt(id)) {
+                if (item.id === currentSelectedPatientId) {
                     card.className = "p-3.5 rounded-xl border border-medical-500 bg-medical-50/50 cursor-pointer transition-all space-y-2 hover:shadow-sm";
                 } else {
                     card.className = "p-3.5 rounded-xl border border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50 cursor-pointer transition-all space-y-2";
@@ -315,70 +420,355 @@
     }
 
     function switchEmrTab(tabId) {
-        ['tab-kham', 'tab-cls', 'tab-thuoc'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
+        ['tab-kham', 'tab-cls', 'tab-thuoc', 'tab-view-cls'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
         });
-        ['btn-tab-kham', 'btn-tab-cls', 'btn-tab-thuoc'].forEach(id => {
+        ['btn-tab-kham', 'btn-tab-cls', 'btn-tab-thuoc', 'btn-tab-view-cls'].forEach(id => {
             const btn = document.getElementById(id);
-            btn.className = "px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all";
+            if (btn) btn.className = "px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all";
         });
 
-        document.getElementById(tabId).classList.remove('hidden');
+        const target = document.getElementById(tabId);
+        if (target) target.classList.remove('hidden');
         const activeBtn = document.getElementById(`btn-${tabId}`);
-        activeBtn.className = "px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-bold transition-all";
+        if (activeBtn) activeBtn.className = "px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-bold transition-all";
     }
 
-    const currentUserRole = "{{ session.get('user', {}).get('vai_tro', 'ADMIN') }}";
+    function renderPatientClsResults(p) {
+        const container = document.getElementById('emr-patient-cls-container');
+        const badge = document.getElementById('emr-patient-cls-badge');
+        if (!container || !badge) return;
 
-    function printPrescriptionAndOrders() {
-        if (currentUserRole === 'ADMIN') {
-            const confirmed = confirm('Bác sĩ của phiên khám này đã hoàn tất việc kê đơn thuốc và chỉ định cận lâm sàng chưa? Bạn có chắc chắn muốn in phiếu lúc này không?');
-            if (!confirmed) return;
+        let allCls = [];
+        if (p && p.lich_su_kham && Array.isArray(p.lich_su_kham)) {
+            p.lich_su_kham.forEach(enc => {
+                if (enc.can_lam_sang && Array.isArray(enc.can_lam_sang)) {
+                    enc.can_lam_sang.forEach(item => {
+                        allCls.push({
+                            ...item,
+                            ma_phieu: enc.ma_phieu,
+                            thoi_gian_kham: enc.thoi_gian_kham
+                        });
+                    });
+                }
+            });
         }
-        window.print();
+
+        badge.innerText = `${allCls.length} kết quả`;
+
+        if (allCls.length === 0) {
+            container.innerHTML = `
+                <div class="py-10 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+                    <div class="w-10 h-10 rounded-xl bg-white text-slate-400 flex items-center justify-center mx-auto shadow-sm">
+                        <i class="fa-solid fa-flask-vial"></i>
+                    </div>
+                    <p class="font-bold text-slate-700 text-xs">Chưa có kết quả cận lâm sàng nào</p>
+                    <p class="text-[11px] text-slate-400">Bệnh nhân chưa thực hiện xét nghiệm hoặc chẩn đoán hình ảnh nào trong hệ thống.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = `
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
+                        <tr>
+                            <th class="py-2.5 px-3">Tên xét nghiệm / Kỹ thuật</th>
+                            <th class="py-2.5 px-3">Phân loại</th>
+                            <th class="py-2.5 px-3">Đợt khám</th>
+                            <th class="py-2.5 px-3">KTV Thực hiện</th>
+                            <th class="py-2.5 px-3">Kết quả / Nhận xét</th>
+                            <th class="py-2.5 px-3 text-center">Ảnh chụp / Tư liệu</th>
+                            <th class="py-2.5 px-3 text-center">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+        `;
+
+        allCls.forEach(c => {
+            const hasImage = !!c.file_ket_qua;
+            html += `
+                <tr class="hover:bg-slate-50/50">
+                    <td class="py-2.5 px-3 font-bold text-slate-800">${c.ten || 'Chỉ định CLS'}</td>
+                    <td class="py-2.5 px-3 text-slate-500">${c.loai || 'CĐHA'}</td>
+                    <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${c.ma_phieu || 'EMR'}</td>
+                    <td class="py-2.5 px-3 text-slate-600">${c.bac_si_thuc_hien || 'KTV'}</td>
+                    <td class="py-2.5 px-3 text-teal-800 font-medium">${c.ket_qua || 'Chưa có kết luận'}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        ${hasImage ? `
+                            <button type="button" onclick="openEmrImageModal('${c.file_ket_qua}', '${c.ten}', '${c.ket_qua || ''}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Xem ảnh</span>
+                            </button>
+                        ` : `
+                            <span class="text-slate-400 text-[11px]">Không có ảnh</span>
+                        `}
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                            ${c.trang_thai || 'Hoàn tất'}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
     }
 
+    function openEmrImageModal(imageUrl, title, desc) {
+        const modal = document.getElementById('emr-image-modal');
+        const img = document.getElementById('emr-image-modal-img');
+        const titleEl = document.getElementById('emr-image-modal-title');
+        const descEl = document.getElementById('emr-image-modal-desc');
+        if (!modal || !img) return;
+
+        img.src = imageUrl;
+        if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-image text-medical-600"></i> ${title || 'Ảnh chụp Cận lâm sàng'}`;
+        if (descEl) descEl.innerText = desc ? `Kết luận: ${desc}` : 'Hình ảnh chẩn đoán kỹ thuật số chuẩn HD';
+        modal.classList.remove('hidden');
+    }
+
+    function closeEmrImageModal() {
+        const modal = document.getElementById('emr-image-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function updateClsCount() {
+        const checked = document.querySelectorAll('input[name="cls_service_id"]:checked');
+        document.getElementById('cls-selected-count').innerText = `${checked.length} kỹ thuật được chọn`;
+    }
+
+    // Xử lý khi chọn thuốc từ dropdown: Cảnh báo tồn kho ít
+    function onMedicineSelected() {
+        const sel = document.getElementById('select-medicine');
+        const opt = sel.options[sel.selectedIndex];
+        const warningBanner = document.getElementById('stock-warning-banner');
+        const errorBanner = document.getElementById('stock-error-banner');
+        errorBanner.classList.add('hidden');
+
+        if (!opt || !opt.value) {
+            warningBanner.classList.add('hidden');
+            return;
+        }
+
+        const ton = parseInt(opt.getAttribute('data-ton') || 0);
+        const minStock = parseInt(opt.getAttribute('data-min') || 20);
+        const name = opt.getAttribute('data-name');
+        const dvt = opt.getAttribute('data-dvt');
+        const defaultUsage = opt.getAttribute('data-usage');
+
+        document.getElementById('input-medicine-usage').value = defaultUsage || 'Uống sau ăn 30 phút';
+
+        // CẢNH BÁO TỒN KHO ÍT
+        if (ton <= minStock) {
+            document.getElementById('warning-med-name').innerText = name;
+            document.getElementById('warning-stock-qty').innerText = `${ton} ${dvt}`;
+            warningBanner.classList.remove('hidden');
+        } else {
+            warningBanner.classList.add('hidden');
+        }
+    }
+
+    // Thêm thuốc vào đơn khám
+    function addMedicineToPrescription() {
+        const sel = document.getElementById('select-medicine');
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt || !opt.value) {
+            alert('Vui lòng chọn thuốc từ danh mục trước khi thêm!');
+            return;
+        }
+
+        const thuocId = parseInt(opt.value);
+        const name = opt.getAttribute('data-name');
+        const ton = parseInt(opt.getAttribute('data-ton') || 0);
+        const dvt = opt.getAttribute('data-dvt') || 'Viên';
+        const price = parseFloat(opt.getAttribute('data-price') || 0);
+        const qty = parseInt(document.getElementById('input-medicine-qty').value || 1);
+        const usage = document.getElementById('input-medicine-usage').value.trim();
+
+        // Kiểm tra số lượng tồn kho
+        const errBanner = document.getElementById('stock-error-banner');
+        if (qty > ton) {
+            document.getElementById('err-requested-qty').innerText = `${qty} ${dvt}`;
+            document.getElementById('err-avail-qty').innerText = `${ton} ${dvt}`;
+            errBanner.classList.remove('hidden');
+            alert(`Lỗi tồn kho: Thuốc "${name}" chỉ còn tồn ${ton} ${dvt}, không thể kê vượt quá số lượng tồn!`);
+            return;
+        }
+        errBanner.classList.add('hidden');
+
+        // Nếu đã có thuốc trong đơn thì tăng số lượng
+        const existing = prescriptionItems.find(x => x.thuoc_id === thuocId);
+        if (existing) {
+            if (existing.so_luong + qty > ton) {
+                alert(`Tổng số lượng thuốc "${name}" kê (${existing.so_luong + qty}) vượt quá tồn kho (${ton} ${dvt})!`);
+                return;
+            }
+            existing.so_luong += qty;
+            existing.cach_dung = usage;
+        } else {
+            prescriptionItems.push({
+                thuoc_id: thuocId,
+                ten_thuoc: name,
+                so_luong: qty,
+                don_vi_tinh: dvt,
+                so_luong_ton: ton,
+                don_gia: price,
+                lieu_dung: usage,
+                cach_dung: usage
+            });
+        }
+
+        renderPrescriptionTable();
+        alert(`Đã thêm thuốc "${name}" (${qty} ${dvt}) vào toa!`);
+    }
+
+    function removePrescriptionItem(index) {
+        prescriptionItems.splice(index, 1);
+        renderPrescriptionTable();
+    }
+
+    function renderPrescriptionTable() {
+        const tbody = document.getElementById('prescription-body');
+        tbody.innerHTML = '';
+        let totalAmount = 0;
+
+        if (prescriptionItems.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400">Chưa có thuốc nào trong đơn. Chọn thuốc từ kho và bấm "Thêm Thuốc Này Vào Toa" ở trên.</td></tr>`;
+            document.getElementById('total-med-types').innerText = '0';
+            document.getElementById('total-med-amount').innerText = '0 đ';
+            return;
+        }
+
+        prescriptionItems.forEach((item, idx) => {
+            const itemTotal = item.don_gia * item.so_luong;
+            totalAmount += itemTotal;
+            const isLowStock = item.so_luong_ton <= 20;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-2.5 px-3">
+                    <strong class="text-slate-800">${item.ten_thuoc}</strong>
+                    ${isLowStock ? '<span class="inline-block ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-bold">Tồn ít</span>' : ''}
+                </td>
+                <td class="py-2.5 px-3 font-mono ${isLowStock ? 'text-amber-600 font-bold' : 'text-slate-500'}">${item.so_luong_ton} ${item.don_vi_tinh}</td>
+                <td class="py-2.5 px-3 font-mono font-bold text-teal-800">${item.so_luong} ${item.don_vi_tinh}</td>
+                <td class="py-2.5 px-3 text-slate-600">${item.cach_dung}</td>
+                <td class="py-2.5 px-3 text-right font-mono text-slate-600">${item.don_gia.toLocaleString('vi-VN')} đ</td>
+                <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-800">${itemTotal.toLocaleString('vi-VN')} đ</td>
+                <td class="py-2.5 px-3 text-center text-rose-500 hover:text-rose-700 cursor-pointer" onclick="removePrescriptionItem(${idx})">
+                    <i class="fa-solid fa-trash"></i>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-med-types').innerText = prescriptionItems.length;
+        document.getElementById('total-med-amount').innerText = totalAmount.toLocaleString('vi-VN') + ' đ';
+    }
+
+    // Hoàn tất phiên khám
     function completeExamination() {
-        if (currentUserRole === 'ADMIN') {
-            const confirmed = confirm('Bác sĩ phụ trách phiên khám này đã hoàn tất quá trình khám bệnh và chẩn đoán chưa? Bạn có chắc chắn muốn xác nhận hoàn tất phiên khám thay cho bác sĩ không?');
-            if (!confirmed) return;
+        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày mạn tính';
+        const symptoms = document.getElementById('emr-symptoms')?.value || 'Đau thượng vị';
+        const treatment = document.getElementById('emr-treatment')?.value || 'Chỉ định CLS và kê đơn điều trị nội khoa';
+        const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám đúng hẹn';
+        const reexam = document.getElementById('emr-reexam')?.value || null;
+
+        // Lấy danh sách ID các kỹ thuật CLS đã chọn
+        const checkedCls = Array.from(document.querySelectorAll('input[name="cls_service_id"]:checked')).map(el => parseInt(el.value));
+
+        if (prescriptionItems.length === 0 && checkedCls.length === 0) {
+            if (!confirm('Bạn chưa chọn kỹ thuật cận lâm sàng và chưa kê đơn thuốc nào. Bạn có chắc chắn muốn lưu phiếu khám chỉ có kết luận lâm sàng không?')) {
+                return;
+            }
         }
 
-        const activePatientCard = document.querySelector('[id^="patient-card-"].border-medical-500');
-        let patientId = 1;
-        if (activePatientCard) {
-            patientId = parseInt(activePatientCard.id.replace('patient-card-', '')) || 1;
-        }
-
-        const diagnosis = document.getElementById('emr-diagnosis')?.value || 'Khám nội tổng quát';
-        const icd = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày mạn tính';
-        const treatment = document.getElementById('emr-treatment')?.value || 'Điều trị nội khoa';
-        const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám sau 14 ngày';
+        const payload = {
+            patient_id: currentSelectedPatientId,
+            reason: 'Khám chuyên khoa',
+            symptoms: symptoms,
+            diagnosis: diagnosis,
+            icd: diagnosis,
+            treatment: treatment,
+            advice: advice,
+            reexam_date: reexam,
+            lab_services: checkedCls,
+            medicines: prescriptionItems.map(x => ({
+                thuoc_id: x.thuoc_id,
+                so_luong: x.so_luong,
+                lieu_dung: x.lieu_dung,
+                cach_dung: x.cach_dung
+            }))
+        };
 
         fetch('/api/emr/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                patient_id: patientId,
-                diagnosis: diagnosis,
-                icd: icd,
-                treatment: treatment,
-                advice: advice,
-                medicines: [{ thuoc_id: 1, so_luong: 10, lieu_dung: 'Ngày 2 lần, lần 1 viên' }]
-            })
+            body: JSON.stringify(payload)
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert(`Đã lưu thành công phiếu khám ${data.ma_phieu}! Đơn thuốc và viện phí đã được chuyển tự động vào CSDL.`);
+                alert(`✅ THÀNH CÔNG!\n- Đã lưu phiếu khám: ${data.ma_phieu}\n- Chỉ định cận lâm sàng đã chuyển sang Khoa CLS cho Kỹ thuật viên.\n- Toa thuốc đã chuyển sang Kho Dược cho Dược sĩ.\n- Hóa đơn viện phí ban đầu đã được tự động sinh.`);
                 window.location.reload();
             } else {
-                alert('Thông báo: ' + data.message);
+                alert('❌ KHÔNG THỂ LƯU PHIÊN KHÁM:\n' + data.message);
             }
         })
         .catch(err => {
-            alert('Đã hoàn tất phiên khám cho bệnh nhân! Dữ liệu đã lưu vào Bệnh Án Điện Tử (EMR).');
+            alert('Lỗi kết nối khi lưu phiên khám: ' + err);
+        });
+    }
+
+    // Kết thúc phiên khám lâm sàng bình thường một chạm (Xử lý toàn bộ biến số nghiệp vụ tại BackEnd)
+    function completeNormalExamination() {
+        if (!confirm('Xác nhận: Bệnh nhân có kết quả khám lâm sàng bình thường (sức khỏe tốt)?\nHệ thống sẽ kết thúc phiên khám và tự động xuất hóa đơn viện phí tiền khám ngay lập tức.')) {
+            return;
+        }
+
+        fetch('/api/emr/save-normal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: currentSelectedPatientId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ KẾT THÚC PHIÊN KHÁM THÀNH CÔNG!\n- Đã lưu phiếu khám: ${data.ma_phieu}\n- Chẩn đoán: Khám sức khỏe bình thường\n- Hóa đơn viện phí tiền khám đã được xuất thành công.`);
+                window.location.reload();
+            } else {
+                alert('❌ KHÔNG THỂ LƯU PHIÊN KHÁM:\n' + data.message);
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối khi lưu: ' + err);
         });
     }
 </script>
+
+<!-- Modal phóng to xem ảnh Cận Lâm Sàng cho Bác sĩ -->
+<div id="emr-image-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2" id="emr-image-modal-title">
+                <i class="fa-solid fa-image text-medical-600"></i> Ảnh chụp Cận lâm sàng
+            </h4>
+            <button onclick="closeEmrImageModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+            <img id="emr-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
+        </div>
+        <div class="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+            <span id="emr-image-modal-desc">Hình ảnh chẩn đoán kỹ thuật số chuẩn HD</span>
+            <button onclick="closeEmrImageModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700">Đóng</button>
+        </div>
+    </div>
+</div>
 {% endblock %}

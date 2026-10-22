@@ -58,7 +58,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang chờ gọi số</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|rejectattr('trang_thai', 'in', ['Đang khám', 'Đã khám'])|list|length }} <span class="text-xs font-normal text-amber-600 font-semibold">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.dang_cho }} <span class="text-xs font-normal text-amber-600 font-semibold">người</span></h4>
             </div>
         </div>
 
@@ -68,7 +68,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đang trong phòng khám</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|selectattr('trang_thai', 'equalto', 'Đang khám')|list|length }} <span class="text-xs font-normal text-slate-400">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.dang_kham }} <span class="text-xs font-normal text-slate-400">người</span></h4>
             </div>
         </div>
 
@@ -78,7 +78,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã hoàn tất</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ appointments|selectattr('trang_thai', 'equalto', 'Đã khám')|list|length }} <span class="text-xs font-normal text-slate-400">người</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ stats.da_kham }} <span class="text-xs font-normal text-slate-400">người</span></h4>
             </div>
         </div>
     </div>

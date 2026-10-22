@@ -208,8 +208,6 @@
     </header>
 
     <!-- 3. Banner chính tự động trượt ngang mỗi 5 giây -->
-    {% set banner_list = banners if banners and banners|length > 0 else [] %}
-    {% set banner_count = banner_list|length if banner_list|length > 0 else 1 %}
     <section class="relative bg-slate-900 overflow-hidden select-none">
         
         <!-- Khung bao ngoài slider -->
@@ -384,13 +382,13 @@
                         <p class="text-xs text-slate-400 mt-0.5">Hội tụ các giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm từ các bệnh viện lớn</p>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {% if doctors %}
-                            {% for doc in doctors[:3] %}
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between">
+                            {% for doc in doctors[:6] %}
+                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between group hover:border-medical-200">
                                 <div class="text-center">
                                     <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" 
-                                        class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md">
+                                        class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
                                     <h4 class="font-bold text-slate-900 text-sm mt-3.5">{{ doc.hoc_vi or 'Bác sĩ' }} {{ doc.ho_ten }}</h4>
                                     <span class="text-xs text-medical-700 font-semibold block mt-0.5">{{ doc.ten_khoa or 'Chuyên khoa' }}</span>
                                     <p class="text-[11px] text-slate-400 mt-1 leading-relaxed line-clamp-2">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm thăm khám.' }}</p>

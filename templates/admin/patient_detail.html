@@ -347,6 +347,7 @@
                                     <th class="py-2.5 px-3">Phân Loại</th>
                                     <th class="py-2.5 px-3">Bác Sĩ / Kỹ Thuật Viên</th>
                                     <th class="py-2.5 px-3">Kết Quả Lâm Sàng</th>
+                                    <th class="py-2.5 px-3 text-center">Ảnh Chụp / Tư Liệu</th>
                                     <th class="py-2.5 px-3 text-center">Trạng Thái</th>
                                 </tr>
                             </thead>
@@ -357,6 +358,16 @@
                                     <td class="py-2.5 px-3 text-slate-500">{{ cls.loai }}</td>
                                     <td class="py-2.5 px-3 text-slate-600">{{ cls.bac_si_thuc_hien }}</td>
                                     <td class="py-2.5 px-3 text-teal-800 font-medium">{{ cls.ket_qua }}</td>
+                                    <td class="py-2.5 px-3 text-center">
+                                        {% if cls.file_ket_qua %}
+                                        <button type="button" onclick="openDetailImageModal('{{ cls.file_ket_qua }}', '{{ cls.ten }}', '{{ cls.ket_qua }}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm">
+                                            <i class="fa-solid fa-image"></i>
+                                            <span>Xem ảnh</span>
+                                        </button>
+                                        {% else %}
+                                        <span class="text-slate-400 text-[11px]">Không có ảnh</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="py-2.5 px-3 text-center">
                                         <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                                             {{ cls.trang_thai }}
@@ -436,4 +447,45 @@
     </div>
 
 </div>
+
+<!-- Modal phóng to xem ảnh CLS -->
+<div id="detail-image-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2" id="detail-image-modal-title">
+                <i class="fa-solid fa-image text-medical-600"></i> Ảnh chụp Cận lâm sàng
+            </h4>
+            <button onclick="closeDetailImageModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+            <img id="detail-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
+        </div>
+        <div class="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+            <span id="detail-image-modal-desc">Hình ảnh chẩn đoán kỹ thuật số chuẩn HD</span>
+            <button onclick="closeDetailImageModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openDetailImageModal(imageUrl, title, desc) {
+        const modal = document.getElementById('detail-image-modal');
+        const img = document.getElementById('detail-image-modal-img');
+        const titleEl = document.getElementById('detail-image-modal-title');
+        const descEl = document.getElementById('detail-image-modal-desc');
+        if (!modal || !img) return;
+
+        img.src = imageUrl;
+        if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-image text-medical-600"></i> ${title || 'Ảnh chụp Cận lâm sàng'}`;
+        if (descEl) descEl.innerText = desc ? `Kết luận: ${desc}` : 'Hình ảnh chẩn đoán kỹ thuật số chuẩn HD';
+        modal.classList.remove('hidden');
+    }
+
+    function closeDetailImageModal() {
+        const modal = document.getElementById('detail-image-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+</script>
 {% endblock %}

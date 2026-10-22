@@ -53,23 +53,12 @@
         </div>
     </div>
 
-    {% set all_cls = [] %}
-    {% if patient and patient.lich_su_kham %}
-        {% for enc in patient.lich_su_kham %}
-            {% if enc.can_lam_sang %}
-                {% for cls in enc.can_lam_sang %}
-                    {% set _ = all_cls.append({'cls': cls, 'enc': enc}) %}
-                {% endfor %}
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-
-    <!-- Tóm tắt chỉ số Cận lâm sàng từ CSDL -->
+    <!-- Tóm tắt chỉ số Cận lâm sàng từ CSDL (Tính toán và xử lý hoàn toàn tại BackEnd) -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
                 <span class="text-xs text-slate-400 font-medium">Tổng chỉ định CLS</span>
-                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ all_cls|length }}</h3>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ cls_stats.tong_cls if cls_stats else all_cls|length }}</h3>
                 <span class="text-[11px] text-slate-500">Trong toàn bộ lịch sử khám</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xl">
@@ -80,7 +69,7 @@
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã có kết quả</span>
-                <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ all_cls|selectattr('cls.trang_thai', 'defined')|list|length }}</h3>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ cls_stats.da_co_ket_qua if cls_stats else 0 }}</h3>
                 <span class="text-[11px] text-emerald-600 font-medium">Đã được bác sĩ ký duyệt</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
@@ -91,7 +80,7 @@
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đợt khám liên quan</span>
-                <h3 class="text-2xl font-bold text-teal-600 mt-1">{{ patient.lich_su_kham|length if patient and patient.lich_su_kham else 0 }}</h3>
+                <h3 class="text-2xl font-bold text-teal-600 mt-1">{{ cls_stats.dot_kham_lien_quan if cls_stats else 0 }}</h3>
                 <span class="text-[11px] text-teal-600 font-medium">Đồng bộ từ hồ sơ EMR</span>
             </div>
             <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
@@ -119,6 +108,7 @@
                         <th class="py-3 px-5">Đợt khám</th>
                         <th class="py-3 px-5">Kết quả phân tích</th>
                         <th class="py-3 px-5">Người thực hiện</th>
+                        <th class="py-3 px-5 text-center">Ảnh chụp / Bản ghi</th>
                         <th class="py-3 px-5 text-center">Trạng thái</th>
                     </tr>
                 </thead>
@@ -139,6 +129,16 @@
                         </td>
                         <td class="py-3.5 px-5 text-slate-500">
                             {{ item.cls.bac_si_thuc_hien or item.enc.bac_si or 'KTV Xét nghiệm' }}
+                        </td>
+                        <td class="py-3.5 px-5 text-center">
+                            {% if item.cls.file_ket_qua %}
+                            <button type="button" onclick="openPatientImageModal('{{ item.cls.file_ket_qua }}', '{{ item.cls.ten }}', '{{ item.cls.ket_qua }}')" class="px-3 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Xem ảnh</span>
+                            </button>
+                            {% else %}
+                            <span class="text-slate-400 text-[11px]">Không có ảnh</span>
+                            {% endif %}
                         </td>
                         <td class="py-3.5 px-5 text-center">
                             <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">
@@ -162,4 +162,52 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Modal phóng to xem ảnh kết quả Cận Lâm Sàng dành cho bệnh nhân -->
+    <div id="patient-image-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2" id="patient-image-modal-title">
+                    <i class="fa-solid fa-image text-medical-600"></i> Ảnh chụp Cận lâm sàng
+                </h4>
+                <button onclick="closePatientImageModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
+                <img id="patient-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
+            </div>
+            <div class="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+                <span id="patient-image-modal-desc">Hình ảnh chẩn đoán kỹ thuật số chuẩn HD</span>
+                <div class="flex items-center gap-2">
+                    <a id="patient-image-modal-download" href="" download class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Tải ảnh về máy
+                    </a>
+                    <button onclick="closePatientImageModal()" class="px-4 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 font-semibold text-slate-700">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPatientImageModal(imageUrl, title, desc) {
+            const modal = document.getElementById('patient-image-modal');
+            const img = document.getElementById('patient-image-modal-img');
+            const titleEl = document.getElementById('patient-image-modal-title');
+            const descEl = document.getElementById('patient-image-modal-desc');
+            const dlLink = document.getElementById('patient-image-modal-download');
+            if (!modal || !img) return;
+
+            img.src = imageUrl;
+            if (dlLink) dlLink.href = imageUrl;
+            if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-image text-medical-600"></i> ${title || 'Ảnh chụp Cận lâm sàng'}`;
+            if (descEl) descEl.innerText = desc ? `Kết quả phân tích: ${desc}` : 'Hình ảnh chẩn đoán kỹ thuật số chuẩn HD';
+            modal.classList.remove('hidden');
+        }
+
+        function closePatientImageModal() {
+            const modal = document.getElementById('patient-image-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
 {% endblock %}

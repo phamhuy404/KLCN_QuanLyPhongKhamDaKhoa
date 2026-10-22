@@ -165,9 +165,11 @@ class PatientModel:
             # Lấy cận lâm sàng
             cursor.execute('''
                 SELECT 
+                    ct.id AS chi_tiet_id,
                     dv.ten_dich_vu AS ten,
                     dv.loai_dich_vu AS loai,
                     ct.ket_qua,
+                    ct.file_ket_qua,
                     ct.ktv_thuc_hien AS bac_si_thuc_hien,
                     ct.trang_thai
                 FROM phieu_chi_dinh cd
@@ -177,7 +179,25 @@ class PatientModel:
             ''', (enc['id'],))
             enc['can_lam_sang'] = [dict(r) for r in cursor.fetchall()]
 
-            # Lấy đơn thuốc
+            # Lấy thông tin đơn thuốc & hình thức mua
+            cursor.execute('''
+                SELECT id AS don_thuoc_id, ma_don_thuoc, trang_thai AS trang_thai_don_thuoc, hinh_thuc_mua
+                FROM don_thuoc
+                WHERE phieu_kham_id = ?
+            ''', (enc['id'],))
+            dt_info = cursor.fetchone()
+            if dt_info:
+                enc['don_thuoc_id'] = dt_info['don_thuoc_id']
+                enc['ma_don_thuoc'] = dt_info['ma_don_thuoc']
+                enc['trang_thai_don_thuoc'] = dt_info['trang_thai_don_thuoc']
+                enc['hinh_thuc_mua'] = dt_info.get('hinh_thuc_mua') or 'Chưa chọn'
+            else:
+                enc['don_thuoc_id'] = None
+                enc['ma_don_thuoc'] = None
+                enc['trang_thai_don_thuoc'] = None
+                enc['hinh_thuc_mua'] = None
+
+            # Lấy chi tiết các loại thuốc trong đơn
             cursor.execute('''
                 SELECT 
                     t.ten_thuoc AS ten,
@@ -202,6 +222,32 @@ class PatientModel:
 
         conn.close()
         return encounters
+
+    @staticmethod
+    def get_all_lab_results(patient_id):
+        """Lấy toàn bộ kết quả Cận lâm sàng của bệnh nhân và tổng hợp số liệu tại BackEnd."""
+        history = PatientModel.get_patient_history(patient_id)
+        all_cls = []
+        for enc in history:
+            for cls in enc.get('can_lam_sang', []):
+                all_cls.append({
+                    'cls': cls,
+                    'enc': enc,
+                    'ten': cls.get('ten'),
+                    'loai': cls.get('loai') or 'Xét nghiệm',
+                    'ket_qua': cls.get('ket_qua') or 'Bình thường trong giới hạn tham chiếu',
+                    'bac_si_thuc_hien': cls.get('bac_si_thuc_hien') or enc.get('bac_si') or 'KTV Xét nghiệm',
+                    'file_ket_qua': cls.get('file_ket_qua'),
+                    'trang_thai': cls.get('trang_thai') or 'Đã có kết quả',
+                    'ma_phieu': enc.get('ma_phieu'),
+                    'thoi_gian_kham': enc.get('thoi_gian_kham')
+                })
+        cls_stats = {
+            'tong_cls': len(all_cls),
+            'da_co_ket_qua': len([x for x in all_cls if x.get('trang_thai') in ['Đã có kết quả', 'Đã duyệt']]),
+            'dot_kham_lien_quan': len(history)
+        }
+        return all_cls, cls_stats
 
     @staticmethod
     def create_patient(data):

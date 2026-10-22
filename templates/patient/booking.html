@@ -20,11 +20,11 @@
                 <span class="text-medical-600 font-medium">Đặt lịch khám</span>
             </div>
             <h2 class="text-2xl font-bold text-slate-900">Đặt lịch khám trực tuyến</h2>
-            <p class="text-xs text-slate-400 mt-0.5">Chọn chuyên khoa, bác sĩ và thời gian khám phù hợp chỉ trong vài bước</p>
+            <p class="text-xs text-slate-400 mt-0.5">Chọn chuyên khoa, thời gian khám và bác sĩ trực ca phù hợp chỉ trong vài bước</p>
         </div>
         <div class="flex items-center gap-2">
             <span class="bg-medical-50 text-medical-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-medical-200/60">
-                <i class="fa-solid fa-tag mr-1"></i> Ưu đãi -20% khi đặt qua cổng web
+                <i class="fa-solid fa-shield-halved mr-1"></i> Đặt trước giữ chỗ, Lễ tân tiếp nhận nhanh
             </span>
         </div>
     </div>
@@ -42,14 +42,14 @@
                         <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">1</span>
                         Chọn chuyên khoa khám
                     </h3>
-                    <span class="text-xs text-slate-400">Bắt buộc</span>
+                    <span class="text-xs text-medical-600 font-semibold" id="selected-dept-label">Nội Tổng Quát</span>
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="specialty-selector">
                     {% if departments %}
                         {% for dep in departments %}
                         <label class="cursor-pointer specialty-item">
-                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 200000 }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
+                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
                             <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
                                 <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg">
                                     <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
@@ -64,119 +64,160 @@
                 </div>
             </div>
 
-            <!-- Bước 2: Chọn Bác sĩ -->
+            <!-- Bước 2: Chọn Ngày & Khung giờ khám (Chọn giờ trước để lọc bác sĩ trực ca) -->
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">2</span>
-                        Chọn bác sĩ phụ trách
+                        Chọn ngày & khung giờ khám dự kiến
                     </h3>
+                    <span class="text-xs text-slate-500">Giờ khám cách đầu/cuối ca 1 tiếng, mỗi nấc 30 phút</span>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám</label>
+                        <input type="date" id="booking-date"
+                            class="w-full sm:w-72 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
+                            onchange="onDateOrTimeChange()">
+                    </div>
+
+                    <!-- Khung giờ khám theo 3 ca làm việc chuẩn -->
+                    <div class="space-y-3 pt-2">
+                        <!-- Ca 1: Sáng (07:00 - 11:30) -> Giờ khám: 08:00 đến 10:30 -->
+                        <div>
+                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-sun text-amber-500 text-xs"></i> Ca Sáng (07:00 - 11:30)
+                            </span>
+                            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="08:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:00</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="08:30" checked class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:30</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="09:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:00</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="09:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:30</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="10:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">10:00</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="10:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">10:30</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Ca 2: Chiều (13:30 - 17:00) -> Giờ khám: 14:30 đến 16:00 -->
+                        <div class="pt-2">
+                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-cloud-sun text-teal-500 text-xs"></i> Ca Chiều (13:30 - 17:00)
+                            </span>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="14:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">14:30</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="15:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:00</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="15:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:30</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="16:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">16:00</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Ca 3: Tối (17:30 - 20:30) -> Giờ khám: 18:30 đến 19:30 -->
+                        <div class="pt-2">
+                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-moon text-indigo-500 text-xs"></i> Ca Tối (17:30 - 20:30)
+                            </span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="18:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">18:30</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="19:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">19:00</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="19:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">19:30</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bước 3: Danh sách Bác sĩ trực ca (Tự động cập nhật theo Giờ khám đã chọn) -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">3</span>
+                        Bác sĩ trực ca tiếp nhận
+                    </h3>
+                    <span id="current-shift-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700">Ca Sáng (07:00 - 11:30)</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="doctor-list-container">
-                    <!-- Tùy chọn 1: Để phòng khám tự phân công bác sĩ -->
-                    <label class="cursor-pointer doctor-item col-span-1 sm:col-span-2" data-dept="ALL">
-                        <input type="radio" name="doctor" value="" data-name="Để phòng khám tự phân công bác sĩ" data-dept="ALL" checked class="peer sr-only" onchange="onDoctorChange(this)">
+                    <!-- Tùy chọn 1: Để phòng khám tự phân công bác sĩ trực ca -->
+                    <label class="cursor-pointer doctor-item col-span-1 sm:col-span-2">
+                        <input type="radio" name="doctor" value="" data-name="Để phòng khám tự phân công bác sĩ" checked class="peer sr-only" onchange="onDoctorChange(this)">
                         <div class="p-4 rounded-xl border-2 border-dashed border-teal-200 bg-teal-50/20 peer-checked:border-medical-500 peer-checked:bg-medical-50/60 peer-checked:shadow-sm hover:border-medical-400 transition-all flex items-center gap-3.5">
                             <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
                                 <i class="fa-solid fa-user-clock"></i>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-bold text-sm text-slate-900">Để phòng khám tự phân công bác sĩ</h4>
+                                    <h4 class="font-bold text-sm text-slate-900">Để phòng khám tự phân công bác sĩ trực</h4>
                                     <span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold">Linh hoạt</span>
                                 </div>
-                                <span class="text-xs text-medical-700 block mt-0.5">Bác sĩ chuyên khoa đang trực sẽ tiếp nhận hoặc Ban quản trị phân lịch phù hợp</span>
-                                <span class="text-[11px] text-slate-400 mt-0.5 block">Phù hợp khi bạn chưa có bác sĩ quen hoặc cần khung giờ khám linh hoạt</span>
+                                <span class="text-xs text-medical-700 block mt-0.5">Bác sĩ chuyên khoa đang trong ca trực sẽ tiếp nhận hoặc Ban tiếp đón điều phối</span>
+                                <span class="text-[11px] text-slate-400 mt-0.5 block">Phù hợp khi bạn cần khám nhanh hoặc chưa có bác sĩ quen thuộc</span>
                             </div>
                         </div>
                     </label>
 
-                    {% if doctors %}
-                        {% for doc in doctors %}
-                        <label class="cursor-pointer doctor-item" data-dept="{{ doc.chuyen_khoa_id }}">
-                            <input type="radio" name="doctor" value="{{ doc.id }}" data-name="{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}" data-dept="{{ doc.chuyen_khoa_id }}" class="peer sr-only" onchange="onDoctorChange(this)">
-                            <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3.5">
-                                <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" class="w-12 h-12 rounded-xl object-cover shrink-0 ring-1 ring-slate-100">
-                                <div>
-                                    <h4 class="font-bold text-sm text-slate-800">{{ doc.hoc_vi or 'BS' }} {{ doc.ho_ten }}</h4>
-                                    <span class="text-xs text-medical-600 block">{{ doc.ten_khoa or 'Chuyên khoa' }} • {{ doc.ten_phong or 'Phòng khám' }}</span>
-                                    <span class="text-[11px] text-slate-400 mt-0.5 block line-clamp-1">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa' }}</span>
-                                </div>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    {% else %}
-                        <div class="col-span-2 text-center py-4 text-xs text-slate-400">Đang cập nhật danh sách bác sĩ...</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Bước 3: Chọn Ngày & Giờ khám -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
-                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">3</span>
-                        Chọn ngày & khung giờ khám
-                    </h3>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám dự kiến</label>
-                        <input type="date" id="booking-date"
-                            class="w-full sm:w-64 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
-                            onchange="updateSummary('date', this.value)">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Khung giờ còn trống</label>
-                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="08:00 AM" class="peer sr-only" onchange="updateSummary('time', '08:00 AM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:00 AM</div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="08:30 AM" class="peer sr-only" onchange="updateSummary('time', '08:30 AM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:30 AM</div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="09:00 AM" checked class="peer sr-only" onchange="updateSummary('time', '09:00 AM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:00 AM</div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="09:30 AM" class="peer sr-only" onchange="updateSummary('time', '09:30 AM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:30 AM</div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="14:00 PM" class="peer sr-only" onchange="updateSummary('time', '14:00 PM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">14:00 PM</div>
-                            </label>
-                            <label class="cursor-pointer">
-                                <input type="radio" name="time_slot" value="15:30 PM" class="peer sr-only" onchange="updateSummary('time', '15:30 PM')">
-                                <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:30 PM</div>
-                            </label>
-                        </div>
+                    <!-- Danh sách bác sĩ trực ca sẽ được nạp động tại đây -->
+                    <div id="dynamic-doctor-list" class="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="col-span-2 text-center py-4 text-xs text-slate-400">Đang tải danh sách bác sĩ trực ca...</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bước 4: Triệu chứng -->
+            <!-- Bước 4: Triệu chứng & Ghi chú -->
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">4</span>
-                        Mô tả triệu chứng & Ghi chú
+                        Mô tả triệu chứng & Ghi chú y tế
                     </h3>
                 </div>
 
                 <div class="space-y-3">
-                    <textarea id="booking-reason" rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó nuốt...)"
+                    <textarea id="booking-reason" rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó tiêu, đau họng...)"
                         class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"></textarea>
                     
                     <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <i class="fa-solid fa-paperclip"></i>
-                        <span>Bạn có thể mang theo kết quả xét nghiệm hoặc sổ khám cũ khi đến phòng khám.</span>
+                        <i class="fa-solid fa-circle-info text-medical-500"></i>
+                        <span>Lịch khám sau khi xác nhận sẽ ở trạng thái <strong>Chờ tiếp nhận</strong>. Nhân viên Lễ tân sẽ xác nhận và phân luồng tiếp đón cho bạn.</span>
                     </div>
                 </div>
             </div>
@@ -201,26 +242,26 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Chuyên khoa:</span>
-                        <span id="sum-specialty" class="font-semibold text-slate-800">Đang chọn</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Bác sĩ khám:</span>
-                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">Đang chọn</span>
+                        <span id="sum-specialty" class="font-semibold text-slate-800">Nội Tổng Quát</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Thời gian khám:</span>
-                        <span id="sum-time" class="font-semibold text-slate-800 text-right">09:00 AM</span>
+                        <span id="sum-time" class="font-semibold text-slate-800 text-right">08:30 • Hôm nay</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-slate-400">Địa điểm:</span>
-                        <span class="font-semibold text-slate-700 text-right text-xs">Cơ sở 1 - H2T Healthcare</span>
+                        <span class="text-slate-400">Bác sĩ khám:</span>
+                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">Để phòng khám tự phân công</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Trạng thái ban đầu:</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700">Chờ tiếp nhận</span>
                     </div>
                 </div>
 
                 <div class="pt-4 border-t border-slate-100 space-y-2">
                     <div class="flex justify-between text-xs text-slate-400">
                         <span>Giá khám niêm yết:</span>
-                        <span id="sum-original-fee" class="line-through">200.000 đ</span>
+                        <span id="sum-original-fee" class="line-through">150.000 đ</span>
                     </div>
                     <div class="flex justify-between text-xs text-emerald-600 font-medium">
                         <span>Ưu đãi đặt trực tuyến:</span>
@@ -228,64 +269,128 @@
                     </div>
                     <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
                         <span class="font-bold text-slate-800">Tạm tính phí khám:</span>
-                        <span id="sum-fee" class="text-xl font-bold text-medical-600">160.000 đ</span>
+                        <span id="sum-fee" class="text-xl font-bold text-medical-600">120.000 đ</span>
                     </div>
-                    <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán trước hoặc tại quầy thu ngân khi đến nơi.</p>
+                    <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán tại quầy tiếp đón khi đến nơi.</p>
                 </div>
 
                 <button type="button" onclick="confirmBooking()" 
                     class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-check"></i> Xác nhận Đặt Lịch
+                    <i class="fa-solid fa-calendar-check"></i> Xác nhận Đặt Lịch
                 </button>
             </div>
         </div>
 
     </div>
 
-    <!-- Script xử lý đặt lịch động liên thông CSDL -->
+    <!-- Script xử lý đặt lịch khám đồng bộ thời gian thực với CSDL -->
     <script>
-        let selectedSpecialtyId = null;
-        let selectedSpecialtyName = "";
+        let selectedSpecialtyId = 1;
+        let selectedSpecialtyName = "Nội Tổng Quát";
         let selectedDoctorId = null;
         let selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
         let currentDate = "";
-        let currentTime = "09:00 AM";
+        let currentTime = "08:30";
 
         function onSpecialtyChange(el) {
-            selectedSpecialtyId = el.value;
+            selectedSpecialtyId = parseInt(el.value);
             selectedSpecialtyName = el.dataset.name || "";
             document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
+            document.getElementById('selected-dept-label').textContent = selectedSpecialtyName;
 
-            const fee = parseFloat(el.dataset.fee || 200000);
+            const fee = parseFloat(el.dataset.fee || 150000);
             const discountedFee = Math.round(fee * 0.8);
             document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
             document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
 
-            // Lọc danh sách bác sĩ thuộc chuyên khoa được chọn (giữ tùy chọn ALL luôn hiển thị)
-            const docItems = document.querySelectorAll('#doctor-list-container .doctor-item');
-            docItems.forEach(item => {
-                if (item.dataset.dept === 'ALL' || !selectedSpecialtyId || item.dataset.dept == selectedSpecialtyId) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+            // Tải lại danh sách bác sĩ trực ca theo chuyên khoa mới
+            fetchDoctorsByShift();
+        }
+
+        function onTimeSlotSelected(val) {
+            currentTime = val;
+            updateSummaryTime();
+            fetchDoctorsByShift();
+        }
+
+        function onDateOrTimeChange() {
+            const dateInput = document.getElementById('booking-date').value;
+            if (dateInput) {
+                const parts = dateInput.split('-');
+                if (parts.length === 3) currentDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                updateSummaryTime();
+                fetchDoctorsByShift();
+            }
+        }
+
+        function updateSummaryTime() {
+            document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
         }
 
         function onDoctorChange(el) {
-            selectedDoctorId = el.value ? el.value : null;
-            selectedDoctorName = el.dataset.name || (selectedDoctorId ? "Bác sĩ chuyên khoa" : "Để phòng khám tự phân công bác sĩ");
+            selectedDoctorId = el.value ? parseInt(el.value) : null;
+            selectedDoctorName = el.dataset.name || (selectedDoctorId ? "Bác sĩ trực ca" : "Để phòng khám tự phân công bác sĩ");
             document.getElementById('sum-doctor').textContent = selectedDoctorName;
         }
 
-        function updateSummary(type, value) {
-            if (type === 'date') {
-                const parts = value.split('-');
-                if (parts.length === 3) currentDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
-            } else if (type === 'time') {
-                currentTime = value;
-                document.getElementById('sum-time').textContent = `${currentTime} • ${currentDate}`;
+        // Tải danh sách bác sĩ có ca trực tương ứng với ngày, giờ khám và chuyên khoa
+        async function fetchDoctorsByShift() {
+            const dateInput = document.getElementById('booking-date').value;
+            if (!dateInput) return;
+
+            const container = document.getElementById('dynamic-doctor-list');
+            container.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tra cứu lịch trực bác sĩ...</div>`;
+
+            try {
+                const url = `/api/doctors/available-by-shift?date=${dateInput}&time=${currentTime}&department_id=${selectedSpecialtyId}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.success) {
+                    // Cập nhật huy hiệu ca trực
+                    const shiftBadge = document.getElementById('current-shift-badge');
+                    if (shiftBadge) shiftBadge.textContent = data.shift_name;
+
+                    if (!data.doctors || data.doctors.length === 0) {
+                        container.innerHTML = `
+                            <div class="col-span-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                                <span>Chưa có bác sĩ đăng ký riêng cho ca này. Hệ thống sẽ phân công bác sĩ tiếp nhận linh hoạt khi bạn đến khám.</span>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '';
+                    data.doctors.forEach(doc => {
+                        const avatarUrl = doc.avatar || '/static/images/default-avatar.png';
+                        const isChecked = selectedDoctorId === doc.id ? 'checked' : '';
+                        const slotsLeft = Math.max(0, (doc.so_luong_kham_toi_da || 20) - (doc.so_luong_da_dang_ky || 0));
+
+                        html += `
+                            <label class="cursor-pointer doctor-item">
+                                <input type="radio" name="doctor" value="${doc.id}" data-name="${doc.hoc_vi || 'BS'} ${doc.ho_ten}" ${isChecked} class="peer sr-only" onchange="onDoctorChange(this)">
+                                <div class="p-3.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3">
+                                    <img src="${avatarUrl}" alt="${doc.ho_ten}" class="w-11 h-11 rounded-xl object-cover shrink-0 ring-1 ring-slate-100">
+                                    <div class="overflow-hidden flex-1">
+                                        <div class="flex items-center justify-between">
+                                            <h4 class="font-bold text-xs text-slate-800 truncate">${doc.hoc_vi || 'BS'} ${doc.ho_ten}</h4>
+                                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Còn ${slotsLeft} lượt</span>
+                                        </div>
+                                        <span class="text-[11px] text-medical-600 block truncate">${doc.ten_khoa || 'Chuyên khoa'} • ${doc.ten_phong || 'Phòng khám'}</span>
+                                        <span class="text-[10px] text-slate-400 block truncate mt-0.5">${doc.kinh_nghiem || 'Bác sĩ chuyên khoa trực ca'}</span>
+                                    </div>
+                                </div>
+                            </label>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-rose-500">Lỗi: ${data.message}</div>`;
+                }
+            } catch (err) {
+                container.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400">Không thể kết nối máy chủ để lấy danh sách bác sĩ trực ca.</div>`;
             }
         }
 
@@ -300,7 +405,7 @@
                 chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
                 bac_si_id: selectedDoctorId ? parseInt(selectedDoctorId) : null,
                 ngay_hen: dateInput,
-                gio_hen: currentTime || '09:00:00',
+                gio_hen: currentTime || '08:30',
                 ly_do: document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân'
             };
 
@@ -312,7 +417,7 @@
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    showToast(res.message || "Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
+                    showToast(res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở dạng Chờ tiếp nhận.", "success");
                     setTimeout(() => {
                         window.location.href = "{{ url_for('patient_dashboard') }}";
                     }, 1200);
@@ -345,19 +450,18 @@
             if (datePicker) {
                 datePicker.value = tomorrowStr;
                 datePicker.min = minStr;
-                updateSummary('date', tomorrowStr);
+                currentDate = `${dd}/${mm}/${yyyy}`;
+                updateSummaryTime();
             }
 
             const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
             if (activeDeptRadio) {
-                onSpecialtyChange(activeDeptRadio);
-            } else {
-                const firstDept = document.querySelector('input[name="specialty"]');
-                if (firstDept) {
-                    firstDept.checked = true;
-                    onSpecialtyChange(firstDept);
-                }
+                selectedSpecialtyId = parseInt(activeDeptRadio.value);
+                selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
             }
+
+            // Tải danh sách bác sĩ trực ca ngay khi tải trang
+            fetchDoctorsByShift();
         });
     </script>
 {% endblock %}

@@ -3,9 +3,7 @@ from core.database import get_db
 class ClinicModel:
     """Model quản lý danh mục chuyên khoa, phòng khám, dịch vụ và thống kê KPI."""
 
-    # ==========================
     # 1. QUẢN LÝ CHUYÊN KHOA
-    # ==========================
     @staticmethod
     def get_all_departments(active_only=False):
         """Lấy toàn bộ danh sách chuyên khoa y tế (hỗ trợ lọc chỉ lấy khoa đang hoạt động)."""
@@ -152,9 +150,7 @@ class ClinicModel:
             conn.close()
             return False, f"Lỗi xóa chuyên khoa: {str(e)}"
 
-    # ==========================
     # 2. QUẢN LÝ PHÒNG KHÁM
-    # ==========================
     @staticmethod
     def get_all_rooms(active_only=False):
         """Lấy danh sách các phòng khám vật lý."""
@@ -302,9 +298,7 @@ class ClinicModel:
             conn.close()
             return False, f"Lỗi xóa phòng khám: {str(e)}"
 
-    # ==========================
     # 3. QUẢN LÝ DỊCH VỤ Y TẾ
-    # ==========================
     @staticmethod
     def get_all_services(active_only=False, category=None):
         """Lấy danh mục các dịch vụ kỹ thuật y tế và cận lâm sàng."""
@@ -463,9 +457,7 @@ class ClinicModel:
             conn.close()
             return False, f"Lỗi xóa dịch vụ: {str(e)}"
 
-    # ==========================
     # 4. THỐNG KÊ DASHBOARD
-    # ==========================
     @staticmethod
     def get_dashboard_stats():
         """Lấy số liệu thống kê thời gian thực cho trang Dashboard."""
@@ -475,7 +467,7 @@ class ClinicModel:
         cursor.execute('SELECT COUNT(*) as total_patients FROM benh_nhan')
         total_patients = cursor.fetchone()['total_patients']
 
-        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai = 'Chờ xác nhận'")
+        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai IN ('Chờ tiếp nhận', 'Chờ xác nhận')")
         waiting_appointments = cursor.fetchone()['waiting_appointments']
 
         cursor.execute("SELECT COUNT(*) as completed_today FROM phieu_kham")

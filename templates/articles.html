@@ -242,7 +242,7 @@
                 <span class="text-xs text-slate-500">
                     <i class="fa-solid fa-circle-info text-medical-500 mr-1"></i>
                     Hiển thị <strong class="text-slate-700">{{ articles|length }}</strong> bài viết
-                    {% if active_category %} trong chuyên mục <strong class="text-medical-700">{{ categories | selectattr('slug', 'equalto', active_category) | map(attribute='name') | first | default(active_category) }}</strong>{% endif %}
+                    {% if active_category_name %} trong chuyên mục <strong class="text-medical-700">{{ active_category_name }}</strong>{% endif %}
                     {% if request.args.get('search') %} · từ khoá "<strong class="text-medical-700">{{ request.args.get('search') }}</strong>"{% endif %}
                 </span>
                 <a href="{{ url_for('articles') }}" class="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1">
@@ -260,8 +260,7 @@
 
                 {% if articles %}
                     <!-- Bài nổi bật (bài đầu tiên - hero card) -->
-                    {% if not active_category and not request.args.get('search') and articles|length > 0 %}
-                    {% set featured = articles[0] %}
+                    {% if featured %}
                     <article class="article-card bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer transition-all"
                              data-search="{{ featured.title }} {{ featured.summary }} {{ featured.category_name }} {{ featured.author }} {{ featured.tags|join(' ') if featured.tags else '' }}">
                         <a href="{{ url_for('article_detail', slug=featured.slug) }}" class="block">
@@ -305,9 +304,6 @@
                             </div>
                         </a>
                     </article>
-                    {% set remaining_articles = articles[1:] %}
-                    {% else %}
-                    {% set remaining_articles = articles %}
                     {% endif %}
 
                     <!-- Lưới bài viết còn lại -->

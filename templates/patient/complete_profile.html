@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoàn thiện thông tin cá nhân - H2T Healthcare EMR</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        medical: {
+                            50: '#eefcf6',
+                            100: '#d4f8e8',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#065f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-teal-50/20 to-slate-100 font-sans antialiased text-slate-800 min-h-screen py-10 px-4 sm:px-6">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-teal-900/5 border border-slate-100 overflow-hidden">
+
+        <!-- Top Header & Steps Progress -->
+        <div class="bg-gradient-to-r from-teal-700 via-medical-600 to-emerald-600 p-6 sm:p-8 text-white relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
+                <i class="fa-solid fa-id-card"></i>
+            </div>
+            
+            <div class="flex items-center justify-between relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-2xl shadow-inner">
+                        <i class="fa-solid fa-hospital-user"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-black tracking-tight">KÍCH HOẠT HỒ SƠ Y TẾ ĐIỆN TỬ</h1>
+                        <p class="text-teal-100 text-xs sm:text-sm mt-0.5">Hệ thống Quản lý Bệnh án Thông minh H2T Healthcare EMR 360°</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+                </a>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mt-6 pt-5 border-t border-white/15 flex items-center justify-between text-xs font-semibold relative z-10">
+                <div class="flex items-center gap-2 text-white">
+                    <span class="w-6 h-6 rounded-full bg-emerald-400 text-teal-900 flex items-center justify-center text-xs font-bold">✓</span>
+                    <span>1. Đăng ký tài khoản</span>
+                </div>
+                <div class="h-0.5 flex-1 mx-3 bg-white/30"></div>
+                <div class="flex items-center gap-2 text-amber-300 font-bold">
+                    <span class="w-6 h-6 rounded-full bg-amber-400 text-amber-950 flex items-center justify-center text-xs">2</span>
+                    <span>2. Hoàn thiện thông tin cá nhân (Đang thực hiện)</span>
+                </div>
+                <div class="h-0.5 flex-1 mx-3 bg-white/30"></div>
+                <div class="flex items-center gap-2 text-white/60">
+                    <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">3</span>
+                    <span>3. Sử dụng dịch vụ khám</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Body -->
+        <div class="p-6 sm:p-10">
+
+            <div class="mb-6 pb-4 border-b border-slate-100">
+                <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-medical-600"></i>
+                    Vui lòng cung cấp chính xác thông tin cá nhân
+                </h2>
+                <p class="text-xs text-slate-500 mt-1">
+                    Theo quy định của Bộ Y Tế, thông tin số CCCD, Họ tên và Ngày sinh cần chính xác để liên kết lịch sử khám bệnh, cấp mã bệnh nhân và thanh toán bảo hiểm y tế (BHYT).
+                </p>
+            </div>
+
+            <!-- Errors Alert -->
+            {% if errors %}
+            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <div class="font-bold flex items-center gap-2 mb-2 text-sm text-rose-700">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Vui lòng kiểm tra lại các trường sau:
+                </div>
+                <ul class="list-disc pl-5 space-y-1">
+                    {% for field, err in errors.items() %}
+                    <li>{{ err }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('patient.complete_profile') }}" method="POST" class="space-y-6">
+
+                <!-- PHẦN 1: THÔNG TIN NHÂN THÂN BẮT BUỘC -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-address-card text-teal-600"></i> 1. Thông tin định danh & nhân thân
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Họ và tên đầy đủ <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="ho_ten" required value="{{ form.ho_ten if form else (patient.ho_ten if patient else current_user.ho_ten) }}" placeholder="Ví dụ: NGUYỄN VĂN AN"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('ho_ten') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 uppercase font-medium">
+                            <span class="text-[11px] text-slate-400">Chỉ dùng chữ cái tiếng Việt, tuyệt đối không chứa ký tự lạ.</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Số điện thoại <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="tel" name="sdt" readonly value="{{ current_user.sdt }}"
+                                class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 cursor-not-allowed">
+                            <span class="text-[11px] text-slate-400">Tên đăng nhập cố định</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Ngày sinh <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" name="ngay_sinh" required value="{{ form.ngay_sinh if form else (patient.ngay_sinh if patient else '') }}"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('ngay_sinh') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Giới tính <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="gioi_tinh" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                                <option value="Nam" {% if (form and form.gioi_tinh == 'Nam') or (patient and patient.gioi_tinh == 'Nam') %}selected{% endif %}>Nam</option>
+                                <option value="Nữ" {% if (form and form.gioi_tinh == 'Nữ') or (patient and patient.gioi_tinh == 'Nữ') %}selected{% endif %}>Nữ</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Số Căn cước công dân (12 số) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="cccd" required maxlength="12" value="{{ form.cccd if form else (patient.cccd if patient else '') }}" placeholder="079090000001"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('cccd') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
+                            <span class="text-[11px] text-slate-400">Đúng 12 chữ số theo thẻ CCCD gắn chip</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 2: THÔNG TIN BẢO HIỂM & ĐỊA CHỈ -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-hospital text-teal-600"></i> 2. Thẻ BHYT & Địa chỉ cư trú
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Mã số thẻ BHYT (Nếu có)
+                            </label>
+                            <input type="text" name="bhyt" maxlength="15" value="{{ form.bhyt if form else (patient.bhyt if patient else '') }}" placeholder="Ví dụ: GD4797931100001"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('bhyt') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono uppercase">
+                            <span class="text-[11px] text-slate-400">Được hưởng quyền lợi miễn giảm viện phí theo quy định</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Email nhận thông báo & đơn thuốc
+                            </label>
+                            <input type="email" name="email" value="{{ form.email if form else (patient.email if patient else (current_user.email or '')) }}" placeholder="benhnhan@gmail.com"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('email') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Địa chỉ cư trú hiện tại <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="dia_chi" required value="{{ form.dia_chi if form else (patient.dia_chi if patient else '') }}" placeholder="Số nhà, Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố"
+                                class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('dia_chi') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 3: TIỀN SỬ Y KHOA & NHÓM MÁU -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-notes-medical text-teal-600"></i> 3. Tiền sử y khoa & Nhóm máu
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nhóm máu hệ ABO & Rh</label>
+                            <select name="nhom_mau" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-medium text-slate-800">
+                                <option value="Chưa rõ" {% if cur_nhom_mau == 'Chưa rõ' %}selected{% endif %}>Chưa rõ (Sẽ làm xét nghiệm khi khám)</option>
+                                <option value="O+" {% if cur_nhom_mau == 'O+' %}selected{% endif %}>O+ (O Dương)</option>
+                                <option value="O-" {% if cur_nhom_mau == 'O-' %}selected{% endif %}>O- (O Âm - Hiếm)</option>
+                                <option value="A+" {% if cur_nhom_mau == 'A+' %}selected{% endif %}>A+ (A Dương)</option>
+                                <option value="A-" {% if cur_nhom_mau == 'A-' %}selected{% endif %}>A- (A Âm - Hiếm)</option>
+                                <option value="B+" {% if cur_nhom_mau == 'B+' %}selected{% endif %}>B+ (B Dương)</option>
+                                <option value="B-" {% if cur_nhom_mau == 'B-' %}selected{% endif %}>B- (B Âm - Hiếm)</option>
+                                <option value="AB+" {% if cur_nhom_mau == 'AB+' %}selected{% endif %}>AB+ (AB Dương)</option>
+                                <option value="AB-" {% if cur_nhom_mau == 'AB-' %}selected{% endif %}>AB- (AB Âm - Cực hiếm)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Dị ứng thuốc / Thức ăn (Nếu có)</label>
+                            <input type="text" name="di_ung" value="{{ form.di_ung if form else (patient.di_ung if patient else '') }}" placeholder="Ví dụ: Dị ứng Penicillin, Aspirin, Hải sản..."
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tiền sử bệnh bản thân</label>
+                            <textarea name="tien_su_benh" rows="2" placeholder="Ví dụ: Tăng huyết áp, Đau dạ dày, Hen phế quản..."
+                                class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">{{ form.tien_su_benh if form else (patient.tien_su_benh if patient else '') }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tiền sử bệnh gia đình</label>
+                            <textarea name="tien_su_gia_dinh" rows="2" placeholder="Ví dụ: Bố/Mẹ có tiền sử tim mạch, tiểu đường..."
+                                class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">{{ form.tien_su_gia_dinh if form else (patient.tien_su_gia_dinh if patient else '') }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 4: LIÊN HỆ KHẨN CẤP -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-phone-volume text-teal-600"></i> 4. Thông tin liên hệ khẩn cấp (Người thân)
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Họ tên người thân</label>
+                            <input type="text" name="nguoi_than_ho_ten" value="{{ form.nguoi_than_ho_ten if form else (patient.nguoi_than_ho_ten if patient else '') }}" placeholder="Ví dụ: Nguyễn Văn Ba"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Số điện thoại người thân</label>
+                            <input type="tel" name="nguoi_than_sdt" maxlength="10" value="{{ form.nguoi_than_sdt if form else (patient.nguoi_than_sdt if patient else '') }}" placeholder="0909123456"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Mối quan hệ</label>
+                            <input type="text" name="nguoi_than_quan_he" value="{{ form.nguoi_than_quan_he if form else (patient.nguoi_than_quan_he if patient else '') }}" placeholder="Bố, Mẹ, Vợ, Chồng, Con..."
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-600 text-sm"></i>
+                        Thông tin được bảo vệ bằng mã hóa chuẩn y tế AES-256
+                    </div>
+
+                    <button type="submit"
+                        class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-medical-600 to-teal-700 hover:from-medical-700 hover:to-teal-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-teal-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-circle-check"></i> LƯU VÀ KÍCH HOẠT HỒ SƠ Y TẾ
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

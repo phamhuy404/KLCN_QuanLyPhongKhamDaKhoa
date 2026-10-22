@@ -13,14 +13,16 @@ CATEGORY_DIRS = {
     'benh_nhan': 'benh_nhan',
     'bac_si': 'bac_si',
     'bai_viet': 'bai_viet',
-    'banners': 'banners'
+    'banners': 'banners',
+    'can_lam_sang': 'can_lam_sang'
 }
 
 DIMENSION_LIMITS = {
     'benh_nhan': (400, 400),
     'bac_si': (500, 500),
     'bai_viet': (1200, 800),
-    'banners': (1920, 800)
+    'banners': (1920, 800),
+    'can_lam_sang': (1600, 1200)
 }
 
 ALLOWED_EXTENSIONS = {

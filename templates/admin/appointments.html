@@ -316,31 +316,11 @@
     const currentUserRole = "{{ session.get('user', {}).get('vai_tro', '') }}";
     const currentDoctorId = {{ session.get('user', {}).get('bac_si_id') or 'null' }};
 
-    // Dữ liệu lịch hẹn từ CSDL SQL Server
+    // Dữ liệu lịch hẹn từ CSDL SQL Server (Đã chuẩn hóa và xử lý biến số từ BackEnd)
     let rawAppointments = JSON.parse(document.getElementById('admin-appointments-data').textContent || '[]');
-    var appointments = (rawAppointments || []).map(a => {
-        let status = 'waiting';
-        if (a.trang_thai === 'Đã khám' || a.trang_thai === 'Hoàn thành') status = 'completed';
-        else if (a.trang_thai === 'Đã duyệt' || a.trang_thai === 'Đã xác nhận') status = 'confirmed';
-        else if (a.trang_thai === 'Đã hủy') status = 'cancelled';
-
-        return {
-            id: a.id,
-            ma_hen: a.ma_lich_hen || ('LH' + a.id),
-            gio_hen: a.gio_hen ? a.gio_hen.substring(0, 5) : '08:30',
-            ngay_hen: a.ngay_hen || '',
-            patient_id: a.benh_nhan_id,
-            benh_nhan: a.ten_benh_nhan || a.ho_ten_benh_nhan || 'Bệnh nhân',
-            ma_bn: a.ma_benh_nhan || 'BN',
-            sdt: a.sdt_benh_nhan || '',
-            bac_si_id: a.bac_si_id || null,
-            bac_si: a.ten_bac_si || a.ho_ten_bac_si || '',
-            chuyen_khoa_id: a.chuyen_khoa_id || 1,
-            khoa: a.ten_khoa || 'Khoa Nội Tổng Quát',
-            ly_do: a.ly_do_kham || 'Khám theo yêu cầu',
-            trang_thai: status
-        };
-    });
+    var appointments = (rawAppointments || []).map(a => Object.assign({}, a, {
+        trang_thai: a.status_code || 'waiting'
+    }));
 
     // Render bảng danh sách lịch hẹn
     function renderAppointments(dataList) {
@@ -447,6 +427,13 @@
                             <span>Phân công</span>
                         </button>
                         ` : ''}
+                        ${app.trang_thai === 'waiting' ? `
+                        <button type="button" onclick="acceptAppointment(${app.id}, '${app.ma_hen}')" 
+                                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition-all" title="Lễ tân/Admin xác nhận tiếp nhận lịch">
+                            <i class="fa-solid fa-check"></i>
+                            <span>Tiếp nhận</span>
+                        </button>
+                        ` : ''}
                         <a href="/admin/emr?patient_id=${app.patient_id}" 
                            class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Bắt đầu khám (EMR)">
                             <i class="fa-solid fa-stethoscope text-xs"></i>
@@ -496,6 +483,29 @@
         });
 
         renderAppointments(filtered);
+    }
+
+    // Lễ tân hoặc Admin xác nhận tiếp nhận lịch khám
+    async function acceptAppointment(id, maHen) {
+        if (!confirm(`Xác nhận tiếp nhận lịch hẹn #${maHen}? Hệ thống sẽ tự động gửi thông báo đến tài khoản bệnh nhân.`)) return;
+        try {
+            const res = await fetch('/api/appointment/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, status: 'Đã tiếp nhận' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ Đã tiếp nhận thành công lịch khám #${maHen}! Thông báo tiếp nhận đã được gửi cho bệnh nhân.`);
+                const app = appointments.find(a => a.id === id);
+                if (app) app.trang_thai = 'confirmed';
+                filterAppointments();
+            } else {
+                alert('Lỗi tiếp nhận lịch hẹn: ' + data.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        }
     }
 
     // Chuyển đổi trạng thái hẹn qua API

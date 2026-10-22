@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from core.security import login_required
+from core.database import get_db
+from core.validators import validate_patient_profile
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
 from models.billing_model import BillingModel
@@ -8,25 +10,102 @@ from models.user_model import UserModel
 
 patient_bp = Blueprint('patient', __name__, url_prefix='/patient')
 
+@patient_bp.before_request
+def check_patient_profile_completion():
+    """Kiểm tra bệnh nhân đã hoàn thiện thông tin cá nhân chưa trước khi truy cập các tính năng."""
+    user = session.get('user')
+    if user and user.get('vai_tro') == 'BENHNHAN':
+        # Nếu chưa hoàn thiện hồ sơ và không ở trang complete-profile
+        if not user.get('da_hoan_thien_ho_so'):
+            if request.endpoint and request.endpoint != 'patient.complete_profile' and request.endpoint != 'auth.logout':
+                return redirect(url_for('patient.complete_profile'))
+
 def _get_current_patient_id():
-    """Lấy ID bệnh nhân từ phiên đăng nhập hiện tại."""
+    """Lấy ID bệnh nhân từ phiên đăng nhập hiện tại theo tai_khoan_id."""
     user = session.get('user')
     if not user:
         return None
     if user.get('patient_id'):
         return user['patient_id']
-    # Nếu là bác sĩ/admin đang xem thử giao diện bệnh nhân
+    
+    # Tra cứu trực tiếp từ SQL Server theo tai_khoan_id
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM benh_nhan WHERE tai_khoan_id = ?", (user['id'],))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        user['patient_id'] = row['id']
+        session['user'] = user
+        return row['id']
     return 1
+
+@patient_bp.route('/complete-profile', methods=['GET', 'POST'])
+@login_required
+def complete_profile():
+    """Trang điền thông tin cá nhân khi đăng ký mới và đăng nhập lần đầu."""
+    user = session.get('user')
+    if not user or user.get('vai_tro') != 'BENHNHAN':
+        return redirect(url_for('admin.dashboard'))
+
+    # Nếu đã hoàn thiện rồi thì không cần điền lại, về dashboard
+    if user.get('da_hoan_thien_ho_so'):
+        return redirect(url_for('patient.dashboard'))
+
+    patient_id = _get_current_patient_id()
+    patient = PatientModel.get_by_id(patient_id) if patient_id else None
+    cur_nhom_mau = (patient.get('nhom_mau') if patient else None) or 'Chưa rõ'
+
+    if request.method == 'POST':
+        cur_nhom_mau = request.form.get('nhom_mau', cur_nhom_mau)
+        is_valid, errors = validate_patient_profile(request.form)
+        if not is_valid:
+            return render_template('patient/complete_profile.html', errors=errors, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau)
+
+        # Lưu thông tin hồ sơ vào SQL Server
+        success, msg = UserModel.complete_patient_profile(user['id'], request.form)
+        if not success:
+            return render_template('patient/complete_profile.html', errors={'db': msg}, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau)
+
+        # Cập nhật lại session
+        user['da_hoan_thien_ho_so'] = 1
+        user['ho_ten'] = request.form.get('ho_ten', '').strip()
+        session['user'] = user
+
+        flash('Hồ sơ bệnh nhân của bạn đã được kích hoạt thành công!', 'success')
+        return redirect(url_for('patient.dashboard'))
+
+    return render_template('patient/complete_profile.html', patient=patient, cur_nhom_mau=cur_nhom_mau)
 
 @patient_bp.route('/')
 @patient_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """Bảng điều khiển tổng quan cổng bệnh nhân."""
+    """Bảng điều khiển tổng quan cổng bệnh nhân kèm quét nhắc lịch khám tự động."""
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
     appointments = AppointmentModel.get_by_patient(patient_id)
-    return render_template('patient/dashboard.html', active_page='dashboard', patient=patient, appointments=appointments)
+
+    # Tự động quét và nhắc nhở lịch khám trong 24h - 48h tới
+    try:
+        from core.notification_service import NotificationService
+        NotificationService.run_all_reminders()
+    except Exception as e:
+        pass
+
+    user = session.get('user', {})
+    tai_khoan_id = user.get('id')
+    recent_notifs = []
+    if tai_khoan_id:
+        try:
+            from models.notification_model import NotificationModel
+            recent_notifs = NotificationModel.get_user_notifications(tai_khoan_id, limit=5)
+        except Exception:
+            pass
+
+    upcoming_appointment = appointments[0] if appointments else None
+
+    return render_template('patient/dashboard.html', active_page='dashboard', patient=patient, appointments=appointments, upcoming_appointment=upcoming_appointment, recent_notifications=recent_notifs)
 
 @patient_bp.route('/booking', methods=['GET', 'POST'])
 @login_required
@@ -42,6 +121,7 @@ def booking():
         ly_do = request.form.get('ly_do', '')
 
         success, _ = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
+        flash('Đặt lịch khám thành công! Hệ thống đang chờ Lễ tân tiếp nhận.', 'success')
         return redirect(url_for('patient.dashboard'))
 
     patient = PatientModel.get_by_id(patient_id)
@@ -63,7 +143,8 @@ def lab_results():
     """Tra cứu kết quả xét nghiệm và chẩn đoán hình ảnh."""
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
-    return render_template('patient/lab_results.html', active_page='lab_results', patient=patient)
+    all_cls, cls_stats = PatientModel.get_all_lab_results(patient_id)
+    return render_template('patient/lab_results.html', active_page='lab_results', patient=patient, all_cls=all_cls, cls_stats=cls_stats)
 
 @patient_bp.route('/billing')
 @login_required
@@ -73,14 +154,24 @@ def billing():
     patient = PatientModel.get_by_id(patient_id)
     invoices = BillingModel.get_by_patient(patient_id)
     
-    # --- THÊM ĐOẠN NÀY ĐỂ FIX LỖI THIẾU KEY ---
-    if invoices:
-        for inv in invoices:
-            if 'tien_bhyt_chi_tra' not in inv or inv['tien_bhyt_chi_tra'] is None:
-                inv['tien_bhyt_chi_tra'] = 0
-    # ------------------------------------------
+    # Toàn bộ tính toán tổng hợp, bóc tách và phân loại thực hiện ở BackEnd
+    tong_tien = sum(float(inv.get('tong_tien') or 0) for inv in invoices)
+    tien_bhyt = sum(float(inv.get('tien_bhyt_chi_tra') or inv.get('tien_bhyt') or 0) for inv in invoices)
+    da_thanh_toan = sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') == 'Đã thanh toán')
+    chua_thanh_toan = sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán')
+    unpaid_list = [inv for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán']
+    first_unpaid = unpaid_list[0] if unpaid_list else None
 
-    return render_template('patient/billing.html', active_page='billing', patient=patient, invoices=invoices)
+    billing_stats = {
+        'tong_tien': tong_tien,
+        'tien_bhyt': tien_bhyt,
+        'da_thanh_toan': da_thanh_toan,
+        'chua_thanh_toan': chua_thanh_toan,
+        'so_hoa_don_cho': len(unpaid_list),
+        'tong_so_hoa_don': len(invoices)
+    }
+
+    return render_template('patient/billing.html', active_page='billing', patient=patient, invoices=invoices, billing_stats=billing_stats, unpaid=first_unpaid)
 
 @patient_bp.route('/profile')
 @login_required
@@ -121,7 +212,6 @@ def profile_avatar():
 
     return redirect(url_for('patient.profile'))
 
-
 @patient_bp.route('/feedbacks', methods=['GET', 'POST'])
 @login_required
 def feedbacks():
@@ -153,4 +243,3 @@ def notifications():
     notifs = NotificationModel.get_user_notifications(tai_khoan_id, limit=50)
     unread_cnt = NotificationModel.get_unread_count(tai_khoan_id)
     return render_template('patient/notifications.html', active_page='notifications', patient=patient, notifications=notifs, unread_count=unread_cnt)
-

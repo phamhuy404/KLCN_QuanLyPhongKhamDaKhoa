@@ -602,50 +602,45 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        {% set cancel_requests = [] %}
-                        {% for item in pending_approvals %}
-                            {% if item.trang_thai_duyet == 'CHO_HUY' %}
-                                {% set _ = cancel_requests.append(item) %}
-                                <tr class="hover:bg-slate-50 transition approval-row" data-role="{{ item.ma_vai_tro }}" data-ca="{{ item.ca_lam }}">
-                                    <td class="px-5 py-3.5">
-                                        <div class="font-bold text-slate-800">{{ item.ten_nhan_vien }}</div>
-                                        <div class="text-[11px] text-slate-400 font-mono">User: {{ item.username }} • SĐT: {{ item.sdt }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700">
-                                            {{ item.ten_vai_tro }}
-                                        </span>
-                                        <div class="text-[11px] text-slate-500 mt-0.5">{{ item.ten_khoa or item.chuc_vu or '-' }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <div class="font-bold text-slate-800">{{ item.ngay_lam }}</div>
-                                        <div class="font-medium text-orange-600">{{ item.ten_ca }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <div class="p-2 rounded-lg bg-orange-50 border border-orange-100 text-orange-900 max-w-xs text-[11px]">
-                                            {{ item.ly_do_huy or 'Không ghi lý do cụ thể' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-right">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <button onclick="approveCancellation('{{ item.id }}', true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
-                                                <i class="fa-solid fa-check mr-1"></i> Chấp thuận hủy
-                                            </button>
-                                            <button onclick="approveCancellation('{{ item.id }}', false)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
-                                                <i class="fa-solid fa-xmark mr-1"></i> Bác bỏ
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                        {% if cancel_requests|length == 0 %}
+                        {% for item in cancel_requests %}
+                            <tr class="hover:bg-slate-50 transition approval-row" data-role="{{ item.ma_vai_tro }}" data-ca="{{ item.ca_lam }}">
+                                <td class="px-5 py-3.5">
+                                    <div class="font-bold text-slate-800">{{ item.ten_nhan_vien }}</div>
+                                    <div class="text-[11px] text-slate-400 font-mono">User: {{ item.username }} • SĐT: {{ item.sdt }}</div>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700">
+                                        {{ item.ten_vai_tro }}
+                                    </span>
+                                    <div class="text-[11px] text-slate-500 mt-0.5">{{ item.ten_khoa or item.chuc_vu or '-' }}</div>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="font-bold text-slate-800">{{ item.ngay_lam }}</div>
+                                    <div class="font-medium text-orange-600">{{ item.ten_ca }}</div>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="p-2 rounded-lg bg-orange-50 border border-orange-100 text-orange-900 max-w-xs text-[11px]">
+                                        {{ item.ly_do_huy or 'Không ghi lý do cụ thể' }}
+                                    </div>
+                                </td>
+                                <td class="px-5 py-3.5 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button onclick="approveCancellation('{{ item.id }}', true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+                                            <i class="fa-solid fa-check mr-1"></i> Chấp thuận hủy
+                                        </button>
+                                        <button onclick="approveCancellation('{{ item.id }}', false)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                                            <i class="fa-solid fa-xmark mr-1"></i> Bác bỏ
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% else %}
                         <tr>
                             <td colspan="5" class="px-5 py-8 text-center text-slate-400 text-xs">
                                 Hiện không có đơn xin hủy ca trực nào cần phê duyệt.
                             </td>
                         </tr>
-                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -673,48 +668,43 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        {% set reg_requests = [] %}
-                        {% for item in pending_approvals %}
-                            {% if item.trang_thai_duyet == 'CHO_DUYET' %}
-                                {% set _ = reg_requests.append(item) %}
-                                <tr class="hover:bg-slate-50 transition approval-row" data-role="{{ item.ma_vai_tro }}" data-ca="{{ item.ca_lam }}">
-                                    <td class="px-5 py-3.5">
-                                        <div class="font-bold text-slate-800">{{ item.ten_nhan_vien }}</div>
-                                        <div class="text-[11px] text-slate-400 font-mono">User: {{ item.username }} • SĐT: {{ item.sdt }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                                            {{ item.ten_vai_tro }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <div class="font-bold text-slate-800">{{ item.ngay_lam }}</div>
-                                        <div class="font-medium text-blue-600">{{ item.ten_ca }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <div class="font-medium text-slate-700">{{ item.ten_phong or 'Chung' }}</div>
-                                        <div class="text-[11px] text-slate-400">{{ item.ghi_chu or 'Không có ghi chú' }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-right">
-                                        <div class="flex items-center justify-end gap-2">
-                                            <button onclick="approveRegistration('{{ item.id }}', true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
-                                                <i class="fa-solid fa-check mr-1"></i> Duyệt ca
-                                            </button>
-                                            <button onclick="approveRegistration('{{ item.id }}', false)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition border border-rose-200">
-                                                <i class="fa-solid fa-xmark mr-1"></i> Từ chối
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                        {% if reg_requests|length == 0 %}
+                        {% for item in reg_requests %}
+                            <tr class="hover:bg-slate-50 transition approval-row" data-role="{{ item.ma_vai_tro }}" data-ca="{{ item.ca_lam }}">
+                                <td class="px-5 py-3.5">
+                                    <div class="font-bold text-slate-800">{{ item.ten_nhan_vien }}</div>
+                                    <div class="text-[11px] text-slate-400 font-mono">User: {{ item.username }} • SĐT: {{ item.sdt }}</div>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                        {{ item.ten_vai_tro }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="font-bold text-slate-800">{{ item.ngay_lam }}</div>
+                                    <div class="font-medium text-blue-600">{{ item.ten_ca }}</div>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="font-medium text-slate-700">{{ item.ten_phong or 'Chung' }}</div>
+                                    <div class="text-[11px] text-slate-400">{{ item.ghi_chu or 'Không có ghi chú' }}</div>
+                                </td>
+                                <td class="px-5 py-3.5 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button onclick="approveRegistration('{{ item.id }}', true)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+                                            <i class="fa-solid fa-check mr-1"></i> Duyệt ca
+                                        </button>
+                                        <button onclick="approveRegistration('{{ item.id }}', false)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold transition border border-rose-200">
+                                            <i class="fa-solid fa-xmark mr-1"></i> Từ chối
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% else %}
                         <tr>
                             <td colspan="5" class="px-5 py-8 text-center text-slate-400 text-xs">
                                 Không có yêu cầu đăng ký ca làm việc nào đang chờ duyệt.
                             </td>
                         </tr>
-                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>

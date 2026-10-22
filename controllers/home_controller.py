@@ -5,6 +5,8 @@ from models.banner_model import BannerModel
 from models.user_model import UserModel
 from models.feedback_model import FeedbackModel
 
+import random
+
 home_bp = Blueprint('home', __name__)
 
 @home_bp.route('/')
@@ -14,14 +16,23 @@ def home():
     articles = ArticleModel.get_all(limit=8)
     stats = ClinicModel.get_dashboard_stats()
     banners = BannerModel.get_active()
+    banner_list = list(banners) if banners else []
+    banner_count = len(banner_list) if len(banner_list) > 0 else 1
+
     departments = ClinicModel.get_all_departments(active_only=True)
-    doctors = UserModel.get_all_doctors()
+    
+    # Hiển thị ngẫu nhiên (random) các tài khoản bác sĩ đang hoạt động
+    raw_doctors = UserModel.get_all_doctors()
+    doctors = list(raw_doctors) if raw_doctors else []
+    random.shuffle(doctors)
     feedbacks = [f for f in FeedbackModel.get_all() if f.get('diem_danh_gia', 0) >= 4][:4]
     return render_template(
         'home.html',
         articles=articles,
         stats=stats,
         banners=banners,
+        banner_list=banner_list,
+        banner_count=banner_count,
         departments=departments,
         doctors=doctors,
         feedbacks=feedbacks
@@ -38,12 +49,32 @@ def articles():
     categories = ArticleModel.get_categories()
     related_articles = ArticleModel.get_all(limit=4)
 
+    # Xử lý danh mục và phân loại bài viết nổi bật hoàn toàn tại BackEnd
+    active_category_name = None
+    if active_category:
+        for cat in categories:
+            if cat.get('slug') == active_category:
+                active_category_name = cat.get('name')
+                break
+        if not active_category_name:
+            active_category_name = active_category
+
+    has_filter = bool(active_category or search_query)
+    featured = None
+    remaining_articles = all_articles
+    if not has_filter and len(all_articles) > 0:
+        featured = all_articles[0]
+        remaining_articles = all_articles[1:]
+
     return render_template(
         'articles.html',
         articles=all_articles,
         categories=categories,
         related_articles=related_articles,
         active_category=active_category,
+        active_category_name=active_category_name,
+        featured=featured,
+        remaining_articles=remaining_articles,
         total_articles=len(all_articles),
         total_pages=1,
         current_page=1,
