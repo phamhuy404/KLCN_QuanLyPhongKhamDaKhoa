@@ -233,8 +233,8 @@
                     <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán trước hoặc tại quầy thu ngân khi đến nơi.</p>
                 </div>
 
-                <button type="button" onclick="confirmBooking()" 
-                    class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2">
+                <button type="button" id="btn-confirm-booking" onclick="confirmBooking()" 
+                    class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                     <i class="fa-solid fa-check"></i> Xác nhận Đặt Lịch
                 </button>
             </div>
@@ -250,6 +250,7 @@
         let selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
         let currentDate = "";
         let currentTime = "09:00 AM";
+        let isBookingSubmitting = false;
 
         function onSpecialtyChange(el) {
             selectedSpecialtyId = el.value;
@@ -289,12 +290,17 @@
             }
         }
 
-        function confirmBooking() {
+        async function confirmBooking() {
+            if (isBookingSubmitting) return;
+
             const dateInput = document.getElementById('booking-date').value;
             if (!dateInput) {
                 showToast("Vui lòng chọn ngày khám dự kiến!", "error");
                 return;
             }
+
+            const btn = document.getElementById('btn-confirm-booking');
+            const originalBtnHtml = btn ? btn.innerHTML : '<i class="fa-solid fa-check"></i> Xác nhận Đặt Lịch';
 
             const data = {
                 chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
@@ -304,28 +310,55 @@
                 ly_do: document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân'
             };
 
-            fetch('/api/appointment/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.success) {
-                    showToast(res.message || "Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
+            isBookingSubmitting = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý đặt lịch...';
+            }
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = csrfMeta ? csrfMeta.content : '';
+
+                const res = await fetch('/api/appointment/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                let resData = {};
+                try {
+                    resData = await res.json();
+                } catch (parseErr) {
+                    resData = { success: false, message: 'Máy chủ phản hồi định dạng không hợp lệ!' };
+                }
+
+                if (res.ok && resData.success) {
+                    showToast(resData.message || "Đặt lịch khám thành công! Lịch hẹn đã được lưu vào hệ thống phòng khám.", "success");
                     setTimeout(() => {
                         window.location.href = "{{ url_for('patient_dashboard') }}";
                     }, 1200);
                 } else {
-                    showToast(res.message || "Không thể đặt lịch hẹn!", "error");
+                    // Thất bại: Không chuyển trang, giữ nguyên dữ liệu đã nhập, thông báo lỗi chính xác
+                    showToast(resData.message || `Đặt lịch khám thất bại (Mã lỗi HTTP: ${res.status})! Vui lòng thử lại.`, "error");
+                    isBookingSubmitting = false;
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalBtnHtml;
+                    }
                 }
-            })
-            .catch(err => {
-                showToast("Đã lưu lịch hẹn vào CSDL thành công!", "success");
-                setTimeout(() => {
-                    window.location.href = "{{ url_for('patient_dashboard') }}";
-                }, 1200);
-            });
+            } catch (networkErr) {
+                // Lỗi mạng hoặc server không phản hồi: KHÔNG báo thành công, KHÔNG chuyển trang
+                showToast("Lỗi kết nối máy chủ hoặc mất mạng. Lịch hẹn chưa được lưu, vui lòng thử lại!", "error");
+                isBookingSubmitting = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnHtml;
+                }
+            }
         }
 
         // Khởi tạo ngày khám mặc định (ngày mai)

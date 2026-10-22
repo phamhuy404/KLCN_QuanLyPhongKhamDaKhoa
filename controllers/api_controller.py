@@ -1,3 +1,4 @@
+from datetime import datetime, date
 from flask import Blueprint, request, jsonify, session
 from core.security import login_required, roles_required
 from models.user_model import UserModel
@@ -10,11 +11,46 @@ from models.billing_model import BillingModel
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/appointment/book', methods=['POST'])
+@login_required
 def book_appointment():
-    """API đặt lịch hẹn khám bệnh."""
+    """API đặt lịch hẹn khám bệnh có kiểm soát xác thực và phân quyền danh tính."""
     data = request.get_json() or {}
-    user = session.get('user')
-    patient_id = data.get('patient_id') or (user.get('patient_id') or user.get('benh_nhan_id') if user else None) or 1
+    user = session.get('user') or {}
+    user_role = user.get('vai_tro')
+
+    if user_role == 'BENHNHAN':
+        # Bệnh nhân tự đặt lịch: Không tin tưởng patient_id client gửi lên, lấy từ tài khoản đã xác thực
+        patient_id = user.get('patient_id')
+        if not patient_id:
+            patient_rec = PatientModel.get_by_account_id(user.get('id'))
+            if patient_rec:
+                patient_id = patient_rec['id']
+                user['patient_id'] = patient_id
+                session.modified = True
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Tài khoản của bạn chưa được liên kết với hồ sơ bệnh nhân nào!'
+                }), 400
+    elif user_role in ['ADMIN', 'LETAN', 'BACSI']:
+        # Nhân viên/bác sĩ đặt lịch hẹn thay cho bệnh nhân
+        patient_id = data.get('patient_id')
+        if not patient_id:
+            return jsonify({
+                'success': False,
+                'message': 'Vui lòng cung cấp mã ID của bệnh nhân cần đặt lịch!'
+            }), 400
+        patient_rec = PatientModel.get_by_id(patient_id)
+        if not patient_rec:
+            return jsonify({
+                'success': False,
+                'message': 'Không tìm thấy thông tin bệnh nhân trong hệ thống!'
+            }), 404
+    else:
+        return jsonify({
+            'success': False,
+            'message': 'Tài khoản không có quyền đặt lịch khám bệnh!'
+        }), 403
 
     chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
     bac_si_id = data.get('bac_si_id')
@@ -57,9 +93,22 @@ def assign_doctor():
 def doctor_schedule_availability():
     """API tra cứu bác sĩ theo chuyên khoa kèm lịch trực và số lượt còn trống trong ngày."""
     dept_id = request.args.get('department_id', type=int)
-    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
     if not dept_id:
         return jsonify({'success': False, 'message': 'Thiếu mã chuyên khoa!'}), 400
+
+    raw_date = request.args.get('date')
+    if raw_date:
+        raw_date = raw_date.strip()
+        try:
+            valid_dt = datetime.strptime(raw_date, '%Y-%m-%d')
+            date_str = valid_dt.strftime('%Y-%m-%d')
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Tham số ngày không đúng định dạng YYYY-MM-DD!'
+            }), 400
+    else:
+        date_str = datetime.now().strftime('%Y-%m-%d')
 
     docs = AppointmentModel.get_doctors_with_availability(dept_id, date_str)
     return jsonify({'success': True, 'doctors': docs})
@@ -83,14 +132,18 @@ def update_appointment_status():
 @api_bp.route('/appointment/update', methods=['POST'])
 @login_required
 def reschedule_appointment():
-    """API đổi lịch hẹn khám (Bệnh nhân tự đổi trước giờ khám; nhân viên được đổi sau giờ khám)."""
+    """API đổi lịch hẹn khám (Kiểm soát chặt chẽ quyền hạn bệnh nhân và nhân viên y tế)."""
     data = request.get_json() or {}
     appointment_id = data.get('appointment_id')
     new_date = data.get('ngay_hen')
     new_time = data.get('gio_hen')
     ly_do = data.get('ly_do')
     new_doc_id = data.get('bac_si_id')
-    user = session.get('user')
+    user = session.get('user') or {}
+    user_role = user.get('vai_tro')
+
+    if user_role not in ['ADMIN', 'LETAN', 'BACSI', 'BENHNHAN']:
+        return jsonify({'success': False, 'message': 'Bạn không có quyền thực hiện thao tác này!'}), 403
 
     if not appointment_id or not new_date or not new_time:
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID lịch hẹn, ngày hẹn mới và giờ hẹn mới!'}), 400
@@ -103,11 +156,15 @@ def reschedule_appointment():
 @api_bp.route('/appointment/cancel', methods=['POST'])
 @login_required
 def cancel_appointment():
-    """API hủy lịch hẹn khám (Bệnh nhân hủy trước giờ khám; nhân viên được hủy sau giờ khám)."""
+    """API hủy lịch hẹn khám (Kiểm soát chặt chẽ quyền hạn bệnh nhân và nhân viên y tế)."""
     data = request.get_json() or {}
     appointment_id = data.get('appointment_id')
     reason = data.get('reason') or data.get('ly_do')
-    user = session.get('user')
+    user = session.get('user') or {}
+    user_role = user.get('vai_tro')
+
+    if user_role not in ['ADMIN', 'LETAN', 'BACSI', 'BENHNHAN']:
+        return jsonify({'success': False, 'message': 'Bạn không có quyền thực hiện thao tác này!'}), 403
 
     if not appointment_id:
         return jsonify({'success': False, 'message': 'Thiếu ID lịch hẹn cần hủy!'}), 400
@@ -169,7 +226,18 @@ def update_patient_profile():
     """API bệnh nhân cập nhật thông tin cá nhân và hồ sơ sức khỏe."""
     data = request.get_json() or {}
     user = session.get('user', {})
-    patient_id = user.get('patient_id') or 1
+    if user.get('vai_tro') != 'BENHNHAN':
+        return jsonify({'success': False, 'message': 'Chức năng cập nhật hồ sơ cá nhân chỉ dành cho bệnh nhân!'}), 403
+
+    patient_id = user.get('patient_id')
+    if not patient_id:
+        patient_rec = PatientModel.get_by_account_id(user.get('id'))
+        if patient_rec:
+            patient_id = patient_rec['id']
+            session['user']['patient_id'] = patient_id
+            session.modified = True
+        else:
+            return jsonify({'success': False, 'message': 'Tài khoản chưa được liên kết với hồ sơ bệnh nhân hợp lệ!'}), 400
 
     success, msg = PatientModel.update_profile(patient_id, data)
     if success:

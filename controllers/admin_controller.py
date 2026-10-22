@@ -27,19 +27,28 @@ def dashboard():
 
 @admin_bp.route('/patients')
 def patients():
-    """Quản lý danh sách hồ sơ bệnh nhân theo phân quyền."""
+    """Quản lý danh sách hồ sơ bệnh nhân theo phân quyền và hỗ trợ tìm kiếm an toàn."""
     curr_user = session.get('user', {})
     user_role = curr_user.get('vai_tro')
+    search_query = request.args.get('search', '').strip()
+
+    dept_id = None
     if user_role == 'BACSI':
         dept_id = curr_user.get('chuyen_khoa_id')
         if not dept_id and curr_user.get('bac_si_id'):
             doc_info = UserModel.get_doctor_by_id(curr_user.get('bac_si_id'))
             if doc_info:
                 dept_id = doc_info.get('chuyen_khoa_id')
-        patients_list = PatientModel.get_by_department(dept_id) if dept_id else PatientModel.get_all()
+
+    if search_query:
+        patients_list = PatientModel.search(search_query, chuyen_khoa_id=dept_id if user_role == 'BACSI' else None)
     else:
-        patients_list = PatientModel.get_all()
-    return render_template('admin/patients.html', active_page='admin_patients', patients=patients_list)
+        if user_role == 'BACSI':
+            patients_list = PatientModel.get_by_department(dept_id) if dept_id else PatientModel.get_all()
+        else:
+            patients_list = PatientModel.get_all()
+
+    return render_template('admin/patients.html', active_page='admin_patients', patients=patients_list, search=search_query)
 
 @admin_bp.route('/patients/<int:patient_id>')
 @admin_bp.route('/patient_details/<int:patient_id>')

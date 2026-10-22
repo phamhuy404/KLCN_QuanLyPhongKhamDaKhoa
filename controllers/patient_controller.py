@@ -8,15 +8,47 @@ from models.user_model import UserModel
 
 patient_bp = Blueprint('patient', __name__, url_prefix='/patient')
 
+@patient_bp.before_request
+def patient_access_guard():
+    """Kiểm tra xác thực và phân quyền: Chỉ cho phép người dùng có vai trò BENHNHAN truy cập portal bệnh nhân."""
+    if not session.get('logged_in') or not session.get('user'):
+        return redirect(url_for('auth.login', next=request.path))
+
+    user = session.get('user', {})
+    user_role = user.get('vai_tro')
+
+    # Nếu nhân sự nội bộ truy cập portal bệnh nhân, điều hướng về dashboard quản trị y tế
+    if user_role in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
+        flash('Cổng bệnh nhân chỉ dành cho tài khoản bệnh nhân. Bạn đã được chuyển hướng về trang Quản trị.', 'info')
+        return redirect(url_for('admin.dashboard'))
+
+    if user_role != 'BENHNHAN':
+        flash('Bạn không có quyền truy cập cổng bệnh nhân!', 'error')
+        return redirect(url_for('home.home'))
+
+    # Xác minh hồ sơ bệnh nhân từ CSDL ở server
+    patient_id = user.get('patient_id')
+    if not patient_id:
+        patient_rec = PatientModel.get_by_account_id(user.get('id'))
+        if patient_rec:
+            session['user']['patient_id'] = patient_rec['id']
+            session.modified = True
+        else:
+            return render_template('auth/login.html', error='Tài khoản của bạn chưa được liên kết với bất kỳ hồ sơ bệnh nhân nào!'), 403
+
 def _get_current_patient_id():
-    """Lấy ID bệnh nhân từ phiên đăng nhập hiện tại."""
+    """Lấy ID bệnh nhân từ phiên đăng nhập hiện tại đã được xác minh trên server (Không dùng ID mặc định)."""
     user = session.get('user')
-    if not user:
+    if not user or user.get('vai_tro') != 'BENHNHAN':
         return None
-    if user.get('patient_id'):
-        return user['patient_id']
-    # Nếu là bác sĩ/admin đang xem thử giao diện bệnh nhân
-    return 1
+    patient_id = user.get('patient_id')
+    if not patient_id:
+        patient_rec = PatientModel.get_by_account_id(user.get('id'))
+        if patient_rec:
+            patient_id = patient_rec['id']
+            session['user']['patient_id'] = patient_id
+            session.modified = True
+    return patient_id
 
 @patient_bp.route('/')
 @patient_bp.route('/dashboard')

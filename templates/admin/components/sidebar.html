@@ -244,14 +244,17 @@
                     <span class="sidebar-text-fade font-medium">Xem Cổng Bệnh nhân</span>
                 </a>
 
-                <a href="{{ url_for('logout') }}"
-                    class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs hover:text-rose-400"
-                    title="Đăng xuất">
-                    <div class="sidebar-icon-box">
-                        <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm"></i>
-                    </div>
-                    <span class="sidebar-text-fade font-medium">Đăng xuất</span>
-                </a>
+                <form method="POST" action="{{ url_for('logout') }}" class="m-0 p-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" 
+                        class="nav-item nav-item-dark-inactive flex items-center h-11 w-full rounded-xl transition-all group overflow-hidden text-xs hover:text-rose-400 cursor-pointer text-left"
+                        title="Đăng xuất">
+                        <div class="sidebar-icon-box">
+                            <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm"></i>
+                        </div>
+                        <span class="sidebar-text-fade font-medium">Đăng xuất</span>
+                    </button>
+                </form>
             </div>
         </nav>
     </div>

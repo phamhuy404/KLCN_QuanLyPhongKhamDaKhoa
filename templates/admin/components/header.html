@@ -12,7 +12,7 @@
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" name="search" placeholder="Tìm bệnh nhân (Mã BN, Tên, SĐT, CCCD)..." 
+                <input type="text" name="search" value="{{ search or request.args.get('search', '') }}" placeholder="Tìm bệnh nhân (Mã BN, Tên, SĐT, CCCD)..." 
                     class="w-full pl-10 pr-4 py-2 bg-slate-100 border border-transparent rounded-xl text-xs focus:bg-white focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all outline-none">
             </div>
         </form>
@@ -50,42 +50,28 @@
                     class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" 
                     title="Thông báo hệ thống">
                 <i class="fa-regular fa-bell text-sm"></i>
-                <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                <span id="header-unread-badge" class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white hidden animate-pulse"></span>
             </button>
             
             <!-- Menu Dropdown Thông báo -->
             <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-100 py-3 z-50">
                 <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
                     <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Mới Nhất
+                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo (<span id="header-unread-count">0</span> chưa đọc)
                     </h5>
-                    <button type="button" onclick="triggerTestNotification('success')" class="text-[11px] text-medical-600 hover:underline font-semibold">
-                        + Thử thông báo mới
+                    <button type="button" onclick="markAllNotificationsAsRead()" class="text-[11px] text-medical-600 hover:underline font-semibold">
+                        Đánh dấu đã đọc
                     </button>
                 </div>
                 <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs" id="notification-list">
-                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <i class="fa-solid fa-calendar-check text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h6 class="font-semibold text-slate-800 text-xs">Lịch hẹn khám mới</h6>
-                            <p class="text-slate-500 text-[11px] mt-0.5">Bệnh nhân Hoàng Bảo Nam vừa đặt hẹn lúc 09:30 sáng nay.</p>
-                            <span class="text-[10px] text-slate-400 mt-1 block">5 phút trước</span>
-                        </div>
-                    </div>
-                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <i class="fa-solid fa-flask text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h6 class="font-semibold text-slate-800 text-xs">Kết quả xét nghiệm</h6>
-                            <p class="text-slate-500 text-[11px] mt-0.5">Phòng xét nghiệm vừa hoàn tất sinh hóa máu cho mã BN2609001.</p>
-                            <span class="text-[10px] text-slate-400 mt-1 block">20 phút trước</span>
-                        </div>
+                    <div class="p-4 text-center text-slate-400 text-xs" id="notification-loading">
+                        <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải thông báo...
                     </div>
                 </div>
-                <div class="px-4 pt-2 border-t border-slate-100 text-center">
+                <div class="px-4 pt-2 border-t border-slate-100 text-center flex items-center justify-between">
+                    <button type="button" onclick="loadRealNotifications()" class="text-[11px] text-slate-400 hover:text-medical-600 flex items-center gap-1">
+                        <i class="fa-solid fa-rotate text-[10px]"></i> Làm mới
+                    </button>
                     <a href="{{ url_for('admin.dashboard') }}" class="text-[11px] text-slate-500 hover:text-medical-600 font-medium">Xem tất cả trên Dashboard</a>
                 </div>
             </div>
@@ -101,11 +87,14 @@
                 <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px]">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
                 <span class="text-[10px] text-teal-700 font-semibold block leading-tight">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
             </div>
-            <a href="{{ url_for('logout') }}" 
-               class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all ml-1" 
-               title="Đăng xuất khỏi hệ thống">
-                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
-            </a>
+            <form method="POST" action="{{ url_for('logout') }}" class="inline m-0 p-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" 
+                   class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all ml-1 cursor-pointer" 
+                   title="Đăng xuất khỏi hệ thống">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                </button>
+            </form>
         </div>
     </div>
 </header>
@@ -114,11 +103,108 @@
 <div id="popup-notification-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none w-80 sm:w-96"></div>
 
 <script>
-    // Hàm bật/tắt menu dropdown thông báo
+    // Hàm bật/tắt menu dropdown thông báo và tải dữ liệu thời gian thực
     function toggleNotificationDropdown() {
         const menu = document.getElementById('notification-dropdown');
-        if (menu) menu.classList.toggle('hidden');
+        if (menu) {
+            const isHidden = menu.classList.contains('hidden');
+            menu.classList.toggle('hidden');
+            if (isHidden) {
+                loadRealNotifications();
+            }
+        }
     }
+
+    async function loadRealNotifications() {
+        const listContainer = document.getElementById('notification-list');
+        const badge = document.getElementById('header-unread-badge');
+        const countSpan = document.getElementById('header-unread-count');
+        if (!listContainer) return;
+
+        try {
+            const res = await fetch('/api/notifications');
+            const data = await res.json();
+            if (data.success) {
+                const notifs = data.notifications || [];
+                const unread = data.unread_count || 0;
+
+                if (countSpan) countSpan.textContent = unread;
+                if (badge) {
+                    if (unread > 0) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+
+                if (notifs.length === 0) {
+                    listContainer.innerHTML = `
+                        <div class="p-6 text-center text-slate-400">
+                            <i class="fa-regular fa-bell-slash text-xl mb-1 block"></i>
+                            <span>Không có thông báo mới nào</span>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listContainer.innerHTML = notifs.map(n => `
+                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3 ${n.da_doc ? 'opacity-70' : 'bg-medical-50/20'}">
+                        <div class="w-8 h-8 rounded-xl ${n.da_doc ? 'bg-slate-100 text-slate-500' : 'bg-medical-100 text-medical-700'} flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid ${n.da_doc ? 'fa-bell' : 'fa-bell text-rose-500'} text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h6 class="font-semibold text-slate-800 text-xs">${n.tieu_de || 'Thông báo'}</h6>
+                                ${!n.da_doc ? '<span class="w-2 h-2 rounded-full bg-medical-500 shrink-0"></span>' : ''}
+                            </div>
+                            <p class="text-slate-500 text-[11px] mt-0.5">${n.noi_dung || ''}</p>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-[10px] text-slate-400">${n.thoi_gian_tao || ''}</span>
+                                ${!n.da_doc ? `<button type="button" onclick="markSingleNotificationRead(${n.id})" class="text-[10px] text-medical-600 hover:underline">Đã đọc</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = '<div class="p-4 text-center text-rose-500 text-xs">Không thể tải thông báo</div>';
+            }
+        } catch (e) {
+            listContainer.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs">Không thể kết nối máy chủ thông báo</div>';
+        }
+    }
+
+    async function markAllNotificationsAsRead() {
+        try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const token = csrfMeta ? csrfMeta.content : '';
+            const res = await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+                body: JSON.stringify({ all: true })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadRealNotifications();
+            }
+        } catch (e) {}
+    }
+
+    async function markSingleNotificationRead(id) {
+        try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const token = csrfMeta ? csrfMeta.content : '';
+            const res = await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+                body: JSON.stringify({ notification_id: id })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadRealNotifications();
+            }
+        } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadRealNotifications();
+    });
 
     document.addEventListener('click', (e) => {
         const container = document.getElementById('notification-bell-container');

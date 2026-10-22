@@ -415,19 +415,65 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
-    // 5. Tự động kiểm tra và đồng bộ chấm thông báo chưa đọc trên Header
+    // 5. Tự động kiểm tra và đồng bộ chấm thông báo chưa đọc trên Header (Cả Cổng Admin và Cổng Bệnh nhân)
     const headerBadge = document.getElementById('header-unread-badge');
-    if (headerBadge) {
+    const headerCount = document.getElementById('header-unread-count');
+    if (headerBadge || headerCount) {
         fetch('/api/notifications')
             .then(res => res.json())
             .then(data => {
-                if (data.success && data.unread_count > 0) {
-                    headerBadge.classList.remove('hidden');
-                } else {
-                    headerBadge.classList.add('hidden');
+                if (data.success) {
+                    const unread = data.unread_count || 0;
+                    if (headerCount) headerCount.textContent = unread;
+                    if (headerBadge) {
+                        if (unread > 0) {
+                            headerBadge.classList.remove('hidden');
+                        } else {
+                            headerBadge.classList.add('hidden');
+                        }
+                    }
                 }
             })
             .catch(() => {});
     }
 });
+
+// =========================================================================
+// BẢO VỆ CHỐNG TẤN CÔNG CSRF CHO TOÀN BỘ AJAX / FETCH CALLS TRONG ỨNG DỤNG
+// =========================================================================
+window.getCsrfToken = function() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content) return meta.content;
+    const input = document.querySelector('input[name="csrf_token"]');
+    if (input && input.value) return input.value;
+    return '';
+};
+
+// Tự động bổ sung tiêu đề X-CSRFToken cho tất cả yêu cầu làm thay đổi dữ liệu
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        if (options && options.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(options.method.toUpperCase())) {
+            options.headers = options.headers || {};
+            const csrfToken = window.getCsrfToken();
+            if (csrfToken) {
+                if (options.headers instanceof Headers) {
+                    if (!options.headers.has('X-CSRFToken')) {
+                        options.headers.set('X-CSRFToken', csrfToken);
+                    }
+                } else if (Array.isArray(options.headers)) {
+                    if (!options.headers.some(([k]) => k.toLowerCase() === 'x-csrftoken')) {
+                        options.headers.push(['X-CSRFToken', csrfToken]);
+                    }
+                } else {
+                    if (!options.headers['X-CSRFToken'] && !options.headers['x-csrftoken']) {
+                        options.headers['X-CSRFToken'] = csrfToken;
+                    }
+                }
+            }
+        }
+        return originalFetch(url, options);
+    };
+})();
+
 

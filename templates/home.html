@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Bệnh viện Đa khoa Quốc tế H2T Healthcare - Hệ thống Y tế Chất lượng cao</title>
 
     <!-- Tailwind CSS CDN -->
@@ -146,10 +147,12 @@
                                title="Xem Cổng Bệnh Nhân">
                                 <i class="fa-solid fa-eye mr-1"></i> Cổng BN
                             </a>
-                            <a href="{{ url_for('logout') }}" 
-                               class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
-                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            </a>
+                            <form method="POST" action="{{ url_for('logout') }}" class="inline m-0 p-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all cursor-pointer" title="Đăng xuất">
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                </button>
+                            </form>
                         </div>
                     {% else %}
                         <div class="flex items-center gap-2">
@@ -158,10 +161,12 @@
                                 <i class="fa-solid fa-circle-user"></i>
                                 <span>{{ curr_user.get('ho_ten', 'Bệnh nhân') }}</span>
                             </a>
-                            <a href="{{ url_for('logout') }}" 
-                               class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
-                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            </a>
+                            <form method="POST" action="{{ url_for('logout') }}" class="inline m-0 p-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all cursor-pointer" title="Đăng xuất">
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                                </button>
+                            </form>
                         </div>
                     {% endif %}
                 {% else %}

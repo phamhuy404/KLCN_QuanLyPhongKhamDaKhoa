@@ -79,10 +79,33 @@ def create_app():
             return redirect(flask_url_for('auth.login', next=flask_url_for('patient.booking')))
         return redirect(flask_url_for('patient.booking'))
 
-    # Context processor truyền thông tin người dùng, danh mục và resolver url_for vào templates
+    # Bảo vệ chống CSRF cho tất cả request làm thay đổi dữ liệu (POST, PUT, DELETE, PATCH)
+    @app.before_request
+    def check_csrf():
+        if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+            # Hỗ trợ testing: Trong chế độ TESTING, kiểm tra CSRF khi WTF_CSRF_ENABLED là True
+            if app.config.get('TESTING') and not app.config.get('WTF_CSRF_ENABLED', False):
+                return
+            if not app.config.get('CSRF_ENABLED', True):
+                return
+
+            token = (
+                request.headers.get('X-CSRFToken') or
+                request.headers.get('X-CSRF-Token') or
+                request.form.get('csrf_token') or
+                (request.get_json(silent=True) or {}).get('csrf_token')
+            )
+            from core.security import validate_csrf_token
+            if not validate_csrf_token(token):
+                if request.path.startswith('/api/') or request.is_json:
+                    return {'success': False, 'message': 'CSRF token không hợp lệ hoặc đã hết hạn! Vui lòng tải lại trang.'}, 400
+                abort(400, description="CSRF token không hợp lệ hoặc đã hết hạn! Vui lòng tải lại trang.")
+
+    # Context processor truyền thông tin người dùng, danh mục, CSRF token và resolver url_for vào templates
     @app.context_processor
     def inject_globals():
         from core.catalog import get_all_catalogs
+        from core.security import generate_csrf_token
         def smart_url_for(endpoint, **values):
             target = alias_map.get(endpoint, endpoint)
             try:
@@ -109,6 +132,7 @@ def create_app():
             catalogs=get_all_catalogs(),
             clinic_info=clinic_info,
             url_for=smart_url_for,
+            csrf_token=generate_csrf_token,
             str=str
         )
 
@@ -117,4 +141,6 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    debug_mode = getattr(config, 'DEBUG', False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=debug_mode, port=port)

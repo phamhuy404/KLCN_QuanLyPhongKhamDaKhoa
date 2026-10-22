@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
 from models.user_model import UserModel
+from core.security import is_safe_redirect_url
 
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Xử lý đăng nhập tự động nhận diện vai trò người dùng."""
+    """Xử lý đăng nhập tự động nhận diện vai trò người dùng và bảo vệ an toàn chuyển hướng."""
     if session.get('logged_in') and session.get('user'):
         user = session['user']
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
@@ -23,13 +24,14 @@ def login():
         session['logged_in'] = True
         session['user'] = user
 
-        next_url = request.args.get('next')
-        if next_url:
+        # Kiểm tra tham số next: Chỉ cho phép URL nội bộ an toàn (Chống Open Redirect)
+        next_url = request.form.get('next') or request.args.get('next')
+        if next_url and is_safe_redirect_url(next_url):
             if next_url.startswith('/admin') and user['vai_tro'] == 'BENHNHAN':
                 return redirect(url_for('patient.dashboard'))
             return redirect(next_url)
 
-        # Điều hướng theo vai trò người dùng trong CSDL
+        # Điều hướng mặc định an toàn theo vai trò người dùng
         if user['vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
         return redirect(url_for('patient.dashboard'))
@@ -66,8 +68,8 @@ def register():
 
     return render_template('auth/register.html')
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 def logout():
-    """Đăng xuất và xóa phiên làm việc."""
+    """Đăng xuất và xóa phiên làm việc an toàn bằng phương thức POST và kiểm tra CSRF."""
     session.clear()
     return redirect(url_for('home.home'))

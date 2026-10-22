@@ -1,8 +1,20 @@
 import os
 
-# Cấu hình ứng dụng Flask
-SECRET_KEY = os.environ.get('SECRET_KEY', 'h2t_healthcare_clinic_secret_key_2026')
-DEBUG = True
+# Cấu hình môi trường và ứng dụng Flask
+FLASK_ENV = os.environ.get('FLASK_ENV', 'development').lower()
+DEBUG = os.environ.get('FLASK_DEBUG', '1' if FLASK_ENV == 'development' else '0').lower() in ('true', '1', 'yes')
+
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if FLASK_ENV == 'production':
+        raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY must be set in production environment via environment variable!")
+    else:
+        # Khóa phát triển cục bộ tạm thời - không dùng cho production
+        SECRET_KEY = 'dev_insecure_key_for_local_development_only'
+
+# Cấu hình bảo vệ chống CSRF
+CSRF_ENABLED = True
+WTF_CSRF_ENABLED = True
 
 # Cấu hình hệ quản trị CSDL (Chỉ cần đổi giá trị DB_ENGINE bên dưới)
 # DB_ENGINE = 'sqlite'      # Cách 1: SQLite (Tự động nạp CSDL, không cần cài server)

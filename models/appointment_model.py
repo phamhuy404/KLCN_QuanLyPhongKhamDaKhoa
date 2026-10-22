@@ -299,9 +299,10 @@ class AppointmentModel:
         if appt['trang_thai'] in ['Đã hủy', 'Hoàn thành']:
             return False, f"Không thể đổi lịch hẹn đang ở trạng thái '{appt['trang_thai']}'!"
 
-        # Quyền hạn và thời gian:
-        is_staff = user_info and user_info.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI']
-        user_role = user_info.get('vai_tro') if user_info else 'BENHNHAN'
+        # Quyền hạn và vai trò:
+        user_role = user_info.get('vai_tro') if user_info else None
+        if not user_role or user_role not in ['ADMIN', 'LETAN', 'BACSI', 'BENHNHAN']:
+            return False, "Bạn không có quyền thực hiện thao tác đổi lịch hẹn!"
 
         if user_role == 'BENHNHAN':
             # Bệnh nhân chỉ được thao tác trên lịch hẹn của chính mình
@@ -316,6 +317,11 @@ class AppointmentModel:
                     return False, "Đã quá thời gian khám của lịch hẹn! Chỉ nhân viên y tế mới có quyền điều phối sau giờ khám."
             except Exception:
                 pass
+        elif user_role == 'BACSI':
+            doc_id = user_info.get('bac_si_id')
+            if appt.get('bac_si_id') and doc_id and appt['bac_si_id'] != doc_id:
+                return False, "Bác sĩ chỉ được quyền điều phối lịch hẹn được phân công cho chính mình!"
+        # ADMIN và LETAN có toàn quyền điều phối lịch hẹn phòng khám
 
         # Kiểm tra ngày giờ mới phải là tương lai
         try:
@@ -397,7 +403,9 @@ class AppointmentModel:
         if appt['trang_thai'] == 'Hoàn thành':
             return False, "Không thể hủy lịch hẹn đã hoàn thành khám bệnh!"
 
-        user_role = user_info.get('vai_tro') if user_info else 'BENHNHAN'
+        user_role = user_info.get('vai_tro') if user_info else None
+        if not user_role or user_role not in ['ADMIN', 'LETAN', 'BACSI', 'BENHNHAN']:
+            return False, "Bạn không có quyền thực hiện thao tác hủy lịch hẹn!"
 
         # Nếu là bệnh nhân, kiểm tra quyền sở hữu và thời gian trước giờ khám
         if user_role == 'BENHNHAN':
@@ -411,6 +419,10 @@ class AppointmentModel:
                     return False, "Đã quá thời gian hẹn khám! Chỉ nhân viên y tế mới có quyền hủy lịch sau giờ khám."
             except Exception:
                 pass
+        elif user_role == 'BACSI':
+            doc_id = user_info.get('bac_si_id')
+            if appt.get('bac_si_id') and doc_id and appt['bac_si_id'] != doc_id:
+                return False, "Bác sĩ chỉ được quyền hủy lịch hẹn được phân công cho chính mình!"
 
         conn = get_db()
         cursor = conn.cursor()

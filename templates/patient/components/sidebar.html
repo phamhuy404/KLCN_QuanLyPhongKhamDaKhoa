@@ -118,14 +118,17 @@
                     </a>
                 {% endif %}
 
-                <a href="{{ url_for('logout') }}" 
-                   class="nav-item nav-item-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                   title="Đăng xuất">
-                    <div class="sidebar-icon-box">
-                        <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm text-rose-500 group-hover:text-rose-600"></i>
-                    </div>
-                    <span class="sidebar-text-fade font-semibold text-rose-600">Đăng xuất</span>
-                </a>
+                <form method="POST" action="{{ url_for('logout') }}" class="m-0 p-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" 
+                       class="nav-item nav-item-inactive flex items-center h-11 w-full rounded-xl transition-all group overflow-hidden text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 cursor-pointer text-left"
+                       title="Đăng xuất">
+                        <div class="sidebar-icon-box">
+                            <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm text-rose-500 group-hover:text-rose-600"></i>
+                        </div>
+                        <span class="sidebar-text-fade font-semibold text-rose-600">Đăng xuất</span>
+                    </button>
+                </form>
             </div>
         </nav>
     </div>
