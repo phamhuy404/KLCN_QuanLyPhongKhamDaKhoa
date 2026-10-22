@@ -1,6 +1,6 @@
-<!-- SIDEBAR (Dành cho Admin / Bác sĩ - Tự động thò thụt mượt mà & đồng bộ màu sắc) -->
+<!-- SIDEBAR (Dành cho Admin / Bác sĩ - Tự động thò thụt mượt mà & cuộn độc lập) -->
 <aside id="app-sidebar"
-    class="sidebar-auto-expand bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex shrink-0 shadow-xl z-30 select-none">
+    class="sidebar-auto-expand bg-slate-900 text-slate-300 flex flex-col h-screen hidden md:flex shrink-0 shadow-xl z-30 select-none">
     <script>
         (function() {
             try {
@@ -14,251 +14,250 @@
             } catch(e) {}
         })();
     </script>
-    <div>
-        <!-- Logo & Brand (Bấm vào icon sẽ về trang home) -->
-        <div class="flex items-center h-20 px-3 border-b border-slate-800 overflow-hidden">
-            <div class="sidebar-icon-box">
-                <a href="{{ url_for('home') }}"
-                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/30 shrink-0 hover:scale-105 transition-transform"
-                    title="Về trang chủ bệnh viện">
-                    <i class="fa-solid fa-hospital-user text-lg"></i>
-                </a>
-            </div>
 
-            <div class="sidebar-text-fade ml-2 flex-1 flex items-center justify-between overflow-hidden pr-2">
-                <a href="{{ url_for('home') }}" class="overflow-hidden block hover:opacity-80 transition-opacity"
-                    title="Về trang chủ bệnh viện">
-                    <h1 class="font-bold text-white text-base leading-tight truncate">H2T Care<span
-                            class="text-medical-400">+</span></h1>
-                    <span class="text-[11px] text-slate-400 block truncate">Quản Trị Phòng Khám</span>
-                </a>
-                <!-- Nút Ghim (Cố định menu mở rộng) -->
-                <button id="sidebar-pin-btn"
-                    class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-medical-400 transition-all shrink-0 ml-2"
-                    title="Ghim cố định menu mở rộng">
-                    <i class="fa-solid fa-thumbtack text-xs"></i>
-                </button>
-            </div>
+    <!-- Logo & Brand Header -->
+    <div class="flex items-center h-16 px-3 border-b border-slate-800 shrink-0 overflow-hidden">
+        <div class="sidebar-icon-box">
+            <a href="{{ url_for('home') }}"
+                class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/30 shrink-0 hover:scale-105 transition-transform"
+                title="Về trang chủ bệnh viện">
+                <i class="fa-solid fa-hospital-user text-lg"></i>
+            </a>
         </div>
 
-        <!-- Navigation Menu -->
-        {% set curr_user = session.get('user', {}) %}
-        {% set role = curr_user.get('vai_tro', 'ADMIN') %}
-        <nav class="px-2.5 py-4 space-y-1.5 overflow-hidden">
-            <!-- 1. HOẠT ĐỘNG KHÁM CHỮA BỆNH CHÍNH -->
-            {% if role in ['ADMIN', 'BACSI'] %}
-            <a href="{{ url_for('admin_dashboard') }}"
-                class="nav-item {% if active_page == 'admin_dashboard' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Tổng quan">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-chart-pie nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Tổng quan</span>
+        <div class="sidebar-text-fade ml-2 flex-1 flex items-center justify-between overflow-hidden pr-2">
+            <a href="{{ url_for('home') }}" class="overflow-hidden block hover:opacity-80 transition-opacity"
+                title="Về trang chủ bệnh viện">
+                <h1 class="font-bold text-white text-base leading-tight truncate">H2T Care<span
+                        class="text-medical-400">+</span></h1>
+                <span class="text-[11px] text-slate-400 block truncate">Quản Trị Phòng Khám</span>
             </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'LETAN'] %}
-            <a href="{{ url_for('admin_reception') }}"
-                class="nav-item {% if active_page == 'admin_reception' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Tiếp nhận / Lễ tân">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-user-plus nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Tiếp nhận / Lễ tân</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'BACSI', 'LETAN'] %}
-            <a href="{{ url_for('admin_appointments') }}"
-                class="nav-item {% if active_page == 'admin_appointments' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Lịch hẹn khám">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-calendar-check nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Lịch hẹn khám</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'BACSI'] %}
-            <a href="{{ url_for('admin_emr') }}"
-                class="nav-item {% if active_page == 'admin_emr' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Khám bệnh (EMR)">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-stethoscope nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Khám bệnh (EMR)</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'BACSI', 'KTV'] %}
-            <a href="{{ url_for('admin_lab') }}"
-                class="nav-item {% if active_page == 'admin_lab' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Cận lâm sàng">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-flask-vial nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Cận lâm sàng</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'DUOCSI'] %}
-            <a href="{{ url_for('admin_pharmacy') }}"
-                class="nav-item {% if active_page == 'admin_pharmacy' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Kho dược & Nhà thuốc">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-pills nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Kho dược & Nhà thuốc</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'LETAN'] %}
-            <a href="{{ url_for('admin_billing') }}"
-                class="nav-item {% if active_page == 'admin_billing' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Viện phí & Thu ngân">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-file-invoice-dollar nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Viện phí & Thu ngân</span>
-            </a>
-            {% endif %}
-
-            <!-- 2. QUẢN LÝ BỆNH NHÂN & CON NGƯỜI -->
-            {% if role in ['ADMIN', 'BACSI', 'LETAN'] %}
-            <a href="{{ url_for('admin_patients') }}"
-                class="nav-item {% if active_page == 'admin_patients' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Quản lý Bệnh nhân">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-hospital-user nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Quản lý Bệnh nhân</span>
-            </a>
-            {% endif %}
-
-            {% if role == 'ADMIN' %}
-            <a href="{{ url_for('admin_doctors') }}"
-                class="nav-item {% if active_page == 'admin_doctors' and not request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Đội ngũ Bác sĩ">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-user-doctor nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Đội ngũ Bác sĩ</span>
-            </a>
-            {% elif role == 'BACSI' %}
-            <a href="{{ url_for('admin.my_doctor_profile') }}"
-                class="nav-item {% if active_page == 'admin_doctors' and request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Hồ sơ Bác sĩ của tôi & Bệnh nhân đăng ký">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-id-card-clip nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Hồ sơ của tôi</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV'] %}
-            <a href="{{ url_for('admin_staff') }}"
-                class="nav-item {% if active_page in ['admin_staff', 'admin_accounts'] %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Quản lý Nhân sự & Lịch trực">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-users-gear nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Nhân sự & Lịch trực</span>
-            </a>
-            {% endif %}
-
-            <!-- 3. BÁO CÁO, VẬN HÀNH & QUẢN TRỊ -->
-            {% if role in ['ADMIN', 'LETAN'] %}
-            <a href="{{ url_for('admin_reports') }}"
-                class="nav-item {% if active_page == 'admin_reports' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Báo cáo thống kê">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-chart-line nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Báo cáo thống kê</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'LETAN', 'DUOCSI'] %}
-            <a href="{{ url_for('admin_catalogs') }}"
-                class="nav-item {% if active_page == 'admin_catalogs' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Danh mục y tế">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-layer-group nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Danh mục y tế</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'LETAN', 'DUOCSI'] %}
-            <a href="{{ url_for('admin_articles') }}"
-                class="nav-item {% if active_page == 'admin_articles' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Quản lý Bài viết">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-newspaper nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Quản lý Bài viết</span>
-            </a>
-            {% endif %}
-
-            {% if role == 'ADMIN' %}
-            <a href="{{ url_for('admin.banners') }}"
-                class="nav-item {% if active_page == 'admin_banners' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Quản lý Banner Trang chủ">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-images nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Quản lý Banner</span>
-            </a>
-            {% endif %}
-
-            {% if role in ['ADMIN', 'LETAN'] %}
-            <a href="{{ url_for('admin_feedbacks') }}"
-                class="nav-item {% if active_page == 'admin_feedbacks' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Phản hồi người bệnh">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-comments nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Phản hồi người bệnh</span>
-            </a>
-            {% endif %}
-
-            {% if role == 'ADMIN' %}
-            <a href="{{ url_for('admin_backups') }}"
-                class="nav-item {% if active_page == 'admin_backups' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Sao lưu & Phục hồi">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-database nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Sao lưu & Phục hồi</span>
-            </a>
-            {% endif %}
-
-            <!-- 4. TIỆN ÍCH NGOÀI & ĐĂNG XUẤT -->
-            <div class="pt-3 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
-                <a href="{{ url_for('patient_dashboard') }}"
-                    class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs"
-                    title="Cổng Bệnh nhân">
-                    <div class="sidebar-icon-box">
-                        <i class="fa-solid fa-arrow-up-right-from-square nav-icon text-sm"></i>
-                    </div>
-                    <span class="sidebar-text-fade font-medium">Xem Cổng Bệnh nhân</span>
-                </a>
-
-                <a href="{{ url_for('logout') }}"
-                    class="nav-item nav-item-dark-inactive flex items-center h-11 rounded-xl transition-all group overflow-hidden text-xs hover:text-rose-400"
-                    title="Đăng xuất">
-                    <div class="sidebar-icon-box">
-                        <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm"></i>
-                    </div>
-                    <span class="sidebar-text-fade font-medium">Đăng xuất</span>
-                </a>
-            </div>
-        </nav>
+            <!-- Nút Ghim (Cố định menu mở rộng) -->
+            <button id="sidebar-pin-btn"
+                class="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-medical-400 transition-all shrink-0 ml-2"
+                title="Ghim cố định menu mở rộng">
+                <i class="fa-solid fa-thumbtack text-xs"></i>
+            </button>
+        </div>
     </div>
 
-    <!-- Staff Profile Footer -->
+    <!-- Navigation Menu (Cuộn dọc độc lập với thanh cuộn tối mượt mà) -->
     {% set curr_user = session.get('user', {}) %}
-    <div class="p-2 m-2 rounded-2xl bg-slate-800/60 border border-slate-800 overflow-hidden">
+    {% set role = curr_user.get('vai_tro', 'ADMIN') %}
+    <nav class="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto overflow-x-hidden custom-dark-scrollbar">
+        <!-- 1. HOẠT ĐỘNG KHÁM CHỮA BỆNH CHÍNH -->
+        {% if role in ['ADMIN', 'BACSI'] %}
+        <a href="{{ url_for('admin_dashboard') }}"
+            class="nav-item {% if active_page == 'admin_dashboard' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Tổng quan">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-chart-pie nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Tổng quan</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'LETAN'] %}
+        <a href="{{ url_for('admin_reception') }}"
+            class="nav-item {% if active_page == 'admin_reception' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Tiếp nhận / Lễ tân">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-user-plus nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Tiếp nhận / Lễ tân</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'BACSI', 'LETAN'] %}
+        <a href="{{ url_for('admin_appointments') }}"
+            class="nav-item {% if active_page == 'admin_appointments' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Lịch hẹn khám">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-calendar-check nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Lịch hẹn khám</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'BACSI'] %}
+        <a href="{{ url_for('admin_emr') }}"
+            class="nav-item {% if active_page == 'admin_emr' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Khám bệnh (EMR)">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-stethoscope nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Khám bệnh (EMR)</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'BACSI', 'KTV'] %}
+        <a href="{{ url_for('admin_lab') }}"
+            class="nav-item {% if active_page == 'admin_lab' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Cận lâm sàng">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-flask-vial nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Cận lâm sàng</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'DUOCSI'] %}
+        <a href="{{ url_for('admin_pharmacy') }}"
+            class="nav-item {% if active_page == 'admin_pharmacy' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Kho dược & Nhà thuốc">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-pills nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Kho dược & Nhà thuốc</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'LETAN'] %}
+        <a href="{{ url_for('admin_billing') }}"
+            class="nav-item {% if active_page == 'admin_billing' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Viện phí & Thu ngân">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-file-invoice-dollar nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Viện phí & Thu ngân</span>
+        </a>
+        {% endif %}
+
+        <!-- 2. QUẢN LÝ BỆNH NHÂN & CON NGƯỜI -->
+        {% if role in ['ADMIN', 'BACSI', 'LETAN'] %}
+        <a href="{{ url_for('admin_patients') }}"
+            class="nav-item {% if active_page == 'admin_patients' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Quản lý Bệnh nhân">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-hospital-user nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Quản lý Bệnh nhân</span>
+        </a>
+        {% endif %}
+
+        {% if role == 'ADMIN' %}
+        <a href="{{ url_for('admin_doctors') }}"
+            class="nav-item {% if active_page == 'admin_doctors' and not request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Đội ngũ Bác sĩ">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-user-doctor nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Đội ngũ Bác sĩ</span>
+        </a>
+        {% elif role == 'BACSI' %}
+        <a href="{{ url_for('admin.my_doctor_profile') }}"
+            class="nav-item {% if active_page == 'admin_doctors' and request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Hồ sơ Bác sĩ của tôi & Bệnh nhân đăng ký">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-id-card-clip nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Hồ sơ của tôi</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV'] %}
+        <a href="{{ url_for('admin_staff') }}"
+            class="nav-item {% if active_page in ['admin_staff', 'admin_accounts'] %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Quản lý Nhân sự & Lịch trực">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-users-gear nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Nhân sự & Lịch trực</span>
+        </a>
+        {% endif %}
+
+        <!-- 3. BÁO CÁO, VẬN HÀNH & QUẢN TRỊ -->
+        {% if role in ['ADMIN', 'LETAN'] %}
+        <a href="{{ url_for('admin_reports') }}"
+            class="nav-item {% if active_page == 'admin_reports' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Báo cáo thống kê">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-chart-line nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Báo cáo thống kê</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'LETAN', 'DUOCSI'] %}
+        <a href="{{ url_for('admin_catalogs') }}"
+            class="nav-item {% if active_page == 'admin_catalogs' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Danh mục y tế">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-layer-group nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Danh mục y tế</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'LETAN', 'DUOCSI'] %}
+        <a href="{{ url_for('admin_articles') }}"
+            class="nav-item {% if active_page == 'admin_articles' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Quản lý Bài viết">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-newspaper nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Quản lý Bài viết</span>
+        </a>
+        {% endif %}
+
+        {% if role == 'ADMIN' %}
+        <a href="{{ url_for('admin.banners') }}"
+            class="nav-item {% if active_page == 'admin_banners' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Quản lý Banner Trang chủ">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-images nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Quản lý Banner</span>
+        </a>
+        {% endif %}
+
+        {% if role in ['ADMIN', 'LETAN'] %}
+        <a href="{{ url_for('admin_feedbacks') }}"
+            class="nav-item {% if active_page == 'admin_feedbacks' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Phản hồi người bệnh">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-comments nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Phản hồi người bệnh</span>
+        </a>
+        {% endif %}
+
+        {% if role == 'ADMIN' %}
+        <a href="{{ url_for('admin_backups') }}"
+            class="nav-item {% if active_page == 'admin_backups' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Sao lưu & Phục hồi CSDL">
+            <div class="sidebar-icon-box">
+                <i class="fa-solid fa-database nav-icon text-base"></i>
+            </div>
+            <span class="sidebar-text-fade text-sm font-medium">Sao lưu & Phục hồi</span>
+        </a>
+        {% endif %}
+
+        <!-- 4. TIỆN ÍCH NGOÀI & ĐĂNG XUẤT -->
+        <div class="pt-2 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
+            <a href="{{ url_for('patient_dashboard') }}"
+                class="nav-item nav-item-dark-inactive flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs"
+                title="Cổng Bệnh nhân">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-arrow-up-right-from-square nav-icon text-sm"></i>
+                </div>
+                <span class="sidebar-text-fade font-medium">Xem Cổng Bệnh nhân</span>
+            </a>
+
+            <a href="{{ url_for('logout') }}"
+                class="nav-item nav-item-dark-inactive flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs hover:text-rose-400"
+                title="Đăng xuất">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-arrow-right-from-bracket nav-icon text-sm"></i>
+                </div>
+                <span class="sidebar-text-fade font-medium">Đăng xuất</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Staff Profile Footer (Luôn hiển thị cố định ở chân sidebar) -->
+    {% set curr_user = session.get('user', {}) %}
+    <div class="p-2 m-2 rounded-2xl bg-slate-800/70 border border-slate-800 shrink-0 overflow-hidden">
         <div class="flex items-center">
             <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
                 <div

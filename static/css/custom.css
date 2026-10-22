@@ -24,6 +24,24 @@ html {
     background: #94a3b8;
 }
 
+/* Custom Dark Scrollbar cho Sidebar */
+.custom-dark-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-dark-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-dark-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 9999px;
+}
+
+.custom-dark-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.45);
+}
+
 /* ==========================================================================
    HỆ THỐNG SIDEBAR TỰ ĐỘNG THÒ THỤT (AUTO HOVER-EXPAND) HOÀN TOÀN MƯỢT MÀ
    ========================================================================== */
