@@ -32,6 +32,7 @@ def export_sql():
     content.append("")
     content.append("SET ANSI_NULLS ON;")
     content.append("SET QUOTED_IDENTIFIER ON;")
+    content.append("SET NOCOUNT ON;")
     content.append("GO")
     content.append("")
     content.append("-- XOA KHOA NGOAI VA BANG CU")
@@ -303,6 +304,7 @@ CREATE TABLE don_thuoc (
     thoi_gian_ke DATETIME DEFAULT GETDATE(),
     loi_dan NVARCHAR(MAX),
     trang_thai NVARCHAR(50) DEFAULT N'Đã cấp thuốc',
+    hinh_thuc_mua NVARCHAR(50) DEFAULT N'Chưa chọn',
     ly_do_huy NVARCHAR(MAX) NULL,
     nguoi_huy NVARCHAR(100) NULL,
     thoi_gian_huy DATETIME NULL,
@@ -471,21 +473,32 @@ GO
     content.append(ddl)
 
     # Function để escape chuỗi SQL Server
+    from datetime import datetime, date, time
+    from decimal import Decimal
+
     def esc(val):
         if val is None:
             return "NULL"
-        if isinstance(val, (int, float)):
-            return str(val)
+        # RẤT QUAN TRỌNG: bool phải kiểm tra TRƯỚC (int, float) vì bool là subclass của int trong Python
         if isinstance(val, bool):
             return "1" if val else "0"
+        if isinstance(val, (int, float, Decimal)):
+            return str(val)
+        if isinstance(val, datetime):
+            # Định dạng chuẩn SQL Server DATETIME YYYY-MM-DD HH:MM:SS
+            return f"N'{val.strftime('%Y-%m-%d %H:%M:%S')}'"
+        if isinstance(val, date):
+            return f"N'{val.strftime('%Y-%m-%d')}'"
+        if isinstance(val, time):
+            return f"N'{val.strftime('%H:%M:%S')}'"
         s = str(val).replace("'", "''")
         return f"N'{s}'"
 
-    # Export DML cho tung bang
+    # Export DML cho tung bang theo đúng thứ tự phụ thuộc khóa ngoại
     export_tables = [
         'vai_tro', 'chuyen_khoa', 'phong_kham', 'dich_vu', 'thuoc',
-        'tai_khoan', 'nhan_vien', 'bac_si', 'benh_nhan', 'chi_so_sinh_ton',
-        'lich_hen', 'phieu_kham', 'phieu_chi_dinh', 'chi_tiet_chi_dinh',
+        'tai_khoan', 'nhan_vien', 'bac_si', 'benh_nhan', 'lich_lam_viec',
+        'chi_so_sinh_ton', 'lich_hen', 'phieu_kham', 'phieu_chi_dinh', 'chi_tiet_chi_dinh',
         'don_thuoc', 'chi_tiet_don_thuoc', 'hoa_don', 'chi_tiet_hoa_don',
         'thong_bao', 'banner', 'bai_viet'
     ]

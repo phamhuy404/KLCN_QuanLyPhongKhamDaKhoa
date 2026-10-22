@@ -53,9 +53,10 @@ def seed():
         except Exception:
             pass
 
-    # Kiem tra cot da_hoan_thien_ho_so va ton_kho_toi_thieu
+    # Kiem tra cot da_hoan_thien_ho_so, ton_kho_toi_thieu va hinh_thuc_mua
     cur.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'da_hoan_thien_ho_so') ALTER TABLE tai_khoan ADD da_hoan_thien_ho_so BIT DEFAULT 0;")
     cur.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('thuoc') AND name = 'ton_kho_toi_thieu') ALTER TABLE thuoc ADD ton_kho_toi_thieu INT DEFAULT 20;")
+    cur.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'hinh_thuc_mua') ALTER TABLE don_thuoc ADD hinh_thuc_mua NVARCHAR(50) DEFAULT N'Chưa chọn';")
 
     # 1. vai_tro
     roles = [
