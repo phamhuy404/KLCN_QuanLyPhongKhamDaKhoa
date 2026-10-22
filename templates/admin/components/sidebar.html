@@ -8,7 +8,7 @@
                 const isOpen = sessionStorage.getItem('h2t_sidebar_open') === '1';
                 const sb = document.getElementById('app-sidebar');
                 if (sb && (isPinned || isOpen)) {
-                    sb.classList.add('is-hold-open');
+                    sb.classList.add('is-hold-open', 'no-transition');
                     if (isPinned) sb.classList.add('is-pinned');
                 }
             } catch(e) {}
@@ -200,6 +200,17 @@
             </a>
             {% endif %}
 
+            {% if role == 'ADMIN' %}
+            <a href="{{ url_for('admin.banners') }}"
+                class="nav-item {% if active_page == 'admin_banners' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
+                title="Quản lý Banner Trang chủ">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-images nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Quản lý Banner</span>
+            </a>
+            {% endif %}
+
             {% if role in ['ADMIN', 'LETAN'] %}
             <a href="{{ url_for('admin_feedbacks') }}"
                 class="nav-item {% if active_page == 'admin_feedbacks' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
@@ -212,15 +223,6 @@
             {% endif %}
 
             {% if role == 'ADMIN' %}
-            <a href="{{ url_for('admin.banners') }}"
-                class="nav-item {% if active_page == 'admin_banners' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-                title="Quản lý Banner Trang chủ">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-images nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Quản lý Banner</span>
-            </a>
-
             <a href="{{ url_for('admin_backups') }}"
                 class="nav-item {% if active_page == 'admin_backups' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
                 title="Sao lưu & Phục hồi">

@@ -258,12 +258,16 @@ class UserModel:
                 if doc:
                     dept_id = doc.get('chuyen_khoa_id')
             if dept_id:
-                return [s for s in staff_list if s.get('ma_vai_tro') == 'BACSI' and s.get('chuyen_khoa_id') == dept_id]
-            return [s for s in staff_list if s.get('ma_vai_tro') == 'BACSI']
+                res = [s for s in staff_list if s.get('ma_vai_tro') == 'ADMIN' or (s.get('ma_vai_tro') == 'BACSI' and s.get('chuyen_khoa_id') == dept_id)]
+            else:
+                res = [s for s in staff_list if s.get('ma_vai_tro') == 'ADMIN' or s.get('ma_vai_tro') == 'BACSI']
+            return sorted(res, key=lambda s: (0 if s.get('ma_vai_tro') == 'ADMIN' else 1))
         elif role in ['LETAN', 'DUOCSI', 'KTV']:
-            return [s for s in staff_list if s.get('ma_vai_tro') == role]
+            res = [s for s in staff_list if s.get('ma_vai_tro') == 'ADMIN' or s.get('ma_vai_tro') == role]
+            return sorted(res, key=lambda s: (0 if s.get('ma_vai_tro') == 'ADMIN' else 1))
 
-        return staff_list
+        res = [s for s in staff_list if s.get('ma_vai_tro') == 'ADMIN' or s.get('ma_vai_tro') == role]
+        return sorted(res, key=lambda s: (0 if s.get('ma_vai_tro') == 'ADMIN' else 1))
 
     @staticmethod
     def get_staff_by_id(staff_id):
@@ -711,11 +715,22 @@ class UserModel:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('SELECT id, username FROM tai_khoan WHERE id = ?', (account_id,))
+            cursor.execute('''
+                SELECT t.id, t.username, t.vai_tro_id, v.ma_vai_tro 
+                FROM tai_khoan t 
+                LEFT JOIN vai_tro v ON t.vai_tro_id = v.id 
+                WHERE t.id = ?
+            ''', (account_id,))
             acc = cursor.fetchone()
             if not acc:
                 conn.close()
                 return False, 'Không tìm thấy tài khoản!'
+
+            # Chặn tuyệt đối việc non-admin can thiệp hoặc đổi mật khẩu tài khoản Admin
+            if acc.get('ma_vai_tro') == 'ADMIN' or acc.get('vai_tro_id') == 1 or acc.get('username') == 'admin':
+                if audit_user and audit_user.get('vai_tro') != 'ADMIN':
+                    conn.close()
+                    return False, 'Tài khoản Quản trị viên được bảo vệ tuyệt đối, không thể can thiệp!'
 
             hashed = hash_password(new_password)
             cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed, account_id))

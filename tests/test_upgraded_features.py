@@ -52,19 +52,30 @@ class TestUpgradedFeatures(unittest.TestCase):
         all_staff = UserModel.get_all_staff(user_info=admin_user)
         self.assertTrue(len(all_staff) > 0)
 
-        # Bác sĩ chỉ xem bác sĩ chung chuyên khoa
+        # Bác sĩ thấy bác sĩ chung chuyên khoa và tài khoản Quản trị viên (ADMIN)
         doctor_user = {'id': 2, 'vai_tro': 'BACSI', 'bac_si_id': 1, 'chuyen_khoa_id': 1}
         doc_staff = UserModel.get_all_staff(user_info=doctor_user)
+        has_admin_in_doc = any(s.get('ma_vai_tro') == 'ADMIN' for s in doc_staff)
+        self.assertTrue(has_admin_in_doc, "Bác sĩ phải thấy được tài khoản ADMIN")
         for s in doc_staff:
-            self.assertEqual(s.get('ma_vai_tro'), 'BACSI')
-            if s.get('chuyen_khoa_id'):
-                self.assertEqual(s.get('chuyen_khoa_id'), 1)
+            if s.get('ma_vai_tro') != 'ADMIN':
+                self.assertEqual(s.get('ma_vai_tro'), 'BACSI')
+                if s.get('chuyen_khoa_id'):
+                    self.assertEqual(s.get('chuyen_khoa_id'), 1)
 
-        # Lễ tân chỉ xem nhân sự lễ tân
+        # Lễ tân thấy nhân sự lễ tân và tài khoản Quản trị viên (ADMIN)
         letan_user = {'id': 3, 'vai_tro': 'LETAN'}
         letan_staff = UserModel.get_all_staff(user_info=letan_user)
+        has_admin_in_letan = any(s.get('ma_vai_tro') == 'ADMIN' for s in letan_staff)
+        self.assertTrue(has_admin_in_letan, "Lễ tân phải thấy được tài khoản ADMIN")
         for s in letan_staff:
-            self.assertEqual(s.get('ma_vai_tro'), 'LETAN')
+            if s.get('ma_vai_tro') != 'ADMIN':
+                self.assertEqual(s.get('ma_vai_tro'), 'LETAN')
+
+        # Role dưới tuyệt đối không thể đổi mật khẩu tài khoản Admin
+        admin_acc = next(s for s in letan_staff if s.get('ma_vai_tro') == 'ADMIN')
+        ok_reset, msg_reset = UserModel.reset_account_password(admin_acc['tai_khoan_id'], 'Hacked@123', audit_user=letan_user)
+        self.assertFalse(ok_reset, "Role dưới không được phép đổi mật khẩu tài khoản Admin")
 
     def test_week_bounds_and_registration_rules(self):
         """Kiểm tra quy tắc đăng ký ca làm: chỉ được đăng ký 2 tuần tiếp theo, tuần hiện tại bị chặn."""

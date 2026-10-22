@@ -205,14 +205,23 @@ def accounts():
     return redirect(url_for('admin.staff', tab='staff'))
 
 @admin_bp.route('/accounts/reset-password', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def reset_account_password():
-    """Đặt lại mật khẩu cho tài khoản người dùng (Dành riêng cho Admin)."""
+    """Đặt lại mật khẩu cho tài khoản người dùng (Admin toàn quyền, nhân sự chỉ đổi của chính mình)."""
     req_json = request.get_json(silent=True) or {}
     account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
     new_password = req_json.get('new_password') or request.form.get('new_password')
-    curr_user = session.get('user')
-    success, msg = UserModel.reset_account_password(account_id, new_password, audit_user=curr_user)
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+
+    if not account_id:
+        return jsonify({'success': False, 'message': 'Thiếu mã tài khoản!'}), 400
+
+    # Nếu không phải Admin thì chỉ được phép đổi mật khẩu cho chính mình
+    if user_role != 'ADMIN' and int(curr_user.get('id', 0)) != int(account_id):
+        return jsonify({'success': False, 'message': 'Bạn chỉ có quyền đổi mật khẩu cho chính tài khoản của mình!'}), 403
+
+    success, msg = UserModel.reset_account_password(int(account_id), new_password, audit_user=curr_user)
     if success:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400

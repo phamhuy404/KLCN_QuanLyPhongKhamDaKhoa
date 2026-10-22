@@ -123,30 +123,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const pinBtn = document.getElementById('sidebar-pin-btn');
 
     if (sidebar) {
+        let isNavigating = false;
+
         const isPinned = localStorage.getItem('h2t_sidebar_pinned') === 'true';
         if (isPinned) {
             sidebar.classList.add('is-pinned');
             updatePinIcon(true);
         }
 
-        // Bỏ class giữ mở sau khi trang đã render ổn định để các tương tác sau đó mượt mà
-        setTimeout(() => {
-            sidebar.classList.remove('is-hold-open');
-        }, 150);
+        // Bỏ class no-transition ngay sau khi browser đã render khung hình đầu tiên
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                sidebar.classList.remove('no-transition');
+            }, 60);
+        });
 
-        // Theo dõi chuột để giữ trạng thái mở khi chuyển trang
+        // Kiểm tra vị trí chuột: Nếu con trỏ chuột đã ra khỏi sidebar thì mới thu gọn
+        const checkCursorPosition = (e) => {
+            if (isPinned) return;
+            const rect = sidebar.getBoundingClientRect();
+            const isInside = (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            );
+            if (!isInside) {
+                sidebar.classList.remove('is-hold-open');
+                sessionStorage.removeItem('h2t_sidebar_open');
+            }
+        };
+
+        // Khi chuột di chuyển lần đầu sau khi load trang
+        window.addEventListener('mousemove', checkCursorPosition, { once: true, passive: true });
+
+        // Khi chuột rời khỏi vùng sidebar
+        sidebar.addEventListener('mouseleave', () => {
+            if (isNavigating) return;
+            if (!isPinned) {
+                sidebar.classList.remove('is-hold-open');
+                sessionStorage.removeItem('h2t_sidebar_open');
+            }
+        });
+
+        // Khi chuột rê vào vùng sidebar
         sidebar.addEventListener('mouseenter', () => {
             sessionStorage.setItem('h2t_sidebar_open', '1');
         });
 
-        sidebar.addEventListener('mouseleave', () => {
-            sessionStorage.removeItem('h2t_sidebar_open');
-            sidebar.classList.remove('is-hold-open');
-        });
-
-        // Ghi nhớ trạng thái mở khi click vào bất kỳ mục liên kết nào trong sidebar
+        // Khi click vào bất kỳ link nào trong sidebar, ghi nhớ trạng thái mở và đánh dấu đang điều hướng
         sidebar.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
+                isNavigating = true;
                 sessionStorage.setItem('h2t_sidebar_open', '1');
             });
         });

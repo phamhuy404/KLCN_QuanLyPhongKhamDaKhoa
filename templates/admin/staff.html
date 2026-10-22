@@ -152,6 +152,11 @@
                                     <div>
                                         <div class="font-bold text-slate-800 flex items-center gap-1.5">
                                             <span>{{ st.ho_ten }}</span>
+                                            {% if st.ma_vai_tro == 'ADMIN' %}
+                                            <span class="px-1.5 py-0.2 bg-rose-100 text-rose-700 text-[10px] font-semibold rounded flex items-center gap-1">
+                                                <i class="fa-solid fa-shield-halved text-[9px]"></i> Quản trị
+                                            </span>
+                                            {% endif %}
                                             {% if st.tai_khoan_id == curr_user.get('id') %}
                                             <span class="px-1.5 py-0.2 bg-teal-100 text-teal-700 text-[10px] font-semibold rounded">Bạn</span>
                                             {% endif %}
@@ -175,7 +180,7 @@
                                 </span>
                             </td>
                             <td class="px-5 py-3.5">
-                                <div class="text-slate-700 font-medium">{{ st.ten_khoa or 'Hành chính / Khoa phòng' }}</div>
+                                <div class="text-slate-700 font-medium">{{ st.ten_khoa or ('Ban Quản trị Hệ thống' if st.ma_vai_tro == 'ADMIN' else 'Hành chính / Khoa phòng') }}</div>
                                 {% if st.ten_phong %}
                                 <div class="text-[11px] text-slate-400"><i class="fa-solid fa-door-open mr-1"></i>{{ st.ten_phong }}</div>
                                 {% endif %}
@@ -202,8 +207,16 @@
                                         <i class="fa-solid fa-eye text-xs"></i>
                                     </button>
 
-                                    <!-- Cấp lại mật khẩu (Admin hoặc chính mình) -->
-                                    {% if user_role == 'ADMIN' or st.tai_khoan_id == curr_user.get('id') %}
+                                    <!-- Nhãn chỉ xem đối với tài khoản Admin khi người dùng hiện tại là Role dưới -->
+                                    {% if st.ma_vai_tro == 'ADMIN' and user_role != 'ADMIN' %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-medium" title="Tài khoản Quản trị viên hệ thống (Chỉ xem thông tin)">
+                                        <i class="fa-solid fa-shield-halved text-rose-500 text-xs"></i>
+                                        <span>Chỉ xem</span>
+                                    </span>
+                                    {% endif %}
+
+                                    <!-- Cấp lại mật khẩu (Admin toàn quyền hoặc chính mình, không cho role dưới tác động tài khoản Admin) -->
+                                    {% if user_role == 'ADMIN' or (st.tai_khoan_id == curr_user.get('id') and st.ma_vai_tro != 'ADMIN') %}
                                     <button onclick="openResetPasswordModal('{{ st.tai_khoan_id }}', '{{ st.username }}', '{{ st.ho_ten }}')" class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="{{ 'Đổi mật khẩu của bạn' if st.tai_khoan_id == curr_user.get('id') else 'Cấp lại mật khẩu mới' }}">
                                         <i class="fa-solid fa-key text-xs"></i>
                                     </button>
@@ -1070,8 +1083,8 @@ function viewStaffDetail(id) {
     document.getElementById('modal_view_code').innerText = st.ma_nhan_vien || 'N/A';
     document.getElementById('modal_view_username').innerText = st.username || 'Chưa gắn';
     document.getElementById('modal_view_phone').innerText = st.sdt || 'Chưa có';
-    document.getElementById('modal_view_email').innerText = st.email || 'Chưa có';
-    document.getElementById('modal_view_dept').innerText = st.ten_khoa || 'Hành chính / Khoa phòng';
+    const isSysAdmin = st.ma_vai_tro === 'ADMIN';
+    document.getElementById('modal_view_dept').innerText = st.ten_khoa || (isSysAdmin ? 'Ban Quản trị Hệ thống' : 'Hành chính / Khoa phòng');
 
     const isActive = (st.account_active == 1 || st.account_active == '1' || st.trang_thai == 1);
     document.getElementById('modal_view_status').innerText = isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa';
@@ -1079,7 +1092,11 @@ function viewStaffDetail(id) {
 
     const badge = document.getElementById('modal_view_role_badge');
     badge.innerText = st.ten_vai_tro || st.ma_vai_tro || 'Nhân sự';
-    badge.className = "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700";
+    if (isSysAdmin) {
+        badge.className = "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200";
+    } else {
+        badge.className = "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 border border-blue-200";
+    }
 
     document.getElementById('viewStaffModal').classList.remove('hidden');
 }
