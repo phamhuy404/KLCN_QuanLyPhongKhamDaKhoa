@@ -122,7 +122,7 @@
                                 </div>
                                 <div>
                                     <h4 class="font-medium text-sm text-slate-800">Đợt khám: {{ enc.chan_doan_so_bo or enc.ly_do_kham }}</h4>
-                                    <span class="text-xs text-slate-400">Ngày khám: {{ enc.thoi_gian_kham }} • {{ enc.bac_si }}</span>
+                                    <span class="text-xs text-slate-400">Ngày khám: {{ (enc.thoi_gian_kham|string)[:16] }} • {{ enc.bac_si }}</span>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">

@@ -330,88 +330,116 @@ html.dark {
     color-scheme: dark;
 }
 
-body, .bg-white, .bg-slate-50, .bg-slate-100, header, aside, main, table, tr, td, th {
-    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+body, .bg-white, .bg-slate-50, .bg-slate-100, header, aside, main, table, tr, td, th, input, select, textarea {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* Nen tang giao dien toi muot ma (Midnight Slate) #0b1324 */
 html.dark,
 html.dark body {
-    background-color: #0b1324 !important;
+    background-color: #0b0f19 !important;
     color: #e2e8f0 !important;
 }
 
+/* Khoi Card va Container cap 1 */
 html.dark .bg-white {
-    background-color: #151f32 !important;
+    background-color: #131b2e !important;
+    border-color: #1f2d48 !important;
     color: #e2e8f0 !important;
 }
 
-html.dark .bg-slate-50 {
-    background-color: #0b1324 !important;
+/* Khoi phu / Khoi long cap 2 */
+html.dark .bg-slate-50,
+html.dark .bg-gray-50 {
+    background-color: #182236 !important;
+    border-color: #23324d !important;
 }
 
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/70,
 html.dark .bg-slate-50\/80 {
-    background-color: rgba(15, 23, 42, 0.8) !important;
+    background-color: rgba(24, 34, 54, 0.8) !important;
 }
 
-html.dark .bg-slate-100 {
-    background-color: #1e293b !important;
+/* Khoi phu cap 3 */
+html.dark .bg-slate-100,
+html.dark .bg-gray-100 {
+    background-color: #1e2c45 !important;
+    border-color: #293a5a !important;
 }
 
-html.dark .bg-slate-200 {
-    background-color: #334155 !important;
+html.dark .bg-slate-200,
+html.dark .bg-gray-200 {
+    background-color: #273857 !important;
+    border-color: #32476d !important;
 }
 
 html.dark .bg-slate-100\/80 {
-    background-color: rgba(30, 41, 59, 0.8) !important;
+    background-color: rgba(30, 44, 69, 0.8) !important;
 }
 
+/* Hieu ung di chuot */
 html.dark .hover\:bg-slate-50:hover,
+html.dark tr.hover\:bg-slate-50\/70:hover,
 html.dark tr.hover\:bg-slate-50\/80:hover {
-    background-color: #1e293b !important;
+    background-color: #1e2b44 !important;
 }
 
 html.dark .hover\:bg-slate-100:hover {
-    background-color: #273549 !important;
+    background-color: #263654 !important;
 }
 
 html.dark .hover\:bg-slate-200:hover {
-    background-color: #334155 !important;
+    background-color: #304469 !important;
 }
 
+/* Duong vien va phan cach */
 html.dark .border-slate-100,
 html.dark .border-slate-200,
-html.dark .border-slate-300 {
-    border-color: #223049 !important;
+html.dark .border-slate-300,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/90,
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+    border-color: #1f2d48 !important;
 }
 
 html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
 html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
-    border-color: #223049 !important;
+    border-color: #1f2d48 !important;
 }
 
+/* Cap bac chu hien thi ro net, em mat */
 html.dark .text-slate-900,
-html.dark .text-slate-800 {
+html.dark .text-slate-800,
+html.dark .text-gray-900,
+html.dark .text-gray-800 {
     color: #f8fafc !important;
 }
 
 html.dark .text-slate-700,
-html.dark .text-slate-600 {
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
     color: #cbd5e1 !important;
 }
 
-html.dark .text-slate-500 {
+html.dark .text-slate-500,
+html.dark .text-gray-500 {
     color: #94a3b8 !important;
 }
 
-html.dark .text-slate-400 {
-    color: #8292a8 !important;
+html.dark .text-slate-400,
+html.dark .text-gray-400 {
+    color: #64748b !important;
 }
 
+/* Dieu khien bieu mau (Input, Select, Textarea) */
 html.dark input:not([type="checkbox"]):not([type="radio"]),
 html.dark select,
 html.dark textarea {
-    background-color: #0f172a !important;
-    border-color: #334155 !important;
+    background-color: #0f1626 !important;
+    border-color: #2b3a55 !important;
     color: #f8fafc !important;
 }
 
@@ -419,7 +447,8 @@ html.dark input:focus,
 html.dark select:focus,
 html.dark textarea:focus {
     border-color: #10b981 !important;
-    background-color: #151f32 !important;
+    background-color: #131b2e !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
 }
 
 html.dark input::placeholder,
@@ -427,27 +456,55 @@ html.dark textarea::placeholder {
     color: #64748b !important;
 }
 
-html.dark thead,
-html.dark table thead th {
-    background-color: #0f172a !important;
-    color: #94a3b8 !important;
-    border-color: #223049 !important;
+/* Nut bam trang thanh nut khoi toi tinh te */
+html.dark a.bg-white,
+html.dark button.bg-white {
+    background-color: #1a253a !important;
+    border-color: #2b3a55 !important;
+    color: #f1f5f9 !important;
 }
 
-html.dark table td {
-    border-color: #223049 !important;
+html.dark a.bg-white:hover,
+html.dark button.bg-white:hover {
+    background-color: #243350 !important;
+    border-color: #3b5078 !important;
+    color: #ffffff !important;
 }
 
+/* Giu nut mau trang tuong phan cao trong Banner chinh */
+html.dark .from-medical-600 a.bg-white,
+html.dark .from-medical-600 button.bg-white,
+html.dark .from-teal-600 a.bg-white,
+html.dark .from-teal-600 button.bg-white {
+    background-color: #ffffff !important;
+    color: #047857 !important;
+    border-color: transparent !important;
+}
+
+html.dark .from-medical-600 a.bg-white:hover,
+html.dark .from-medical-600 button.bg-white:hover {
+    background-color: #ecfdf5 !important;
+    color: #065f46 !important;
+}
+
+/* Header va Thanh cong cu */
 html.dark header.bg-white,
 html.dark .bg-white\/90,
 html.dark .bg-white\/95 {
-    background-color: rgba(21, 31, 50, 0.95) !important;
-    border-color: #223049 !important;
+    background-color: rgba(19, 27, 46, 0.95) !important;
+    border-color: #1f2d48 !important;
+    backdrop-filter: blur(12px) !important;
 }
 
+/* Sidebar Benh nhan va Quan tri */
 html.dark aside.bg-white {
-    background-color: #0f172a !important;
-    border-color: #1e293b !important;
+    background-color: #0d1424 !important;
+    border-color: #17233a !important;
+}
+
+html.dark aside.bg-slate-900 {
+    background-color: #0b101c !important;
+    border-color: #17233a !important;
 }
 
 html.dark .nav-item-inactive {
@@ -455,73 +512,282 @@ html.dark .nav-item-inactive {
 }
 
 html.dark .nav-item-inactive:hover {
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.08) 100%);
     color: #34d399;
     border-color: rgba(16, 185, 129, 0.3);
 }
 
-html.dark .bg-medical-50 {
+html.dark .nav-item-active {
+    background: linear-gradient(135deg, #059669 0%, #0d9488 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 16px -2px rgba(13, 148, 136, 0.45) !important;
+}
+
+/* Hop Hotline khan cap o chan Sidebar Benh nhan */
+html.dark aside .bg-gradient-to-b.from-medical-50 {
+    background: linear-gradient(180deg, #152238 0%, #0f1828 100%) !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+html.dark aside .bg-gradient-to-b.from-medical-50 h4 {
+    color: #e2e8f0 !important;
+}
+
+html.dark aside .bg-gradient-to-b.from-medical-50 a {
+    color: #34d399 !important;
+}
+
+/* Bang du lieu */
+html.dark thead,
+html.dark table thead th {
+    background-color: #0f1626 !important;
+    color: #94a3b8 !important;
+    border-color: #1f2d48 !important;
+}
+
+html.dark table td {
+    border-color: #1f2d48 !important;
+}
+
+/* The VIP Card dien tu */
+html.dark .from-slate-900.to-slate-800 {
+    background: linear-gradient(135deg, #111a2d 0%, #0c121e 100%) !important;
+    border: 1px solid rgba(16, 185, 129, 0.25) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 15px rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Huy hieu va The trang thai y te (Tone mau mem diu, chu sang da quang) */
+/* 1. Xanh la / Y te / Teal */
+html.dark .bg-medical-50,
+html.dark .bg-medical-50\/50,
+html.dark .bg-medical-100,
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-100,
+html.dark .bg-teal-50,
+html.dark .bg-teal-100 {
     background-color: rgba(16, 185, 129, 0.16) !important;
     color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+html.dark .hover\:bg-medical-50:hover {
+    background-color: rgba(16, 185, 129, 0.24) !important;
+    color: #34d399 !important;
+}
+
+html.dark .border-medical-100,
+html.dark .border-medical-200 {
+    border-color: rgba(16, 185, 129, 0.25) !important;
 }
 
 html.dark .text-medical-600,
-html.dark .text-medical-700 {
+html.dark .text-medical-700,
+html.dark .text-medical-800,
+html.dark .text-medical-900,
+html.dark .text-medical-950,
+html.dark .text-emerald-600,
+html.dark .text-emerald-700,
+html.dark .text-emerald-800,
+html.dark .text-emerald-900,
+html.dark .text-emerald-950,
+html.dark .text-teal-600,
+html.dark .text-teal-700,
+html.dark .text-teal-800,
+html.dark .text-teal-900,
+html.dark .text-teal-950 {
     color: #34d399 !important;
 }
 
-html.dark .bg-teal-50 {
-    background-color: rgba(20, 184, 166, 0.16) !important;
+/* 2. Banner Thong Bao Xanh Gradient */
+html.dark .from-teal-50.to-emerald-50,
+html.dark .bg-gradient-to-r.from-teal-50.to-emerald-50 {
+    background: linear-gradient(90deg, rgba(20, 184, 166, 0.18) 0%, rgba(16, 185, 129, 0.18) 100%) !important;
+    border-color: rgba(20, 184, 166, 0.35) !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark .from-teal-50.to-emerald-50 h4,
+html.dark .bg-gradient-to-r.from-teal-50.to-emerald-50 h4 {
+    color: #5eead4 !important;
+}
+
+html.dark .from-teal-50.to-emerald-50 p,
+html.dark .bg-gradient-to-r.from-teal-50.to-emerald-50 p {
+    color: #ccfbf1 !important;
+}
+
+html.dark .from-teal-50.to-emerald-50 span,
+html.dark .bg-gradient-to-r.from-teal-50.to-emerald-50 span {
+    color: #99f6e4 !important;
+}
+
+html.dark .from-teal-50.to-emerald-50 a,
+html.dark .bg-gradient-to-r.from-teal-50.to-emerald-50 a {
     color: #2dd4bf !important;
 }
 
-html.dark .bg-amber-50 {
+/* 3. Vang ho phach / Canh bao */
+html.dark .bg-amber-50,
+html.dark .bg-amber-100,
+html.dark .bg-yellow-50,
+html.dark .bg-yellow-100,
+html.dark .bg-orange-50,
+html.dark .bg-orange-100 {
     background-color: rgba(245, 158, 11, 0.16) !important;
+    color: #fbbf24 !important;
+    border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.dark .border-amber-200,
+html.dark .border-amber-200\/80 {
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900,
+html.dark .text-amber-950,
+html.dark .text-yellow-700,
+html.dark .text-orange-700 {
     color: #fbbf24 !important;
 }
 
-html.dark .bg-rose-50 {
+/* 4. Do hong / Nguy hiem */
+html.dark .bg-rose-50,
+html.dark .bg-rose-100,
+html.dark .bg-red-50,
+html.dark .bg-red-100 {
     background-color: rgba(244, 63, 94, 0.16) !important;
+    color: #fb7185 !important;
+    border-color: rgba(244, 63, 94, 0.25) !important;
+}
+
+html.dark .border-rose-200,
+html.dark .border-red-200 {
+    border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+html.dark .text-rose-600,
+html.dark .text-rose-700,
+html.dark .text-rose-800,
+html.dark .text-rose-900,
+html.dark .text-rose-950,
+html.dark .text-red-600,
+html.dark .text-red-700,
+html.dark .text-red-800 {
     color: #fb7185 !important;
 }
 
+/* 5. Xanh duong / Lam */
 html.dark .bg-blue-50,
-html.dark .bg-sky-50 {
-    background-color: rgba(14, 165, 233, 0.16) !important;
-    color: #38bdf8 !important;
+html.dark .bg-blue-100,
+html.dark .bg-sky-50,
+html.dark .bg-sky-100,
+html.dark .bg-cyan-50,
+html.dark .bg-cyan-100 {
+    background-color: rgba(59, 130, 246, 0.16) !important;
+    color: #60a5fa !important;
+    border-color: rgba(59, 130, 246, 0.25) !important;
 }
 
-html.dark .bg-emerald-50 {
-    background-color: rgba(16, 185, 129, 0.16) !important;
-    color: #34d399 !important;
+html.dark .border-blue-200,
+html.dark .border-sky-200 {
+    border-color: rgba(59, 130, 246, 0.3) !important;
 }
 
+html.dark .text-blue-600,
+html.dark .text-blue-700,
+html.dark .text-blue-800,
+html.dark .text-blue-900,
+html.dark .text-blue-950,
+html.dark .text-sky-600,
+html.dark .text-sky-700 {
+    color: #60a5fa !important;
+}
+
+/* 6. Tim / Cham */
+html.dark .bg-purple-50,
+html.dark .bg-purple-100,
 html.dark .bg-indigo-50,
-html.dark .bg-purple-50 {
-    background-color: rgba(99, 102, 241, 0.16) !important;
-    color: #a5b4fc !important;
+html.dark .bg-indigo-100,
+html.dark .bg-violet-50,
+html.dark .bg-violet-100 {
+    background-color: rgba(168, 85, 247, 0.16) !important;
+    color: #c084fc !important;
+    border-color: rgba(168, 85, 247, 0.25) !important;
 }
 
+html.dark .border-purple-200,
+html.dark .border-indigo-200 {
+    border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+html.dark .text-purple-600,
+html.dark .text-purple-700,
+html.dark .text-purple-800,
+html.dark .text-purple-900,
+html.dark .text-purple-950,
+html.dark .text-indigo-600,
+html.dark .text-indigo-700 {
+    color: #c084fc !important;
+}
+
+/* Footer chan trang */
+html.dark footer {
+    background-color: #0c1220 !important;
+    border-color: #17233a !important;
+}
+
+html.dark footer .bg-slate-100 {
+    background-color: #182236 !important;
+    color: #94a3b8 !important;
+}
+
+html.dark footer .bg-medical-50\/70 {
+    background-color: rgba(16, 185, 129, 0.12) !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+html.dark footer .bg-amber-50\/90 {
+    background-color: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Ban do Google Maps che do dem */
+html.dark iframe[src*="maps"] {
+    filter: invert(90%) hue-rotate(180deg) brightness(88%) contrast(92%);
+    border-radius: inherit;
+}
+
+/* Hop thoai thong bao va Modal */
+html.dark .dropdown-menu,
+html.dark #feedback-modal .bg-white,
+html.dark [id*="modal"] .bg-white {
+    background-color: #131b2e !important;
+    border-color: #1f2d48 !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Thanh cuon toi */
 html.dark ::-webkit-scrollbar-track {
-    background: #0b1324;
+    background: #0b0f19;
 }
 
 html.dark ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #23314a;
+    border-radius: 4px;
 }
 
 html.dark ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #334769;
 }
 
+/* Do bong co chieu sau */
 html.dark .shadow-sm,
 html.dark .shadow-md,
 html.dark .shadow-lg,
 html.dark .shadow-xl {
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
-}
-
-html.dark .dropdown-menu {
-    background-color: #151f32 !important;
-    border-color: #223049 !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45) !important;
 }

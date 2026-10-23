@@ -417,7 +417,7 @@
                         {% for v in visits %}
                         <tr class="hover:bg-slate-50/70 transition-colors">
                             <td class="py-3 px-3.5 font-mono font-bold text-medical-700">#{{ v.ma_phieu }}</td>
-                            <td class="py-3 px-3.5 text-slate-600">{{ v.thoi_gian_kham }}</td>
+                            <td class="py-3 px-3.5 text-slate-600">{{ (v.thoi_gian_kham|string)[:16] }}</td>
                             <td class="py-3 px-3.5">
                                 <span class="font-bold text-slate-900 block">{{ v.ten_benh_nhan }}</span>
                                 <span class="text-[10px] text-slate-400 font-mono">{{ v.ma_benh_nhan }} • {{ v.sdt_benh_nhan }}</span>
