@@ -1,9 +1,9 @@
-# HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA (MVC)
-Nền tảng: 100% Microsoft SQL Server & Python Flask
+# HƯỚNG DẪN CÀI ĐẶT và KHỞI CHẠY HỆ THỐNG PHÒNG KHÁM ĐA KHOA (MVC)
+Nền tảng: 100% Microsoft SQL Server và Python Flask
 
 Tài liệu này hướng dẫn chi tiết từng bước thiết lập môi trường, cấu hình cơ sở dữ liệu Microsoft SQL Server, khởi chạy ứng dụng Web và danh sách tài khoản phục vụ vận hành, kiểm thử.
 
-## I. YÊU CẦU MÔI TRƯỜNG & PHẦN MỀM
+## I. YÊU CẦU MÔI TRƯỜNG VÀ PHẦN MỀM
 
 1. **Hệ điều hành**: Windows 10/11 hoặc Windows Server (Khuyến nghị 64-bit).
 2. **Python**: Phiên bản 3.9 trở lên (Khuyến nghị Python 3.10 hoặc 3.11).
@@ -67,11 +67,11 @@ Khi hiển thị thông báo:
 Bạn đã khởi chạy thành công!
 
 ### Bước 5: Truy cập các phân hệ trên trình duyệt
-- **Trang chủ & Đặt lịch trực tuyến**: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+- **Trang chủ và Đặt lịch trực tuyến**: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
 - **Đăng nhập**: [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login)
 - **Đăng ký tài khoản bệnh nhân**: [http://127.0.0.1:5000/register](http://127.0.0.1:5000/register)
 - **Cổng thông tin Bệnh nhân**: [http://127.0.0.1:5000/patient](http://127.0.0.1:5000/patient)
-- **Phân hệ Quản trị & Nhân viên y tế**: [http://127.0.0.1:5000/admin](http://127.0.0.1:5000/admin)
+- **Phân hệ Quản trị và Nhân viên y tế**: [http://127.0.0.1:5000/admin](http://127.0.0.1:5000/admin)
 - **Hồ sơ cá nhân nội bộ**: [http://127.0.0.1:5000/admin/profile](http://127.0.0.1:5000/admin/profile)
 
 ## III. CHẠY BỘ KIỂM THỬ TỰ ĐỘNG (UNIT TESTS)
@@ -95,10 +95,10 @@ Kết quả mong đợi: `Ran 44 tests ... OK`.
 
 ## IV. BẢNG TRA CỨU TÀI KHOẢN MẪU HỆ THỐNG
 
-| STT | Phân hệ / Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn & Chức năng |
+| STT | Phân hệ / Vai trò | Tên đăng nhập | Mật khẩu | Quyền hạn và Chức năng |
 | :---: | :--- | :--- | :--- | :--- |
 | **1** | **Quản trị viên (ADMIN)** | `admin` | `admin123` | Quản trị tài khoản, tạo bác sĩ mới, duyệt lịch làm việc, quản lý kho thuốc, sao lưu CSDL (.bak) |
-| **2** | **Lễ tân & Thu ngân (LETAN)** | `letan_1` | `Password@123` | Tiếp đón, phân bổ bác sĩ, tự đăng ký và tự duyệt ca trực, duyệt đơn thuốc viện, thu viện phí |
+| **2** | **Lễ tân và Thu ngân (LETAN)** | `letan_1` | `Password@123` | Tiếp đón, phân bổ bác sĩ, tự đăng ký và tự duyệt ca trực, duyệt đơn thuốc viện, thu viện phí |
 | **3** | **Kỹ thuật viên phòng Lab (KTV)** | `ktv_1` | `Password@123` | Xem chỉ định CLS, kiểm tra trạng thái đóng phí, nhập kết quả, kéo thả tối đa 10 ảnh CĐHA |
 | **4** | **Dược sĩ kho dược (DUOCSI)** | `duocsi_1` | `Password@123` | Quản lý kho thuốc, kiểm tra đơn thuốc đã thanh toán, cấp phát thuốc thực tế trừ kho |
 | **5** | **Bác sĩ Nội khoa (BACSI)** | `bs_noi_1` | `Password@123` | Khám EMR, kéo thả tối đa 10 ảnh, chỉ định CLS, cảnh báo dị ứng, chốt kết luận EMR sau CLS |

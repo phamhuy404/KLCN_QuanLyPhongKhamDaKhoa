@@ -32,7 +32,7 @@ SMTP_SENDER_NAME = os.environ.get('SMTP_SENDER_NAME', 'Phòng Khám Đa Khoa H2T
 # Múi giờ hệ thống (Việt Nam UTC+7)
 TIMEZONE = 'Asia/Ho_Chi_Minh'
 
-# Cấu hình vị trí phòng khám & Google Maps
+# Cấu hình vị trí phòng khám và Google Maps
 CLINIC_ADDRESS = os.environ.get('CLINIC_ADDRESS', '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh')
 CLINIC_LATITUDE = float(os.environ.get('CLINIC_LATITUDE', '10.806689'))
 CLINIC_LONGITUDE = float(os.environ.get('CLINIC_LONGITUDE', '106.628581'))

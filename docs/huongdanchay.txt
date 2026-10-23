@@ -59,31 +59,31 @@ IV. DANH SÁCH 61 TÀI KHOẢN HỆ THỐNG CHUẨN
 - Vai trò: ADMIN
 - Phạm vi quyền: Toàn quyền cấu hình hệ thống, quản lý tài khoản, nhân sự, bảng giá dịch vụ, kho thuốc, banner trang chủ, sao lưu và phục hồi CSDL SQL Server (.bak).
 
-2. Lễ tân & Thu ngân tiếp đón (5 tài khoản):
+2. Lễ tân và Thu ngân tiếp đón (5 tài khoản):
 - Mật khẩu chung: Password@123
 - letan_1: Nguyễn Thị Lan (Lễ tân trưởng - Quầy tiếp đón Tầng 1, SĐT: 0908111001)
-- letan_2: Trần Thu Huyền (Tiếp đón & Phân luồng khám - Quầy A, SĐT: 0908111002)
-- letan_3: Lê Phương Thảo (Thu ngân viện phí & BHYT, SĐT: 0908111003)
-- letan_4: Phạm Thanh Mai (Tiếp nhận & Cấp số thứ tự, SĐT: 0908111004)
+- letan_2: Trần Thu Huyền (Tiếp đón và Phân luồng khám - Quầy A, SĐT: 0908111002)
+- letan_3: Lê Phương Thảo (Thu ngân viện phí và BHYT, SĐT: 0908111003)
+- letan_4: Phạm Thanh Mai (Tiếp nhận và Cấp số thứ tự, SĐT: 0908111004)
 - letan_5: Đỗ Hoàng Yến (Điều phối lịch hẹn trực tuyến, SĐT: 0908111005)
 - Phạm vi quyền: Tiếp nhận bệnh nhân, tiếp nhận lịch hẹn trực tuyến, in số thứ tự, thanh toán hóa đơn viện phí.
 
-3. Dược sĩ kho dược & Nhà thuốc (5 tài khoản):
+3. Dược sĩ kho dược và Nhà thuốc (5 tài khoản):
 - Mật khẩu chung: Password@123
 - duocsi_1: DS. Phạm Hoàng Minh (Dược sĩ trưởng kho thuốc, SĐT: 0908222001)
-- duocsi_2: DS. Vũ Thị Bích (Dược sĩ lâm sàng & Cấp phát thuốc, SĐT: 0908222002)
-- duocsi_3: DS. Đặng Quốc Anh (Dược sĩ quản lý hạn dùng & Tồn kho, SĐT: 0908222003)
+- duocsi_2: DS. Vũ Thị Bích (Dược sĩ lâm sàng và Cấp phát thuốc, SĐT: 0908222002)
+- duocsi_3: DS. Đặng Quốc Anh (Dược sĩ quản lý hạn dùng và Tồn kho, SĐT: 0908222003)
 - duocsi_4: DS. Bùi Thảo My (Dược sĩ nhà thuốc ngoại trú, SĐT: 0908222004)
 - duocsi_5: DS. Ngô Quang Tuấn (Dược sĩ nhập xuất vật tư y tế, SĐT: 0908222005)
 - Phạm vi quyền: Quản lý danh mục dược phẩm, theo dõi tồn kho, cảnh báo thuốc sắp hết, duyệt và cấp phát đơn thuốc điện tử (tự động trừ kho).
 
-4. Kỹ thuật viên Cận lâm sàng & Chẩn đoán hình ảnh (5 tài khoản):
+4. Kỹ thuật viên Cận lâm sàng và Chẩn đoán hình ảnh (5 tài khoản):
 - Mật khẩu chung: Password@123
-- ktv_1: KTV. Võ Anh Đức (KTV Xét nghiệm Huyết học & Sinh hóa, SĐT: 0908333001)
+- ktv_1: KTV. Võ Anh Đức (KTV Xét nghiệm Huyết học và Sinh hóa, SĐT: 0908333001)
 - ktv_2: KTV. Trần Thùy Dung (KTV Chẩn đoán hình ảnh - X-Quang, SĐT: 0908333002)
 - ktv_3: KTV. Hoàng Văn Hùng (KTV Thăm dò chức năng - Siêu âm, SĐT: 0908333003)
 - ktv_4: KTV. Nguyễn Bảo Châu (KTV Nội soi tiêu hóa, SĐT: 0908333004)
-- ktv_5: KTV. Lê Tấn Tài (KTV Xét nghiệm Nước tiểu & Vi sinh, SĐT: 0908333005)
+- ktv_5: KTV. Lê Tấn Tài (KTV Xét nghiệm Nước tiểu và Vi sinh, SĐT: 0908333005)
 - Phạm vi quyền: Tiếp nhận y lệnh cận lâm sàng từ bác sĩ, thực hiện kỹ thuật và nhập kết quả xét nghiệm/hình ảnh.
 
 5. Đội ngũ Bác sĩ chuyên khoa (35 bác sĩ - 7 chuyên khoa x 5 bác sĩ):
@@ -185,22 +185,22 @@ Bước 2: Lễ tân / Admin duyệt tiếp nhận lịch hẹn (/admin/appointm
 Bước 3: Bác sĩ khám bệnh EMR (/admin/emr)
 - Trường hợp A - Khám lâm sàng bình thường (Sức khỏe tốt):
   + Bác sĩ kết luận bình thường, bấm nút 'Sức Khỏe Tốt (Xuất Hóa Đơn Ngay)'. Hệ thống kết thúc phiên khám và tự động xuất ngay hóa đơn viện phí tiền khám mà không cần y lệnh CLS hay kê thuốc.
-- Trường hợp B - Khám chuyên sâu có Cận lâm sàng & Kê đơn thuốc:
+- Trường hợp B - Khám chuyên sâu có Cận lâm sàng và Kê đơn thuốc:
   + Bác sĩ nhập triệu chứng, chẩn đoán ICD-10 và tích chọn các kỹ thuật CLS (chụp X-Quang, siêu âm, xét nghiệm máu...).
-  + Bấm 'Hoàn tất & Chuyển phiên khám' -> Hệ thống gửi thông báo in-app hướng dẫn bệnh nhân di chuyển đến phòng Cận lâm sàng.
+  + Bấm 'Hoàn tất và Chuyển phiên khám' -> Hệ thống gửi thông báo in-app hướng dẫn bệnh nhân di chuyển đến phòng Cận lâm sàng.
 
-Bước 4: Kỹ thuật viên thực hiện CLS & Upload ảnh chụp (/admin/lab)
+Bước 4: Kỹ thuật viên thực hiện CLS và Upload ảnh chụp (/admin/lab)
 - KTV mở phân hệ Cận lâm sàng, nhập kết luận phân tích và upload file ảnh chụp (siêu âm, phim X-quang, ảnh nội soi... tự động nén định dạng WebP).
-- Bác sĩ mở Tab 4 'Xem Kết Quả CLS & Ảnh Chụp' trên EMR hoặc Hồ sơ 360 độ để mở phóng to ảnh chụp chuẩn HD, xem xét và bấm Duyệt kết quả.
+- Bác sĩ mở Tab 4 'Xem Kết Quả CLS và Ảnh Chụp' trên EMR hoặc Hồ sơ 360 độ để mở phóng to ảnh chụp chuẩn HD, xem xét và bấm Duyệt kết quả.
 - Bệnh nhân nhận được thông báo in-app: 'Đã có kết quả Cận lâm sàng. Vui lòng quay trở lại Phòng khám ban đầu để Bác sĩ đọc kết quả và tư vấn điều trị'.
 
-Bước 5: Kê đơn thuốc & Tùy chọn mua tại bệnh viện hoặc tự mua ngoài
+Bước 5: Kê đơn thuốc và Tùy chọn mua tại bệnh viện hoặc tự mua ngoài
 - Bác sĩ kê đơn thuốc (có hệ thống cảnh báo tồn kho ít và chặn kê vượt tồn). Đơn thuốc ban đầu ở trạng thái 'Chờ bệnh nhân xác nhận mua' với hình thức 'Chưa chọn'.
-- Bệnh nhân vào mục Hồ sơ & Đơn thuốc (/patient/records) để xem đơn thuốc và chọn:
+- Bệnh nhân vào mục Hồ sơ và Đơn thuốc (/patient/records) để xem đơn thuốc và chọn:
   + Tự mua ngoài: Cập nhật trạng thái 'Tự mua ngoài', không tính tiền thuốc vào viện phí và không trừ kho bệnh viện.
   + Mua tại bệnh viện: Tự động sinh hóa đơn thuốc riêng biệt (HDT...) không hiển thị đơn giá lẻ từng loại theo quy định, tự động trừ số lượng thuốc tồn kho của bệnh viện và chuyển sang kho Dược.
 
-Bước 6: Quản lý thanh toán viện phí & Cổng VietQR (/admin/billing & /patient/billing)
+Bước 6: Quản lý thanh toán viện phí và Cổng VietQR (/admin/billing và /patient/billing)
 - Phân hệ Viện phí (/admin/billing) và Cổng bệnh nhân (/patient/billing) hiển thị chi tiết các khoản thu rõ ràng (Tiền khám, Tiền CLS, Tiền thuốc mua tại viện).
 - Hệ thống tạo mã VietQR động trực tuyến 24/7 chứa sẵn số tài khoản, số tiền và nội dung thanh toán để chuyển khoản tức thì.
 - Thu ngân xác nhận thu tiền hoặc bệnh nhân bấm hoàn tất chuyển khoản trực tuyến -> Hóa đơn chuyển trạng thái 'Đã thanh toán' và có thể in biên lai điện tử.

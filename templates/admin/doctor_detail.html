@@ -13,7 +13,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Header Breadcrumb & Thao Tác -->
+    <!-- 1. Header Breadcrumb và Thao Tác -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -27,7 +27,7 @@
                 <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-user-doctor"></i>
                 </span>
-                Hồ Sơ Y Khoa & Quản Lý Ca Khám Bác Sĩ
+                Hồ Sơ Y Khoa và Quản Lý Ca Khám Bác Sĩ
             </h2>
             <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
                 <span>Chuyên khoa: <strong class="text-teal-700">{{ doctor.ten_khoa }}</strong></span>
@@ -105,7 +105,7 @@
                 </div>
             </div>
 
-            <!-- Khối Chỉ Số Khám & Giá Dịch Vụ -->
+            <!-- Khối Chỉ Số Khám và Giá Dịch Vụ -->
             <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs w-full lg:w-auto shrink-0">
                 <div>
                     <div class="text-slate-400 text-[11px]">Giá khám niêm yết:</div>
@@ -133,16 +133,16 @@
             </div>
         </div>
 
-        <!-- Thông Tin Kinh Nghiệm & Tài Khoản -->
+        <!-- Thông Tin Kinh Nghiệm và Tài Khoản -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-xs">
             <div class="md:col-span-2">
-                <span class="text-slate-400 block text-[11px] font-semibold">Kinh nghiệm & Hướng nghiên cứu chuyên sâu:</span>
+                <span class="text-slate-400 block text-[11px] font-semibold">Kinh nghiệm và Hướng nghiên cứu chuyên sâu:</span>
                 <p class="font-medium text-slate-800 mt-1 leading-relaxed">
                     {{ doctor.kinh_nghiem or 'Bác sĩ có nhiều năm kinh nghiệm công tác tại các bệnh viện tuyến đầu, chuyên môn vững vàng trong chẩn đoán và điều trị bệnh lý chuyên khoa.' }}
                 </p>
             </div>
             <div>
-                <span class="text-slate-400 block text-[11px] font-semibold">Tài khoản & Phiên đăng nhập:</span>
+                <span class="text-slate-400 block text-[11px] font-semibold">Tài khoản và Phiên đăng nhập:</span>
                 <p class="font-mono font-semibold text-slate-800 mt-1">Username: {{ doctor.username }}</p>
                 <p class="text-[11px] text-slate-500 font-mono mt-0.5">Đăng nhập cuối: {{ doctor.lan_dang_nhap_cuoi or 'Gần đây' }}</p>
             </div>
@@ -163,7 +163,7 @@
             <button type="button" onclick="switchDoctorTab('tab-schedules')" id="btn-tab-schedules"
                     class="doctor-tab-btn px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white/80">
                 <i class="fa-solid fa-clock text-teal-600"></i>
-                <span>Lịch Làm Việc & Ca Trực ({{ schedules|length }})</span>
+                <span>Lịch Làm Việc và Ca Trực ({{ schedules|length }})</span>
             </button>
 
             <button type="button" onclick="switchDoctorTab('tab-visits')" id="btn-tab-visits"
@@ -197,7 +197,7 @@
                     <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100 uppercase text-[10px]">
                         <tr>
                             <th class="py-3 px-3.5">Mã Hẹn</th>
-                            <th class="py-3 px-3.5">Ngày & Ca Khám</th>
+                            <th class="py-3 px-3.5">Ngày và Ca Khám</th>
                             <th class="py-3 px-3.5">Bệnh Nhân</th>
                             <th class="py-3 px-3.5">Thông Tin Y Tế</th>
                             <th class="py-3 px-3.5">Triệu Chứng / Lý Do Khám</th>
@@ -267,12 +267,12 @@
             {% endif %}
         </div>
 
-        <!-- TAB 2: Lịch Làm Việc & Ca Trực -->
+        <!-- TAB 2: Lịch Làm Việc và Ca Trực -->
         <div id="tab-schedules" class="doctor-tab-content p-6 space-y-4 hidden">
             <div class="flex items-center justify-between">
                 <div>
                     <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-teal-600"></i> Lịch Trực & Ca Khám Phân Công (14 Ngày Tới)
+                        <i class="fa-solid fa-clock text-teal-600"></i> Lịch Trực và Ca Khám Phân Công (14 Ngày Tới)
                     </h4>
                     <p class="text-xs text-slate-400">Các ca trực sáng/chiều đã được điều phối tại các phòng khám chuyên khoa</p>
                 </div>

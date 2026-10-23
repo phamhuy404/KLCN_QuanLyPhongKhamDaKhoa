@@ -19,14 +19,14 @@ endblock %}
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Header Breadcrumb & Thao tác -->
+    <!-- Header Breadcrumb và Thao tác -->
     <div
         class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <a href="{{ url_for('admin.articles') }}" class="hover:text-medical-600">Tin tức & Bài viết</a>
+                <a href="{{ url_for('admin.articles') }}" class="hover:text-medical-600">Tin tức và Bài viết</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 <span class="text-medical-600 font-semibold">{% if article %}Chỉnh sửa{% else %}Đăng bài mới{% endif
                     %}</span>
@@ -36,7 +36,7 @@ endblock %}
                     class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-pen-nib"></i>
                 </span>
-                {% if article %}Chỉnh Sửa Bài Viết Y Khoa{% else %}Biên Tập & Xuất Bản Bài Viết Y Khoa Mới{% endif %}
+                {% if article %}Chỉnh Sửa Bài Viết Y Khoa{% else %}Biên Tập và Xuất Bản Bài Viết Y Khoa Mới{% endif %}
             </h2>
         </div>
 
@@ -113,7 +113,7 @@ endblock %}
             </div>
         </div>
 
-        <!-- Cột Phải: Thiết lập Xuất bản & Chuyên mục (1/3 chiều rộng) -->
+        <!-- Cột Phải: Thiết lập Xuất bản và Chuyên mục (1/3 chiều rộng) -->
         <div class="space-y-5">
 
             <!-- Hộp Xuất Bản -->

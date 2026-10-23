@@ -91,7 +91,7 @@ window.fuzzyMatchRecord = function(query, fields) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Cập nhật thời gian & ngày tháng thực trên Dashboard
+    // 1. Cập nhật thời gian và ngày tháng thực trên Dashboard
     const updateDateTime = () => {
         const timeElement = document.getElementById('current-time');
         const dateElement = document.getElementById('current-date');

@@ -133,7 +133,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         self.assertIsInstance(is_full, bool)
 
     def test_staff_page_access_for_all_roles(self):
-        """Kiểm tra toàn bộ 5 vai trò nhân sự đều truy cập và render trang Quản lý Nhân sự & Lịch trực thành công."""
+        """Kiểm tra toàn bộ 5 vai trò nhân sự đều truy cập và render trang Quản lý Nhân sự và Lịch trực thành công."""
         from app import create_app
         app = create_app()
         app.config['TESTING'] = True
@@ -255,6 +255,106 @@ class TestUpgradedFeatures(unittest.TestCase):
         c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
         conn.commit()
         conn.close()
+
+
+    def test_article_permissions_for_admin_and_letan(self):
+        """Kiem tra chi Admin va Le tan duoc phep tao, sua va quan ly bai viet."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        for role in ['ADMIN', 'LETAN']:
+            with client.session_transaction() as sess:
+                sess['logged_in'] = True
+                sess['user'] = {
+                    'id': 1 if role == 'ADMIN' else 3,
+                    'username': f'test_{role.lower()}',
+                    'ho_ten': f'Test {role}',
+                    'vai_tro': role,
+                    'staff_id': 1
+                }
+            
+            # 1. Truy cap danh sach bai viet -> Thanh cong va co nut Viet bai
+            resp = client.get('/admin/articles')
+            self.assertEqual(resp.status_code, 200)
+            html = resp.data.decode('utf-8')
+            self.assertIn('Viết và Đăng Bài Mới', html, f"Role {role} phai thay nut Viet bai")
+
+            # 2. Truy cap trang tao bai viet -> 200 OK
+            resp_create = client.get('/admin/articles/create')
+            self.assertEqual(resp_create.status_code, 200, f"Role {role} phai truy cap duoc /admin/articles/create")
+
+    def test_article_permissions_restricted_for_other_roles(self):
+        """Kiem tra Bac si, Duoc si, KTV chi duoc xem danh sach va chi tiet, bi chan tao/sua/xoa."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        for role in ['BACSI', 'DUOCSI', 'KTV']:
+            with client.session_transaction() as sess:
+                sess['logged_in'] = True
+                sess['user'] = {
+                    'id': 2,
+                    'username': f'test_{role.lower()}',
+                    'ho_ten': f'Test {role}',
+                    'vai_tro': role,
+                    'staff_id': 2,
+                    'da_hoan_thien_ho_so': 1
+                }
+            
+            # 1. Truy cap danh sach -> 200 OK nhung KHONG co nut Tao/Sua
+            resp = client.get('/admin/articles')
+            self.assertEqual(resp.status_code, 200, f"Role {role} phai xem duoc danh sach /admin/articles")
+            html = resp.data.decode('utf-8')
+            self.assertNotIn('Viết và Đăng Bài Mới', html, f"Role {role} khong duoc phep thay nut Viet bai")
+
+            # 2. Thu vao trang tao bai viet -> Bi chuyen huong
+            resp_create = client.get('/admin/articles/create')
+            self.assertEqual(resp_create.status_code, 302, f"Role {role} khong duoc phep vao /admin/articles/create")
+
+            # 3. Thu gui yeu cau xoa -> 403 Forbidden
+            resp_del = client.post('/admin/articles/delete/999')
+            self.assertEqual(resp_del.status_code, 403, f"Role {role} khong duoc phep xoa bai viet")
+            data_del = resp_del.get_json()
+            self.assertFalse(data_del.get('success'))
+
+    def test_public_article_viewing(self):
+        """Kiem tra benh nhan va khach deu xem duoc danh sach va chi tiet bai viet cong khai."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        resp = client.get('/articles')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('Chuyên Mục Tin Tức và Cẩm Nang', resp.data.decode('utf-8'))
+
+    def test_dark_mode_configuration_and_assets(self):
+        """Kiem tra he thong Dark Mode: script theme.js, custom.css va nut toggle tren giao dien."""
+        import os
+        self.assertTrue(os.path.exists('static/js/theme.js'), "File static/js/theme.js phai ton tai")
+        
+        with open('static/js/theme.js', 'r', encoding='utf-8') as f:
+            js_content = f.read()
+        self.assertIn('toggleDarkMode', js_content)
+        self.assertIn('updateThemeUI', js_content)
+
+        with open('static/css/custom.css', 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        self.assertIn('html.dark', css_content)
+        self.assertIn('#0b1324', css_content)
+
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        # Kiem tra tren trang chu co nut toggleDarkMode
+        resp = client.get('/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('toggleDarkMode()', resp.data.decode('utf-8'))
 
 if __name__ == '__main__':
     unittest.main()

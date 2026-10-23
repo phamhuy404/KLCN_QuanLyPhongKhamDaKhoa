@@ -333,12 +333,25 @@ class UserModel:
             email = str(email or '').strip() or None
             chuyen_khoa_id = int(chuyen_khoa_id) if chuyen_khoa_id else 1
 
-            if not sdt:
+            from core.validators import validate_name, validate_phone, validate_email
+            ok_name, res_name = validate_name(ho_ten, 'Họ tên bác sĩ')
+            if not ok_name:
                 conn.close()
-                return False, 'Số điện thoại không được để trống!'
-            if not ho_ten:
+                return False, res_name
+            ho_ten = res_name
+
+            ok_phone, res_phone = validate_phone(sdt, 'Số điện thoại bác sĩ')
+            if not ok_phone:
                 conn.close()
-                return False, 'Họ tên bác sĩ không được để trống!'
+                return False, res_phone
+            sdt = res_phone
+
+            if email:
+                ok_email, res_email = validate_email(email, required=False)
+                if not ok_email:
+                    conn.close()
+                    return False, res_email
+                email = res_email
 
             # Kiểm tra trùng SĐT
             cursor.execute('SELECT id FROM tai_khoan WHERE username = ? OR sdt = ?', (sdt, sdt))
@@ -441,16 +454,45 @@ class UserModel:
                 conn.close()
                 return False, 'Mật khẩu xác nhận không khớp với mật khẩu mới!'
 
+            from core.validators import validate_name, validate_cccd, validate_birth_date, validate_email, validate_address
             ho_ten = str(data.get('ho_ten', '')).strip()
-            if not ho_ten:
+            ok_name, res_name = validate_name(ho_ten, 'Họ tên bác sĩ')
+            if not ok_name:
                 conn.close()
-                return False, 'Họ tên bác sĩ không được để trống!'
+                return False, res_name
+            ho_ten = res_name
 
             ngay_sinh = str(data.get('ngay_sinh', '')).strip() or None
+            if ngay_sinh:
+                ok_ns, res_ns = validate_birth_date(ngay_sinh, is_staff=True, required=False)
+                if not ok_ns:
+                    conn.close()
+                    return False, res_ns
+
             gioi_tinh = 1 if str(data.get('gioi_tinh', '1')) in ['1', 'Nam', 'nam'] else 0
             cccd = str(data.get('cccd', '')).strip() or None
+            if cccd:
+                ok_cccd, res_cccd = validate_cccd(cccd, required=True)
+                if not ok_cccd:
+                    conn.close()
+                    return False, res_cccd
+                cccd = res_cccd
+
             email = str(data.get('email', '')).strip() or None
+            if email:
+                ok_email, res_email = validate_email(email, required=False)
+                if not ok_email:
+                    conn.close()
+                    return False, res_email
+                email = res_email
+
             dia_chi = str(data.get('dia_chi', '')).strip() or None
+            if dia_chi:
+                ok_addr, res_addr = validate_address(dia_chi, required=False)
+                if not ok_addr:
+                    conn.close()
+                    return False, res_addr
+                dia_chi = res_addr
             chuyen_khoa_id = int(data.get('chuyen_khoa_id', 1))
             hoc_vi = str(data.get('hoc_vi', 'Bác sĩ')).strip() or 'Bác sĩ'
             kinh_nghiem = str(data.get('kinh_nghiem', '')).strip() or 'Nhiều năm kinh nghiệm công tác'
@@ -1251,17 +1293,54 @@ class UserModel:
                 cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed_pw, account_id))
 
             # 2. Cập nhật thông tin nhân viên trong bảng nhan_vien
+            from core.validators import validate_name, validate_phone, validate_cccd, validate_birth_date, validate_email, validate_address
             ho_ten = (form_data.get('ho_ten') or '').strip()
-            sdt = (form_data.get('sdt') or '').strip()
-            email = (form_data.get('email') or '').strip()
-            cccd = (form_data.get('cccd') or '').strip()
-            dia_chi = (form_data.get('dia_chi') or '').strip()
-            ngay_sinh = form_data.get('ngay_sinh') or None
-            gioi_tinh = 1 if str(form_data.get('gioi_tinh', '1')) in ['1', 'Nam', 'True', 'true'] else 0
-
-            if not ho_ten:
+            ok_name, res_name = validate_name(ho_ten, 'Họ và tên')
+            if not ok_name:
                 conn.close()
-                return False, "Họ và tên không được để trống!"
+                return False, res_name
+            ho_ten = res_name
+
+            sdt = (form_data.get('sdt') or '').strip()
+            if sdt:
+                ok_phone, res_phone = validate_phone(sdt, 'Số điện thoại', required=False)
+                if not ok_phone:
+                    conn.close()
+                    return False, res_phone
+                sdt = res_phone
+
+            email = (form_data.get('email') or '').strip()
+            if email:
+                ok_email, res_email = validate_email(email, required=False)
+                if not ok_email:
+                    conn.close()
+                    return False, res_email
+                email = res_email
+
+            cccd = (form_data.get('cccd') or '').strip()
+            if cccd:
+                ok_cccd, res_cccd = validate_cccd(cccd, required=False)
+                if not ok_cccd:
+                    conn.close()
+                    return False, res_cccd
+                cccd = res_cccd
+
+            dia_chi = (form_data.get('dia_chi') or '').strip()
+            if dia_chi:
+                ok_addr, res_addr = validate_address(dia_chi, required=False)
+                if not ok_addr:
+                    conn.close()
+                    return False, res_addr
+                dia_chi = res_addr
+
+            ngay_sinh = form_data.get('ngay_sinh') or None
+            if ngay_sinh:
+                ok_ns, res_ns = validate_birth_date(str(ngay_sinh), is_staff=True, required=False)
+                if not ok_ns:
+                    conn.close()
+                    return False, res_ns
+
+            gioi_tinh = 1 if str(form_data.get('gioi_tinh', '1')) in ['1', 'Nam', 'True', 'true'] else 0
 
             # Kiểm tra xem có bản ghi nhan_vien chưa
             cursor.execute('SELECT id FROM nhan_vien WHERE tai_khoan_id = ?', (account_id,))

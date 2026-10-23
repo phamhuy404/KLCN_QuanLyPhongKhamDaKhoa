@@ -109,7 +109,16 @@ class PharmacyModel:
 
     @staticmethod
     def add_medicine(ten_thuoc, hoat_chat, don_vi_tinh, so_luong_ton, don_gia, ham_luong='', hang_sx='Việt Nam', audit_user=None):
-        """Thêm mới dược phẩm vào kho dược."""
+        """Thêm mới dược phẩm vào kho dược với kiểm tra ràng buộc chặt chẽ."""
+        from core.validators import validate_medicine_data
+        ok_med, err_med = validate_medicine_data({
+            'ten_thuoc': ten_thuoc,
+            'gia_ban': don_gia,
+            'so_luong_ton': so_luong_ton
+        })
+        if not ok_med:
+            return False, list(err_med.values())[0]
+
         conn = get_db()
         cursor = conn.cursor()
 

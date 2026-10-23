@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Quản Lý Viện Phí & Thu Ngân{% endblock %}
+{% block title %}H2T Healthcare - Quản Lý Viện Phí và Thu Ngân{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -13,19 +13,19 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <!-- 1. Tiêu đề trang và Thao tác chính -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm print:hidden">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">Viện phí & Thu ngân</span>
+                <span class="text-medical-600 font-semibold">Viện phí và Thu ngân</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
                 <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-file-invoice-dollar"></i>
                 </span>
-                Quản Lý Viện Phí, BHYT & Thu Ngân Phòng Khám
+                Quản Lý Viện Phí, BHYT và Thu Ngân Phòng Khám
             </h2>
             <p class="text-xs text-slate-500 mt-1">
                 Thanh toán viện phí, quyết toán chi phí khám chữa bệnh BHYT, xuất hóa đơn điện tử và thanh toán chuyển khoản VietQR tự động.
@@ -82,7 +82,7 @@
         </div>
     </div>
 
-    <!-- 3. Thanh tìm kiếm & Bộ lọc hóa đơn -->
+    <!-- 3. Thanh tìm kiếm và Bộ lọc hóa đơn -->
     <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             
@@ -141,12 +141,12 @@
 
 </div>
 
-<!-- Modal Thanh Toán VietQR & Biên Lai Thu Tiền -->
+<!-- Modal Thanh Toán VietQR và Biên Lai Thu Tiền -->
 <div id="payment-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-receipt text-medical-600"></i> Thanh Toán & Xuất Hóa Đơn
+                <i class="fa-solid fa-receipt text-medical-600"></i> Thanh Toán và Xuất Hóa Đơn
             </h3>
             <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                 <i class="fa-solid fa-xmark text-sm"></i>
@@ -187,7 +187,7 @@
                 Đóng
             </button>
             <button type="button" onclick="confirmPaymentSuccess()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
-                <i class="fa-solid fa-check"></i> Xác Nhận Đã Thu Tiền & In
+                <i class="fa-solid fa-check"></i> Xác Nhận Đã Thu Tiền và In
             </button>
         </div>
     </div>
@@ -312,7 +312,7 @@
                 });
                 detailsContainer.innerHTML = html;
             } else {
-                detailsContainer.innerHTML = `<div class="text-slate-400 py-1 text-center font-medium">${inv.khoan_muc || 'Chi phí khám bệnh & dịch vụ lâm sàng trọn gói'}</div>`;
+                detailsContainer.innerHTML = `<div class="text-slate-400 py-1 text-center font-medium">${inv.khoan_muc || 'Chi phí khám bệnh và dịch vụ lâm sàng trọn gói'}</div>`;
             }
         }
 

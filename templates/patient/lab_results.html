@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Breadcrumb & Header -->
+    <!-- Breadcrumb và Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -19,7 +19,7 @@
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 <span class="text-medical-600 font-medium">Kết quả xét nghiệm</span>
             </div>
-            <h2 class="text-2xl font-bold text-slate-900">Phiếu kết quả xét nghiệm & Cận lâm sàng</h2>
+            <h2 class="text-2xl font-bold text-slate-900">Phiếu kết quả xét nghiệm và Cận lâm sàng</h2>
             <p class="text-xs text-slate-400 mt-0.5">Kết quả phân tích sinh hóa, huyết học và chẩn đoán hình ảnh đã được bác sĩ ký duyệt</p>
         </div>
         <div class="flex gap-2">
@@ -41,7 +41,7 @@
                 <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Hoàng Bảo Nam') }}</span>
             </div>
             <div>
-                <span class="text-slate-400 block">Nhóm máu & BHYT</span>
+                <span class="text-slate-400 block">Nhóm máu và BHYT</span>
                 <span class="font-semibold text-slate-800 text-sm mt-0.5 block">{{ patient.nhom_mau or 'Chưa rõ' }} • {{ patient.bhyt or 'Không áp dụng' }}</span>
             </div>
             <div>
@@ -89,11 +89,11 @@
         </div>
     </div>
 
-    <!-- Bảng Chi Tiết Kết Quả Xét Nghiệm & Cận Lâm Sàng từ CSDL -->
+    <!-- Bảng Chi Tiết Kết Quả Xét Nghiệm và Cận Lâm Sàng từ CSDL -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-microscope text-medical-600"></i> Danh Sách Kết Quả Xét Nghiệm & Chẩn Đoán Hình Ảnh (CSDL)
+                <i class="fa-solid fa-microscope text-medical-600"></i> Danh Sách Kết Quả Xét Nghiệm và Chẩn Đoán Hình Ảnh (CSDL)
             </h3>
             <span class="text-xs text-slate-400 font-medium">Đồng bộ tự động từ phòng LAB</span>
         </div>

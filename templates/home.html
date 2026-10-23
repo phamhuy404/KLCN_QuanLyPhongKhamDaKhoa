@@ -17,8 +17,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Tailwind Configuration đồng bộ màu dự án -->
+        <!-- Dark Mode Init Script -->
+    <script>
+        try {
+            const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
+    </script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -75,7 +88,7 @@
 </head>
 <body class="bg-slate-50 font-sans antialiased text-slate-800">
 
-    <!-- 1. Header công khai (Topbar & Main Header) -->
+    <!-- 1. Header công khai (Topbar và Main Header) -->
     <!-- Top utility bar -->
     <div class="bg-gradient-to-r from-medical-700 to-teal-800 text-white text-xs py-2 px-4 sm:px-8 border-b border-white/10">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -175,6 +188,12 @@
                         Đăng ký
                     </a>
                 {% endif %}
+                <!-- Nut chuyen doi Dark Mode -->
+                <button type="button" onclick="toggleDarkMode()" 
+                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+                        title="Chuyển chế độ Giao diện Sáng / Tối">
+                    <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+                </button>
             </div>
 
         </div>
@@ -198,10 +217,10 @@
                     Quy trình Khám bệnh
                 </a>
                 <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap font-bold text-teal-700">
-                    <i class="fa-solid fa-newspaper mr-1"></i> Tin tức & Bài viết
+                    <i class="fa-solid fa-newspaper mr-1"></i> Tin tức và Bài viết
                 </a>
                 <a href="{{ url_for('patient_billing') if session.get('logged_in') else url_for('login', next=url_for('patient_billing')) }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                    Bảng giá & Viện phí
+                    Bảng giá và Viện phí
                 </a>
             </div>
         </nav>
@@ -265,6 +284,12 @@
                 </div>
                 {% endfor %}
 
+                <!-- Nut chuyen doi Dark Mode -->
+                <button type="button" onclick="toggleDarkMode()" 
+                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+                        title="Chuyển chế độ Giao diện Sáng / Tối">
+                    <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+                </button>
             </div>
 
         </div>
@@ -330,7 +355,7 @@
                 </div>
                 <div>
                     <h4 class="font-bold text-xs sm:text-sm text-slate-800">Tra cứu kết quả</h4>
-                    <span class="text-[11px] text-slate-400 block mt-0.5">Bệnh án & Xét nghiệm</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Bệnh án và Xét nghiệm</span>
                 </div>
             </a>
 
@@ -365,7 +390,7 @@
                                     <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
                                 </div>
                                 <h4 class="font-bold text-sm text-slate-800">{{ dep.ten_khoa }}</h4>
-                                <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ dep.mo_ta or 'Khám & điều trị chuyên sâu theo chuẩn y khoa' }}</p>
+                                <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ dep.mo_ta or 'Khám và điều trị chuyên sâu theo chuẩn y khoa' }}</p>
                             </div>
                             {% endfor %}
                         {% else %}
@@ -378,7 +403,7 @@
                 <section id="bac-si" class="scroll-mt-36 space-y-4">
                     <div class="border-b border-slate-200 pb-3">
                         <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Đội Ngũ Y Tế</span>
-                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Bác Sĩ & Chuyên Gia Đầu Ngành</h3>
+                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Bác Sĩ và Chuyên Gia Đầu Ngành</h3>
                         <p class="text-xs text-slate-400 mt-0.5">Hội tụ các giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm từ các bệnh viện lớn</p>
                     </div>
 
@@ -435,7 +460,7 @@
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                             <div class="w-8 h-8 rounded-full bg-medical-500 text-white font-extrabold text-xs flex items-center justify-center mb-3">2</div>
-                            <h4 class="font-bold text-slate-800 text-sm">Xác Nhận & Cấp Mã BN</h4>
+                            <h4 class="font-bold text-slate-800 text-sm">Xác Nhận và Cấp Mã BN</h4>
                             <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Xuất trình CCCD hoặc thẻ BHYT. Nhân viên quầy tiếp tân kiểm tra thông tin và cấp phiếu khám chuyên khoa.</p>
                         </div>
 
@@ -460,7 +485,7 @@
                                 01
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">Khám Lâm Sàng Ban Đầu & Đo Sinh Hiệu</h4>
+                                <h4 class="font-bold text-slate-900 text-sm">Khám Lâm Sàng Ban Đầu và Đo Sinh Hiệu</h4>
                                 <p class="text-xs text-slate-500 mt-0.5">Điều dưỡng tiến hành đo huyết áp, mạch, nhiệt độ, chiều cao, cân nặng trước khi vào gặp bác sĩ chuyên khoa.</p>
                             </div>
                         </div>
@@ -470,7 +495,7 @@
                                 02
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">Bác Sĩ Thăm Khám & Chỉ Định Cận Lâm Sàng</h4>
+                                <h4 class="font-bold text-slate-900 text-sm">Bác Sĩ Thăm Khám và Chỉ Định Cận Lâm Sàng</h4>
                                 <p class="text-xs text-slate-500 mt-0.5">Bác sĩ khám kỹ lưỡng, khai thác tiền sử bệnh và chỉ định các xét nghiệm cần thiết (máu, X-Quang, siêu âm, nội soi).</p>
                             </div>
                         </div>
@@ -480,7 +505,7 @@
                                 03
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">Thực Hiện Cận Lâm Sàng & Nhận Kết Quả Tức Thì</h4>
+                                <h4 class="font-bold text-slate-900 text-sm">Thực Hiện Cận Lâm Sàng và Nhận Kết Quả Tức Thì</h4>
                                 <p class="text-xs text-slate-500 mt-0.5">Quy trình xét nghiệm tự động khép kín. Kết quả được đồng bộ tự động lên máy tính của bác sĩ khám.</p>
                             </div>
                         </div>
@@ -490,7 +515,7 @@
                                 04
                             </div>
                             <div>
-                                <h4 class="font-bold text-slate-900 text-sm">Kết Luận Chẩn Đoán, Kê Toa Thuốc & Nhận Dược Phẩm</h4>
+                                <h4 class="font-bold text-slate-900 text-sm">Kết Luận Chẩn Đoán, Kê Toa Thuốc và Nhận Dược Phẩm</h4>
                                 <p class="text-xs text-slate-500 mt-0.5">Bác sĩ tư vấn phác đồ điều trị, xuất toa thuốc điện tử. Bệnh nhân nhận thuốc tại Nhà thuốc Bệnh viện đạt chuẩn GPP.</p>
                             </div>
                         </div>
@@ -570,7 +595,7 @@
 
             </div>
 
-            <!-- Cột nhỏ bên phải (4/12 cột): Bài viết mới & Cẩm nang thông tin y tế -->
+            <!-- Cột nhỏ bên phải (4/12 cột): Bài viết mới và Cẩm nang thông tin y tế -->
             <aside class="lg:col-span-4 space-y-6">
                 
                 <!-- 1. Khối Bài viết mới -->

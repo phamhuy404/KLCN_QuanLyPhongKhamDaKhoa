@@ -11,8 +11,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+        <!-- Dark Mode Init Script -->
+    <script>
+        try {
+            const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
+    </script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
@@ -37,7 +50,7 @@
 
     <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-teal-900/5 border border-slate-100 overflow-hidden">
 
-        <!-- Top Header & Steps Progress -->
+        <!-- Top Header và Steps Progress -->
         <div class="bg-gradient-to-r from-teal-700 via-medical-600 to-emerald-600 p-6 sm:p-8 text-white relative overflow-hidden">
             <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
                 <i class="fa-solid fa-id-card"></i>
@@ -110,7 +123,7 @@
                 <!-- PHẦN 1: THÔNG TIN NHÂN THÂN BẮT BUỘC -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-address-card text-teal-600"></i> 1. Thông tin định danh & nhân thân
+                        <i class="fa-solid fa-address-card text-teal-600"></i> 1. Thông tin định danh và nhân thân
                     </h3>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -161,10 +174,10 @@
                     </div>
                 </div>
 
-                <!-- PHẦN 2: THÔNG TIN BẢO HIỂM & ĐỊA CHỈ -->
+                <!-- PHẦN 2: THÔNG TIN BẢO HIỂM VÀ ĐỊA CHỈ -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-hospital text-teal-600"></i> 2. Thẻ BHYT & Địa chỉ cư trú
+                        <i class="fa-solid fa-hospital text-teal-600"></i> 2. Thẻ BHYT và Địa chỉ cư trú
                     </h3>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -172,14 +185,14 @@
                             <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                                 Mã số thẻ BHYT (Nếu có)
                             </label>
-                            <input type="text" name="bhyt" maxlength="15" value="{{ form.bhyt if form else (patient.bhyt if patient else '') }}" placeholder="Ví dụ: GD4797931100001"
+                            <input type="text" name="bhyt" maxlength="10" value="{{ form.bhyt if form else (patient.bhyt if patient else '') }}" placeholder="Ví dụ: 0790900001 (Đúng 10 chữ số, không có chữ)"
                                 class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('bhyt') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono uppercase">
                             <span class="text-[11px] text-slate-400">Được hưởng quyền lợi miễn giảm viện phí theo quy định</span>
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                Email nhận thông báo & đơn thuốc
+                                Email nhận thông báo và đơn thuốc
                             </label>
                             <input type="email" name="email" value="{{ form.email if form else (patient.email if patient else (current_user.email or '')) }}" placeholder="benhnhan@gmail.com"
                                 class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('email') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
@@ -195,15 +208,15 @@
                     </div>
                 </div>
 
-                <!-- PHẦN 3: TIỀN SỬ Y KHOA & NHÓM MÁU -->
+                <!-- PHẦN 3: TIỀN SỬ Y KHOA VÀ NHÓM MÁU -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-notes-medical text-teal-600"></i> 3. Tiền sử y khoa & Nhóm máu
+                        <i class="fa-solid fa-notes-medical text-teal-600"></i> 3. Tiền sử y khoa và Nhóm máu
                     </h3>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nhóm máu hệ ABO & Rh</label>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nhóm máu hệ ABO và Rh</label>
                             <select name="nhom_mau" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-medium text-slate-800">
                                 <option value="Chưa rõ" {% if cur_nhom_mau == 'Chưa rõ' %}selected{% endif %}>Chưa rõ (Sẽ làm xét nghiệm khi khám)</option>
                                 <option value="O+" {% if cur_nhom_mau == 'O+' %}selected{% endif %}>O+ (O Dương)</option>

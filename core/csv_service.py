@@ -8,7 +8,7 @@ class CSVService:
 
     MODULE_CONFIGS = {
         'medicines': {
-            'name': 'Danh sách thuốc & vật tư y tế',
+            'name': 'Danh sách thuốc và vật tư y tế',
             'headers': ['Mã Thuốc', 'Tên Thuốc', 'Hoạt Chất', 'Hàm Lượng', 'Đơn Vị Tính', 'Đơn Giá', 'Số Lượng', 'Hãng Sản Xuất', 'Nước Sản Xuất', 'Hướng Dẫn Sử Dụng'],
             'sample_rows': [
                 ['TH011', 'Panadol Extra Đỏ', 'Paracetamol, Caffeine', '500mg/65mg', 'Viên', 2500, 500, 'GSK', 'Úc', 'Uống 1-2 viên sau ăn khi đau đầu'],
@@ -32,7 +32,7 @@ class CSVService:
             ]
         },
         'accounts': {
-            'name': 'Danh sách tài khoản người dùng & nhân sự',
+            'name': 'Danh sách tài khoản người dùng và nhân sự',
             'headers': ['Tên Đăng Nhập', 'Mật Khẩu Mặc Định', 'Họ Và Tên', 'Mã Vai Trò (ADMIN/LETAN/BACSI/DUOCSI/KTV/BENHNHAN)', 'Số Điện Thoại', 'Email', 'CCCD', 'Chức Vụ', 'Địa Chỉ'],
             'sample_rows': [
                 ['letan_thu', 'Password@123', 'Hoàng Minh Thư', 'LETAN', '0908889911', 'thu.letan@h2tcare.vn', '079198000999', 'Nhân viên tiếp đón quầy B', 'Quận 3, TP.HCM'],

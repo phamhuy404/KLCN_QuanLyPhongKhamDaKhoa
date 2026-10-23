@@ -41,7 +41,7 @@ def home():
 @home_bp.route('/articles')
 @home_bp.route('/tin-tuc')
 def articles():
-    """Trang cẩm nang y tế & danh sách tin tức sức khỏe."""
+    """Trang cẩm nang y tế và danh sách tin tức sức khỏe."""
     active_category = request.args.get('category', '').strip()
     search_query = request.args.get('search', '').strip()
 

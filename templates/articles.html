@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tin tức & Bài viết Y khoa - Bệnh viện Đa khoa Quốc tế H2T Healthcare</title>
+    <title>Tin tức và Bài viết Y khoa - Bệnh viện Đa khoa Quốc tế H2T Healthcare</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,8 +17,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Tailwind Config đồng bộ màu dự án -->
+        <!-- Dark Mode Init Script -->
+    <script>
+        try {
+            const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
+    </script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
@@ -148,6 +161,12 @@
                         Đăng ký
                     </a>
                 {% endif %}
+                <!-- Nut chuyen doi Dark Mode -->
+                <button type="button" onclick="toggleDarkMode()" 
+                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+                        title="Chuyển chế độ Giao diện Sáng / Tối">
+                    <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+                </button>
             </div>
         </div>
 
@@ -159,8 +178,8 @@
                 <a href="{{ url_for('home') }}#bac-si" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Đội ngũ Bác sĩ</a>
                 <a href="{{ url_for('home') }}#quy-trinh-dang-ky" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Quy trình Đăng ký</a>
                 <a href="{{ url_for('home') }}#quy-trinh-kham" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Quy trình Khám bệnh</a>
-                <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg text-medical-700 bg-medical-50/80 font-bold whitespace-nowrap">Tin tức & Bài viết Y khoa</a>
-                <a href="{{ url_for('patient_billing') if session.get('logged_in') else url_for('login', next=url_for('patient_billing')) }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Bảng giá & Viện phí</a>
+                <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg text-medical-700 bg-medical-50/80 font-bold whitespace-nowrap">Tin tức và Bài viết Y khoa</a>
+                <a href="{{ url_for('patient_billing') if session.get('logged_in') else url_for('login', next=url_for('patient_billing')) }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Bảng giá và Viện phí</a>
             </div>
         </nav>
     </header>
@@ -168,21 +187,21 @@
     <!-- Main Content -->
     <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
 
-        <!-- Breadcrumb & Tiêu đề trang -->
+        <!-- Breadcrumb và Tiêu đề trang -->
         <div class="space-y-2 border-b border-slate-200 pb-5">
             <div class="flex items-center gap-2 text-xs text-slate-400">
                 <a href="{{ url_for('home') }}" class="hover:text-medical-600 flex items-center gap-1">
                     <i class="fa-solid fa-house text-[10px]"></i> Trang chủ
                 </a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">Tin tức & Bài viết Y khoa</span>
+                <span class="text-medical-600 font-semibold">Tin tức và Bài viết Y khoa</span>
                 {% if active_category %}
                     <i class="fa-solid fa-chevron-right text-[10px]"></i>
                     <span class="text-slate-600">{{ active_category }}</span>
                 {% endif %}
             </div>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Chuyên Mục Tin Tức & Cẩm Nang Sức Khỏe
+                Chuyên Mục Tin Tức và Cẩm Nang Sức Khỏe
             </h2>
             <p class="text-xs sm:text-sm text-slate-500">
                 Cập nhật các bài viết chuyên môn y khoa, hướng dẫn phòng ngừa dịch bệnh và tin tức hoạt động từ Bệnh viện H2T Healthcare.

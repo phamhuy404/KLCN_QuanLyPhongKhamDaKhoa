@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-articles_data.py - Dữ liệu mẫu + hàm hỗ trợ cho mục "Tin tức & Bài viết Y khoa".
+articles_data.py - Dữ liệu mẫu + hàm hỗ trợ cho mục "Tin tức và Bài viết Y khoa".
 
 Đặt file này CÙNG THƯ MỤC với app.py.
 Sau này khi chuyển sang database thật, chỉ cần sửa các hàm ở cuối file

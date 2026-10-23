@@ -16,9 +16,9 @@
     <div class="bg-gradient-to-r from-medical-700 via-teal-600 to-emerald-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-teal-200 text-xs font-bold uppercase tracking-wider mb-1">
-                <i class="fa-solid fa-comments"></i> Chăm Sóc Khách Hàng & Quản Trị Chất Lượng
+                <i class="fa-solid fa-comments"></i> Chăm Sóc Khách Hàng và Quản Trị Chất Lượng
             </div>
-            <h2 class="text-2xl font-bold">Tiếp Nhận & Xử Lý Phản Hồi Bệnh Nhân</h2>
+            <h2 class="text-2xl font-bold">Tiếp Nhận và Xử Lý Phản Hồi Bệnh Nhân</h2>
             <p class="text-medical-100 mt-1 text-sm max-w-2xl">
                 Lắng nghe ý kiến đóng góp của người bệnh về chất lượng khám chữa bệnh, thái độ y bác sĩ và dịch vụ để không ngừng nâng cao chất lượng phòng khám.
             </p>
@@ -51,8 +51,8 @@
                     <option value="Dịch vụ khám bệnh" {% if current_topic == 'Dịch vụ khám bệnh' %}selected{% endif %}>Dịch vụ khám bệnh</option>
                     <option value="Thái độ phục vụ" {% if current_topic == 'Thái độ phục vụ' %}selected{% endif %}>Thái độ phục vụ</option>
                     <option value="Cơ sở vật chất" {% if current_topic == 'Cơ sở vật chất' %}selected{% endif %}>Cơ sở vật chất</option>
-                    <option value="Thời gian chờ đợi & Quy trình" {% if current_topic == 'Thời gian chờ đợi & Quy trình' %}selected{% endif %}>Thời gian chờ đợi & Quy trình</option>
-                    <option value="Chi phí & Viện phí" {% if current_topic == 'Chi phí & Viện phí' %}selected{% endif %}>Chi phí & Viện phí</option>
+                    <option value="Thời gian chờ đợi và Quy trình" {% if current_topic == 'Thời gian chờ đợi và Quy trình' %}selected{% endif %}>Thời gian chờ đợi và Quy trình</option>
+                    <option value="Chi phí và Viện phí" {% if current_topic == 'Chi phí và Viện phí' %}selected{% endif %}>Chi phí và Viện phí</option>
                     <option value="Góp ý khác" {% if current_topic == 'Góp ý khác' %}selected{% endif %}>Góp ý khác</option>
                 </select>
             </div>
@@ -76,7 +76,7 @@
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500 font-semibold border-b border-slate-100">
                     <tr>
                         <th class="px-6 py-4">Bệnh Nhân</th>
-                        <th class="px-6 py-4">Chủ Đề & Đánh Giá</th>
+                        <th class="px-6 py-4">Chủ Đề và Đánh Giá</th>
                         <th class="px-6 py-4">Nội Dung Phản Hồi</th>
                         <th class="px-6 py-4">Trạng Thái</th>
                         <th class="px-6 py-4">Thời Gian</th>
@@ -162,7 +162,7 @@
     </div>
 </div>
 
-<!-- Modal Trả Lời & Xử Lý Phản Hồi -->
+<!-- Modal Trả Lời và Xử Lý Phản Hồi -->
 <div id="modal-reply" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 animate-scale-up">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -176,7 +176,7 @@
         </div>
 
         <div class="mt-4 space-y-4">
-            <!-- Box thông tin bệnh nhân & nội dung gửi -->
+            <!-- Box thông tin bệnh nhân và nội dung gửi -->
             <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
                 <div class="flex items-center justify-between">
                     <span class="font-bold text-slate-800" id="reply-patient-name">Hoàng Bảo Nam</span>

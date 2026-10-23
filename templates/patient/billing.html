@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Hóa đơn & Viện phí - H2T Healthcare{% endblock %}
+{% block title %}Hóa đơn và Viện phí - H2T Healthcare{% endblock %}
 
 {% block sidebar %}
     {% include "patient/components/sidebar.html" %}
@@ -11,15 +11,15 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Breadcrumb & Header -->
+    <!-- Breadcrumb và Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-medium">Hóa đơn & Viện phí</span>
+                <span class="text-medical-600 font-medium">Hóa đơn và Viện phí</span>
             </div>
-            <h2 class="text-2xl font-bold text-slate-900">Quản lý Hóa đơn & Viện phí</h2>
+            <h2 class="text-2xl font-bold text-slate-900">Quản lý Hóa đơn và Viện phí</h2>
             <p class="text-xs text-slate-400 mt-0.5">Tra cứu chi phí khám chữa bệnh, bảo hiểm y tế và thanh toán trực tuyến nhanh chóng</p>
         </div>
         <div class="flex gap-2">
@@ -86,7 +86,7 @@
             <div class="py-4 space-y-2 text-xs text-slate-700">
                 <div class="p-3 bg-white rounded-xl border border-slate-100">
                     <span class="font-semibold text-slate-800 block mb-1">Các hạng mục thực hiện:</span>
-                    <p class="text-slate-600">{{ unpaid.khoan_muc or 'Chi phí khám bệnh & thuốc' }}</p>
+                    <p class="text-slate-600">{{ unpaid.khoan_muc or 'Chi phí khám bệnh và thuốc' }}</p>
                 </div>
             </div>
 
@@ -105,7 +105,7 @@
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 class="font-bold text-base text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Lịch sử hóa đơn & Biên lai viện phí
+                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Lịch sử hóa đơn và Biên lai viện phí
             </h3>
             <span class="text-xs text-slate-400">Đã cập nhật hóa đơn điện tử VAT</span>
         </div>
@@ -131,7 +131,7 @@
                             <td class="py-3.5 px-5 font-bold font-mono text-slate-900">{{ inv.ma_hoa_don }}</td>
                             <td class="py-3.5 px-5 text-slate-500">{{ inv.thoi_gian_tao[:10] if inv.thoi_gian_tao else 'Hôm nay' }}</td>
                             <td class="py-3.5 px-5">
-                                <span class="font-medium text-slate-800">{{ inv.khoan_muc or 'Chi phí khám bệnh & thuốc' }}</span>
+                                <span class="font-medium text-slate-800">{{ inv.khoan_muc or 'Chi phí khám bệnh và thuốc' }}</span>
                             </td>
                             <td class="py-3.5 px-5 font-medium">{{ "{:,.0f}".format(inv.tong_tien) }} đ</td>
                             <td class="py-3.5 px-5 text-emerald-600 font-medium">-{{ "{:,.0f}".format(inv.tien_bhyt_chi_tra) }} đ</td>

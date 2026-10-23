@@ -13,7 +13,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <!-- 1. Tiêu đề trang và Thao tác chính -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -25,7 +25,7 @@
                 <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-hospital-user"></i>
                 </span>
-                Quản lý & Thống kê Danh sách Bệnh nhân
+                Quản lý và Thống kê Danh sách Bệnh nhân
             </h2>
             <p class="text-xs text-slate-500 mt-1">
                 Theo dõi hồ sơ y tế, thông tin định danh, tài khoản người dùng và xuất nhập dữ liệu theo chuẩn Bộ Y Tế.
@@ -114,7 +114,7 @@
         </div>
     </div>
 
-    <!-- 3. Thanh tìm kiếm, Bộ lọc & Sắp xếp -->
+    <!-- 3. Thanh tìm kiếm, Bộ lọc và Sắp xếp -->
     <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             
@@ -195,7 +195,7 @@
 
                     <div class="pt-2 border-t border-slate-100 flex justify-end">
                         <button type="button" onclick="toggleFilterMenu()" class="px-3.5 py-1.5 bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs rounded-xl shadow-sm">
-                            Đóng & Áp Dụng
+                            Đóng và Áp Dụng
                         </button>
                     </div>
                 </div>
@@ -219,7 +219,7 @@
 
         </div>
 
-        <!-- Đếm số lượng kết quả & Nút xóa lọc -->
+        <!-- Đếm số lượng kết quả và Nút xóa lọc -->
         <div class="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-100">
             <div>
                 Đang hiển thị <span class="font-bold text-slate-800" id="filtered-count">10</span> / <span id="total-count">10</span> bệnh nhân
@@ -240,9 +240,9 @@
                             Mã BN <i class="fa-solid fa-sort text-[10px] ml-1"></i>
                         </th>
                         <th class="py-3.5 px-4 cursor-pointer hover:text-medical-700" onclick="sortByColumn('name')">
-                            Họ & Tên <i class="fa-solid fa-sort text-[10px] ml-1"></i>
+                            Họ và Tên <i class="fa-solid fa-sort text-[10px] ml-1"></i>
                         </th>
-                        <th class="py-3.5 px-4">Tài Khoản & Mật Khẩu</th>
+                        <th class="py-3.5 px-4">Tài Khoản và Mật Khẩu</th>
                         <th class="py-3.5 px-4 cursor-pointer hover:text-medical-700" onclick="sortByColumn('age')">
                             Ngày Sinh / Tuổi <i class="fa-solid fa-sort text-[10px] ml-1"></i>
                         </th>
@@ -333,10 +333,10 @@
             </div>
         </div>
 
-        <!-- Khối 2: Thông tin định danh & liên hệ -->
+        <!-- Khối 2: Thông tin định danh và liên hệ -->
         <div class="space-y-3">
             <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-id-card text-teal-600"></i> Định Danh & Liên Hệ
+                <i class="fa-solid fa-id-card text-teal-600"></i> Định Danh và Liên Hệ
             </h4>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-xs bg-white p-4 rounded-2xl border border-slate-100">
                 <div>
@@ -357,7 +357,7 @@
                 </div>
                 <div>
                     <span class="text-slate-400 block">Mã thẻ BHYT:</span>
-                    <span class="font-semibold text-teal-700 font-mono" id="modal-bhyt">GD4797931100001</span>
+                    <span class="font-semibold text-teal-700 font-mono" id="modal-bhyt">0790900001</span>
                 </div>
                 <div>
                     <span class="text-slate-400 block">Địa chỉ:</span>
@@ -366,7 +366,7 @@
             </div>
         </div>
 
-        <!-- Khối 3: Hồ sơ sức khỏe & Y khoa -->
+        <!-- Khối 3: Hồ sơ sức khỏe và Y khoa -->
         <div class="space-y-3">
             <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
                 <i class="fa-solid fa-heart-pulse text-rose-500"></i> Hồ Sơ Y Khoa
@@ -492,7 +492,7 @@
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Số thẻ BHYT</label>
-                    <input type="text" id="add-bhyt" placeholder="GD479xxxxxxxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                    <input type="text" id="add-bhyt" placeholder="Ví dụ: 0790900001 (10 số, không có chữ)" maxlength="10" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                 </div>
             </div>
 
@@ -509,7 +509,7 @@
             <div class="space-y-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                        <span class="text-rose-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Dị ứng thuốc & thực phẩm</span>
+                        <span class="text-rose-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Dị ứng thuốc và thực phẩm</span>
                         <span class="text-[10px] text-slate-400 font-normal">Chọn từ danh mục hoặc tìm kiếm</span>
                     </label>
                     <input type="hidden" id="add-allergy" value="Không có">
@@ -604,7 +604,7 @@
     {{ catalogs.tien_su_benh | tojson | safe }}
 </script>
 
-<!-- JAVASCRIPT XỬ LÝ TÌM KIẾM, SẮP XẾP, IMPORT & EXPORT CSV / JSON -->
+<!-- JAVASCRIPT XỬ LÝ TÌM KIẾM, SẮP XẾP, IMPORT VÀ EXPORT CSV / JSON -->
 <script>
     // Dữ liệu bệnh nhân khởi tạo từ backend
     var patients = JSON.parse(document.getElementById('admin-patients-data').textContent || '[]');
@@ -699,7 +699,7 @@
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-50/80 transition-colors group';
 
-            // Xử lý thông tin tài khoản & mật khẩu bảo mật (Không hiện mật khẩu thô cho bác sĩ)
+            // Xử lý thông tin tài khoản và mật khẩu bảo mật (Không hiện mật khẩu thô cho bác sĩ)
             let accountHtml = '';
             if (p.username) {
                 accountHtml = `
@@ -717,11 +717,11 @@
                 accountHtml = `<span class="text-slate-300 italic text-[11px]">Chưa tạo TK</span>`;
             }
 
-            // Xử lý BHYT & CCCD (để trống nếu không có)
+            // Xử lý BHYT VÀ CCCD (để trống nếu không có)
             const cccdText = p.cccd || '<span class="text-slate-300">-</span>';
             const bhytText = p.bhyt ? `<span class="font-mono text-teal-700 font-semibold">${p.bhyt}</span>` : '<span class="text-slate-300">-</span>';
 
-            // Xử lý dị ứng & bệnh sử
+            // Xử lý dị ứng và bệnh sử
             const allergyText = p.di_ung ? `<span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-semibold text-[10px] block w-max">${p.di_ung}</span>` : '<span class="text-slate-300">-</span>';
             const historyText = p.tien_su_benh ? `<span class="text-slate-600 block mt-0.5 truncate max-w-[140px]" title="${p.tien_su_benh}">${p.tien_su_benh}</span>` : '<span class="text-slate-300">-</span>';
 

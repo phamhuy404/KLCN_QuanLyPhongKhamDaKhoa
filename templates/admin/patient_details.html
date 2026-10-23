@@ -13,7 +13,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Thanh điều hướng Breadcrumb & Nút thao tác nhanh -->
+    <!-- 1. Thanh điều hướng Breadcrumb và Nút thao tác nhanh -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm print:hidden">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -27,7 +27,7 @@
                 <span class="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-file-medical"></i>
                 </span>
-                Hồ Sơ Y Khoa & Bệnh Án Điện Tử (EMR)
+                Hồ Sơ Y Khoa và Bệnh Án Điện Tử (EMR)
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">
                 Dữ liệu y tế chi tiết phục vụ công tác chẩn đoán, theo dõi điều trị và quản lý sinh hiệu bệnh nhân.
@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    <!-- 2. Thẻ hồ sơ thông tin hành chính & định danh người bệnh -->
+    <!-- 2. Thẻ hồ sơ thông tin hành chính và định danh người bệnh -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden">
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-slate-100">
             <div class="flex items-center gap-4">
@@ -82,7 +82,7 @@
                 </div>
             </div>
 
-            <!-- Thẻ BHYT & CCCD -->
+            <!-- Thẻ BHYT VÀ CCCD -->
             <div class="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-xs w-full lg:w-auto">
                 <div>
                     <div class="text-slate-400 text-[11px]">Bảo hiểm y tế (BHYT):</div>
@@ -207,7 +207,7 @@
                 <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
                     <i class="fa-solid fa-heart-pulse"></i>
                 </span>
-                <h4 class="font-bold text-slate-900 text-sm">Chỉ Số Sinh Hiệu & Thể Trạng Đo Gần Nhất</h4>
+                <h4 class="font-bold text-slate-900 text-sm">Chỉ Số Sinh Hiệu và Thể Trạng Đo Gần Nhất</h4>
             </div>
             <span class="text-xs text-slate-400 font-mono">Đo lúc: 20/09/2026 08:15 (Phòng Điều Dưỡng)</span>
         </div>
@@ -267,14 +267,14 @@
         {% endif %}
     </div>
 
-    <!-- 5. LỊCH SỬ KHÁM BỆNH & BỆNH ÁN ĐIỆN TỬ CHI TIẾT (EMR VISITS) -->
+    <!-- 5. LỊCH SỬ KHÁM BỆNH VÀ BỆNH ÁN ĐIỆN TỬ CHI TIẾT (EMR VISITS) -->
     <div class="space-y-5">
         <div class="flex items-center justify-between">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span class="w-8 h-8 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-sm">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </span>
-                Lịch Sử Các Lần Khám Bệnh & Điều Trị ({{ patient.lich_su_kham|length }} lượt khám)
+                Lịch Sử Các Lần Khám Bệnh và Điều Trị ({{ patient.lich_su_kham|length }} lượt khám)
             </h3>
             <span class="text-xs text-slate-400">Được sắp xếp theo thời gian mới nhất</span>
         </div>
@@ -328,7 +328,7 @@
                     </div>
                 </div>
 
-                <!-- Chỉ định Cận Lâm Sàng & Kết quả -->
+                <!-- Chỉ định Cận Lâm Sàng và Kết quả -->
                 {% if pk.can_lam_sang and pk.can_lam_sang|length > 0 %}
                 <div class="space-y-2 pt-2">
                     <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -379,7 +379,7 @@
                                     <th class="py-2.5 px-3">Tên Thuốc / Biệt Dược</th>
                                     <th class="py-2.5 px-3">Hoạt Chất</th>
                                     <th class="py-2.5 px-3">Số Lượng</th>
-                                    <th class="py-2.5 px-3">Hướng Dẫn Sử Dụng & Liều Dùng</th>
+                                    <th class="py-2.5 px-3">Hướng Dẫn Sử Dụng và Liều Dùng</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">

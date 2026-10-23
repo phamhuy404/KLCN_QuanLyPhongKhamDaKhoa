@@ -1,5 +1,5 @@
 ================================================================================
-BÁO CÁO TIẾN ĐỘ & CÁC CHỨC NĂNG ĐÃ NGHIÊN CỨU, PHÁT TRIỂN HOÀN THÀNH
+BÁO CÁO TIẾN ĐỘ và CÁC CHỨC NĂNG ĐÃ NGHIÊN CỨU, PHÁT TRIỂN HOÀN THÀNH
 DỰ ÁN KHÓA LUẬN TỐT NGHIỆP: HỆ THỐNG QUẢN LÝ PHÒNG KHÁM ĐA KHOA (H2T HEALTHCARE)
 Người thực hiện: Sinh viên thực hiện Khóa luận tốt nghiệp
 ================================================================================
@@ -9,7 +9,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
 đúng chuẩn y tế và yêu cầu thực tế của phòng khám đa khoa, bao gồm:
 
 --------------------------------------------------------------------------------
-1. HỆ THỐNG POPUP TOAST THÔNG BÁO THỜI GIAN THỰC & NÚT TEST DEMO
+1. HỆ THỐNG POPUP TOAST THÔNG BÁO THỜI GIAN THỰC và NÚT TEST DEMO
 --------------------------------------------------------------------------------
 - Tôi đã xây dựng hệ thống thông báo Toast Notification tự động với giao diện hiện đại:
   + Hiệu ứng trượt mượt mà (Slide-in) từ góc trên bên phải màn hình.
@@ -23,7 +23,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
     và demo tính năng trực tiếp trước Hội đồng chấm khóa luận.
 
 --------------------------------------------------------------------------------
-2. PHÂN HỆ QUẢN LÝ TÀI KHOẢN (IMPORT & EXPORT DỮ LIỆU EXCEL / CSV CHUẨN UTF-8)
+2. PHÂN HỆ QUẢN LÝ TÀI KHOẢN (IMPORT và EXPORT DỮ LIỆU EXCEL / CSV CHUẨN UTF-8)
 --------------------------------------------------------------------------------
 - Xây dựng giao diện trang Quản lý Tài khoản (admin/accounts.html):
   + Thống kê phân loại tài khoản: Tổng số lượng, Bác sĩ, Nhân sự nội bộ, Bệnh nhân và 
@@ -36,7 +36,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
 - Tính năng Tải file mẫu (Template Download):
   + Cung cấp nút "Tải File Mẫu" chuẩn cấu trúc cột giúp người quản trị dễ dàng nhập thêm 
     hàng loạt tài khoản mới về sau.
-- Tính năng Đổi mật khẩu & Khóa/Mở tài khoản:
+- Tính năng Đổi mật khẩu và Khóa/Mở tài khoản:
   + Tích hợp modal cấp lại mật khẩu mới được mã hóa an toàn vào CSDL MySQL.
   + Nút bật/tắt (Toggle) khóa hoặc kích hoạt tài khoản tức thì mà không cần tải lại trang.
 
@@ -56,15 +56,15 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
 - Thiết kế trang Chi tiết thông tin Bác sĩ (admin/doctor_detail.html) đạt chuẩn EMR:
   + Khối Profile Header: Thông tin nhân sự, học vị, chuyên khoa, trạng thái làm việc, 
     giá khám ban đầu và tổng số ca khám bệnh đã thực hiện.
-  + Khối Lịch công tác & Phân ca trực trong tuần: Bảng trực trực quan từ Thứ 2 đến Chủ nhật 
+  + Khối Lịch công tác và Phân ca trực trong tuần: Bảng trực trực quan từ Thứ 2 đến Chủ nhật 
     chia theo 2 ca Sáng (07:30 - 11:30) và Chiều (13:30 - 17:00).
-  + Khối Bệnh án & Lịch sử khám bệnh gần đây: Truy vấn từ bảng phiếu khám bệnh (phieu_kham) 
+  + Khối Bệnh án và Lịch sử khám bệnh gần đây: Truy vấn từ bảng phiếu khám bệnh (phieu_kham) 
     để liệt kê 5 bệnh nhân được bác sĩ này chẩn đoán gần nhất, kèm liên kết mở trực tiếp hồ 
     sơ bệnh án điện tử (EMR) của bệnh nhân đó.
   + Nút "In Hồ Sơ" hỗ trợ in ấn nhanh hồ sơ lý lịch y khoa của bác sĩ.
 
 --------------------------------------------------------------------------------
-5. PHÂN HỆ BIÊN TẬP & XUẤT BẢN BÀI VIẾT Y KHOA (CMS QUẢN TRỊ NỘI DUNG)
+5. PHÂN HỆ BIÊN TẬP và XUẤT BẢN BÀI VIẾT Y KHOA (CMS QUẢN TRỊ NỘI DUNG)
 --------------------------------------------------------------------------------
 - Xây dựng trang Quản lý danh sách bài viết (admin/articles.html):
   + Quản lý các bài viết cẩm nang sức khỏe y tế cộng đồng.
@@ -82,7 +82,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
   + Lưu trữ vào CSDL: Tự động gắn mã tác giả theo tài khoản nhân sự/bác sĩ đang đăng nhập.
 
 --------------------------------------------------------------------------------
-6. TỔNG HỢP CÁC FILE MÃ NGUỒN TÔI ĐÃ TẠO MỚI & NÂNG CẤP TRONG DỰ ÁN
+6. TỔNG HỢP CÁC FILE MÃ NGUỒN TÔI ĐÃ TẠO MỚI và NÂNG CẤP TRONG DỰ ÁN
 --------------------------------------------------------------------------------
 [Các file tạo mới]:
 1. templates/admin/accounts.html         : Giao diện quản lý tài khoản, Import/Export Excel.
@@ -91,7 +91,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
 4. templates/admin/articles.html         : Giao diện quản trị danh sách tin tức/bài viết.
 5. templates/admin/article_editor.html   : Giao diện soạn thảo WYSIWYG, tự sinh slug, preview.
 
-[Các file đã nâng cấp logic & backend]:
+[Các file đã nâng cấp logic và backend]:
 6. app.py                                : Đăng ký hệ thống alias_map và hàm smart_url_for 
                                            giúp tương thích toàn bộ route quản trị không lỗi.
 7. controllers/admin_controller.py       : Bổ sung toàn bộ các route điều hướng (/accounts, 
@@ -103,7 +103,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
 11. templates/admin/components/sidebar.html: Thêm 3 menu liên kết mới cho Bác sĩ, Tài khoản, Bài viết.
 
 --------------------------------------------------------------------------------
-7. KỊCH BẢN HƯỚNG DẪN TEST & TRÌNH DIỄN KHI BÁO CÁO KHÓA LUẬN
+7. KỊCH BẢN HƯỚNG DẪN TEST và TRÌNH DIỄN KHI BÁO CÁO KHÓA LUẬN
 --------------------------------------------------------------------------------
 Bước 1: Chạy lệnh `python app.py` và đăng nhập tài khoản Quản trị viên (ADMIN).
 Bước 2: Test Popup thông báo: Nhìn lên góc phải thanh Header, bấm nút vàng "[🔔 Bấm thử thông báo]" 
@@ -112,6 +112,6 @@ Bước 3: Test Quản lý Tài khoản: Vào menu "Quản lý Tài khoản", b�
         để chứng minh tính năng trích xuất dữ liệu tiếng Việt không lỗi font.
 Bước 4: Test Đội ngũ Bác sĩ: Vào menu "Đội ngũ Bác sĩ", bấm "Chi Tiết" một bác sĩ để xem hồ sơ 360 độ 
         kèm bảng ca trực tuần và danh sách bệnh nhân đã tiếp nhận.
-Bước 5: Test Đăng bài viết: Vào menu "Quản lý Bài viết", bấm "Viết & Đăng Bài Mới", gõ tiêu đề để xem 
+Bước 5: Test Đăng bài viết: Vào menu "Quản lý Bài viết", bấm "Viết và Đăng Bài Mới", gõ tiêu đề để xem 
         slug tự sinh ra, soạn nội dung bằng Quill.js, bấm "Xem Trước (Preview)" và bấm "Xuất Bản".
 ================================================================================

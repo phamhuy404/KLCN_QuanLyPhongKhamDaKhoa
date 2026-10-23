@@ -192,7 +192,7 @@ def ensure_schema_updates(conn):
                 INSERT INTO banner (tieu_de, phu_de, mo_ta, hinh_anh, link_lien_ket, text_nut, thu_tu, trang_thai)
                 VALUES 
                 (N'Chăm sóc bằng tài năng, y đức và sự thấu cảm', N'Tiêu chuẩn chất lượng quốc tế', N'Bệnh viện Đa khoa Quốc tế H2T Healthcare mang đến trải nghiệm khám chữa bệnh chuẩn mực với các chuyên gia y tế đầu ngành và công nghệ bệnh án điện tử thông minh.', 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600', '/booking', N'ĐĂNG KÝ KHÁM NGAY', 1, 1),
-                (N'Đội ngũ chuyên gia & Bác sĩ đầu ngành', N'Chuyên môn vững vàng', N'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', N'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
+                (N'Đội ngũ chuyên gia và Bác sĩ đầu ngành', N'Chuyên môn vững vàng', N'Hội tụ đội ngũ giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm vì sức khỏe toàn diện của bệnh nhân và gia đình.', 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=1600', '#bac-si', N'TÌM BÁC SĨ CHUYÊN KHOA', 2, 1),
                 (N'Hệ thống Bệnh án điện tử EMR 360°', N'Công nghệ y tế số 4.0', 'Tra cứu lịch sử khám chữa bệnh, kết quả cận lâm sàng và toa thuốc trực tuyến mọi lúc mọi nơi nhanh chóng, bảo mật tuyệt đối.', 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1600', '/patient', N'CỔNG THÔNG TIN BỆNH NHÂN', 3, 1);
             END
             """

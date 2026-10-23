@@ -505,7 +505,7 @@ class MedicalRecordModel:
                         VALUES (?, ?, ?, N'Chỉ định Cận lâm sàng', '/patient/lab-results', 0, ?)
                     ''', (
                         bn_cls_row['tai_khoan_id'],
-                        f"Hoàn tất khám lâm sàng & Chuyển Cận lâm sàng: {ma_cd}",
+                        f"Hoàn tất khám lâm sàng và Chuyển Cận lâm sàng: {ma_cd}",
                         f"Bác sĩ đã hoàn tất khám lâm sàng và chỉ định thực hiện Cận lâm sàng ({ma_cd}) gồm: {', '.join(assigned_lab_names)}. Vui lòng di chuyển đến Khu Cận lâm sàng để kỹ thuật viên thực hiện xét nghiệm/chẩn đoán hình ảnh.",
                         now_cls_str
                     ))

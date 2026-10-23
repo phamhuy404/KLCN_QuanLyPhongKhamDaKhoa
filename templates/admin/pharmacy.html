@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Quản Lý Kho Dược & Nhà Thuốc{% endblock %}
+{% block title %}H2T Healthcare - Quản Lý Kho Dược và Nhà Thuốc{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -13,19 +13,19 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Tiêu đề trang & Thao tác chính -->
+    <!-- 1. Tiêu đề trang và Thao tác chính -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">Kho dược & Nhà thuốc</span>
+                <span class="text-medical-600 font-semibold">Kho dược và Nhà thuốc</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
                 <span class="w-9 h-9 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-pills"></i>
                 </span>
-                Quản Lý Kho Dược & Quầy Phát Thuốc
+                Quản Lý Kho Dược và Quầy Phát Thuốc
             </h2>
             <p class="text-xs text-slate-500 mt-1">
                 Kiểm soát tồn kho dược phẩm, hạn sử dụng, phát thuốc theo đơn bác sĩ và quản lý xuất nhập tồn chuẩn GPP.
@@ -111,7 +111,7 @@
     <!-- 3. Chuyển đổi Tab: 1. Danh Mục Tồn Kho | 2. Quầy Phát Thuốc -->
     <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl w-max text-xs font-bold">
         <button type="button" onclick="switchPharmacyTab('inventory')" id="btn-tab-inventory" class="px-5 py-2.5 rounded-xl bg-white text-medical-700 shadow-sm transition-all">
-            <i class="fa-solid fa-warehouse mr-1.5"></i> Danh Mục & Tồn Kho Thuốc
+            <i class="fa-solid fa-warehouse mr-1.5"></i> Danh Mục và Tồn Kho Thuốc
         </button>
         <button type="button" onclick="switchPharmacyTab('dispensing')" id="btn-tab-dispensing" class="px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition-all">
             <i class="fa-solid fa-hand-holding-medical mr-1.5"></i> Quầy Phát Thuốc Theo Đơn EMR
@@ -146,7 +146,7 @@
                     <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                         <tr>
                             <th class="py-3 px-4">Mã Thuốc</th>
-                            <th class="py-3 px-4">Tên Thuốc & Biệt Dược</th>
+                            <th class="py-3 px-4">Tên Thuốc và Biệt Dược</th>
                             <th class="py-3 px-4">Hoạt Chất Chính</th>
                             <th class="py-3 px-4">Đơn Vị</th>
                             <th class="py-3 px-4">Số Lượng Tồn</th>
@@ -168,7 +168,7 @@
         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex items-center justify-between">
                 <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider">
-                    Đơn Thuốc Chờ Dược Sĩ Xuất Kho & Phát Cho Bệnh Nhân
+                    Đơn Thuốc Chờ Dược Sĩ Xuất Kho và Phát Cho Bệnh Nhân
                 </h4>
                 <span class="text-xs text-teal-700 font-semibold">Tự động liên thông từ Phòng Khám EMR</span>
             </div>

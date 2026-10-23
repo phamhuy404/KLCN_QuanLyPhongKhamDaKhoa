@@ -180,7 +180,7 @@ class PatientModel:
             ''', (enc['id'],))
             enc['can_lam_sang'] = [dict(r) for r in cursor.fetchall()]
 
-            # Lấy thông tin đơn thuốc & hình thức mua
+            # Lấy thông tin đơn thuốc và hình thức mua
             cursor.execute('''
                 SELECT id AS don_thuoc_id, ma_don_thuoc, trang_thai AS trang_thai_don_thuoc, hinh_thuc_mua
                 FROM don_thuoc
@@ -257,6 +257,39 @@ class PatientModel:
         cursor = conn.cursor()
 
         try:
+            from core.validators import validate_name, validate_phone, validate_cccd, validate_bhyt, validate_birth_date
+            ok_name, res_name = validate_name(data.get('ho_ten', ''), 'Họ và tên bệnh nhân')
+            if not ok_name:
+                conn.close()
+                return False, None, res_name
+            data['ho_ten'] = res_name
+
+            ok_phone, res_phone = validate_phone(data.get('sdt', ''), 'Số điện thoại')
+            if not ok_phone:
+                conn.close()
+                return False, None, res_phone
+            data['sdt'] = res_phone
+
+            if data.get('cccd'):
+                ok_cccd, res_cccd = validate_cccd(data.get('cccd'), required=False)
+                if not ok_cccd:
+                    conn.close()
+                    return False, None, res_cccd
+                data['cccd'] = res_cccd
+
+            if data.get('bhyt'):
+                ok_bhyt, res_bhyt = validate_bhyt(data.get('bhyt'), required=False)
+                if not ok_bhyt:
+                    conn.close()
+                    return False, None, res_bhyt
+                data['bhyt'] = res_bhyt
+
+            if data.get('ngay_sinh'):
+                ok_ns, res_ns = validate_birth_date(str(data.get('ngay_sinh')), is_staff=False, required=False)
+                if not ok_ns:
+                    conn.close()
+                    return False, None, res_ns
+
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM benh_nhan')
             next_id = cursor.fetchone()['next_id']
             ma_benh_nhan = f"BN2609{str(next_id).zfill(3)}"
@@ -327,11 +360,67 @@ class PatientModel:
 
     @staticmethod
     def update_profile(patient_id, data):
-        """Cập nhật thông tin cá nhân và hồ sơ y tế của bệnh nhân."""
+        """Cập nhật thông tin cá nhân và hồ sơ y tế của bệnh nhân với kiểm tra ràng buộc chặt chẽ."""
         conn = get_db()
         cursor = conn.cursor()
 
         try:
+            from core.validators import validate_name, validate_phone, validate_cccd, validate_bhyt, validate_birth_date, validate_email
+            if data.get('ho_ten'):
+                ok_name, res_name = validate_name(data.get('ho_ten'), 'Họ và tên bệnh nhân')
+                if not ok_name:
+                    conn.close()
+                    return False, res_name
+                data['ho_ten'] = res_name
+
+            if data.get('sdt'):
+                ok_phone, res_phone = validate_phone(data.get('sdt'), 'Số điện thoại', required=False)
+                if not ok_phone:
+                    conn.close()
+                    return False, res_phone
+                data['sdt'] = res_phone
+
+            if data.get('cccd'):
+                ok_cccd, res_cccd = validate_cccd(data.get('cccd'), required=False)
+                if not ok_cccd:
+                    conn.close()
+                    return False, res_cccd
+                data['cccd'] = res_cccd
+
+            if data.get('bhyt'):
+                ok_bhyt, res_bhyt = validate_bhyt(data.get('bhyt'), required=False)
+                if not ok_bhyt:
+                    conn.close()
+                    return False, res_bhyt
+                data['bhyt'] = res_bhyt
+
+            if data.get('email'):
+                ok_email, res_email = validate_email(data.get('email'), required=False)
+                if not ok_email:
+                    conn.close()
+                    return False, res_email
+                data['email'] = res_email
+
+            if data.get('ngay_sinh'):
+                ok_ns, res_ns = validate_birth_date(str(data.get('ngay_sinh')), is_staff=False, required=False)
+                if not ok_ns:
+                    conn.close()
+                    return False, res_ns
+
+            if data.get('nguoi_than_ho_ten'):
+                ok_nth, res_nth = validate_name(data.get('nguoi_than_ho_ten'), 'Họ tên người thân')
+                if not ok_nth:
+                    conn.close()
+                    return False, res_nth
+                data['nguoi_than_ho_ten'] = res_nth
+
+            if data.get('nguoi_than_sdt'):
+                ok_nts, res_nts = validate_phone(data.get('nguoi_than_sdt'), 'Số điện thoại người thân', required=False)
+                if not ok_nts:
+                    conn.close()
+                    return False, res_nts
+                data['nguoi_than_sdt'] = res_nts
+
             cursor.execute('''
                 UPDATE benh_nhan
                 SET ho_ten = ?,

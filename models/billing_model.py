@@ -81,9 +81,9 @@ class BillingModel:
                 if str(inv.get('ma_hoa_don', '')).startswith('HDT'):
                     inv['khoan_muc'] = 'Hóa đơn thuốc điều trị tại bệnh viện'
                 elif str(inv.get('ma_hoa_don', '')).startswith('HDK'):
-                    inv['khoan_muc'] = 'Chi phí khám bệnh & dịch vụ ban đầu'
+                    inv['khoan_muc'] = 'Chi phí khám bệnh và dịch vụ ban đầu'
                 else:
-                    inv['khoan_muc'] = 'Chi phí khám bệnh & cận lâm sàng'
+                    inv['khoan_muc'] = 'Chi phí khám bệnh và cận lâm sàng'
 
         conn.close()
         return invoices
@@ -143,7 +143,7 @@ class BillingModel:
                     WHERE phieu_kham_id = ? AND hinh_thuc_mua = N'Mua tại bệnh viện'
                 ''', (hd_row['phieu_kham_id'],))
 
-                # Gửi thông báo cho Quản lý kho dược (Dược sĩ & Admin) để chuẩn bị phát thuốc
+                # Gửi thông báo cho Quản lý kho dược (Dược sĩ và Admin) để chuẩn bị phát thuốc
                 cursor.execute("SELECT id FROM tai_khoan WHERE vai_tro_id IN (1, 4) AND trang_thai = 1")
                 pharmacists = cursor.fetchall()
                 for ph in pharmacists:

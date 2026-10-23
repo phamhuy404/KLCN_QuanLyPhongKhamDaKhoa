@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Bộ kiểm thử toàn diện cho tất cả các tính năng nâng cấp:
-1. EMR 2 giai đoạn & Kéo thả / Upload tối đa 10 ảnh WebP (Bác sĩ & KTV).
+1. EMR 2 giai đoạn và Kéo thả / Upload tối đa 10 ảnh WebP (Bác sĩ và KTV).
 2. KTV kiểm tra trạng thái thanh toán viện phí CLS.
 3. Cảnh báo dị ứng thuốc thời gian thực.
 4. Phân quyền đăng ký ca làm: Admin không đăng ký, Lễ tân tự duyệt, Bác sĩ/Dược sĩ/KTV chờ duyệt.
-5. Hồ sơ cá nhân nội bộ (Admin & Nhân viên) & đổi mật khẩu.
+5. Hồ sơ cá nhân nội bộ (Admin và Nhân viên) và đổi mật khẩu.
 6. Điều phối lịch hẹn khi hủy ca trực bác sĩ.
-7. Chống đặt trùng giờ & Chặn đổi lịch đã xong/hủy.
+7. Chống đặt trùng giờ và Chặn đổi lịch đã xong/hủy.
 8. Nhận diện chính xác hóa đơn thuốc (HDT).
 """
 

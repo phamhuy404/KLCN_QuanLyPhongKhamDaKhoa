@@ -10,8 +10,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <!-- Dark Mode Init Script -->
+    <script>
+        try {
+            const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
+    </script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
@@ -32,10 +45,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="bg-slate-50 font-sans antialiased text-slate-800 min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <div class="fixed top-5 right-5 z-50">
+        <button type="button" onclick="toggleDarkMode()" 
+                class="w-10 h-10 rounded-2xl bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md shadow-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all hover:scale-105" 
+                title="Chuyển chế độ Giao diện Sáng / Tối">
+            <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+        </button>
+    </div>
 
     <div class="max-w-4xl w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden grid grid-cols-1 md:grid-cols-2">
         
-        <!-- Left Side: Brand Illustration & Features -->
+        <!-- Left Side: Brand Illustration và Features -->
         <div class="bg-gradient-to-br from-medical-600 to-teal-700 p-8 sm:p-12 text-white flex flex-col justify-between relative overflow-hidden hidden md:flex">
             <!-- Background Glow Decor -->
             <div class="absolute -top-12 -left-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
@@ -69,7 +89,7 @@
                 </div>
                 <div class="flex items-center gap-3 text-xs text-medical-100">
                     <i class="fa-solid fa-bolt text-medical-200 text-base"></i>
-                    <span>Nhận kết quả xét nghiệm & toa thuốc tức thì</span>
+                    <span>Nhận kết quả xét nghiệm và toa thuốc tức thì</span>
                 </div>
             </div>
         </div>

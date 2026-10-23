@@ -4,7 +4,7 @@
 {% set user_role = curr_user.get('vai_tro', 'ADMIN') %}
 {% set is_admin = (user_role == 'ADMIN') %}
 
-{% block title %}H2T Healthcare - {% if is_admin %}Phân Mục Quản Lý Tài Khoản{% else %}Thông Tin Tài Khoản & Nhân Sự{% endif %}{% endblock %}
+{% block title %}H2T Healthcare - {% if is_admin %}Phân Mục Quản Lý Tài Khoản{% else %}Thông Tin Tài Khoản và Nhân Sự{% endif %}{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -17,19 +17,19 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- 1. Header Trang & Các Nút Thao Tác Nhanh -->
+    <!-- 1. Header Trang và Các Nút Thao Tác Nhanh -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
                 <a href="{{ url_for('admin_dashboard') }}" class="hover:text-medical-600">Quản trị</a>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-semibold">{% if is_admin %}Tài khoản & Phân quyền{% else %}Thông tin tài khoản{% endif %}</span>
+                <span class="text-medical-600 font-semibold">{% if is_admin %}Tài khoản và Phân quyền{% else %}Thông tin tài khoản{% endif %}</span>
             </div>
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5">
                 <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base">
                     <i class="fa-solid fa-users-gear"></i>
                 </span>
-                {% if is_admin %}Quản Lý Tài Khoản Theo Bộ Phận{% else %}Thông Tin Tài Khoản & Nhân Sự{% endif %}
+                {% if is_admin %}Quản Lý Tài Khoản Theo Bộ Phận{% else %}Thông Tin Tài Khoản và Nhân Sự{% endif %}
             </h2>
             <p class="text-xs text-slate-500 mt-1">
                 {% if is_admin %}
@@ -95,11 +95,11 @@
             {% endif %}
 
             {% if is_admin or user_role == 'LETAN' %}
-            <!-- Mục 2: Lễ Tân & Tiếp Đón -->
+            <!-- Mục 2: Lễ Tân và Tiếp Đón -->
             <a href="{{ url_for('admin.accounts', role='LETAN') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'LETAN' %}bg-sky-600 text-white shadow-md shadow-sky-600/20{% else %}text-slate-600 hover:bg-sky-50 hover:text-sky-700{% endif %}">
                 <i class="fa-solid fa-bell-concierge text-sm"></i>
-                <span>Lễ Tân & Tiếp Đón</span>
+                <span>Lễ Tân và Tiếp Đón</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'LETAN' %}bg-sky-700 text-sky-100{% else %}bg-sky-100 text-sky-800{% endif %} font-mono">
                     {{ stats.letan or 0 }}
                 </span>
@@ -119,11 +119,11 @@
             {% endif %}
 
             {% if is_admin or user_role == 'DUOCSI' %}
-            <!-- Mục 4: Dược Sĩ & Kho Dược -->
+            <!-- Mục 4: Dược Sĩ và Kho Dược -->
             <a href="{{ url_for('admin.accounts', role='DUOCSI') }}" 
                class="px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 {% if current_role == 'DUOCSI' %}bg-purple-600 text-white shadow-md shadow-purple-600/20{% else %}text-slate-600 hover:bg-purple-50 hover:text-purple-700{% endif %}">
                 <i class="fa-solid fa-prescription-bottle-medical text-sm"></i>
-                <span>Dược Sĩ & Kho Thuốc</span>
+                <span>Dược Sĩ và Kho Thuốc</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] {% if current_role == 'DUOCSI' %}bg-purple-700 text-purple-100{% else %}bg-purple-100 text-purple-800{% endif %} font-mono">
                     {{ stats.duocsi or 0 }}
                 </span>
@@ -167,7 +167,7 @@
         </div>
     </div>
 
-    <!-- 3. Banner Ngữ Cảnh Từng Mục & Công Cụ Tìm Kiếm -->
+    <!-- 3. Banner Ngữ Cảnh Từng Mục và Công Cụ Tìm Kiếm -->
     <div class="p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 
         {% if current_role == 'LETAN' %}bg-gradient-to-r from-sky-50 to-blue-50/40 border-sky-200
         {% elif current_role == 'BACSI' %}bg-gradient-to-r from-teal-50 to-emerald-50/40 border-teal-200
@@ -181,16 +181,16 @@
             <h3 class="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-2">
                 {% if current_role == 'LETAN' %}
                     <i class="fa-solid fa-bell-concierge text-sky-600"></i>
-                    Bộ Phận Lễ Tân & Tiếp Đón Bệnh Nhân
+                    Bộ Phận Lễ Tân và Tiếp Đón Bệnh Nhân
                 {% elif current_role == 'BACSI' %}
                     <i class="fa-solid fa-user-doctor text-teal-600"></i>
                     Đội Ngũ Bác Sĩ Chuyên Khoa Khám Chữa Bệnh
                 {% elif current_role == 'DUOCSI' %}
                     <i class="fa-solid fa-prescription-bottle-medical text-purple-600"></i>
-                    Bộ Phận Dược Sĩ & Cấp Phát Thuốc Toa
+                    Bộ Phận Dược Sĩ và Cấp Phát Thuốc Toa
                 {% elif current_role == 'KTV' %}
                     <i class="fa-solid fa-vial-virus text-amber-600"></i>
-                    Kỹ Thuật Viên Xét Nghiệm & Chẩn Đoán Hình Ảnh
+                    Kỹ Thuật Viên Xét Nghiệm và Chẩn Đoán Hình Ảnh
                 {% elif current_role == 'BENHNHAN' %}
                     <i class="fa-solid fa-hospital-user text-emerald-600"></i>
                     Danh Sách Tài Khoản Cổng Bệnh Nhân (Patient Portal)
@@ -252,7 +252,7 @@
                     <tr>
                         <th class="py-3.5 px-4">Mã / ID</th>
                         <th class="py-3.5 px-4">Tên Đăng Nhập</th>
-                        <th class="py-3.5 px-4">Họ & Tên Chủ Sở Hữu</th>
+                        <th class="py-3.5 px-4">Họ và Tên Chủ Sở Hữu</th>
                         <th class="py-3.5 px-4">Bộ Phận / Vai Trò</th>
                         <th class="py-3.5 px-4">Liên Hệ (SĐT / Email)</th>
                         <th class="py-3.5 px-4">Lần Đăng Nhập Cuối</th>
@@ -418,7 +418,7 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Bộ phận / Vai trò <span class="text-rose-500">*</span></label>
                     <select name="vai_tro_id" id="modal-staff-role" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
-                        <option value="2">Lễ tân & Tiếp đón (LETAN)</option>
+                        <option value="2">Lễ tân và Tiếp đón (LETAN)</option>
                         <option value="3">Bác sĩ chuyên khoa (BACSI)</option>
                         <option value="4">Dược sĩ / Kho dược (DUOCSI)</option>
                         <option value="5">Kỹ thuật viên xét nghiệm (KTV)</option>
@@ -452,8 +452,8 @@
                 </div>
 
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Chức vụ & Vị trí làm việc <span class="text-rose-500">*</span></label>
-                    <input type="text" name="chuc_vu" required placeholder="Ví dụ: Tiếp đón & Điều phối lịch hẹn - Quầy A" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
+                    <label class="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Chức vụ và Vị trí làm việc <span class="text-rose-500">*</span></label>
+                    <input type="text" name="chuc_vu" required placeholder="Ví dụ: Tiếp đón và Điều phối lịch hẹn - Quầy A" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
                 </div>
 
                 <div class="sm:col-span-2">
@@ -464,7 +464,7 @@
 
             <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
                 <button type="button" onclick="closeCreateStaffModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">Hủy</button>
-                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">Lưu & Cấp Tài Khoản</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">Lưu và Cấp Tài Khoản</button>
             </div>
         </form>
     </div>

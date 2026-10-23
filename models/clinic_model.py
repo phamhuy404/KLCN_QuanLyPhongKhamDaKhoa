@@ -340,21 +340,24 @@ class ClinicModel:
 
     @staticmethod
     def create_service(chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu='Khám bệnh', don_gia=0.0, bhyt_chi_tra_pt=0, mo_ta=''):
-        """Thêm dịch vụ kỹ thuật y tế mới."""
+        """Thêm dịch vụ kỹ thuật y tế mới với kiểm tra ràng buộc chặt chẽ."""
         ma_dich_vu = (ma_dich_vu or '').strip().upper()
         ten_dich_vu = (ten_dich_vu or '').strip()
         if not ma_dich_vu or not ten_dich_vu:
             return False, "Mã dịch vụ và tên dịch vụ là bắt buộc!"
 
+        from core.validators import validate_service_data
+        ok_srv, err_srv = validate_service_data({
+            'ten_dich_vu': ten_dich_vu,
+            'don_gia': don_gia,
+            'bhyt_chi_tra_pt': bhyt_chi_tra_pt
+        })
+        if not ok_srv:
+            return False, list(err_srv.values())[0]
+
         try:
             don_gia = float(don_gia)
-            if don_gia < 0:
-                don_gia = 0.0
             bhyt_chi_tra_pt = int(bhyt_chi_tra_pt)
-            if bhyt_chi_tra_pt < 0:
-                bhyt_chi_tra_pt = 0
-            if bhyt_chi_tra_pt > 100:
-                bhyt_chi_tra_pt = 100
         except (ValueError, TypeError):
             don_gia = 0.0
             bhyt_chi_tra_pt = 0

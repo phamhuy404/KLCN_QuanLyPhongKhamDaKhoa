@@ -276,7 +276,7 @@ def backups():
 @admin_bp.route('/accounts')
 @roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def accounts():
-    """Điều hướng hợp nhất sang phân hệ Quản lý Nhân sự & Lịch trực."""
+    """Điều hướng hợp nhất sang phân hệ Quản lý Nhân sự và Lịch trực."""
     return redirect(url_for('admin.staff', tab='staff'))
 
 @admin_bp.route('/accounts/reset-password', methods=['POST'])
@@ -372,6 +372,9 @@ def import_csv(module):
         return redirect(request.referrer or url_for('admin.dashboard'))
 
     curr_user = session.get('user', {})
+    if module == 'articles' and curr_user.get('vai_tro') not in ['ADMIN', 'LETAN']:
+        flash('Chỉ Lễ tân và Quản trị viên mới có quyền nhập dữ liệu bài viết từ CSV!', 'error')
+        return redirect(request.referrer or url_for('admin.articles'))
     success, msg, inserted, updated = CSVService.import_csv(module, file.stream, current_user=curr_user)
     if success:
         flash(msg, 'success')
@@ -481,7 +484,7 @@ def doctor_detail(doctor_id):
 @admin_bp.route('/profile', methods=['GET', 'POST'])
 @admin_bp.route('/my-profile', methods=['GET', 'POST'])
 def profile():
-    """Hồ sơ cá nhân và đổi mật khẩu dành cho nhân sự y tế & quản trị viên."""
+    """Hồ sơ cá nhân và đổi mật khẩu dành cho nhân sự y tế và quản trị viên."""
     user = session.get('user', {})
     if not user:
         return redirect(url_for('login'))
@@ -556,6 +559,9 @@ def articles():
     status = request.args.get('status', 'ALL')
     search = request.args.get('search', '')
 
+    user_role = session.get('user', {}).get('vai_tro')
+    can_manage_articles = user_role in ['ADMIN', 'LETAN']
+
     articles_list = ArticleModel.get_all_admin(category=category, search=search, status=status)
     categories = ArticleModel.get_categories()
     return render_template(
@@ -564,12 +570,18 @@ def articles():
         articles=articles_list,
         categories=categories,
         current_cat=category,
-        current_status=status
+        current_status=status,
+        can_manage_articles=can_manage_articles
     )
 
 @admin_bp.route('/articles/create', methods=['GET', 'POST'])
 def article_create():
-    """Soạn thảo và đăng tải bài viết mới."""
+    """Soạn thảo và đăng tải bài viết mới (Chỉ dành cho Quản trị viên và Lễ tân)."""
+    user_role = session.get('user', {}).get('vai_tro')
+    if user_role not in ['ADMIN', 'LETAN']:
+        flash('Chỉ Lễ tân và Quản trị viên mới có quyền soạn thảo hoặc đăng bài viết!', 'danger')
+        return redirect(url_for('admin.articles'))
+
     from models.article_model import ArticleModel
     if request.method == 'POST':
         curr_user = session.get('user', {})
@@ -588,6 +600,7 @@ def article_create():
 
         success, res = ArticleModel.create(data)
         if success:
+            flash('Đã đăng bài viết thành công!', 'success')
             return redirect(url_for('admin.articles'))
         return render_template(
             'admin/article_editor.html',
@@ -602,7 +615,12 @@ def article_create():
 
 @admin_bp.route('/articles/edit/<int:article_id>', methods=['GET', 'POST'])
 def article_edit(article_id):
-    """Chỉnh sửa bài viết đã có."""
+    """Chỉnh sửa bài viết đã có (Chỉ dành cho Quản trị viên và Lễ tân)."""
+    user_role = session.get('user', {}).get('vai_tro')
+    if user_role not in ['ADMIN', 'LETAN']:
+        flash('Chỉ Lễ tân và Quản trị viên mới có quyền chỉnh sửa bài viết!', 'danger')
+        return redirect(url_for('admin.articles'))
+
     from models.article_model import ArticleModel
     article = ArticleModel.get_by_id(article_id)
     if not article:
@@ -621,6 +639,7 @@ def article_edit(article_id):
 
         success, res = ArticleModel.update(article_id, data)
         if success:
+            flash('Đã cập nhật bài viết thành công!', 'success')
             return redirect(url_for('admin.articles'))
         return render_template(
             'admin/article_editor.html',
@@ -635,7 +654,11 @@ def article_edit(article_id):
 
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
 def article_delete(article_id):
-    """Xóa bài viết."""
+    """Xóa bài viết (Chỉ dành cho Quản trị viên và Lễ tân)."""
+    user_role = session.get('user', {}).get('vai_tro')
+    if user_role not in ['ADMIN', 'LETAN']:
+        return jsonify({'success': False, 'message': 'Chỉ Lễ tân và Quản trị viên mới có quyền xóa bài viết!'}), 403
+
     from models.article_model import ArticleModel
     success, msg = ArticleModel.delete(article_id)
     return jsonify({'success': success, 'message': msg})

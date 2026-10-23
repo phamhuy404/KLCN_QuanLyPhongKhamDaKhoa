@@ -5,7 +5,7 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 1. QUY TRÌNH 1: ĐĂNG KÝ, ĐĂNG NHẬP & BẮT BUỘC HOÀN THIỆN HỒ SƠ (PATIENT ONBOARDING)
+## 1. QUY TRÌNH 1: ĐĂNG KÝ, ĐĂNG NHẬP và BẮT BUỘC HOÀN THIỆN HỒ SƠ (PATIENT ONBOARDING)
 - **Tác nhân tham gia**: Bệnh nhân.
 - **Mục tiêu**: Đảm bảo 100% người bệnh trong hệ thống có đầy đủ thông tin định danh y tế chuẩn, không chứa ký tự lạ hay sai lệch trước khi thực hiện các dịch vụ y tế.
 - **Các bước thực hiện**:
@@ -13,7 +13,7 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
   2. **Khởi tạo hồ sơ sơ bộ**: Hệ thống tạo tài khoản (`vai_tro_id = 6`, `trang_thai = 1`) và cờ `da_hoan_thien_ho_so = 0`. Tự động cấp mã bệnh nhân chuẩn `BN2609xxx`.
   3. **Đăng nhập liền trong cùng phiên**: Bệnh nhân đăng nhập bằng SĐT và Mật khẩu tại `/auth/login`.
   4. **Hàng rào chặn thông minh (Middleware Guard)**: Bộ lọc `before_request` nhận diện tài khoản có `da_hoan_thien_ho_so = 0` và tự động chuyển hướng bắt buộc đến trang `/patient/complete-profile`. Bệnh nhân bị phong tỏa quyền truy cập Dashboard và Đặt lịch khám cho đến khi hoàn tất.
-  5. **Kiểm tra dữ liệu & Chống ký tự lạ**:
+  5. **Kiểm tra dữ liệu và Chống ký tự lạ**:
      - Họ tên: Chỉ cho phép chữ cái tiếng Việt và khoảng trắng, không chứa số hay ký tự đặc biệt.
      - Ngày sinh: Định dạng YYYY-MM-DD hợp lệ, không vượt quá ngày hiện tại.
      - CCCD: Bắt buộc đúng 12 chữ số.
@@ -24,7 +24,7 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 2. QUY TRÌNH 2: PHÂN CÔNG & DUYỆT LỊCH LÀM VIỆC CỦA NHÂN SỰ Y TẾ (STAFF SCHEDULING)
+## 2. QUY TRÌNH 2: PHÂN CÔNG VÀ DUYỆT LỊCH LÀM VIỆC CỦA NHÂN SỰ Y TẾ (STAFF SCHEDULING)
 - **Tác nhân tham gia**: Bác sĩ, Nhân viên y tế, Tiếp tân, Quản trị viên (Admin).
 - **Mục tiêu**: Đảm bảo phân bổ nguồn lực y tế tối ưu, tránh quá tải chuyên khoa trong từng ca trực.
 - **Các bước thực hiện**:
@@ -62,7 +62,7 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 4. QUY TRÌNH 4: TIẾP NHẬN & ĐIỀU PHỐI BỆNH NHÂN TẠI PHÒNG KHÁM (INTAKE & TRIAGE)
+## 4. QUY TRÌNH 4: TIẾP NHẬN VÀ ĐIỀU PHỐI BỆNH NHÂN TẠI PHÒNG KHÁM (INTAKE VÀ TRIAGE)
 - **Tác nhân tham gia**: Nhân viên Tiếp tân, Bệnh nhân, Bác sĩ.
 - **Mục tiêu**: Xác nhận bệnh nhân đã đến phòng khám, chuyển lịch vào hàng đợi của Bác sĩ chuyên khoa.
 - **Các bước thực hiện**:
@@ -75,12 +75,12 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 5. QUY TRÌNH 5: KHÁM LÂM SÀNG & BỆNH ÁN ĐIỆN TỬ EMR (CLINICAL CONSULTATION)
+## 5. QUY TRÌNH 5: KHÁM LÂM SÀNG VÀ BỆNH ÁN ĐIỆN TỬ EMR (CLINICAL CONSULTATION)
 - **Tác nhân tham gia**: Bác sĩ chuyên khoa, Bệnh nhân.
 - **Mục tiêu**: Bác sĩ thăm khám, ghi nhận triệu chứng, mã bệnh ICD-10 và đưa ra hướng điều trị.
 - **Hai nhánh phân luồng nghiệp vụ**:
   - **Nhánh A - Khám lâm sàng bình thường (Sức khỏe tốt / Không cần CLS)**:
-    - Bác sĩ bấm "Hoàn tất khám & Xuất hóa đơn" ngay từ giao diện EMR.
+    - Bác sĩ bấm "Hoàn tất khám và Xuất hóa đơn" ngay từ giao diện EMR.
     - Hệ thống tự động ghi nhận bệnh án (`PK2609xxx`), cập nhật lịch hẹn sang `Đã khám`.
     - Tự động sinh hóa đơn tiền công khám ngoại trú (`HD2609xxx`: 150.000đ).
     - Cấn trừ BHYT thông minh: Nếu bệnh nhân có thẻ BHYT, tự động khấu trừ 80% (120.000đ), bệnh nhân chỉ đóng 30.000đ. Nếu không có BHYT, bệnh nhân thanh toán đủ 150.000đ.
@@ -89,11 +89,11 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
     - Bác sĩ chọn các kỹ thuật cận lâm sàng cần thực hiện.
     - Hệ thống tạo phiếu chỉ định `CD2609xxx` với trạng thái `Chờ thực hiện`.
     - Trạng thái phiên khám chuyển sang theo dõi cận lâm sàng.
-    - Bệnh nhân nhận thông báo: "Hoàn tất khám lâm sàng & Chuyển Cận lâm sàng: CD2609xxx. Vui lòng di chuyển đến Khu Cận lâm sàng."
+    - Bệnh nhân nhận thông báo: "Hoàn tất khám lâm sàng và Chuyển Cận lâm sàng: CD2609xxx. Vui lòng di chuyển đến Khu Cận lâm sàng."
 
 ---
 
-## 6. QUY TRÌNH 6: THỰC HIỆN CẬN LÂM SÀNG & CHẨN ĐOÁN HÌNH ẢNH (PARACLINICAL & IMAGING)
+## 6. QUY TRÌNH 6: THỰC HIỆN CẬN LÂM SÀNG VÀ CHẨN ĐOÁN HÌNH ẢNH (PARACLINICAL VÀ IMAGING)
 - **Tác nhân tham gia**: Kỹ thuật viên (KTV) xét nghiệm / CĐHA, Bác sĩ điều trị, Bệnh nhân.
 - **Mục tiêu**: Thu thập mẫu, chụp chiếu, tải ảnh chẩn đoán và ghi nhận kết quả định lượng/định tính.
 - **Các bước thực hiện**:
@@ -109,12 +109,12 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 7. QUY TRÌNH 7: KÊ ĐƠN THUỐC & LỰA CHỌN NƠI MUA THUỐC CỦA BỆNH NHÂN (E-PRESCRIPTION)
+## 7. QUY TRÌNH 7: KÊ ĐƠN THUỐC và LỰA CHỌN NƠI MUA THUỐC CỦA BỆNH NHÂN (E-PRESCRIPTION)
 - **Tác nhân tham gia**: Bác sĩ, Bệnh nhân.
 - **Mục tiêu**: Kê đơn an toàn, cảnh báo tồn kho và trao quyền lựa chọn nguồn mua thuốc cho người bệnh.
 - **Các bước thực hiện**:
   1. Bác sĩ kê đơn gồm danh mục thuốc, liều dùng và cách dùng trong EMR.
-  2. **Cảnh báo tồn kho ít & Chặn kê vượt tồn**:
+  2. **Cảnh báo tồn kho ít và Chặn kê vượt tồn**:
      - Nếu tồn kho <= số lượng cảnh báo tối thiểu: Hiển thị tag cảnh báo màu hổ phách/đỏ.
      - Chặn tuyệt đối không cho phép bác sĩ kê đơn số lượng lớn hơn số lượng tồn thực tế trong kho.
   3. **Khởi tạo đơn thuốc**: Đơn thuốc lưu vào CSDL với trạng thái ban đầu `Chờ bệnh nhân xác nhận mua` và `hinh_thuc_mua = 'Chưa chọn'`.
@@ -143,10 +143,10 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 9. QUY TRÌNH 9: QUẢN LÝ VIỆN PHÍ & CẤN TRỪ BHYT (BILLING & RECONCILIATION)
+## 9. QUY TRÌNH 9: QUẢN LÝ VIỆN PHÍ và CẤN TRỪ BHYT (BILLING VÀ RECONCILIATION)
 - **Tác nhân tham gia**: Thu ngân, Kế toán, Bệnh nhân.
 - **Mục tiêu**: Thu viện phí minh bạch, cấn trừ đúng tỷ lệ BHYT và ghi nhận doanh thu.
-- **Cấu trúc khoản thu & Cơ chế cấn trừ**:
+- **Cấu trúc khoản thu và Cơ chế cấn trừ**:
   - `Tổng tiền` = `Tiền khám` + `Tiền Cận lâm sàng (nếu có)` + `Tiền thuốc (chỉ cộng khi mua tại viện)`.
   - `Tiền BHYT chi trả`:
     - Nếu bệnh nhân có thẻ BHYT hợp lệ: Tự động khấu trừ 80% tiền khám (120.000đ) và theo tỷ lệ % danh mục dịch vụ kỹ thuật CLS được bảo hiểm thanh toán.
@@ -159,7 +159,7 @@ Tài liệu này mô tả chi tiết 10 quy trình nghiệp vụ đã được t
 
 ---
 
-## 10. QUY TRÌNH 10: THEO DÕI HỒ SƠ 360° & NHẮC LỊCH TÁI KHÁM (PATIENT ENGAGEMENT)
+## 10. QUY TRÌNH 10: THEO DÕI HỒ SƠ 360° VÀ NHẮC LỊCH TÁI KHÁM (PATIENT ENGAGEMENT)
 - **Tác nhân tham gia**: Bệnh nhân, Hệ thống tự động.
 - **Mục tiêu**: Người bệnh nắm trọn vẹn lịch sử điều trị và không bỏ lỡ lịch hẹn sắp tới.
 - **Các bước thực hiện**:

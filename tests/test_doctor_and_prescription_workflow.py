@@ -25,9 +25,9 @@ class DoctorAndPrescriptionWorkflowTestCase(unittest.TestCase):
 
     def test_01_create_doctor_account_default_password_and_guard(self):
         """Kiểm tra admin tạo bác sĩ với mật khẩu mặc định 123 và cơ chế chặn truy cập khi chưa hoàn thiện hồ sơ."""
-        random_suffix = random.randint(100000, 999999)
-        test_phone = f"091{random_suffix}"
-        test_name = f"BS Test Quy Trinh {random_suffix}"
+        random_suffix = random.randint(1000000, 9999999)
+        test_phone = f"098{random_suffix}"
+        test_name = "Bác Sĩ Kiểm Thử Quy Trình"
         test_email = f"bstest{random_suffix}@phongkham.vn"
 
         # 1. Admin tạo tài khoản bác sĩ
@@ -88,9 +88,9 @@ class DoctorAndPrescriptionWorkflowTestCase(unittest.TestCase):
 
     def test_02_complete_doctor_profile_validation_and_unlock(self):
         """Kiểm tra ràng buộc đổi mật khẩu mới (khác 123, >= 6 ký tự) và mở khóa truy cập hệ thống."""
-        random_suffix = random.randint(100000, 999999)
-        test_phone = f"092{random_suffix}"
-        test_name = f"BS Validation {random_suffix}"
+        random_suffix = random.randint(1000000, 9999999)
+        test_phone = f"097{random_suffix}"
+        test_name = "Bác Sĩ Kiểm Thử Ràng Buộc"
 
         ok, _ = UserModel.create_doctor_account(
             ho_ten=test_name,

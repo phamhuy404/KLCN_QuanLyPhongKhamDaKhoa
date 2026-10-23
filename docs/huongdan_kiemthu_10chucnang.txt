@@ -1,5 +1,5 @@
 ================================================================================
-BÁO CÁO TỔNG HỢP HIỆN TRẠNG & HƯỚNG DẪN KIỂM THỬ 10 CHỨC NĂNG HỆ THỐNG PHÒNG KHÁM
+BÁO CÁO TỔNG HỢP HIỆN TRẠNG VÀ HƯỚNG DẪN KIỂM THỬ 10 CHỨC NĂNG HỆ THỐNG PHÒNG KHÁM
 Dự án: Phòng Khám Đa Khoa H2T Care (Kiến trúc MVC - Python Flask)
 ================================================================================
 
@@ -19,7 +19,7 @@ CSDL thật cho toàn bộ 10 chức năng, cụ thể:
 2. TIẾP NHẬN VÀ QUẢN LÝ PHẢN HỒI BỆNH NHÂN
    - Đã làm: Model FeedbackModel (models/feedback_model.py). Bệnh nhân gửi phản hồi
      với điểm 1-5 sao, chọn chủ đề và nhập nội dung.
-   - Bảo mật & cách ly: Bệnh nhân chỉ xem được phản hồi của chính mình.
+   - Bảo mật và cách ly: Bệnh nhân chỉ xem được phản hồi của chính mình.
    - Quản trị: Admin/CSKH lọc theo trạng thái/chủ đề và gửi câu trả lời.
    - Tự động đồng bộ: Khi CSKH trả lời, hệ thống tự sinh thông báo In-App gửi tới
      tài khoản bệnh nhân qua bảng thong_bao.
@@ -63,7 +63,7 @@ CSDL thật cho toàn bộ 10 chức năng, cụ thể:
      không làm lộ mật khẩu cũ.
    - Phân quyền động: Gán và đổi vai trò tài khoản theo danh mục bảng vai_tro.
    - Ghi vết kiểm toán: Mọi thao tác đổi quyền, đổi mật khẩu đều lưu vào bảng audit_log.
-   - Giao diện Admin: Tab "Tài khoản & Phân quyền" tại /admin/staff.
+   - Giao diện Admin: Tab "Tài khoản và Phân quyền" tại /admin/staff.
 
 7. QUẢN LÝ LỊCH HẸN, ĐIỀU PHỐI, ĐỔI VÀ HỦY LỊCH
    - Đã làm: Model AppointmentModel (models/appointment_model.py).
@@ -84,7 +84,7 @@ CSDL thật cho toàn bộ 10 chức năng, cụ thể:
    - Bác sĩ chuyên khoa duyệt kết quả nội bộ -> Chuyển trạng thái sang 'Đã duyệt'.
    - Cơ chế bảo vệ: Khi đã duyệt, KTV không thể chỉnh sửa kết quả; bệnh nhân chỉ nhìn thấy
      kết quả sau khi đã được bác sĩ phê duyệt chính thức.
-   - Giao diện: /admin/lab (KTV & Bác sĩ) và /patient/lab-results (Bệnh nhân).
+   - Giao diện: /admin/lab (KTV và Bác sĩ) và /patient/lab-results (Bệnh nhân).
 
 9. QUẢN LÝ BỆNH ÁN ĐIỆN TỬ VÀ LỊCH SỬ CHỈNH SỬA
    - Đã làm: MedicalRecordModel và AuditLogger (core/audit.py).
@@ -105,7 +105,7 @@ CSDL thật cho toàn bộ 10 chức năng, cụ thể:
    - Chống cấp phát lặp lại (Double-dispense): Từ chối xuất thuốc lần 2 trên cùng đơn
      để tránh trừ kho trùng lặp.
    - Hủy/điều chỉnh đơn có hoàn kho: Tự động cộng lại số lượng tồn kho và ghi audit log.
-   - Giao diện: /admin/pharmacy (Kho dược & Quầy phát thuốc), /patient/records.
+   - Giao diện: /admin/pharmacy (Kho dược và Quầy phát thuốc), /patient/records.
 
 --------------------------------------------------------------------------------
 PHẦN II. CÁCH CẤU HÌNH VÀ CHẠY DỰ ÁN
@@ -171,7 +171,7 @@ TEST CHỨC NĂNG 2: TIẾP NHẬN VÀ QUẢN LÝ PHẢN HỒI BỆNH NHÂN
   "Bác sĩ tư vấn rất tận tình, phòng khám sạch sẽ." -> Nhấn "Gửi ý kiến đóng góp".
   * Kết quả: Danh sách phản hồi của bệnh nhân hiển thị phản hồi mới với trạng thái
     "Chờ tiếp nhận".
-- Bước 4 (Admin tiếp nhận & trả lời): Đăng xuất, đăng nhập tài khoản Admin.
+- Bước 4 (Admin tiếp nhận và trả lời): Đăng xuất, đăng nhập tài khoản Admin.
   Truy cập: http://127.0.0.1:5000/admin/feedbacks
   * Kết quả: Thấy phản hồi của bệnh nhân vừa gửi.
   Nhấn nút "Trả lời" -> Nhập: "Phòng khám H2T Care chân thành cảm ơn đánh giá của bạn!"
@@ -218,13 +218,13 @@ TEST CHỨC NĂNG 4: QUẢN LÝ DANH MỤC CHUYÊN KHOA, PHÒNG KHÁM VÀ DỊCH
 TEST CHỨC NĂNG 5: QUẢN LÝ BÁC SĨ, NHÂN VIÊN Y TẾ VÀ LỊCH LÀM VIỆC
 --------------------------------------------------------------------------------
 - Bước 1: Đăng nhập Admin, truy cập: http://127.0.0.1:5000/admin/staff
-- Bước 2 (Thêm nhân sự & bác sĩ): Tại Tab 1, nhấn "Thêm nhân viên mới".
+- Bước 2 (Thêm nhân sự và bác sĩ): Tại Tab 1, nhấn "Thêm nhân viên mới".
   Nhập Họ tên: "Bác sĩ Nguyễn Văn Minh", Số điện thoại: "0911223344", Chức vụ: "Bác sĩ chuyên khoa",
   Vai trò: "Bác sĩ chuyên khoa", Chuyên khoa: "Khoa Nội Tổng Quát".
   Tích chọn "Tự động tạo tài khoản đăng nhập" -> Nhấn Lưu.
   * Kết quả: Bác sĩ mới xuất hiện trong danh sách nhân viên và đồng thời tạo tài khoản
     đăng nhập ở Tab 3.
-- Bước 3 (Phân ca trực): Chuyển sang Tab 2 "Quản lý Lịch trực & Phân ca", nhấn "Phân ca trực khám".
+- Bước 3 (Phân ca trực): Chuyển sang Tab 2 "Quản lý Lịch trực và Phân ca", nhấn "Phân ca trực khám".
   Chọn Bác sĩ Nguyễn Văn Minh, Phòng khám PK101, Ngày làm việc: Chọn ngày mai,
   Ca làm việc: Ca Sáng (07:00 - 11:30) -> Nhấn Lưu phân ca.
   * Kết quả: Ca trực mới xuất hiện trong bảng với thanh tiến độ 0/20 bệnh nhân.
@@ -239,14 +239,14 @@ TEST CHỨC NĂNG 5: QUẢN LÝ BÁC SĨ, NHÂN VIÊN Y TẾ VÀ LỊCH LÀM VI�
 TEST CHỨC NĂNG 6: QUẢN LÝ TÀI KHOẢN VÀ PHÂN QUYỀN
 --------------------------------------------------------------------------------
 - Bước 1: Đăng nhập Admin, truy cập: http://127.0.0.1:5000/admin/staff
-  Chuyển sang Tab 3: "Tài khoản & Phân quyền".
+  Chuyển sang Tab 3: "Tài khoản và Phân quyền".
 - Bước 2 (Khóa tài khoản): Tìm tài khoản bệnh nhân 0901234567, nhấn nút biểu tượng
   ổ khóa màu đỏ để khóa tài khoản.
   * Kết quả: Trạng thái tài khoản chuyển thành "Đã khóa".
 - Bước 3 (Kiểm tra chặn đăng nhập): Mở tab trình duyệt ẩn danh, truy cập /login,
   thử đăng nhập bằng 0901234567 / 123456.
   * Kết quả: Đăng nhập thất bại, hệ thống báo: "Tài khoản của bạn đã bị vô hiệu hóa!".
-- Bước 4 (Mở khóa & Đặt lại mật khẩu): Quay lại trang Admin, nhấn mở khóa tài khoản.
+- Bước 4 (Mở khóa và Đặt lại mật khẩu): Quay lại trang Admin, nhấn mở khóa tài khoản.
   Nhấn nút biểu tượng chìa khóa màu vàng -> Nhập mật khẩu mới: "NewPass123" -> Lưu.
 - Bước 5: Sang tab ẩn danh đăng nhập lại bằng 0901234567 và mật khẩu mới "NewPass123".
   * Kết quả: Đăng nhập thành công vào cổng thông tin bệnh nhân.
@@ -273,7 +273,7 @@ TEST CHỨC NĂNG 8: QUẢN LÝ PHIẾU CHỈ ĐỊNH VÀ KẾT QUẢ XÉT NGHI�
 --------------------------------------------------------------------------------
 - Bước 1 (Bác sĩ ra chỉ định): Đăng nhập Admin, vào http://127.0.0.1:5000/admin/emr
   Chọn Bệnh nhân Hoàng Bảo Nam, nhập triệu chứng, chẩn đoán, tích chọn dịch vụ xét nghiệm:
-  "Tổng phân tích tế bào máu ngoại vi" -> Nhấn "Hoàn thành khám & Lưu bệnh án".
+  "Tổng phân tích tế bào máu ngoại vi" -> Nhấn "Hoàn thành khám và Lưu bệnh án".
 - Bước 2 (KTV xem chỉ định): Vào http://127.0.0.1:5000/admin/lab
   * Kết quả: Thấy chỉ định xét nghiệm vừa tạo với trạng thái ban đầu "Chờ thực hiện".
 - Bước 3 (KTV nhập kết quả): Nhấn nút "Nhập kết quả" -> Điền kết quả:
@@ -282,7 +282,7 @@ TEST CHỨC NĂNG 8: QUẢN LÝ PHIẾU CHỈ ĐỊNH VÀ KẾT QUẢ XÉT NGHI�
 - Bước 4 (Bác sĩ duyệt kết quả): Nhấn nút "Duyệt kết quả" -> Nhập ghi chú duyệt:
   "Kết quả bình thường, không thiếu máu" -> Nhấn Xác nhận.
   * Kết quả: Trạng thái chuyển sang "Đã duyệt", ghi nhận rõ tên bác sĩ và thời gian duyệt.
-- Bước 5 (Kiểm tra khóa sửa & phân quyền bệnh nhân):
+- Bước 5 (Kiểm tra khóa sửa và phân quyền bệnh nhân):
   Thao tác 1: Thử nhấn sửa lại kết quả xét nghiệm đã duyệt -> Bị chặn: "Kết quả xét nghiệm
   này đã được bác sĩ duyệt nội bộ, không thể chỉnh sửa!".
   Thao tác 2: Đăng nhập tài khoản bệnh nhân 0901234567, vào http://127.0.0.1:5000/patient/lab-results
@@ -316,7 +316,7 @@ TEST CHỨC NĂNG 10: QUẢN LÝ ĐƠN THUỐC, CẤP PHÁT THUỐC VÀ QUÁ TR�
 --------------------------------------------------------------------------------
 - Bước 1 (Ghi nhận tồn kho ban đầu): Đăng nhập Admin, vào:
   http://127.0.0.1:5000/admin/pharmacy
-  Tại Tab "Danh Mục & Tồn Kho Thuốc", ghi nhận số lượng tồn của thuốc Paracetamol (ví dụ: 5000 viên).
+  Tại Tab "Danh Mục và Tồn Kho Thuốc", ghi nhận số lượng tồn của thuốc Paracetamol (ví dụ: 5000 viên).
 - Bước 2 (Kê đơn thuốc): Vào phòng khám EMR (/admin/emr), kê đơn cho bệnh nhân với
   10 viên Paracetamol -> Hoàn thành khám.
 - Bước 3 (Xuất dược phát thuốc): Quay lại trang /admin/pharmacy, chuyển sang Tab
@@ -335,7 +335,7 @@ TEST CHỨC NĂNG 10: QUẢN LÝ ĐƠN THUỐC, CẤP PHÁT THUỐC VÀ QUÁ TR�
     cộng bù lại 10 viên (trở về 5000 viên).
 
 ================================================================================
-KẾT LUẬN & KHUYẾN NGHỊ:
+KẾT LUẬN VÀ KHUYẾN NGHỊ:
 - Mọi chức năng đều có thể kiểm thử trực tiếp trên giao diện web hoặc qua các API.
 - Để thuận tiện nhất, hãy đặt DB_ENGINE = 'sqlite' trong config.py để test ngay mà
   không phụ thuộc vào dịch vụ SQL Server bên ngoài.

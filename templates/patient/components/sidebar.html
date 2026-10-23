@@ -1,7 +1,7 @@
-<!-- SIDEBAR (Cổng Bệnh Nhân - Tự Động Thò Thụt Hoàn Toàn & Fade-in Chữ Không Co Méo) -->
+<!-- SIDEBAR (Cổng Bệnh Nhân - Tự Động Thò Thụt Hoàn Toàn và Fade-in Chữ Không Co Méo) -->
 <aside id="app-sidebar" class="sidebar-auto-expand bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0 z-30 select-none">
     <div>
-        <!-- Logo & Brand Header (Bấm vào icon sẽ về trang home) -->
+        <!-- Logo và Brand Header (Bấm vào icon sẽ về trang home) -->
         <div class="flex items-center h-20 px-3 border-b border-slate-100 overflow-hidden">
             <div class="sidebar-icon-box">
                 <a href="{{ url_for('home') }}" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-medical-600 to-medical-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/25 shrink-0 hover:scale-105 transition-transform" title="Về trang chủ bệnh viện">
@@ -66,21 +66,21 @@
             <!-- 5. Hóa đơn và viện phí -->
             <a href="{{ url_for('patient_billing') }}" 
                class="nav-item {{ 'nav-item-active' if active_page == 'billing' else 'nav-item-inactive' }} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-               title="Hóa đơn & Viện phí">
+               title="Hóa đơn và Viện phí">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-receipt nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm font-medium">Hóa đơn & Viện phí</span>
+                <span class="sidebar-text-fade text-sm font-medium">Hóa đơn và Viện phí</span>
             </a>
 
-            <!-- 6. Góp ý & Phản hồi -->
+            <!-- 6. Góp ý và Phản hồi -->
             <a href="{{ url_for('patient_feedbacks') }}" 
                class="nav-item {{ 'nav-item-active' if active_page == 'feedbacks' else 'nav-item-inactive' }} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-               title="Góp ý & Phản hồi">
+               title="Góp ý và Phản hồi">
                 <div class="sidebar-icon-box">
                     <i class="fa-solid fa-comments nav-icon text-base"></i>
                 </div>
-                <span class="sidebar-text-fade text-sm font-medium">Góp ý & Phản hồi</span>
+                <span class="sidebar-text-fade text-sm font-medium">Góp ý và Phản hồi</span>
             </a>
 
             <!-- 7. Thông báo hệ thống -->
@@ -91,6 +91,16 @@
                     <i class="fa-solid fa-bell nav-icon text-base"></i>
                 </div>
                 <span class="sidebar-text-fade text-sm font-medium">Thông báo</span>
+            </a>
+
+            <!-- Tin tức và Cẩm nang -->
+            <a href="{{ url_for('articles') }}" 
+               class="nav-item {{ 'nav-item-active' if active_page == 'articles' else 'nav-item-inactive' }} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
+               title="Tin tức và Cẩm nang">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-newspaper nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Tin tức và Cẩm nang</span>
             </a>
 
             <!-- 8. Tài khoản của tôi -->
@@ -104,7 +114,7 @@
             </a>
 
 
-            <!-- Chuyển cổng & Đăng xuất -->
+            <!-- Chuyển cổng và Đăng xuất -->
             <div class="pt-3 mt-2 border-t border-slate-100 space-y-1 overflow-hidden">
                 {% set curr_user = session.get('user', {}) %}
                 {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}

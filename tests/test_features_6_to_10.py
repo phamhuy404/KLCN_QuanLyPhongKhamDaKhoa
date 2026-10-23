@@ -49,7 +49,7 @@ class Features6To10TestCase(unittest.TestCase):
             gioi_tinh="Nam",
             cccd=f"001{ts}999",
             email=f"bn_{ts}@test.local",
-            bhyt=f"DN479{ts}",
+            bhyt=f"4790{ts}".zfill(10),
             password=password
         )
         self.assertTrue(ok_reg, f"Đăng ký thất bại: {msg_reg}")
@@ -125,6 +125,7 @@ class Features6To10TestCase(unittest.TestCase):
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM lich_hen WHERE benh_nhan_id = 1 AND ngay_hen = ? AND gio_hen = '08:30'", (future_date,))
+        cursor.execute("UPDATE lich_lam_viec SET so_luong_da_dang_ky = 0 WHERE bac_si_id = 1 AND ngay_lam = ?", (future_date,))
         conn.commit()
         conn.close()
         ok_fut, code_or_err = AppointmentModel.create(
@@ -318,7 +319,7 @@ class Features6To10TestCase(unittest.TestCase):
         self.assertIn(new_diag, latest_log['after_json'])
 
     # =========================================================================
-    # 10. QUẢN LÝ ĐƠN THUỐC, CHỐNG TRỪ KHO LẶP LẠI & CHẶN SỬA ĐƠN ĐÃ CẤP
+    # 10. QUẢN LÝ ĐƠN THUỐC, CHỐNG TRỪ KHO LẶP LẠI và CHẶN SỬA ĐƠN ĐÃ CẤP
     # =========================================================================
     def test_07_prescription_safe_dispense_and_prevent_double_dispense(self):
         """Cấp phát thuốc an toàn, trừ kho chính xác, chống cấp phát lặp lại (double-dispense)"""

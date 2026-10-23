@@ -1,10 +1,10 @@
 """
 Kiểm thử tự động toàn diện các tính năng mới:
-1. Sao lưu & phục hồi dữ liệu (RBAC, path traversal, backup audit log)
-2. Tiếp nhận & quản lý phản hồi bệnh nhân (Patient isolation, reply, in-app noti)
-3. Thông báo nhắc lịch & tái khám (In-app, SMTP env fallback, chống gửi trùng)
+1. Sao lưu và phục hồi dữ liệu (RBAC, path traversal, backup audit log)
+2. Tiếp nhận và quản lý phản hồi bệnh nhân (Patient isolation, reply, in-app noti)
+3. Thông báo nhắc lịch và tái khám (In-app, SMTP env fallback, chống gửi trùng)
 4. Quản lý danh mục chuyên khoa, phòng khám, dịch vụ (CRUD, validation, bảo toàn tham chiếu)
-5. Quản lý nhân sự & phân ca trực (Kiểm tra xung đột trùng lịch, ca trực, RBAC)
+5. Quản lý nhân sự và phân ca trực (Kiểm tra xung đột trùng lịch, ca trực, RBAC)
 """
 
 import unittest
@@ -33,7 +33,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
         cls.client = app.test_client()
 
     # =========================================================================
-    # 1. KIỂM THỬ SAO LƯU & PHỤC HỒI DỮ LIỆU
+    # 1. KIỂM THỬ SAO LƯU và PHỤC HỒI DỮ LIỆU
     # =========================================================================
     def test_01_backup_path_traversal_protection(self):
         """Kiểm tra ngăn chặn path traversal khi tải hoặc phục hồi file backup"""
@@ -76,7 +76,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 403, "Bệnh nhân không được phép tạo backup")
 
     # =========================================================================
-    # 2. KIỂM THỬ PHẢN HỒI BỆNH NHÂN & BẢO VỆ DỮ LIỆU RIÊNG TƯ
+    # 2. KIỂM THỬ PHẢN HỒI BỆNH NHÂN và BẢO VỆ DỮ LIỆU RIÊNG TƯ
     # =========================================================================
     def test_04_feedback_patient_isolation(self):
         """Bệnh nhân chỉ được xem phản hồi của chính mình; CSKH/Admin xem và trả lời được"""
@@ -115,7 +115,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
         self.assertEqual(fb_updated['tra_loi'], "Cảm ơn quý khách đã gửi ý kiến đóng góp cho phòng khám!")
 
     # =========================================================================
-    # 3. KIỂM THỬ THÔNG BÁO & NHẮC LỊCH KHÔNG GỬI TRÙNG
+    # 3. KIỂM THỬ THÔNG BÁO và NHẮC LỊCH KHÔNG GỬI TRÙNG
     # =========================================================================
     def test_05_inapp_notifications(self):
         """Tạo thông báo in-app, lấy danh sách và đánh dấu đã đọc"""
@@ -231,7 +231,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
             self.assertIn("vô hiệu hóa", del_msg.lower())
 
     # =========================================================================
-    # 5. KIỂM THỬ QUẢN LÝ NHÂN SỰ & PHÂN CA TRỰC XUNG ĐỘT
+    # 5. KIỂM THỬ QUẢN LÝ NHÂN SỰ và PHÂN CA TRỰC XUNG ĐỘT
     # =========================================================================
     def test_10_staff_crud_and_status(self):
         """Thêm nhân viên y tế, đổi trạng thái làm việc"""

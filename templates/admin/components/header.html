@@ -1,4 +1,4 @@
-<!-- Header dành cho phân hệ Quản trị & Y tế -->
+<!-- Header dành cho phân hệ Quản trị và Y tế -->
 <header class="bg-white border-b border-slate-200 sticky top-0 z-20 px-6 py-3.5 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
         <!-- Nút menu mobile -->
@@ -18,7 +18,7 @@
         </form>
     </div>
 
-    <!-- Quick Actions & User Identity -->
+    <!-- Quick Actions và User Identity -->
     <div class="flex items-center gap-3">
         <!-- NÚT BẤM THỬ POPUP THÔNG BÁO (THEO YÊU CẦU CỦA BẠN ĐỂ TEST / DEMO) -->
         <button type="button" onclick="triggerTestNotification()" 
@@ -43,6 +43,13 @@
             <i class="fa-solid fa-house text-xs"></i>
             <span class="hidden lg:inline">Trang chủ</span>
         </a>
+
+        <!-- Nut chuyen doi Dark Mode -->
+        <button type="button" onclick="toggleDarkMode()" 
+                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+                title="Chuyển chế độ Giao diện Sáng / Tối">
+            <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+        </button>
 
         <!-- Dropdown Chuông thông báo -->
         <div class="relative inline-block text-left" id="notification-bell-container">
@@ -79,7 +86,7 @@
         <!-- Thông tin tài khoản nhân sự đăng nhập -->
         {% set curr_user = session.get('user', {}) %}
         <div class="flex items-center gap-2.5 pl-2.5 border-l border-slate-200">
-            <a href="{{ url_for('admin.profile') }}" class="flex items-center gap-2.5 hover:opacity-80 transition-all cursor-pointer group" title="Xem & chỉnh sửa hồ sơ cá nhân">
+            <a href="{{ url_for('admin.profile') }}" class="flex items-center gap-2.5 hover:opacity-80 transition-all cursor-pointer group" title="Xem và chỉnh sửa hồ sơ cá nhân">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     {{ (curr_user.get('ho_ten', 'AD'))[0] }}
                 </div>
@@ -202,7 +209,7 @@
             },
             {
                 title: 'Cập Nhật CSDL Khóa Luận! 🏥',
-                message: 'Hệ thống H2T Healthcare đã đồng bộ dữ liệu Bệnh nhân & Bác sĩ an toàn 100%.',
+                message: 'Hệ thống H2T Healthcare đã đồng bộ dữ liệu Bệnh nhân và Bác sĩ an toàn 100%.',
                 type: 'success'
             }
         ];
@@ -221,7 +228,7 @@
     }
 
     // ==========================================
-    // CƠ CHẾ ĐỒNG BỘ THÔNG BÁO THỜI GIAN THỰC (POLLING & TOAST REALTIME)
+    // CƠ CHẾ ĐỒNG BỘ THÔNG BÁO THỜI GIAN THỰC (POLLING VÀ TOAST REALTIME)
     // ==========================================
     let lastNotificationId = parseInt(sessionStorage.getItem('h2t_last_notif_id') || '0');
     let isFirstNotificationPoll = true;

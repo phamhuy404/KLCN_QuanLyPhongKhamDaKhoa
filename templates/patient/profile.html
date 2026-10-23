@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Breadcrumb & Header -->
+    <!-- Breadcrumb và Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
@@ -19,7 +19,7 @@
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 <span class="text-medical-600 font-medium">Tài khoản của tôi</span>
             </div>
-            <h2 class="text-2xl font-bold text-slate-900">Thông tin tài khoản & Hồ sơ y tế</h2>
+            <h2 class="text-2xl font-bold text-slate-900">Thông tin tài khoản và Hồ sơ y tế</h2>
             <p class="text-xs text-slate-400 mt-0.5">Quản lý thông tin định danh bệnh nhân, thẻ BHYT và cài đặt bảo mật</p>
         </div>
         <div class="flex gap-2">
@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <!-- Thẻ Bảo Mật & Đổi Mật Khẩu Nhanh -->
+            <!-- Thẻ Bảo Mật và Đổi Mật Khẩu Nhanh -->
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
                 <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-shield-halved text-medical-600"></i> Bảo mật tài khoản
@@ -140,16 +140,16 @@
                 </div>
             </div>
 
-            <!-- Phần 2: Thẻ BHYT & Hồ sơ y tế nền -->
+            <!-- Phần 2: Thẻ BHYT và Hồ sơ y tế nền -->
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                 <h3 class="font-bold text-base text-slate-900 pb-4 border-b border-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-id-card text-emerald-600"></i> 2. Thông tin Thẻ BHYT & Sức khỏe nền
+                    <i class="fa-solid fa-id-card text-emerald-600"></i> 2. Thông tin Thẻ BHYT và Sức khỏe nền
                 </h3>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Mã số thẻ BHYT</label>
-                        <input type="text" id="profile-bhyt" value="{{ patient.bhyt or '' }}" placeholder="Ví dụ: GD4797931100001" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-medical-500">
+                        <input type="text" id="profile-bhyt" value="{{ patient.bhyt or '' }}" placeholder="Ví dụ: 0790900001 (Đúng 10 số, không có chữ)" maxlength="10" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
@@ -166,7 +166,7 @@
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                             <span class="flex items-center gap-1.5 text-rose-700">
-                                <i class="fa-solid fa-dna"></i> Biến thể nhóm máu & Kháng thể bất thường (Cận lâm sàng)
+                                <i class="fa-solid fa-dna"></i> Biến thể nhóm máu và Kháng thể bất thường (Cận lâm sàng)
                             </span>
                             <span class="text-[11px] text-slate-400 font-normal">Tùy chọn: Weak D, Bombay, Anti-Kell...</span>
                         </label>
@@ -191,7 +191,7 @@
                         </div>
                     </div>
 
-                    <!-- Tiền sử dị ứng thuốc & thực phẩm -->
+                    <!-- Tiền sử dị ứng thuốc và thực phẩm -->
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                             <span class="flex items-center gap-1.5 text-rose-700">
@@ -203,11 +203,11 @@
                         <div id="allergy-tag-container" class="space-y-2"></div>
                     </div>
 
-                    <!-- Tiền sử bệnh lý nền & mãn tính -->
+                    <!-- Tiền sử bệnh lý nền và mãn tính -->
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                             <span class="flex items-center gap-1.5 text-teal-700">
-                                <i class="fa-solid fa-notes-medical"></i> Tiền sử bệnh lý nền & Bệnh mãn tính
+                                <i class="fa-solid fa-notes-medical"></i> Tiền sử bệnh lý nền và Bệnh mãn tính
                             </span>
                             <span class="text-[11px] text-slate-400 font-normal">Chọn từ danh mục chuẩn y tế</span>
                         </label>

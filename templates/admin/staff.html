@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Quản lý Nhân sự & Lịch trực - H2T Care{% endblock %}
+{% block title %}Quản lý Nhân sự và Lịch trực - H2T Care{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -12,7 +12,7 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header thông tin & Thao tác nhanh -->
+    <!-- Header thông tin và Thao tác nhanh -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
             <div class="flex items-center gap-2.5">
@@ -20,7 +20,7 @@
                     <i class="fa-solid fa-users-gear"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800 leading-tight">Quản lý Nhân sự & Lịch trực</h1>
+                    <h1 class="text-xl font-bold text-slate-800 leading-tight">Quản lý Nhân sự và Lịch trực</h1>
                     <p class="text-xs text-slate-500 mt-0.5">
                         {% if user_role == 'ADMIN' %}
                         Quản lý hồ sơ nhân viên, phân ca trực toàn viện và kiểm duyệt lịch làm việc
@@ -70,7 +70,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-1.5 flex flex-wrap gap-1">
         <button id="tab-staff-btn" onclick="switchTab('staff')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 bg-blue-50 text-blue-700">
             <i class="fa-solid fa-users"></i>
-            <span>Đội ngũ Nhân sự & Tài khoản</span>
+            <span>Đội ngũ Nhân sự và Tài khoản</span>
             <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-200/70 text-blue-800">{{ staff_list|length }}</span>
         </button>
         <button id="tab-schedules-btn" onclick="switchTab('schedules')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
@@ -86,7 +86,7 @@
         {% if user_role in ['ADMIN', 'LETAN'] %}
         <button id="tab-approvals-btn" onclick="switchTab('approvals')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
             <i class="fa-solid fa-clipboard-check"></i>
-            <span>Duyệt Đăng ký & Hủy lịch</span>
+            <span>Duyệt Đăng ký và Hủy lịch</span>
             {% if pending_approvals|length > 0 %}
             <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white animate-pulse">{{ pending_approvals|length }}</span>
             {% else %}
@@ -96,7 +96,7 @@
         {% endif %}
     </div>
 
-    <!-- TAB 1: ĐỘI NGŨ NHÂN SỰ & TÀI KHOẢN -->
+    <!-- TAB 1: ĐỘI NGŨ NHÂN SỰ VÀ TÀI KHOẢN -->
     <div id="tab-staff" class="tab-pane space-y-4">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <!-- Bộ lọc danh sách nhân sự -->
@@ -131,7 +131,7 @@
                     <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-100">
                         <tr>
                             <th class="px-5 py-3">Nhân sự</th>
-                            <th class="px-5 py-3">Chức vụ & Vai trò</th>
+                            <th class="px-5 py-3">Chức vụ và Vai trò</th>
                             <th class="px-5 py-3">Chuyên khoa / Bộ phận</th>
                             <th class="px-5 py-3">Liên hệ</th>
                             <th class="px-5 py-3">Trạng thái tài khoản</th>
@@ -262,7 +262,7 @@
         </div>
     </div>
 
-    <!-- TAB 2: LỊCH TRỰC TOÀN VIỆN (DẠNG THỜI KHÓA BIỂU & DẠNG BẢNG) -->
+    <!-- TAB 2: LỊCH TRỰC TOÀN VIỆN (DẠNG THỜI KHÓA BIỂU VÀ DẠNG BẢNG) -->
     <div id="tab-schedules" class="tab-pane hidden space-y-4">
         <!-- Chế độ 1: Thời khóa biểu dạng lưới (Grid View - Mặc định) -->
         <div id="schedule-grid-container" class="space-y-4">
@@ -474,7 +474,7 @@
         </div>
     </div>
 
-    <!-- TAB 3: ĐĂNG KÝ CA LÀM (CHỌN NHIỀU CA CÙNG LÚC TRÊN LƯỚI & XÁC NHẬN) -->
+    <!-- TAB 3: ĐĂNG KÝ CA LÀM (CHỌN NHIỀU CA CÙNG LÚC TRÊN LƯỚI VÀ XÁC NHẬN) -->
     <div id="tab-register" class="tab-pane hidden space-y-5">
         <!-- Banner quy tắc đăng ký ca làm -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md">
@@ -494,7 +494,7 @@
             </div>
         </div>
 
-        <!-- Thanh điều khiển tuần & Nút xác nhận đăng ký -->
+        <!-- Thanh điều khiển tuần và Nút xác nhận đăng ký -->
         <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3 sticky top-4 z-20">
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
@@ -554,7 +554,7 @@
         </div>
     </div>
 
-    <!-- TAB 4: DUYỆT ĐĂNG KÝ & HỦY LỊCH (CHỈ CHO ADMIN & LỄ TÂN) -->
+    <!-- TAB 4: DUYỆT ĐĂNG KÝ VÀ HỦY LỊCH (CHỈ CHO ADMIN VÀ LỄ TÂN) -->
     {% if user_role in ['ADMIN', 'LETAN'] %}
     <div id="tab-approvals" class="tab-pane hidden space-y-6">
         <!-- Bộ lọc yêu cầu phê duyệt -->
@@ -596,7 +596,7 @@
                         <tr>
                             <th class="px-5 py-3">Nhân sự xin hủy</th>
                             <th class="px-5 py-3">Vai trò / Chuyên khoa</th>
-                            <th class="px-5 py-3">Ngày làm & Ca trực</th>
+                            <th class="px-5 py-3">Ngày làm và Ca trực</th>
                             <th class="px-5 py-3">Lý do xin hủy</th>
                             <th class="px-5 py-3 text-right">Quyết định phê duyệt</th>
                         </tr>
@@ -672,8 +672,8 @@
                                 <input type="checkbox" id="check-all-reg-approvals" onchange="toggleSelectAllRegApprovals(this.checked)" class="rounded text-blue-600 focus:ring-blue-500">
                             </th>
                             <th class="px-5 py-3">Nhân sự đăng ký</th>
-                            <th class="px-5 py-3">Vai trò & Chuyên khoa</th>
-                            <th class="px-5 py-3">Ngày làm & Ca</th>
+                            <th class="px-5 py-3">Vai trò và Chuyên khoa</th>
+                            <th class="px-5 py-3">Ngày làm và Ca</th>
                             <th class="px-5 py-3">Vị trí phòng / Ghi chú</th>
                             <th class="px-5 py-3 text-right">Phê duyệt ca</th>
                         </tr>
@@ -1081,9 +1081,9 @@
             <div>
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-calendar-week text-blue-600"></i>
-                    <span>Chi tiết Ca trực & Toàn bộ Nhân viên đăng ký</span>
+                    <span>Chi tiết Ca trực và Toàn bộ Nhân viên đăng ký</span>
                 </h3>
-                <p id="shift-modal-subheading" class="text-xs text-slate-500 mt-0.5">Ngày làm việc & Khung giờ trực</p>
+                <p id="shift-modal-subheading" class="text-xs text-slate-500 mt-0.5">Ngày làm việc và Khung giờ trực</p>
             </div>
             <button onclick="closeShiftDetailsModal()" class="text-slate-400 hover:text-slate-600 p-1">
                 <i class="fa-solid fa-times text-base"></i>
@@ -1118,8 +1118,8 @@
                     <thead class="bg-slate-50 text-slate-600 uppercase font-bold border-b border-slate-200">
                         <tr>
                             <th class="px-4 py-3">Nhân sự</th>
-                            <th class="px-4 py-3">Vai trò & Chức vụ</th>
-                            <th class="px-4 py-3">Chuyên khoa & Vị trí</th>
+                            <th class="px-4 py-3">Vai trò và Chức vụ</th>
+                            <th class="px-4 py-3">Chuyên khoa và Vị trí</th>
                             <th class="px-4 py-3">Trạng thái</th>
                             {% if user_role in ['ADMIN', 'LETAN'] %}
                             <th class="px-4 py-3 text-right">Thao tác</th>
@@ -1366,7 +1366,7 @@ function renderTimetableGrid(weekType) {
                         </div>
                     </div>
 
-                    <!-- HOVER POPOVER TOOLTIP CHI TIẾT DANH SÁCH BÁC SĨ & NHÂN VIÊN CÙNG TRỰC -->
+                    <!-- HOVER POPOVER TOOLTIP CHI TIẾT DANH SÁCH BÁC SĨ VÀ NHÂN VIÊN CÙNG TRỰC -->
                     <div class="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 bg-slate-900/95 backdrop-blur text-white p-4 rounded-2xl shadow-2xl pointer-events-none border border-slate-700/60">
                         <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
                             <div>
@@ -1379,7 +1379,7 @@ function renderTimetableGrid(weekType) {
                         </div>
 
                         <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center justify-between">
-                            <span class="flex items-center gap-1"><i class="fa-solid fa-users text-sky-400"></i> Đồng nghiệp & Bác sĩ trực ca:</span>
+                            <span class="flex items-center gap-1"><i class="fa-solid fa-users text-sky-400"></i> Đồng nghiệp và Bác sĩ trực ca:</span>
                             <span class="text-[9px] text-slate-400 font-normal italic">${deptName}</span>
                         </div>
 
