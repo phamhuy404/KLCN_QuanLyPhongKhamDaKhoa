@@ -119,6 +119,7 @@ CREATE TABLE tai_khoan (
     sdt NVARCHAR(15),
     trang_thai BIT DEFAULT 1,
     da_hoan_thien_ho_so BIT DEFAULT 0,
+    yeu_cau_doi_mat_khau TINYINT DEFAULT 0,
     ngay_tao DATETIME DEFAULT GETDATE(),
     lan_dang_nhap_cuoi DATETIME NULL,
     FOREIGN KEY (vai_tro_id) REFERENCES vai_tro(id)
@@ -151,6 +152,7 @@ CREATE TABLE bac_si (
     phong_kham_chinh_id INT NULL,
     hoc_vi NVARCHAR(50) DEFAULT N'Bác sĩ',
     kinh_nghiem NVARCHAR(MAX),
+    gioi_thieu NVARCHAR(MAX),
     avatar NVARCHAR(255) DEFAULT 'default_doctor.png',
     gia_kham DECIMAL(12, 2) DEFAULT 150000.00,
     trang_thai_lam_viec NVARCHAR(50) DEFAULT N'Đang làm việc',
@@ -1287,7 +1289,7 @@ GO
 
 -- DU LIEU: phieu_kham
 SET IDENTITY_INSERT phieu_kham ON;
-INSERT INTO phieu_kham (id, ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, lich_hen_id, thoi_gian_kham, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, trang_thai) VALUES (1, N'PK26090001', 1, 1, 1, 1, N'2026-10-22 21:38:17', N'Đau thượng vị ợ chua', N'Đau âm ỉ vùng thượng vị sau ăn no hoặc lúc đói, ợ chua, buồn nôn nhẹ, bụng chướng hơi.', N'Theo dõi Viêm loét dạ dày tá tràng / Trào ngược dạ dày thực quản (GERD)', N'K29.7 - Viêm d? dày không d?c hi?u', N'Chỉ định nội soi dạ dày, xét nghiệm vi khuẩn HP và công thức máu. Kê đơn thuốc giảm tiết acid.', N'Kiêng ăn đồ cay nóng chua cay, không thức khuya, uống thuốc đúng giờ trước bữa ăn 30 phút.', N'2026-11-05', N'Hoàn thành');
+INSERT INTO phieu_kham (id, ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, lich_hen_id, thoi_gian_kham, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, trang_thai) VALUES (1, N'PK26090001', 1, 1, 1, 1, N'2026-10-22 21:38:17', N'Đau thượng vị ợ chua', N'Đau âm ỉ vùng thượng vị sau ăn no hoặc lúc đói, ợ chua, buồn nôn nhẹ, bụng chướng hơi.', N'Theo dõi Viêm loét dạ dày tá tràng / Trào ngược dạ dày thực quản (GERD)', N'K29.7 - Viêm dạ dày không đặc hiệu', N'Chỉ định nội soi dạ dày, xét nghiệm vi khuẩn HP và công thức máu. Kê đơn thuốc giảm tiết acid.', N'Kiêng ăn đồ cay nóng chua cay, không thức khuya, uống thuốc đúng giờ trước bữa ăn 30 phút.', N'2026-11-05', N'Hoàn thành');
 SET IDENTITY_INSERT phieu_kham OFF;
 GO
 

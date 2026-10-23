@@ -144,16 +144,16 @@
             </div>
             <span class="sidebar-text-fade text-sm font-medium">Đội ngũ Bác sĩ</span>
         </a>
-        {% elif role == 'BACSI' %}
+        {% endif %}
+
         <a href="{{ url_for('admin.my_doctor_profile') }}"
-            class="nav-item {% if active_page == 'admin_doctors' and request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
-            title="Hồ sơ Bác sĩ của tôi và Bệnh nhân đăng ký">
+            class="nav-item {% if (active_page == 'admin_profile' and not request.path.startswith('/admin/doctors/')) or (active_page == 'admin_doctors' and request.path.startswith('/admin/doctors/')) %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
+            title="Hồ sơ của tôi">
             <div class="sidebar-icon-box">
                 <i class="fa-solid fa-id-card-clip nav-icon text-base"></i>
             </div>
             <span class="sidebar-text-fade text-sm font-medium">Hồ sơ của tôi</span>
         </a>
-        {% endif %}
 
         {% if role in ['ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV'] %}
         <a href="{{ url_for('admin_staff') }}"
@@ -235,15 +235,6 @@
 
         <!-- 4. TIỆN ÍCH NGOÀI VÀ ĐĂNG XUẤT -->
         <div class="pt-2 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
-            <a href="{{ url_for('admin.profile') }}"
-                class="nav-item {% if active_page == 'admin_profile' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs"
-                title="Hồ sơ cá nhân">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-id-badge nav-icon text-sm"></i>
-                </div>
-                <span class="sidebar-text-fade font-medium">Hồ sơ cá nhân</span>
-            </a>
-
             <a href="{{ url_for('patient_dashboard') }}"
                 class="nav-item nav-item-dark-inactive flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs"
                 title="Cổng Bệnh nhân">
@@ -266,7 +257,7 @@
 
     <!-- Staff Profile Footer (Luôn hiển thị cố định ở chân sidebar) -->
     {% set curr_user = session.get('user', {}) %}
-    <a href="{{ url_for('admin.profile') }}" class="p-2 m-2 rounded-2xl bg-slate-800/70 border border-slate-800 shrink-0 overflow-hidden hover:bg-slate-800 transition-colors block group" title="Xem hồ sơ cá nhân">
+    <a href="{{ url_for('admin.my_doctor_profile') }}" class="p-2 m-2 rounded-2xl bg-slate-800/70 border border-slate-800 shrink-0 overflow-hidden hover:bg-slate-800 transition-colors block group" title="Xem hồ sơ của tôi">
         <div class="flex items-center">
             <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
                 <div

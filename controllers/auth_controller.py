@@ -28,6 +28,11 @@ def login():
         session['logged_in'] = True
         session['user'] = user
 
+        # Nếu tài khoản vừa được cấp lại mật khẩu mặc định 123 thì bắt buộc đổi mật khẩu mới
+        if user.get('yeu_cau_doi_mat_khau') in (1, True, '1'):
+            session['force_change_password'] = True
+            return redirect(url_for('auth.force_change_password'))
+
         # Nếu là Bác sĩ mới tạo và chưa hoàn thiện hồ sơ lần đầu
         if user['vai_tro'] == 'BACSI' and user.get('da_hoan_thien_ho_so') == 0:
             return redirect(url_for('admin.doctor_complete_profile'))
@@ -98,3 +103,60 @@ def logout():
     """Đăng xuất và xóa phiên làm việc."""
     session.clear()
     return redirect(url_for('home.home'))
+
+
+@auth_bp.route('/force-change-password', methods=['GET', 'POST'])
+def force_change_password():
+    """Bắt buộc người dùng nhập và lưu mật khẩu mới sau khi được cấp lại mật khẩu 123."""
+    if not session.get('logged_in') or not session.get('user'):
+        return redirect(url_for('auth.login'))
+
+    user = session.get('user', {})
+    if not user.get('yeu_cau_doi_mat_khau'):
+        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
+            return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('patient.dashboard'))
+
+    if request.method == 'POST':
+        new_pw = request.form.get('new_password', '').strip()
+        confirm_pw = request.form.get('confirm_password', '').strip()
+
+        if not new_pw or len(new_pw) < 6:
+            return render_template('auth/force_change_password.html', error='Mật khẩu mới phải có tối thiểu 6 ký tự!', user=user)
+
+        if new_pw == '123':
+            return render_template('auth/force_change_password.html', error='Vui lòng đặt mật khẩu mới khác với mật khẩu tạm thời (123) để đảm bảo an toàn!', user=user)
+
+        if new_pw != confirm_pw:
+            return render_template('auth/force_change_password.html', error='Mật khẩu xác nhận không trùng khớp!', user=user)
+
+        from core.security import hash_password
+        from core.database import get_db
+        from core.audit import AuditLogger
+
+        conn = get_db()
+        cursor = conn.cursor()
+        hashed = hash_password(new_pw)
+        cursor.execute('UPDATE tai_khoan SET password = ?, yeu_cau_doi_mat_khau = 0 WHERE id = ?', (hashed, user['id']))
+        conn.commit()
+        conn.close()
+
+        AuditLogger.log(
+            table_name='tai_khoan',
+            row_id=user['id'],
+            action='FORCE_CHANGE_PASSWORD',
+            performed_by=user['id'],
+            performed_by_name=user.get('ho_ten') or user.get('username'),
+            reason='Người dùng hoàn tất đổi mật khẩu lần đầu sau khi được cấp lại mật khẩu'
+        )
+
+        user['yeu_cau_doi_mat_khau'] = 0
+        session['user'] = user
+        session.pop('force_change_password', None)
+        flash('Đổi mật khẩu thành công! Tài khoản của bạn đã được kích hoạt an toàn.', 'success')
+
+        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
+            return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('patient.dashboard'))
+
+    return render_template('auth/force_change_password.html', user=user)

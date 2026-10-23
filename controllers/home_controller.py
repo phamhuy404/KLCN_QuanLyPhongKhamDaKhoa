@@ -25,7 +25,10 @@ def home():
     raw_doctors = UserModel.get_all_doctors()
     doctors = list(raw_doctors) if raw_doctors else []
     random.shuffle(doctors)
-    feedbacks = [f for f in FeedbackModel.get_all() if f.get('diem_danh_gia', 0) >= 4][:4]
+        # Lay ngau nhien cac phan hoi tich cuc tu benh nhan trong CSDL
+    all_positive = [f for f in FeedbackModel.get_all() if f.get('diem_danh_gia', 0) >= 4]
+    random.shuffle(all_positive)
+    feedbacks = all_positive[:4]
     return render_template(
         'home.html',
         articles=articles,

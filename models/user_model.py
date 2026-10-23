@@ -41,7 +41,8 @@ class UserModel:
             'vai_tro': user_row['ma_vai_tro'],
             'ten_vai_tro': user_row['ten_vai_tro'],
             'sdt': user_row['sdt'],
-            'da_hoan_thien_ho_so': 1 if user_row.get('da_hoan_thien_ho_so') in (1, True, '1') else 0
+            'da_hoan_thien_ho_so': 1 if user_row.get('da_hoan_thien_ho_so') in (1, True, '1') else 0,
+            'yeu_cau_doi_mat_khau': 1 if user_row.get('yeu_cau_doi_mat_khau') in (1, True, '1') else 0
         }
 
         # Nếu là Bác sĩ hoặc Nhân viên nội bộ
@@ -236,16 +237,19 @@ class UserModel:
                 conn.close()
                 return False, 'Không tìm thấy hồ sơ bệnh nhân!'
 
-            hashed = hash_password(new_password)
+            # Cấp mật khẩu mặc định 123 hoặc mật khẩu chỉ định
+            fixed_pw = new_password if (new_password and new_password != '123') else '123'
+            require_change = 1 if fixed_pw == '123' else 0
+            hashed = hash_password(fixed_pw)
             tk_id = patient.get('tai_khoan_id')
             if tk_id:
-                cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed, tk_id))
+                cursor.execute('UPDATE tai_khoan SET password = ?, yeu_cau_doi_mat_khau = ? WHERE id = ?', (hashed, require_change, tk_id))
             else:
                 sdt = patient['sdt']
                 cursor.execute('''
-                    INSERT INTO tai_khoan (vai_tro_id, username, password, sdt, trang_thai)
-                    VALUES (6, ?, ?, ?, 1)
-                ''', (sdt, hashed, sdt))
+                    INSERT INTO tai_khoan (vai_tro_id, username, password, sdt, trang_thai, yeu_cau_doi_mat_khau)
+                    VALUES (6, ?, ?, ?, 1, ?)
+                ''', (sdt, hashed, sdt, require_change))
                 tk_id = cursor.lastrowid
                 cursor.execute('UPDATE benh_nhan SET tai_khoan_id = ?, co_tai_khoan = 1 WHERE id = ?', (tk_id, patient_id))
 
@@ -258,10 +262,10 @@ class UserModel:
                 action='RESET_PASSWORD',
                 performed_by=audit_user.get('id') if audit_user else None,
                 performed_by_name=audit_user.get('ho_ten') if audit_user else 'Hệ thống',
-                reason=f'Đặt lại mật khẩu bệnh nhân {patient["ho_ten"]}'
+                reason=f'Cấp lại mật khẩu mặc định (123) cho bệnh nhân {patient["ho_ten"]}'
             )
 
-            return True, f'Đã cập nhật mật khẩu mới cho bệnh nhân {patient["ho_ten"]}!'
+            return True, f'Đã cấp lại mật khẩu mặc định (123) cho bệnh nhân {patient["ho_ten"]}. Bệnh nhân sẽ bắt buộc đổi mật khẩu mới khi đăng nhập lần đầu.'
         except Exception as e:
             conn.rollback()
             conn.close()
@@ -1024,7 +1028,8 @@ class UserModel:
     @staticmethod
     def reset_account_password(account_id, new_password, audit_user=None):
         """Quản trị viên đặt lại mật khẩu cho bất kỳ tài khoản nào (không hiển thị mật khẩu hiện tại)."""
-        if not new_password or len(new_password) < 6:
+        fixed_pw = new_password if (new_password and new_password != '123') else '123'
+        if fixed_pw != '123' and len(fixed_pw) < 6:
             return False, 'Mật khẩu mới phải có tối thiểu 6 ký tự!'
 
         conn = get_db()
@@ -1048,8 +1053,9 @@ class UserModel:
                     conn.close()
                     return False, 'Tài khoản Quản trị viên được bảo vệ tuyệt đối, không thể can thiệp!'
 
-            hashed = hash_password(new_password)
-            cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed, account_id))
+            require_change = 1 if fixed_pw == '123' else 0
+            hashed = hash_password(fixed_pw)
+            cursor.execute('UPDATE tai_khoan SET password = ?, yeu_cau_doi_mat_khau = ? WHERE id = ?', (hashed, require_change, account_id))
             conn.commit()
             conn.close()
 
@@ -1058,11 +1064,11 @@ class UserModel:
                 row_id=account_id,
                 action='ADMIN_RESET_PASSWORD',
                 performed_by=audit_user.get('id') if audit_user else None,
-                performed_by_name=audit_user.get('ho_ten') if audit_user else 'Quản trị viên',
-                reason=f"Đặt lại mật khẩu cho tài khoản {acc['username']}"
+                performed_by_name=audit_user.get('ho_ten') if audit_user else 'Hệ thống',
+                reason=f"Cấp lại mật khẩu mặc định (123) cho tài khoản {acc['username']}"
             )
 
-            return True, f"Đặt lại mật khẩu cho tài khoản {acc['username']} thành công!"
+            return True, f"Đã cấp lại mật khẩu mặc định (123) cho tài khoản {acc['username']}. Người dùng sẽ bắt buộc đổi mật khẩu mới khi đăng nhập lần đầu!"
         except Exception as e:
             conn.rollback()
             conn.close()
@@ -1115,7 +1121,7 @@ class UserModel:
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+            SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
                    nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.sdt, nv.email, nv.gioi_tinh,
                    nv.ngay_sinh, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.trang_thai,
                    t.id AS tai_khoan_id, t.username, t.ngay_tao, t.lan_dang_nhap_cuoi,
@@ -1134,6 +1140,11 @@ class UserModel:
             return None
 
         doctor = dict(row)
+        gia_goc = float(doctor.get('gia_kham') or 150000.0)
+        doctor['gia_kham'] = gia_goc
+        doctor['gia_kham_goc'] = gia_goc
+        doctor['bhyt_ho_tro'] = gia_goc * 0.8
+        doctor['gia_kham_bhyt'] = gia_goc * 0.2
 
         # Đếm số ca khám
         cursor.execute("SELECT COUNT(*) AS total_visits FROM phieu_kham WHERE bac_si_id = ?", (doctor_id,))
@@ -1252,7 +1263,7 @@ class UserModel:
                 v.ma_vai_tro, v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
                 nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.gioi_tinh, nv.ngay_sinh,
                 nv.sdt, nv.email, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.ngay_vao_lam, nv.trang_thai AS trang_thai_nv,
-                bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, bs.trang_thai_lam_viec,
+                bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
                 ck.id AS chuyen_khoa_id, ck.ten_khoa,
                 pk.id AS phong_kham_id, pk.ten_phong
             FROM tai_khoan t
@@ -1265,7 +1276,15 @@ class UserModel:
         ''', (account_id,))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        if not row:
+            return None
+        res = dict(row)
+        gia_goc = float(res.get('gia_kham') or 150000.0)
+        res['gia_kham'] = gia_goc
+        res['gia_kham_goc'] = gia_goc
+        res['bhyt_ho_tro'] = gia_goc * 0.8
+        res['gia_kham_bhyt'] = gia_goc * 0.2
+        return res
 
     @staticmethod
     def update_staff_profile(account_id, form_data, current_password=None, new_password=None, audit_user=None):
@@ -1295,7 +1314,7 @@ class UserModel:
             # 2. Cập nhật thông tin nhân viên trong bảng nhan_vien
             from core.validators import validate_name, validate_phone, validate_cccd, validate_birth_date, validate_email, validate_address
             ho_ten = (form_data.get('ho_ten') or '').strip()
-            ok_name, res_name = validate_name(ho_ten, 'Họ và tên')
+            ok_name, res_name = validate_name(ho_ten, 'Họ và tên', allow_titles=True)
             if not ok_name:
                 conn.close()
                 return False, res_name
@@ -1365,18 +1384,29 @@ class UserModel:
             if sdt:
                 cursor.execute('UPDATE tai_khoan SET sdt = ? WHERE id = ?', (sdt, account_id))
 
-            # Nếu là bác sĩ và có thông tin chuyên khoa/giới thiệu
-            if form_data.get('hoc_vi') or form_data.get('kinh_nghiem') or form_data.get('gioi_thieu'):
-                hoc_vi = form_data.get('hoc_vi')
-                kinh_nghiem = form_data.get('kinh_nghiem')
-                gioi_thieu = form_data.get('gioi_thieu')
-                cursor.execute('''
-                    UPDATE bac_si
-                    SET hoc_vi = COALESCE(?, hoc_vi),
-                        kinh_nghiem = COALESCE(?, kinh_nghiem),
-                        gioi_thieu = COALESCE(?, gioi_thieu)
-                    WHERE nhan_vien_id = (SELECT id FROM nhan_vien WHERE tai_khoan_id = ?)
-                ''', (hoc_vi, kinh_nghiem, gioi_thieu, account_id))
+            # Nếu là bác sĩ: cập nhật học vị, kinh nghiệm, giới thiệu và giá khám
+            hoc_vi = form_data.get('hoc_vi')
+            kinh_nghiem = form_data.get('kinh_nghiem')
+            gioi_thieu = form_data.get('gioi_thieu')
+            gia_kham_raw = form_data.get('gia_kham')
+            
+            gia_kham_val = None
+            if gia_kham_raw is not None and str(gia_kham_raw).strip():
+                try:
+                    gia_kham_clean = float(str(gia_kham_raw).replace(',', '').replace('đ', '').replace('VND', '').strip())
+                    if gia_kham_clean > 0:
+                        gia_kham_val = gia_kham_clean
+                except (ValueError, TypeError):
+                    pass
+
+            cursor.execute('''
+                UPDATE bac_si
+                SET hoc_vi = COALESCE(?, hoc_vi),
+                    kinh_nghiem = COALESCE(?, kinh_nghiem),
+                    gioi_thieu = COALESCE(?, gioi_thieu),
+                    gia_kham = COALESCE(?, gia_kham)
+                WHERE nhan_vien_id = (SELECT id FROM nhan_vien WHERE tai_khoan_id = ?)
+            ''', (hoc_vi, kinh_nghiem, gioi_thieu, gia_kham_val, account_id))
 
             conn.commit()
             conn.close()
@@ -1398,3 +1428,11 @@ class UserModel:
             conn.close()
             return False, f"Lỗi cập nhật hồ sơ: {str(e)}"
 
+
+    @staticmethod
+    def update_doctor_detail(doctor_id, data, audit_user=None):
+        """Cập nhật hồ sơ bác sĩ bao gồm thông tin cá nhân, học vị, kinh nghiệm và giá khám."""
+        doc = UserModel.get_doctor_by_id(doctor_id)
+        if not doc:
+            return False, "Không tìm thấy hồ sơ bác sĩ!"
+        return UserModel.update_staff_profile(doc['tai_khoan_id'], data, audit_user=audit_user)

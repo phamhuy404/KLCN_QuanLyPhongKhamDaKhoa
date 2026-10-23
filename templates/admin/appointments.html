@@ -65,15 +65,15 @@
         </div>
     </div>
 
-    <!-- 2. Thống kê nhanh lượt hẹn hôm nay -->
+    <!-- 2. Thống kê nhanh lượt hẹn động -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3.5">
             <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl shrink-0">
                 <i class="fa-solid fa-calendar-day"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Lịch hẹn hôm nay</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">24 <span class="text-xs font-normal text-slate-400">lượt</span></h4>
+                <span class="text-xs text-slate-400 font-medium">Tổng số lịch hẹn</span>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5"><span id="stat-total-appts">0</span> <span class="text-xs font-normal text-slate-400">lượt</span></h4>
             </div>
         </div>
 
@@ -83,7 +83,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Chờ khám / Đã đến</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">14 <span class="text-xs font-normal text-amber-600 font-semibold">(Đang đợi)</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5"><span id="stat-waiting-appts">0</span> <span class="text-xs font-normal text-amber-600 font-semibold">(Đang đợi)</span></h4>
             </div>
         </div>
 
@@ -93,7 +93,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã khám hoàn tất</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">8 <span class="text-xs font-normal text-emerald-600 font-semibold">(Hoàn tất)</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5"><span id="stat-completed-appts">0</span> <span class="text-xs font-normal text-emerald-600 font-semibold">(Hoàn tất)</span></h4>
             </div>
         </div>
 
@@ -103,13 +103,30 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400 font-medium">Đã hủy / Vắng mặt</span>
-                <h4 class="text-xl font-bold text-slate-900 mt-0.5">2 <span class="text-xs font-normal text-slate-400">(8%)</span></h4>
+                <h4 class="text-xl font-bold text-slate-900 mt-0.5"><span id="stat-cancelled-appts">0</span> <span class="text-xs font-normal text-slate-400">lượt</span></h4>
             </div>
         </div>
     </div>
 
     <!-- 3. Thanh lọc tìm kiếm và Lọc trạng thái -->
     <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <!-- Chuyển đổi phạm vi: Tất cả vs Lịch khám của tôi -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="setAppointmentScope('all')" id="btn-scope-all"
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-medical-600 text-white shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check"></i> Tất cả lịch khám (<span id="count-scope-all">0</span>)
+                </button>
+                <button type="button" onclick="setAppointmentScope('mine')" id="btn-scope-mine"
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-doctor text-medical-600"></i> Lịch khám của tôi (<span id="count-scope-mine">0</span>)
+                </button>
+            </div>
+            <div class="text-[11px] text-slate-400 italic" id="scope-hint-text">
+                Đang hiển thị toàn bộ lịch tiếp nhận
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             
             <div class="sm:col-span-5 relative">
@@ -186,6 +203,26 @@
             <button onclick="closeNewAppointmentModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
+        </div>
+
+        <div id="doctor-lock-banner" class="hidden p-3 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-lock text-xs"></i>
+            </div>
+            <div>
+                <strong class="block text-teal-900 font-bold">Khóa phân công chuyên môn:</strong>
+                <span>Bạn đang đặt lịch khám trực tiếp cho chính mình. Chuyên khoa và Bác sĩ tiếp nhận được khóa cố định tự động.</span>
+            </div>
+        </div>
+
+        <div id="doctor-lock-banner" class="hidden p-3 rounded-2xl bg-teal-50 border border-teal-200 text-teal-800 text-xs flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-lock text-xs"></i>
+            </div>
+            <div>
+                <strong class="block text-teal-900 font-bold">Khóa phân công chuyên môn:</strong>
+                <span>Bạn đang đặt lịch khám trực tiếp cho chính mình. Chuyên khoa và Bác sĩ tiếp nhận được khóa cố định tự động.</span>
+            </div>
         </div>
 
         <form id="new-appointment-form" onsubmit="saveNewAppointment(event)" class="space-y-3.5 text-xs">
@@ -315,6 +352,9 @@
 <script>
     const currentUserRole = "{{ session.get('user', {}).get('vai_tro', '') }}";
     const currentDoctorId = {{ session.get('user', {}).get('bac_si_id') or 'null' }};
+    const currentDoctorDeptId = {{ session.get('user', {}).get('chuyen_khoa_id') or 'null' }};
+    const currentDoctorName = "{{ session.get('user', {}).get('ho_ten', '') }}";
+    let currentScope = (currentUserRole === 'BACSI') ? 'mine' : 'all';
 
     // Dữ liệu lịch hẹn từ CSDL SQL Server (Đã chuẩn hóa và xử lý biến số từ BackEnd)
     let rawAppointments = JSON.parse(document.getElementById('admin-appointments-data').textContent || '[]');
@@ -323,6 +363,45 @@
     }));
 
     // Render bảng danh sách lịch hẹn
+    
+    // Cập nhật thẻ thống kê động
+    function updateAppointmentStats(list) {
+        const total = list.length;
+        const waiting = list.filter(a => a.trang_thai === 'waiting').length;
+        const completed = list.filter(a => a.trang_thai === 'completed').length;
+        const cancelled = list.filter(a => a.trang_thai === 'cancelled').length;
+
+        const elTot = document.getElementById('stat-total-appts');
+        const elWait = document.getElementById('stat-waiting-appts');
+        const elComp = document.getElementById('stat-completed-appts');
+        const elCanc = document.getElementById('stat-cancelled-appts');
+
+        if (elTot) elTot.innerText = total;
+        if (elWait) elWait.innerText = waiting;
+        if (elComp) elComp.innerText = completed;
+        if (elCanc) elCanc.innerText = cancelled;
+    }
+
+    // Chuyển đổi phạm vi xem lịch: Tất cả vs Lịch khám của tôi
+    function setAppointmentScope(scope) {
+        currentScope = scope;
+        const btnAll = document.getElementById('btn-scope-all');
+        const btnMine = document.getElementById('btn-scope-mine');
+        const hint = document.getElementById('scope-hint-text');
+
+        if (scope === 'mine') {
+            btnMine.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-medical-600 text-white shadow-sm flex items-center gap-1.5";
+            btnAll.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1.5";
+            if (hint) hint.innerText = `Ưu tiên hiển thị lịch phụ trách của ${currentDoctorName || 'bạn'}`;
+        } else {
+            btnAll.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-medical-600 text-white shadow-sm flex items-center gap-1.5";
+            btnMine.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-1.5";
+            if (hint) hint.innerText = "Đang hiển thị toàn bộ lịch tiếp nhận trong hệ thống";
+        }
+
+        filterAppointments();
+    }
+
     function renderAppointments(dataList) {
         const tbody = document.getElementById('appointment-table-body');
         tbody.innerHTML = '';
@@ -455,13 +534,20 @@
         });
     }
 
-    // Lọc lịch hẹn
+    // Lọc lịch hẹn có hỗ trợ tab Lịch của tôi
     function filterAppointments() {
         const query = document.getElementById('search-appointment').value.toLowerCase().trim();
         const docFilter = document.getElementById('filter-doctor').value;
         const statusFilter = document.getElementById('filter-status').value;
 
         const filtered = appointments.filter(a => {
+            // Lọc theo phạm vi (Scope)
+            if (currentScope === 'mine') {
+                const isMine = (currentDoctorId && Number(a.bac_si_id) === Number(currentDoctorId)) ||
+                               (currentDoctorName && a.bac_si && a.bac_si.toLowerCase().includes(currentDoctorName.toLowerCase()));
+                if (!isMine) return false;
+            }
+
             const matchQuery = !query || (window.fuzzyMatchRecord
                 ? window.fuzzyMatchRecord(query, [a.ma_hen, a.benh_nhan, a.sdt, a.bac_si, a.khoa, a.ly_do])
                 : (
@@ -474,7 +560,7 @@
             if (docFilter === '__unassigned__') {
                 matchDoc = !a.bac_si_id || !a.bac_si;
             } else if (docFilter) {
-                matchDoc = a.bac_si.includes(docFilter);
+                matchDoc = a.bac_si && a.bac_si.includes(docFilter);
             }
 
             const matchStatus = !statusFilter || a.trang_thai === statusFilter;
@@ -482,6 +568,7 @@
             return matchQuery && matchDoc && matchStatus;
         });
 
+        updateAppointmentStats(filtered);
         renderAppointments(filtered);
     }
 
@@ -685,9 +772,34 @@
         }
     }
 
-    // Modal tạo lịch hẹn mới
+    // Modal tạo lịch hẹn mới có khóa tự động theo bác sĩ
     function openNewAppointmentModal() {
-        document.getElementById('new-appointment-modal').classList.remove('hidden');
+        const modal = document.getElementById('new-appointment-modal');
+        modal.classList.remove('hidden');
+
+        // Đặt ngày mặc định là hôm nay
+        const dateInput = document.getElementById('app-date');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+
+        if (currentUserRole === 'BACSI' && currentDoctorId) {
+            const docSelect = document.getElementById('app-doctor');
+            const deptSelect = document.getElementById('app-dept');
+            const banner = document.getElementById('doctor-lock-banner');
+
+            if (docSelect) {
+                docSelect.value = currentDoctorId;
+                docSelect.disabled = true;
+                docSelect.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-85');
+            }
+            if (deptSelect && currentDoctorDeptId) {
+                deptSelect.value = currentDoctorDeptId;
+                deptSelect.disabled = true;
+                deptSelect.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-85');
+            }
+            if (banner) banner.classList.remove('hidden');
+        }
     }
 
     function closeNewAppointmentModal() {
@@ -698,9 +810,14 @@
         e.preventDefault();
         const patientSelect = document.getElementById('app-patient');
         const patientId = parseInt(patientSelect.value);
-        const deptId = parseInt(document.getElementById('app-dept').value || '1');
+        const deptId = (currentUserRole === 'BACSI' && currentDoctorDeptId)
+            ? currentDoctorDeptId
+            : parseInt(document.getElementById('app-dept').value || '1');
+
         const doctorVal = document.getElementById('app-doctor')?.value;
-        const doctorId = doctorVal ? parseInt(doctorVal) : null;
+        const doctorId = (currentUserRole === 'BACSI' && currentDoctorId)
+            ? currentDoctorId
+            : (doctorVal ? parseInt(doctorVal) : null);
         const date = document.getElementById('app-date').value;
         const time = document.getElementById('app-time').value;
         const reason = document.getElementById('app-reason').value;
@@ -731,9 +848,24 @@
         }
     }
 
-    // Khởi tạo hiển thị
+    // Khởi tạo hiển thị với đếm tổng và kích hoạt tab theo vai trò
     document.addEventListener('DOMContentLoaded', () => {
-        renderAppointments(appointments);
+        const countAll = appointments.length;
+        const countMine = appointments.filter(a => 
+            (currentDoctorId && Number(a.bac_si_id) === Number(currentDoctorId)) ||
+            (currentDoctorName && a.bac_si && a.bac_si.toLowerCase().includes(currentDoctorName.toLowerCase()))
+        ).length;
+
+        const elAll = document.getElementById('count-scope-all');
+        const elMine = document.getElementById('count-scope-mine');
+        if (elAll) elAll.innerText = countAll;
+        if (elMine) elMine.innerText = countMine;
+
+        if (currentUserRole === 'BACSI' && countMine > 0) {
+            setAppointmentScope('mine');
+        } else {
+            setAppointmentScope('all');
+        }
     });
 </script>
 {% endblock %}

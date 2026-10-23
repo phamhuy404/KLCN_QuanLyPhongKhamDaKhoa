@@ -86,13 +86,18 @@
         <!-- Thông tin tài khoản nhân sự đăng nhập -->
         {% set curr_user = session.get('user', {}) %}
         <div class="flex items-center gap-2.5 pl-2.5 border-l border-slate-200">
-            <a href="{{ url_for('admin.profile') }}" class="flex items-center gap-2.5 hover:opacity-80 transition-all cursor-pointer group" title="Xem và chỉnh sửa hồ sơ cá nhân">
+            <a href="{{ url_for('admin.my_doctor_profile') }}" class="flex items-center gap-2.5 hover:opacity-80 transition-all cursor-pointer group" title="Xem hồ sơ cá nhân">
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     {{ (curr_user.get('ho_ten', 'AD'))[0] }}
                 </div>
                 <div class="hidden md:block text-left">
-                    <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px] group-hover:text-medical-600 transition-colors">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
-                    <span class="text-[10px] text-teal-700 font-semibold block leading-tight">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
+                    <div class="flex items-center gap-1.5">
+                        <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px] group-hover:text-medical-600 transition-colors">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
+                        <span id="header-user-status-badge" class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Trong ca trực
+                        </span>
+                    </div>
+                    <span class="text-[10px] text-teal-700 font-semibold block leading-tight mt-0.5">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
                 </div>
             </a>
             <a href="{{ url_for('logout') }}" 
@@ -108,6 +113,71 @@
 <div id="popup-notification-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none w-80 sm:w-96"></div>
 
 <script>
+
+    // ÂM THANH CHUÔNG THÔNG BÁO BẰNG WEB AUDIO API
+    function playNotificationSound() {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') ctx.resume();
+            const now = ctx.currentTime;
+            
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, now); // D5
+            osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+            
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(880, now); // A5
+            osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.15); // D6
+            
+            gain.gain.setValueAtTime(0.01, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc1.start(now);
+            osc2.start(now + 0.08);
+            osc1.stop(now + 0.4);
+            osc2.stop(now + 0.45);
+        } catch (e) {}
+    }
+
+    // TỰ ĐỘNG NHẬN ĐỊNH CA TRỰC VÀ HẾT GIỜ ĐỂ HIỂN THỊ TRÊN HEADER
+    function updateHeaderDutyStatus() {
+        const badge = document.getElementById('header-user-status-badge');
+        if (!badge) return;
+        const now = new Date();
+        const totalMin = now.getHours() * 60 + now.getMinutes();
+
+        // Ca 1: 07:00 (420) - 11:30 (690)
+        // Ca 2: 13:30 (810) - 17:00 (1020)
+        // Ca 3: 17:30 (1050) - 20:30 (1230)
+        const inShift1 = totalMin >= 420 && totalMin <= 690;
+        const inShift2 = totalMin >= 810 && totalMin <= 1020;
+        const inShift3 = totalMin >= 1050 && totalMin <= 1230;
+
+        if (inShift1 || inShift2 || inShift3) {
+            badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1";
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Trong ca trực';
+        } else if (totalMin > 1230 || (totalMin > 690 && totalMin < 810) || (totalMin > 1020 && totalMin < 1050)) {
+            badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1";
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Hết giờ ca trực';
+        } else {
+            badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1";
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Ngoài giờ làm';
+        }
+    }
+    updateHeaderDutyStatus();
+    setInterval(updateHeaderDutyStatus, 30000);
+
     // Hàm bật/tắt menu dropdown thông báo
     function toggleNotificationDropdown() {
         const menu = document.getElementById('notification-dropdown');
@@ -124,6 +194,7 @@
 
     // HÀM TẠO VÀ BẬT POPUP THÔNG BÁO HIỆN ĐẠI (TOAST NOTIFICATION)
     function showAppNotification({ title = 'Thông báo hệ thống', message = '', type = 'info', duration = 4000 }) {
+        playNotificationSound();
         const container = document.getElementById('popup-notification-container');
         if (!container) return;
 

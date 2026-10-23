@@ -151,24 +151,23 @@ def get_appointment_detail(appointment_id):
     return jsonify({'success': True, 'appointment': appt})
 
 @api_bp.route('/admin/reset-password', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def reset_password():
-    """API quản trị viên đặt lại mật khẩu cho bệnh nhân hoặc tài khoản."""
+    """API quản trị viên và tiếp tân cấp lại mật khẩu cố định 123 cho bệnh nhân hoặc tài khoản."""
     data = request.get_json() or {}
     account_id = data.get('account_id')
     patient_id = data.get('patient_id')
-    new_password = data.get('new_password')
     user = session.get('user')
 
-    if not new_password:
-        return jsonify({'success': False, 'message': 'Vui lòng nhập mật khẩu mới!'}), 400
+    # Sinh mật khẩu cố định 123 theo quy chuẩn nghiệp vụ
+    fixed_pw = '123'
 
     if account_id:
-        success, msg = UserModel.reset_account_password(account_id, new_password, audit_user=user)
-        return jsonify({'success': success, 'message': msg})
+        success, msg = UserModel.reset_account_password(account_id, fixed_pw, audit_user=user)
+        return jsonify({'success': success, 'message': msg, 'default_password': '123'})
     elif patient_id:
-        success, msg = UserModel.reset_patient_password(patient_id, new_password, audit_user=user)
-        return jsonify({'success': success, 'message': msg})
+        success, msg = UserModel.reset_patient_password(patient_id, fixed_pw, audit_user=user)
+        return jsonify({'success': success, 'message': msg, 'default_password': '123'})
 
     return jsonify({'success': False, 'message': 'Thiếu ID tài khoản hoặc ID bệnh nhân!'}), 400
 
@@ -309,6 +308,78 @@ def save_emr_examination():
     if success:
         return jsonify({'success': True, 'ma_phieu': result, 'images': saved_images, 'message': 'Lưu phiếu khám và chuyển toa thành công!'})
     return jsonify({'success': False, 'message': result}), 400
+
+@api_bp.route('/emr/save-step', methods=['POST'])
+@roles_required('ADMIN', 'BACSI')
+def save_emr_step():
+    """API lưu tạm tiến trình từng bước khám EMR để đồng bộ thời gian thực sang phía Bệnh nhân."""
+    data = request.get_json() or {}
+    patient_id = data.get('patient_id')
+    doctor_id = data.get('doctor_id') or session.get('user', {}).get('bac_si_id') or 1
+    symptoms = data.get('symptoms', 'Triệu chứng bình thường')
+    icd = data.get('icd', 'Z00.0 - Khám sức khỏe tổng quát')
+    di_ung = data.get('di_ung')
+    tien_su_benh = data.get('tien_su_benh')
+    step = data.get('step', 2)
+
+    if not patient_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
+
+    from core.database import get_db
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        # Cập nhật tiền sử dị ứng và bệnh vào hồ sơ bệnh nhân nếu có thay đổi
+        if di_ung is not None or tien_su_benh is not None:
+            cursor.execute('''
+                UPDATE benh_nhan
+                SET di_ung = COALESCE(?, di_ung),
+                    tien_su_benh = COALESCE(?, tien_su_benh)
+                WHERE id = ?
+            ''', (di_ung, tien_su_benh, patient_id))
+
+        status_map = {
+            1: 'Đang khám',
+            2: 'Chờ kết quả CLS',
+            3: 'Chờ kết quả CLS',
+            4: 'Đang kê đơn'
+        }
+        target_status = status_map.get(step, 'Đang khám')
+
+        # Kiểm tra phiếu khám đang mở của bệnh nhân này
+        cursor.execute('''
+            SELECT TOP 1 id, ma_phieu FROM phieu_kham
+            WHERE benh_nhan_id = ? AND trang_thai IN (N'Đang khám', N'Chờ kết quả CLS', N'Chờ kết luận', N'Đang kê đơn')
+            ORDER BY id DESC
+        ''', (patient_id,))
+        row = cursor.fetchone()
+
+        if row:
+            pk_id = row['id']
+            cursor.execute('''
+                UPDATE phieu_kham
+                SET trieu_chung = ?, chan_doan_so_bo = ?, chan_doan_icd = ?, trang_thai = ?
+                WHERE id = ?
+            ''', (symptoms, icd, icd, target_status, pk_id))
+            ma_phieu = row['ma_phieu']
+        else:
+            import random
+            from datetime import datetime
+            ma_phieu = f"PK{datetime.now().strftime('%y%m%d')}{random.randint(100, 999)}"
+            cursor.execute('''
+                INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, trang_thai, thoi_gian_kham)
+                VALUES (?, ?, ?, 1, N'Khám bệnh chuyên khoa', ?, ?, ?, ?, GETDATE())
+            ''', (ma_phieu, patient_id, doctor_id, symptoms, icd, icd, target_status))
+
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Đã đồng bộ tiến trình khám sang bệnh nhân thành công!', 'step': step, 'ma_phieu': ma_phieu})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'success': False, 'message': str(e)}), 400
+
 
 @api_bp.route('/emr/finish', methods=['POST'])
 @roles_required('ADMIN', 'BACSI')
@@ -1127,20 +1198,20 @@ def toggle_account():
     return jsonify({'success': False, 'message': res}), 400
 
 @api_bp.route('/admin/account/reset-password', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def reset_account_password_api():
-    """API quản trị viên đặt lại mật khẩu cho tài khoản."""
+    """API quản trị viên và tiếp tân cấp lại mật khẩu cố định 123 cho tài khoản."""
     data = request.get_json() or {}
     account_id = data.get('account_id') or data.get('id')
-    new_password = data.get('new_password')
+    new_password = data.get('new_password') or '123'
     user = session.get('user')
 
-    if not account_id or not new_password:
-        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản và mật khẩu mới!'}), 400
+    if not account_id:
+        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản!'}), 400
 
     ok, msg = UserModel.reset_account_password(account_id, new_password, audit_user=user)
     if ok:
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'default_password': '123'})
     return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/admin/account/set-role', methods=['POST'])
@@ -1443,18 +1514,17 @@ def account_toggle_alias():
 
 
 @api_bp.route('/account/reset-password', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def account_reset_password_alias():
-    """Alias: /api/account/reset-password → /api/admin/account/reset-password."""
+    """Alias: /api/account/reset-password cấp lại mật khẩu cố định 123."""
     data = request.get_json() or {}
     account_id = data.get('id') or data.get('account_id')
-    new_password = data.get('new_password')
     user = session.get('user')
-    if not account_id or not new_password:
-        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản và mật khẩu mới!'}), 400
-    ok, msg = UserModel.reset_account_password(account_id, new_password, audit_user=user)
+    if not account_id:
+        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID tài khoản!'}), 400
+    ok, msg = UserModel.reset_account_password(account_id, '123', audit_user=user)
     if ok:
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'default_password': '123'})
     return jsonify({'success': False, 'message': msg}), 400
 
 

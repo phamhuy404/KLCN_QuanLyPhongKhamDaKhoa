@@ -153,7 +153,13 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nhóm máu cơ bản</label>
+                        <div class="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Nhóm máu cơ bản</label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-[11px] text-rose-700 hover:text-rose-800 font-semibold select-none bg-rose-50/80 px-2 py-0.5 rounded-lg border border-rose-200">
+                                <input type="checkbox" id="toggle-has-blood-variant" onchange="toggleBloodVariantSection(this.checked)" class="w-3.5 h-3.5 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer" {% if patient and patient.ghi_chu_nhom_mau %}checked{% endif %}>
+                                <span>Nhóm máu biến thể / hiếm?</span>
+                            </label>
+                        </div>
                         <select id="profile-blood" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-semibold text-slate-800">
                             {% for b in catalogs.nhom_mau %}
                             <option value="{{ b }}" {% if patient and patient.nhom_mau == b %}selected{% endif %}>{{ b }}</option>
@@ -162,26 +168,26 @@
                         <span class="text-[11px] text-slate-400 mt-1 block">Hệ thống ABO và Rh (8 nhóm chuẩn + Chưa rõ)</span>
                     </div>
 
-                    <!-- Ghi chú / Biến thể nhóm máu chuyên sâu -->
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5 text-rose-700">
+                    <!-- Ghi chú / Biến thể nhóm máu chuyên sâu (Tạm ẩn, chỉ hiện khi tích chọn câu hỏi hoặc đã có dữ liệu) -->
+                    <div id="blood-variant-section" class="sm:col-span-2 {% if not (patient and patient.ghi_chu_nhom_mau) %}hidden{% endif %} p-4 rounded-xl bg-rose-50/40 border border-rose-200 transition-all space-y-2">
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                            <span class="flex items-center gap-1.5 text-rose-700 font-bold">
                                 <i class="fa-solid fa-dna"></i> Biến thể nhóm máu và Kháng thể bất thường (Cận lâm sàng)
                             </span>
                             <span class="text-[11px] text-slate-400 font-normal">Tùy chọn: Weak D, Bombay, Anti-Kell...</span>
                         </label>
                         <div class="relative">
-                            <input type="text" id="profile-blood-note" list="blood-variants-datalist" value="{{ patient.ghi_chu_nhom_mau or '' }}" placeholder="Nhập tay hoặc chọn biến thể nhóm máu từ kết quả xét nghiệm huyết học..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 text-slate-800">
+                            <input type="text" id="profile-blood-note" list="blood-variants-datalist" value="{{ patient.ghi_chu_nhom_mau or '' }}" placeholder="Nhập tay hoặc chọn biến thể nhóm máu từ kết quả xét nghiệm huyết học..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-rose-500 text-slate-800">
                             <datalist id="blood-variants-datalist">
                                 {% for bv in catalogs.bien_the_nhom_mau %}
                                 <option value="{{ bv }}"></option>
                                 {% endfor %}
                             </datalist>
                         </div>
-                        <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                        <div class="flex flex-wrap items-center gap-1.5 pt-1">
                             <span class="text-[11px] text-slate-400">Gợi ý xét nghiệm:</span>
                             {% for bv in catalogs.bien_the_nhom_mau[:4] %}
-                            <button type="button" onclick="document.getElementById('profile-blood-note').value = '{{ bv }}'" class="text-[11px] px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                            <button type="button" onclick="document.getElementById('profile-blood-note').value = '{{ bv }}'" class="text-[11px] px-2 py-0.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors">
                                 + {{ bv.split('(')[0].strip() }}
                             </button>
                             {% endfor %}
@@ -192,27 +198,39 @@
                     </div>
 
                     <!-- Tiền sử dị ứng thuốc và thực phẩm -->
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5 text-rose-700">
+                    <div class="sm:col-span-2 space-y-2">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <label class="text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fa-solid fa-triangle-exclamation"></i> Tiền sử dị ứng (Thuốc, thực phẩm, thời tiết...)
-                            </span>
-                            <span class="text-[11px] text-slate-400 font-normal">Chọn từ danh mục chuẩn hoặc tìm kiếm</span>
-                        </label>
-                        <input type="hidden" id="profile-allergy" value="{{ patient.di_ung or 'Không có' }}">
-                        <div id="allergy-tag-container" class="space-y-2"></div>
+                            </label>
+                            <button type="button" onclick="openCatalogModal('allergy')" 
+                                    class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all flex items-center gap-1.5 shadow-xs">
+                                <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa danh mục dị ứng
+                            </button>
+                        </div>
+                        <input type="hidden" id="profile-allergy" name="di_ung" value="{{ patient.di_ung or 'Không có' }}">
+                        <div id="allergy-display-box" class="flex flex-wrap items-center gap-1.5 min-h-[50px] p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                            <!-- Cac the di ung se duoc render boi JS -->
+                        </div>
+                        <span class="text-[11px] text-slate-400 block">Bấm 'Chỉnh sửa danh mục dị ứng' để mở menu tìm kiếm và chọn nhiều mục từ danh mục chuẩn</span>
                     </div>
 
                     <!-- Tiền sử bệnh lý nền và mãn tính -->
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5 text-teal-700">
+                    <div class="sm:col-span-2 space-y-2">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <label class="text-xs font-bold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fa-solid fa-notes-medical"></i> Tiền sử bệnh lý nền và Bệnh mãn tính
-                            </span>
-                            <span class="text-[11px] text-slate-400 font-normal">Chọn từ danh mục chuẩn y tế</span>
-                        </label>
-                        <input type="hidden" id="profile-history" value="{{ patient.tien_su_benh or 'Không có' }}">
-                        <div id="history-tag-container" class="space-y-2"></div>
+                            </label>
+                            <button type="button" onclick="openCatalogModal('history')" 
+                                    class="px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 font-bold text-xs border border-teal-200 transition-all flex items-center gap-1.5 shadow-xs">
+                                <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa bệnh lý nền
+                            </button>
+                        </div>
+                        <input type="hidden" id="profile-history" name="tien_su_benh" value="{{ patient.tien_su_benh or 'Không có' }}">
+                        <div id="history-display-box" class="flex flex-wrap items-center gap-1.5 min-h-[50px] p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                            <!-- Cac the benh ly nen se duoc render boi JS -->
+                        </div>
+                        <span class="text-[11px] text-slate-400 block">Bấm 'Chỉnh sửa bệnh lý nền' để mở menu tìm kiếm và chọn nhiều mục từ danh mục chuẩn y tế</span>
                     </div>
                 </div>
             </div>
@@ -246,35 +264,313 @@
     </div>
 
     <script type="application/json" id="patient-allergy-catalog-data">
-        {{ catalogs.di_ung | tojson | safe }}
+        {{ catalogs.di_ung | tojson | safe if catalogs and catalogs.di_ung else [] }}
     </script>
     <script type="application/json" id="patient-history-catalog-data">
-        {{ catalogs.tien_su_benh | tojson | safe }}
+        {{ catalogs.tien_su_benh | tojson | safe if catalogs and catalogs.tien_su_benh else [] }}
     </script>
+
+    <!-- Modal Menu Checklist Tim kiem gan dung va Chon nhieu muc tu Danh muc chuan -->
+    <div id="catalog-selector-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+            <!-- Header Modal -->
+            <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                <div class="flex items-center gap-2.5">
+                    <div id="catalog-modal-icon" class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <div>
+                        <h3 id="catalog-modal-title" class="font-bold text-sm sm:text-base text-slate-900">Chọn danh mục chuẩn y tế</h3>
+                        <p class="text-xs text-slate-400">Đánh dấu chọn nhiều mục hoặc tìm kiếm nhanh</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCatalogModal()" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Thanh tim kiem gan dung va Thao tac nhanh -->
+            <div class="p-4 border-b border-slate-100 space-y-3 bg-white">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="catalog-modal-search" oninput="filterCatalogItems()" 
+                           placeholder="Nhập từ khóa tìm kiếm (gõ có dấu hoặc không dấu: peni, hải sản, huyết áp...)..."
+                           class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
+                </div>
+
+                <div class="flex items-center justify-between text-xs pt-1">
+                    <span class="text-slate-600 font-semibold">
+                        Đã chọn: <strong id="catalog-modal-count" class="text-medical-600 font-bold">0</strong> mục
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="setSelectAllCatalog(true)" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px] transition-colors">
+                            Chọn tất cả
+                        </button>
+                        <button type="button" onclick="setSelectAllCatalog(false)" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px] transition-colors">
+                            Bỏ chọn hết
+                        </button>
+                        <button type="button" onclick="setNoneCatalog()" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold text-[11px] transition-colors">
+                            Đặt là 'Không có'
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danh sach checklist cac muc tu file .txt -->
+            <div class="p-4 overflow-y-auto max-h-[50vh] space-y-2 flex-1" id="catalog-checklist-container">
+                <!-- Cac item checklist render tai day -->
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+                <span class="text-[11px] text-slate-400 italic">Dữ liệu được lấy từ file danh mục chuẩn y tế (.txt)</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeCatalogModal()" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs shadow-xs transition-colors">
+                        Hủy
+                    </button>
+                    <button type="button" onclick="applyCatalogSelection()" class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-check"></i> Xác nhận và Áp dụng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Danh muc goc nạp tu BackEnd
+        let ALLERGY_LIST = [];
+        let HISTORY_LIST = [];
+
+        // Trang thai modal hien tai
+        let currentModalType = ''; // 'allergy' hoac 'history'
+        let tempSelectedItems = new Set();
+
+                // Ham dong mo khoi bien the nhom mau theo lua chon
+        function toggleBloodVariantSection(isChecked) {
+            const section = document.getElementById('blood-variant-section');
+            const noteInput = document.getElementById('profile-blood-note');
+            if (section) {
+                if (isChecked) {
+                    section.classList.remove('hidden');
+                    if (noteInput) noteInput.focus();
+                } else {
+                    section.classList.add('hidden');
+                    if (noteInput) noteInput.value = '';
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const ALLERGY_CATALOG = JSON.parse(document.getElementById('patient-allergy-catalog-data').textContent || '[]');
-            const HISTORY_CATALOG = JSON.parse(document.getElementById('patient-history-catalog-data').textContent || '[]');
+            try {
+                ALLERGY_LIST = JSON.parse(document.getElementById('patient-allergy-catalog-data')?.textContent || '[]');
+                HISTORY_LIST = JSON.parse(document.getElementById('patient-history-catalog-data')?.textContent || '[]');
+            } catch (e) {
+                console.error("Lỗi parse catalog:", e);
+            }
 
-            // Khởi tạo các bộ chọn thẻ chuẩn hóa từ danh mục y tế
-            window.initCatalogTagSelector({
-                containerId: 'allergy-tag-container',
-                hiddenInputId: 'profile-allergy',
-                catalog: ALLERGY_CATALOG,
-                placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Aspirin, Hải sản...)...',
-                badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-                emptyLabel: 'Không có'
-            });
-
-            window.initCatalogTagSelector({
-                containerId: 'history-tag-container',
-                hiddenInputId: 'profile-history',
-                catalog: HISTORY_CATALOG,
-                placeholder: 'Gõ tìm kiếm bệnh lý nền (Tăng huyết áp, Đái tháo đường...)...',
-                badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
-                emptyLabel: 'Không có'
-            });
+            renderDisplayBadges('allergy');
+            renderDisplayBadges('history');
         });
+
+        // Hàm chuẩn hóa chuỗi không dấu để tìm kiếm gần đúng
+        function normalizeText(str) {
+            if (!str) return '';
+            return str.toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'd')
+                .trim();
+        }
+
+        // Lấy danh sách item từ hidden input
+        function getSelectedFromInput(type) {
+            const inputId = type === 'allergy' ? 'profile-allergy' : 'profile-history';
+            const val = (document.getElementById(inputId)?.value || '').trim();
+            if (!val || val === 'Không có' || val === 'Không') return [];
+            return val.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        // Render các thẻ tag hiển thị trên trang hồ sơ
+        function renderDisplayBadges(type) {
+            const containerId = type === 'allergy' ? 'allergy-display-box' : 'history-display-box';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const items = getSelectedFromInput(type);
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                const label = type === 'allergy' ? 'Chưa ghi nhận tiền sử dị ứng (Không có)' : 'Chưa ghi nhận bệnh lý nền (Không có)';
+                container.innerHTML = `
+                    <div class="flex items-center gap-2 text-xs text-slate-500 italic py-1">
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                        <span>${label}</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const badgeColor = type === 'allergy' 
+                ? 'bg-rose-50 text-rose-800 border-rose-200' 
+                : 'bg-teal-50 text-teal-800 border-teal-200';
+
+            items.forEach((item, index) => {
+                const badge = document.createElement('span');
+                badge.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor} shadow-xs`;
+                badge.innerHTML = `
+                    <span>${item}</span>
+                    <button type="button" onclick="removeSingleItem('${type}', ${index})" class="hover:opacity-75 ml-0.5" title="Bỏ mục này">
+                        <i class="fa-solid fa-xmark text-[11px]"></i>
+                    </button>
+                `;
+                container.appendChild(badge);
+            });
+
+// Da loai bo nut them nhanh tai day theo yeu cau
+        }
+
+        // Xóa nhanh 1 mục trực tiếp
+        function removeSingleItem(type, index) {
+            let items = getSelectedFromInput(type);
+            items.splice(index, 1);
+            const inputId = type === 'allergy' ? 'profile-allergy' : 'profile-history';
+            document.getElementById(inputId).value = items.length > 0 ? items.join(', ') : 'Không có';
+            renderDisplayBadges(type);
+        }
+
+        // Mở Modal Checklist
+        function openCatalogModal(type) {
+            currentModalType = type;
+            const modal = document.getElementById('catalog-selector-modal');
+            const titleEl = document.getElementById('catalog-modal-title');
+            const iconEl = document.getElementById('catalog-modal-icon');
+            const searchInput = document.getElementById('catalog-modal-search');
+
+            if (type === 'allergy') {
+                titleEl.textContent = 'Danh mục Tiền sử Dị ứng chuẩn y tế';
+                iconEl.className = 'w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0';
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else {
+                titleEl.textContent = 'Danh mục Tiền sử Bệnh lý nền y tế';
+                iconEl.className = 'w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-lg shrink-0';
+                iconEl.innerHTML = '<i class="fa-solid fa-notes-medical"></i>';
+            }
+
+            // Nạp các item hiện đã chọn vào Set tạm thời
+            const currentSelected = getSelectedFromInput(type);
+            tempSelectedItems = new Set(currentSelected);
+
+            searchInput.value = '';
+            renderChecklistItems();
+            updateSelectedCount();
+
+            modal.classList.remove('hidden');
+            setTimeout(() => searchInput.focus(), 100);
+        }
+
+        function closeCatalogModal() {
+            const modal = document.getElementById('catalog-selector-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Render danh sách checklist với bộ lọc tìm kiếm gần đúng
+        function renderChecklistItems() {
+            const container = document.getElementById('catalog-checklist-container');
+            const catalogList = currentModalType === 'allergy' ? ALLERGY_LIST : HISTORY_LIST;
+            const query = normalizeText(document.getElementById('catalog-modal-search')?.value || '');
+
+            container.innerHTML = '';
+
+            let visibleCount = 0;
+            catalogList.forEach((item, idx) => {
+                const normItem = normalizeText(item);
+                const isMatch = !query || normItem.includes(query);
+
+                if (isMatch) {
+                    visibleCount++;
+                    const isChecked = tempSelectedItems.has(item);
+                    const label = document.createElement('label');
+                    label.className = `flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                        isChecked 
+                            ? 'border-medical-500 bg-medical-50/40 text-slate-900 font-semibold' 
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 font-normal'
+                    }`;
+
+                    label.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-6 h-6 rounded-lg ${isChecked ? 'bg-medical-500 text-white' : 'bg-slate-100 text-slate-400'} flex items-center justify-center text-xs transition-colors shrink-0">
+                                ${isChecked ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}
+                            </span>
+                            <span class="text-xs leading-relaxed">${item}</span>
+                        </div>
+                        <input type="checkbox" class="w-4 h-4 rounded text-medical-600 focus:ring-medical-500 border-slate-300 pointer-events-none" ${isChecked ? 'checked' : ''}>
+                    `;
+
+                    label.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (tempSelectedItems.has(item)) {
+                            tempSelectedItems.delete(item);
+                        } else {
+                            tempSelectedItems.add(item);
+                        }
+                        renderChecklistItems();
+                        updateSelectedCount();
+                    });
+
+                    container.appendChild(label);
+                }
+            });
+
+            if (visibleCount === 0) {
+                container.innerHTML = `
+                    <div class="py-8 text-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-magnifying-glass text-2xl mb-2 text-slate-300 block"></i>
+                        Không tìm thấy mục nào khớp với từ khóa '${document.getElementById('catalog-modal-search')?.value}'.
+                    </div>
+                `;
+            }
+        }
+
+        function filterCatalogItems() {
+            renderChecklistItems();
+        }
+
+        function updateSelectedCount() {
+            const countEl = document.getElementById('catalog-modal-count');
+            if (countEl) countEl.textContent = tempSelectedItems.size;
+        }
+
+        // Chọn tất cả các mục đang hiển thị
+        function setSelectAllCatalog(isSelect) {
+            const catalogList = currentModalType === 'allergy' ? ALLERGY_LIST : HISTORY_LIST;
+            if (isSelect) {
+                catalogList.forEach(item => tempSelectedItems.add(item));
+            } else {
+                tempSelectedItems.clear();
+            }
+            renderChecklistItems();
+            updateSelectedCount();
+        }
+
+        // Đặt về "Không có"
+        function setNoneCatalog() {
+            tempSelectedItems.clear();
+            renderChecklistItems();
+            updateSelectedCount();
+        }
+
+        // Áp dụng lựa chọn vào form và cập nhật giao diện
+        function applyCatalogSelection() {
+            const inputId = currentModalType === 'allergy' ? 'profile-allergy' : 'profile-history';
+            const arr = Array.from(tempSelectedItems);
+            const finalVal = arr.length > 0 ? arr.join(', ') : 'Không có';
+            
+            document.getElementById(inputId).value = finalVal;
+            renderDisplayBadges(currentModalType);
+            closeCatalogModal();
+            showToast(`Đã chọn ${arr.length} mục cho ${currentModalType === 'allergy' ? 'tiền sử dị ứng' : 'bệnh lý nền'}. Hãy bấm 'Lưu thay đổi' để lưu vào hồ sơ!`, 'info');
+        }
 
         // Hàm lưu và đồng bộ thông tin hồ sơ
         function saveProfile() {
@@ -330,7 +626,7 @@
         }
     </script>
 
-    <!-- Modal Đổi Ảnh Đại Diện Bệnh Nhân -->
+<!-- Modal Đổi Ảnh Đại Diện Bệnh Nhân -->
     <div id="patient-avatar-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">

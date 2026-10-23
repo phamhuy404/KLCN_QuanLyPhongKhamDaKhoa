@@ -75,7 +75,7 @@ def patient_details_default():
 def appointments():
     """Quản lý tiếp nhận và phân bổ lịch hẹn khám theo phân quyền."""
     curr_user = session.get('user', {})
-    appointments_list = AppointmentModel.get_for_user(curr_user)
+    appointments_list = AppointmentModel.get_all()
     patients_list = PatientModel.get_all()
     doctors = UserModel.get_all_doctors()
     departments = ClinicModel.get_all_departments()
@@ -130,7 +130,9 @@ def emr():
     medicines = PharmacyModel.get_all_medicines()
     services = ClinicModel.get_all_services()
     doctors = UserModel.get_all_doctors()
-    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, doctors=doctors)
+    from core.catalog import get_all_catalogs
+    catalogs = get_all_catalogs()
+    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, doctors=doctors, catalogs=catalogs)
 
 @admin_bp.route('/lab')
 def lab():
@@ -280,25 +282,21 @@ def accounts():
     return redirect(url_for('admin.staff', tab='staff'))
 
 @admin_bp.route('/accounts/reset-password', methods=['POST'])
-@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+@roles_required('ADMIN', 'LETAN')
 def reset_account_password():
-    """Đặt lại mật khẩu cho tài khoản người dùng (Admin toàn quyền, nhân sự chỉ đổi của chính mình)."""
+    """Chỉ Admin và Tiếp tân mới có quyền cấp lại mật khẩu cố định 123 cho tài khoản."""
     req_json = request.get_json(silent=True) or {}
     account_id = req_json.get('account_id') or request.form.get('account_id', type=int)
-    new_password = req_json.get('new_password') or request.form.get('new_password')
     curr_user = session.get('user', {})
     user_role = curr_user.get('vai_tro')
 
     if not account_id:
         return jsonify({'success': False, 'message': 'Thiếu mã tài khoản!'}), 400
 
-    # Nếu không phải Admin thì chỉ được phép đổi mật khẩu cho chính mình
-    if user_role != 'ADMIN' and int(curr_user.get('id', 0)) != int(account_id):
-        return jsonify({'success': False, 'message': 'Bạn chỉ có quyền đổi mật khẩu cho chính tài khoản của mình!'}), 403
-
-    success, msg = UserModel.reset_account_password(int(account_id), new_password, audit_user=curr_user)
+    # Cấp lại mật khẩu mặc định 123 và yêu cầu đổi ở lần đăng nhập đầu
+    success, msg = UserModel.reset_account_password(int(account_id), '123', audit_user=curr_user)
     if success:
-        return jsonify({'success': True, 'message': msg})
+        return jsonify({'success': True, 'message': msg, 'default_password': '123'})
     return jsonify({'success': False, 'message': msg}), 400
 
 @admin_bp.route('/accounts/toggle-status/<int:account_id>', methods=['POST'])
@@ -513,11 +511,44 @@ def profile():
 
 @admin_bp.route('/my-doctor-profile')
 def my_doctor_profile():
-    """Điều hướng nhanh đến hồ sơ của bác sĩ đang đăng nhập."""
+    """Điều hướng an toàn đến hồ sơ của bác sĩ hoặc hồ sơ cá nhân."""
     curr_user = session.get('user', {})
     doctor_id = curr_user.get('bac_si_id')
+    if not doctor_id and curr_user.get('id'):
+        from core.database import get_db
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT bs.id FROM bac_si bs JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id WHERE nv.tai_khoan_id = ?', (curr_user['id'],))
+        r = cursor.fetchone()
+        conn.close()
+        if r:
+            doctor_id = r[0]
+            curr_user['bac_si_id'] = doctor_id
+            session['user'] = curr_user
+            session.modified = True
     if not doctor_id:
-        return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('admin.profile'))
+    return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
+
+@admin_bp.route('/doctors/<int:doctor_id>/update', methods=['POST'])
+def doctor_update_profile(doctor_id):
+    """Cập nhật hồ sơ chuyên môn, liên hệ và giá khám niêm yết của bác sĩ."""
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+    user_doctor_id = curr_user.get('bac_si_id')
+
+    if user_role == 'BACSI' and (not user_doctor_id or int(user_doctor_id) != int(doctor_id)):
+        abort(403)
+
+    success, msg = UserModel.update_doctor_detail(doctor_id, request.form, audit_user=curr_user)
+    if success:
+        flash(msg, 'success')
+        if user_role == 'BACSI':
+            curr_user['ho_ten'] = request.form.get('ho_ten', curr_user.get('ho_ten'))
+            session['user'] = curr_user
+            session.modified = True
+    else:
+        flash(msg, 'error')
     return redirect(url_for('admin.doctor_detail', doctor_id=doctor_id))
 
 @admin_bp.route('/doctors/<int:doctor_id>/avatar', methods=['POST'])

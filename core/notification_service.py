@@ -174,7 +174,7 @@ class NotificationService:
                 if appt.get('tai_khoan_id'):
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Nhắc lịch khám', '/patient/booking', 0, ?)
+                        VALUES (?, ?, ?, N'Nhắc lịch khám', '/patient/booking', 0, ?)
                     ''', (appt['tai_khoan_id'], title, content, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
                     conn.commit()
                     stats['in_app_sent'] += 1
@@ -259,7 +259,7 @@ class NotificationService:
                 if rx.get('tai_khoan_id'):
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Nhắc tái khám', '/patient/records', 0, ?)
+                        VALUES (?, ?, ?, N'Nhắc tái khám', '/patient/records', 0, ?)
                     ''', (rx['tai_khoan_id'], title, content, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
                     conn.commit()
                     stats['in_app_sent'] += 1

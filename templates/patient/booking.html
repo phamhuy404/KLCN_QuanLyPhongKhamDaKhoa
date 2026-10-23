@@ -45,16 +45,16 @@
                     <span class="text-xs text-medical-600 font-semibold" id="selected-dept-label">Nội Tổng Quát</span>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="specialty-selector">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch" id="specialty-selector">
                     {% if departments %}
                         {% for dep in departments %}
-                        <label class="cursor-pointer specialty-item">
+                        <label class="cursor-pointer specialty-item flex flex-col h-full">
                             <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
-                            <div class="p-4 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center gap-2">
-                                <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg">
+                            <div class="w-full h-full min-h-[128px] p-3 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center justify-center gap-2">
+                                <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg shrink-0">
                                     <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
                                 </div>
-                                <span class="text-xs font-semibold text-slate-800">{{ dep.ten_khoa }}</span>
+                                <span class="text-xs font-semibold text-slate-800 text-center line-clamp-2 min-h-[2.25rem] flex items-center justify-center leading-snug px-1">{{ dep.ten_khoa }}</span>
                             </div>
                         </label>
                         {% endfor %}

@@ -116,21 +116,57 @@
                 <span class="text-[10px] text-emerald-600 font-semibold">An toàn kê đơn</span>
             </div>
 
-            <!-- Tab Navigation EMR -->
-            <div class="flex items-center gap-2 border-b border-slate-100 pb-2 text-xs font-semibold overflow-x-auto">
-                <button type="button" onclick="switchEmrTab('tab-kham')" id="btn-tab-kham" class="px-4 py-2 rounded-xl bg-medical-50 text-medical-700 font-bold transition-all">
-                    1. Khám Lâm Sàng và ICD-10
-                </button>
-                <button type="button" onclick="switchEmrTab('tab-cls')" id="btn-tab-cls" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
-                    2. Chỉ Định Cận Lâm Sàng (X-Quang, Xét nghiệm...)
-                </button>
-                <button type="button" onclick="switchEmrTab('tab-thuoc')" id="btn-tab-thuoc" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all">
-                    3. Kê Đơn Thuốc và Cảnh Báo Tồn Kho
-                </button>
-                <button type="button" onclick="switchEmrTab('tab-view-cls')" id="btn-tab-view-cls" class="px-4 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition-all flex items-center gap-1.5">
-                    <i class="fa-solid fa-photo-film text-teal-600"></i>
-                    <span>4. Xem Kết Quả CLS và Ảnh Chụp</span>
-                </button>
+            <!-- HỘP GIẢI THÍCH NGHIỆP VỤ: HOÀN TẤT VÀ CHUYỂN PHIÊN KHÁM -->
+            <div class="p-3.5 bg-sky-50 border border-sky-200 rounded-2xl text-xs space-y-1.5 text-sky-950">
+                <div class="flex items-center gap-2 font-bold text-sky-900">
+                    <i class="fa-solid fa-circle-question text-sky-600 text-sm"></i>
+                    <span>Quy trình nghiệp vụ y khoa: Chuyển phiên khám và Hoàn tất ca khám</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-0.5 text-[11px] text-sky-900/90 leading-relaxed">
+                    <div class="p-2 bg-white/70 rounded-xl border border-sky-100">
+                        <strong class="text-teal-800 flex items-center gap-1 mb-0.5"><i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển phiên khám:</strong>
+                        Dành cho ca cần cận lâm sàng hoặc chuyển bác sĩ phụ trách. Khi bấm chuyển phiên, toàn bộ nội dung đã khám trước đó sẽ được <strong>khóa cứng không thể sửa đổi</strong>. Bác sĩ/KTV mới tiếp nhận xem tiếp được nội dung và làm tiếp các bước.
+                    </div>
+                    <div class="p-2 bg-white/70 rounded-xl border border-sky-100">
+                        <strong class="text-emerald-800 flex items-center gap-1 mb-0.5"><i class="fa-solid fa-circle-check"></i> Hoàn tất ca khám:</strong>
+                        Kết luận chẩn đoán xác định, xuất đơn thuốc điện tử, <strong>đóng bệnh án và khóa hồ sơ</strong> để chuyển bệnh nhân sang nhận thuốc và thanh toán tại quầy.
+                    </div>
+                </div>
+            </div>
+
+            <!-- THANH TIẾN TRÌNH CÁC BƯỚC KHÁM TÁCH BIỆT (KHÓA CHỌN TỰ DO, ĐIỀU HƯỚNG TUẦN TỰ) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 border-b border-slate-100 pb-3 text-xs font-semibold select-none">
+                <div id="step-btn-1" class="p-2.5 rounded-xl bg-medical-50 text-medical-700 font-bold border border-medical-200 transition-all flex items-center gap-2 text-left cursor-default pointer-events-none">
+                    <span class="w-6 h-6 rounded-lg bg-medical-600 text-white flex items-center justify-center text-xs font-bold shrink-0" id="step-badge-1">1</span>
+                    <div class="truncate">
+                        <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Bước 1</span>
+                        <span class="truncate block font-bold">Khám Lâm Sàng</span>
+                    </div>
+                </div>
+
+                <div id="step-btn-2" class="p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 text-left cursor-default pointer-events-none">
+                    <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0" id="step-badge-2">2</span>
+                    <div class="truncate">
+                        <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Bước 2</span>
+                        <span class="truncate block font-bold">Chỉ Định CLS</span>
+                    </div>
+                </div>
+
+                <div id="step-btn-3" class="p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 text-left cursor-default pointer-events-none">
+                    <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0" id="step-badge-3">3</span>
+                    <div class="truncate">
+                        <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Bước 3</span>
+                        <span class="truncate block font-bold">Kết Quả CLS</span>
+                    </div>
+                </div>
+
+                <div id="step-btn-4" class="p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 text-left cursor-default pointer-events-none">
+                    <span class="w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0" id="step-badge-4">4</span>
+                    <div class="truncate">
+                        <span class="block text-[10px] text-slate-400 uppercase tracking-wider">Bước 4</span>
+                        <span class="truncate block font-bold">Kê Đơn Thuốc</span>
+                    </div>
+                </div>
             </div>
 
             <!-- NỘI DUNG TAB 1: KHÁM LÂM SÀNG VÀ SINH HIỆU VÀ ICD-10 -->
@@ -162,6 +198,31 @@
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Lý do khám và Triệu chứng lâm sàng <span class="text-rose-500">*</span></label>
                         <textarea id="emr-symptoms" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bệnh nhân đau âm ỉ thượng vị, ợ hơi, chướng bụng sau ăn. Không sốt, tim phổi bình thường.</textarea>
+                    </div>
+
+                    <!-- BỘ CHỌN DỊ ỨNG VÀ TIỀN SỬ BỆNH CHUẨN TỪ FILE TXT (CHỌN NHIỀU) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5 text-rose-700 font-bold">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Dị ứng thuốc và Thực phẩm (File .txt chuẩn)
+                                </span>
+                                <span class="text-[10px] text-slate-400">Chọn nhiều</span>
+                            </label>
+                            <input type="hidden" id="emr-allergy-input" value="{{ patients[0].di_ung if patients and patients[0].di_ung else '' }}">
+                            <div id="emr-allergy-tag-container" class="space-y-1.5"></div>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5 text-teal-700 font-bold">
+                                    <i class="fa-solid fa-notes-medical"></i> Tiền sử bệnh lý nền (File .txt chuẩn)
+                                </span>
+                                <span class="text-[10px] text-slate-400">Chọn nhiều</span>
+                            </label>
+                            <input type="hidden" id="emr-history-input" value="{{ patients[0].tien_su_benh if patients and patients[0].tien_su_benh else '' }}">
+                            <div id="emr-history-tag-container" class="space-y-1.5"></div>
+                        </div>
                     </div>
 
                     <div>
@@ -223,6 +284,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Điều hướng cuối Bước 1 (Lưu tự động và chuyển bước) -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <button type="button" onclick="completeNormalExamination()" class="px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-heart-pulse text-emerald-600"></i> Sức Khỏe Tốt (Hoàn Tất Ngay)
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="advanceEmrStep(1, 4)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                            <span>Bỏ qua CLS và Kê Đơn Luôn</span> <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button type="button" onclick="advanceEmrStep(1, 2)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                            <span>Hoàn Thành Lâm Sàng và Sang Bước 2</span> <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- NỘI DUNG TAB 2: CHỈ ĐỊNH CẬN LÂM SÀNG -->
@@ -245,6 +321,48 @@
                     </label>
                     {% endif %}
                     {% endfor %}
+                </div>
+
+                <!-- Phân công Bác sĩ / KTV phụ trách Cận Lâm Sàng -->
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <label class="block font-bold text-slate-800 flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-doctor text-teal-600"></i>
+                        Bác sĩ / Kỹ thuật viên phụ trách thực hiện Cận lâm sàng <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <select id="emr-cls-doctor" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-medical-500">
+                                <option value="{{ session.get('user', {}).get('bac_si_id') or 1 }}">★ Chính tôi ({{ session.get('user', {}).get('ho_ten', 'Bác sĩ') }}) phụ trách</option>
+                                {% for d in doctors %}
+                                {% if d.id != (session.get('user', {}).get('bac_si_id') or 1) %}
+                                <option value="{{ d.id }}">{{ d.hoc_vi or 'BS' }}. {{ d.ho_ten }} - {{ d.ten_khoa or 'Chuyên khoa' }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="text-[11px] text-slate-500 flex items-center">
+                            Khi chuyển phiên, toàn bộ dữ liệu khám lâm sàng ở Bước 1 sẽ khóa cứng để đảm bảo tính pháp lý.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Điều hướng cuối Bước 2 (Lưu tự động và chuyển bước) -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <button type="button" onclick="switchEmrStep(1)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-chevron-left"></i> Lùi Về Bước 1 (Khám Lâm Sàng)
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="switchEmrStep(4)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                            <span>Bỏ Qua CLS và Sang Kê Đơn</span> <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button type="button" onclick="transferEmrSession()" class="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-md shadow-teal-600/20 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            <span>Xác Nhận và Chuyển Phiên CLS</span>
+                        </button>
+                        <button type="button" onclick="advanceEmrStep(2, 3)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                            <span>Hoàn Thành Chỉ Định và Sang Bước 3</span> <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -354,21 +472,45 @@
                         Tổng tiền thuốc dự kiến: <strong id="total-med-amount" class="text-emerald-700 font-mono">0 đ</strong>
                     </span>
                 </div>
+
+                <!-- Điều hướng cuối Bước 4: Hoàn tất ca khám -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <button type="button" onclick="switchEmrStep(3)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-chevron-left"></i> Lùi Về Bước 3 (Kết Quả CLS)
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="window.print()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-print"></i> In Phiếu Khám
+                        </button>
+                        <button type="button" id="btn-finish-cls" onclick="finishExaminationRecord()" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-medical-600 hover:from-teal-700 hover:to-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-flag-checkered"></i> Chốt Kết Luận và Hoàn Tất Sau CLS
+                        </button>
+                        <button type="button" id="btn-complete-exam" onclick="completeExamination()" class="px-6 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-circle-check"></i> Hoàn Tất Bệnh Án và Chốt Ca Khám
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- NỘI DUNG TAB 4: KẾT QUẢ CLS VÀ HÌNH ẢNH ĐÃ THỰC HIỆN -->
+            <!-- NỘI DUNG BƯỚC 3: KẾT QUẢ CẬN LÂM SÀNG VÀ HÌNH ẢNH -->
             <div id="tab-view-cls" class="space-y-4 hidden text-xs">
+                <!-- Thông báo khóa cứng Bước 1 và 2 -->
+                <div id="emr-step1-lock-notice" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2 font-medium">
+                    <i class="fa-solid fa-lock text-amber-600"></i>
+                    <span>Dữ liệu Bước 1 (Khám lâm sàng) đã được khóa cứng sau khi chuyển phiên khám để đảm bảo tính pháp lý hồ sơ.</span>
+                </div>
+
                 <div id="emr-pending-finish-banner" class="hidden p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs flex items-center justify-between text-amber-900">
                     <div class="flex items-center gap-2.5">
                         <i class="fa-solid fa-hourglass-half text-amber-600 text-base shrink-0"></i>
-                        <span>Phiếu khám <strong id="pending-finish-code" class="font-mono text-teal-800"></strong> đang ở trạng thái <strong>Chờ kết quả CLS</strong>. Sau khi xem xét kết quả bên dưới, bác sĩ hãy bổ sung chẩn đoán/đơn thuốc rồi bấm <strong>"Kết Luận và Hoàn Tất Ca Khám Sau CLS"</strong>.</span>
+                        <span>Phiếu khám <strong id="pending-finish-code" class="font-mono text-teal-800"></strong> đang ở trạng thái <strong>Chờ kết quả CLS</strong>. Bác sĩ/KTV tiếp nhận ca khám, xem lại nội dung và nhập kết quả bên dưới.</span>
                     </div>
                 </div>
 
                 <div class="p-3 bg-teal-50 border border-teal-200 rounded-xl text-teal-800 text-xs flex items-center justify-between">
                     <span class="flex items-center gap-2">
                         <i class="fa-solid fa-photo-film text-teal-600"></i>
-                        <span>Kết quả xét nghiệm, siêu âm, X-Quang đã thực hiện của bệnh nhân để bác sĩ hội chẩn và chẩn đoán:</span>
+                        <span>Danh mục kết quả xét nghiệm, siêu âm, X-Quang của bệnh nhân:</span>
                     </span>
                     <span class="font-bold text-teal-900" id="emr-patient-cls-badge">0 kết quả</span>
                 </div>
@@ -376,29 +518,22 @@
                 <div id="emr-patient-cls-container" class="space-y-3">
                     <!-- Sẽ render động theo bệnh nhân đang chọn -->
                 </div>
+
+                <!-- Điều hướng cuối Bước 3 (Chuyển bước) -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+                    <button type="button" onclick="switchEmrStep(2)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-chevron-left"></i> Lùi Về Bước 2 (Chỉ Định CLS)
+                    </button>
+                    <button type="button" onclick="advanceEmrStep(3, 4)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                        <span>Hoàn Thành Xem Kết Quả và Sang Bước 4</span> <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
             </div>
 
-            <!-- Footer Action Bar -->
-            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div class="text-xs text-slate-500">
-                    <i class="fa-solid fa-circle-info text-teal-600 mr-1"></i>
-                    Bấm Hoàn Tất để chốt khám, đẩy chỉ định xuống KTV và chuyển toa sang Dược sĩ.
-                </div>
-
-                <div class="flex items-center gap-2 flex-wrap justify-end">
-                    <button type="button" onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-print"></i> In Phiếu Khám
-                    </button>
-                    <button type="button" id="btn-finish-cls" onclick="finishExaminationRecord()" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-medical-600 hover:from-teal-700 hover:to-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer" title="Chốt kết luận chẩn đoán xác định và hoàn tất ca khám sau khi đã có đầy đủ kết quả cận lâm sàng">
-                        <i class="fa-solid fa-flag-checkered"></i> Kết Luận và Hoàn Tất Ca Khám Sau CLS
-                    </button>
-                    <button type="button" onclick="completeNormalExamination()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-teal-500/20 flex items-center gap-1.5 cursor-pointer" title="Áp dụng khi khám lâm sàng bình thường, không cần cận lâm sàng và không cần kê thuốc">
-                        <i class="fa-solid fa-heart-pulse"></i> Sức Khỏe Tốt (Xuất Hóa Đơn Ngay)
-                    </button>
-                    <button type="button" id="btn-complete-exam" onclick="completeExamination()" class="px-6 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
-                        <i class="fa-solid fa-circle-check"></i> Hoàn Tất và Chuyển Phiên Khám
-                    </button>
-                </div>
+            <!-- Hàng thông tin trạng thái chân trang EMR -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <span>Hệ thống phân luồng tuần tự: Khám lâm sàng ➔ Chỉ định CLS ➔ Kết quả CLS ➔ Kê đơn thuốc.</span>
+                <span class="font-mono text-[11px] text-teal-700">H2T Smart EMR v2.6</span>
             </div>
 
         </div>
@@ -406,6 +541,14 @@
     </div>
 
 </div>
+
+
+<script type="application/json" id="emr-allergy-catalog-data">
+    {{ (catalogs.di_ung if catalogs else []) | tojson | safe }}
+</script>
+<script type="application/json" id="emr-history-catalog-data">
+    {{ (catalogs.tien_su_benh if catalogs else []) | tojson | safe }}
+</script>
 
 <script type="application/json" id="emr-patients-data">
     {{ patients | tojson | safe }}
@@ -455,9 +598,7 @@
     });
     renderPrescriptionTable();
 
-    // ==========================================
     // Quản lý kéo thả và xem trước nhiều ảnh EMR (Tối đa 10 ảnh, lưới 2x2 cuộn được)
-    // ==========================================
     function handleEmrDragOver(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -556,9 +697,7 @@
         });
     }
 
-    // ==========================================
     // Chọn bệnh nhân và đồng bộ trạng thái EMR
-    // ==========================================
     function selectEmrPatient(id) {
         currentSelectedPatientId = parseInt(id);
         const p = rawPatients.find(x => x.id === currentSelectedPatientId);
@@ -582,6 +721,8 @@
         const allergyBox = document.getElementById('allergy-warning-box');
         const allergyEl = document.getElementById('current-patient-allergy');
         const allergyVal = p.di_ung || '';
+        if (emrAllergyTagSelector) emrAllergyTagSelector.setTags(p.di_ung || '');
+        if (emrHistoryTagSelector) emrHistoryTagSelector.setTags(p.tien_su_benh || '');
         const hasAllergy = allergyVal && allergyVal !== 'Không có' && allergyVal !== 'Không ghi nhận dị ứng thuốc' && allergyVal !== 'Không ghi nhận dị ứng';
         
         if (allergyEl) allergyEl.innerText = allergyVal || 'Không ghi nhận dị ứng thuốc';
@@ -636,6 +777,195 @@
 
     if (rawPatients.length > 0) {
         selectEmrPatient(rawPatients[0].id);
+    }
+
+    
+    
+    let emrAllergyTagSelector = null;
+    let emrHistoryTagSelector = null;
+
+    // Khởi tạo các bộ chọn danh mục chuẩn từ file txt
+    document.addEventListener('DOMContentLoaded', () => {
+        const ALLERGIES = JSON.parse(document.getElementById('emr-allergy-catalog-data')?.textContent || '[]');
+        const HISTORIES = JSON.parse(document.getElementById('emr-history-catalog-data')?.textContent || '[]');
+
+        if (window.initCatalogTagSelector) {
+            emrAllergyTagSelector = window.initCatalogTagSelector({
+                containerId: 'emr-allergy-tag-container',
+                hiddenInputId: 'emr-allergy-input',
+                catalog: ALLERGIES,
+                placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Aspirin, Hải sản...)...',
+                badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+                emptyLabel: 'Không có'
+            });
+
+            emrHistoryTagSelector = window.initCatalogTagSelector({
+                containerId: 'emr-history-tag-container',
+                hiddenInputId: 'emr-history-input',
+                catalog: HISTORIES,
+                placeholder: 'Gõ tìm kiếm bệnh lý nền (Tăng huyết áp, Đái tháo đường...)...',
+                badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+                emptyLabel: 'Không có'
+            });
+        }
+    });
+
+    // Chuyển bước khám có tự động lưu tiến trình và cập nhật thời gian thực sang Cổng Bệnh nhân
+    function advanceEmrStep(fromStep, toStep) {
+        const payload = {
+            patient_id: currentSelectedPatientId,
+            doctor_id: {{ session.get('user', {}).get('bac_si_id') or 1 }},
+            symptoms: document.getElementById('emr-symptoms')?.value || 'Khám lâm sàng',
+            icd: document.getElementById('emr-icd')?.value || 'Z00.0 - Khám sức khỏe',
+            di_ung: document.getElementById('emr-allergy-input')?.value || '',
+            tien_su_benh: document.getElementById('emr-history-input')?.value || '',
+            step: toStep
+        };
+
+        fetch('/api/emr/save-step', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (window.showAdminToast) {
+                    window.showAdminToast(`Đã lưu tiến trình Bước ${fromStep} và cập nhật trực tiếp sang Cổng Bệnh nhân!`);
+                }
+                switchEmrStep(toStep);
+            } else {
+                alert('Lỗi lưu bước khám: ' + data.message);
+                switchEmrStep(toStep);
+            }
+        })
+        .catch(err => {
+            switchEmrStep(toStep);
+        });
+    }
+
+    let currentEmrStep = 1;
+    let isSessionTransferred = false;
+
+    // Chuyển đổi giữa các bước khám
+    function switchEmrStep(step) {
+        currentEmrStep = step;
+        const stepPanes = {
+            1: 'tab-kham',
+            2: 'tab-cls',
+            3: 'tab-view-cls',
+            4: 'tab-thuoc'
+        };
+
+        // Ẩn tất cả panes
+        Object.values(stepPanes).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        // Cập nhật giao diện Stepper Buttons
+        for (let i = 1; i <= 4; i++) {
+            const btn = document.getElementById(`step-btn-${i}`);
+            const badge = document.getElementById(`step-badge-${i}`);
+            if (!btn || !badge) continue;
+
+            if (i === step) {
+                btn.className = "p-2.5 rounded-xl bg-medical-50 text-medical-700 font-bold border border-medical-300 shadow-xs transition-all flex items-center gap-2 text-left";
+                badge.className = "w-6 h-6 rounded-lg bg-medical-600 text-white flex items-center justify-center text-xs font-bold shrink-0";
+            } else if (i < step || (isSessionTransferred && i <= 2)) {
+                btn.className = "p-2.5 rounded-xl bg-emerald-50/60 text-emerald-800 font-bold border border-emerald-200 transition-all flex items-center gap-2 text-left";
+                badge.className = "w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0";
+                badge.innerHTML = '<i class="fa-solid fa-check text-[10px]"></i>';
+            } else {
+                btn.className = "p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 text-left hover:bg-slate-100";
+                badge.className = "w-6 h-6 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold shrink-0";
+                badge.innerText = i;
+            }
+        }
+
+        const targetPane = document.getElementById(stepPanes[step]);
+        if (targetPane) targetPane.classList.remove('hidden');
+    }
+
+    // Khóa cứng các trường dữ liệu ở Bước 1 sau khi chuyển phiên
+    function lockEmrClinicalStep() {
+        isSessionTransferred = true;
+        const lockNotice = document.getElementById('emr-step1-lock-notice');
+        if (lockNotice) lockNotice.classList.remove('hidden');
+
+        ['emr-ha', 'emr-mach', 'emr-t', 'emr-spo2', 'emr-symptoms', 'emr-dropzone'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.readOnly = true;
+                el.classList.add('bg-slate-100', 'cursor-not-allowed', 'opacity-85');
+            } else if (id === 'emr-dropzone') {
+                el.style.pointerEvents = 'none';
+                el.classList.add('opacity-50');
+            }
+        });
+    }
+
+    // Chuyển phiên khám cận lâm sàng
+    function transferEmrSession() {
+        const checkedCls = Array.from(document.querySelectorAll('input[name="cls_service_id"]:checked')).map(el => parseInt(el.value));
+        if (checkedCls.length === 0) {
+            alert('Vui lòng tick chọn ít nhất một kỹ thuật Cận Lâm Sàng trước khi chuyển phiên!');
+            return;
+        }
+
+        const targetDoctorSelect = document.getElementById('emr-cls-doctor');
+        const targetDoctorId = targetDoctorSelect ? parseInt(targetDoctorSelect.value) : null;
+        const targetDoctorText = targetDoctorSelect ? targetDoctorSelect.options[targetDoctorSelect.selectedIndex].text : 'Bác sĩ phụ trách';
+
+        if (!confirm(`XÁC NHẬN CHUYỂN PHIÊN KHÁM:
+- Chuyển phiên thực hiện CLS cho: "${targetDoctorText}"
+- Số lượng kỹ thuật chỉ định: ${checkedCls.length}
+- Dữ liệu khám lâm sàng ban đầu sẽ được KHÓA CỨNG không sửa đổi.
+
+Bạn có chắc chắn muốn chuyển phiên?`)) {
+            return;
+        }
+
+        const symptoms = document.getElementById('emr-symptoms')?.value || 'Đau thượng vị';
+        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày';
+
+        const payload = {
+            patient_id: currentSelectedPatientId,
+            doctor_id: targetDoctorId,
+            reason: 'Chỉ định cận lâm sàng',
+            symptoms: symptoms,
+            diagnosis: diagnosis,
+            icd: diagnosis,
+            treatment: 'Thực hiện cận lâm sàng chuyên khoa',
+            advice: 'Chờ kết quả cận lâm sàng',
+            lab_services: checkedCls,
+            medicines: [],
+            images: emrSelectedImages
+        };
+
+        fetch('/api/emr/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ ĐÃ CHUYỂN PHIÊN THÀNH CÔNG!
+- Mã phiếu: ${data.ma_phieu}
+- Chỉ định đã chuyển sang: ${targetDoctorText}
+- Dữ liệu khám lâm sàng đã khóa cứng an toàn.`);
+                lockEmrClinicalStep();
+                switchEmrStep(3);
+                // Reload danh sách CLS
+                const p = rawPatients.find(x => x.id === currentSelectedPatientId);
+                if (p) renderPatientClsResults(p);
+            } else {
+                alert('❌ Lỗi khi chuyển phiên: ' + data.message);
+            }
+        })
+        .catch(err => alert('Lỗi kết nối: ' + err));
     }
 
     function switchEmrTab(tabId) {

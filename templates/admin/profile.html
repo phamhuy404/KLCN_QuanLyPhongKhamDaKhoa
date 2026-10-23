@@ -1,6 +1,14 @@
-{% extends "admin/base.html" %}
+{% extends "layouts/base.html" %}
 
-{% block title %}Hồ Sơ Cá Nhân - Phòng Khám Đa Khoa{% endblock %}
+{% block title %}H2T Healthcare - Hồ Sơ Cá Nhân và Tài Khoản{% endblock %}
+
+{% block sidebar %}
+    {% include "admin/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "admin/components/header.html" %}
+{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -184,6 +192,31 @@
                                 <label class="block font-semibold text-slate-700 mb-1">Giới thiệu tóm tắt / Lĩnh vực chuyên sâu</label>
                                 <textarea name="gioi_thieu" rows="2" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">{{ staff.gioi_thieu or '' }}</textarea>
                             </div>
+
+                            <div class="sm:col-span-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                                <label class="block font-semibold text-slate-800">
+                                    <i class="fa-solid fa-money-bill-wave text-emerald-600 mr-1"></i> Giá khám niêm yết (Giá gốc chưa trừ BHYT) <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <span class="text-[11px] text-slate-500 block mb-1">Giá khám gốc (VNĐ)</span>
+                                        <input type="number" step="1000" min="10000" name="gia_kham" id="profile_gia_kham" 
+                                               value="{{ '{:.0f}'.format(staff.gia_kham_goc or 150000) }}" oninput="recalcProfileBhyt(this.value)"
+                                               class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 font-mono font-bold text-slate-800">
+                                    </div>
+                                    <div class="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200 text-teal-800">
+                                        <span class="text-[11px] text-teal-700 block font-semibold">BHYT hỗ trợ (80%)</span>
+                                        <span class="font-mono font-bold text-sm text-teal-800" id="profile_bhyt_support">- {{ "{:,.0f}".format(staff.bhyt_ho_tro or 120000) }} đ</span>
+                                    </div>
+                                    <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-800">
+                                        <span class="text-[11px] text-emerald-700 block font-semibold">Bệnh nhân BHYT trả (20%)</span>
+                                        <span class="font-mono font-bold text-sm text-emerald-700" id="profile_copay">{{ "{:,.0f}".format(staff.gia_kham_bhyt or 30000) }} đ</span>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 italic mt-1">
+                                    Bệnh nhân không có thẻ BHYT sẽ thanh toán 100% giá gốc niêm yết. Bệnh nhân có thẻ BHYT hợp lệ được quỹ BHYT chi trả 80%, chỉ đồng chi trả 20%.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -234,4 +267,16 @@
         </div>
     </div>
 </div>
+
+<script>
+function recalcProfileBhyt(val) {
+    const v = parseFloat(val) || 0;
+    const support = v * 0.8;
+    const copay = v * 0.2;
+    const sEl = document.getElementById('profile_bhyt_support');
+    const cEl = document.getElementById('profile_copay');
+    if (sEl) sEl.innerText = '- ' + support.toLocaleString('vi-VN') + ' đ';
+    if (cEl) cEl.innerText = copay.toLocaleString('vi-VN') + ' đ';
+}
+</script>
 {% endblock %}

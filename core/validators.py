@@ -11,6 +11,12 @@ VIETNAMESE_NAME_PATTERN = re.compile(
     r'ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ\s]+$'
 )
 
+# Regex ho ten nhan su y te: cho phep dau cham viet tat hoc ham, hoc vi y khoa (BS., ThS., TS., KTV.)
+VIETNAMESE_STAFF_NAME_PATTERN = re.compile(
+    r'^[a-zA-Zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ'
+    r'ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ\s\.]+$'
+)
+
 # Regex so dien thoai di dong Viet Nam (10 chu so, bat dau bang 03, 05, 07, 08, 09)
 VN_PHONE_PATTERN = re.compile(r'^(03|05|07|08|09)\d{8}$')
 
@@ -29,7 +35,7 @@ def sanitize_text(text):
         return ''
     return ' '.join(str(text).strip().split())
 
-def validate_name(name, field_label='Họ và tên'):
+def validate_name(name, field_label='Họ và tên', allow_titles=False):
     """Kiem tra rang buoc ho ten: khong chua so hay ky tu la, dai 2-100 ky tu."""
     name = sanitize_text(name)
     if not name:
@@ -40,7 +46,9 @@ def validate_name(name, field_label='Họ và tên'):
         return False, f"{field_label} không được chứa chữ số!"
     if FORBIDDEN_CHARS_PATTERN.search(name):
         return False, f"{field_label} chứa ký tự đặc biệt lạ không hợp lệ!"
-    if not VIETNAMESE_NAME_PATTERN.match(name):
+    
+    pattern = VIETNAMESE_STAFF_NAME_PATTERN if allow_titles else VIETNAMESE_NAME_PATTERN
+    if not pattern.match(name):
         return False, f"{field_label} chỉ được chứa chữ cái tiếng Việt và khoảng trắng, không chứa số hay ký tự lạ!"
     return True, name
 

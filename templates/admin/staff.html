@@ -1307,7 +1307,7 @@ function renderTimetableGrid(weekType) {
                     </div>
                 </td>`;
 
-        days.forEach(d => {
+        days.forEach((d, dIdx) => {
             const cellSchedules = allSchedules.filter(s => 
                 s.ngay_lam === d.date_str && 
                 Number(s.ca_lam) === Number(caId) && 
@@ -1318,89 +1318,78 @@ function renderTimetableGrid(weekType) {
             const myShift = cellSchedules.find(s => s.is_my_shift || s.nhan_vien_id === currUser.id || (currUser.staff_id && s.nhan_vien_id === currUser.staff_id));
             const isPrivileged = (currUser.vai_tro === 'ADMIN' || currUser.vai_tro === 'LETAN');
 
-            html += `<td class="p-2.5 border-r border-slate-200 last:border-r-0 align-top relative group min-w-[155px] h-[145px]">`;
+            // Thiết lập vị trí hiển thị ngang sang bên (phải hoặc trái tùy vị trí cột)
+            const isRightSide = (dIdx >= 3);
+            const popoverSideClass = isRightSide ? 'right-full mr-3' : 'left-full ml-3';
+
+            html += `<td class="p-2.5 border-r border-slate-200 last:border-r-0 align-top relative group min-w-[160px] h-[185px]">`;
 
             if (cellSchedules.length > 0) {
                 const isRegistered = !!myShift;
                 const cardClass = isRegistered ? 'schedule-card-registered' : 'schedule-card-unregistered';
                 const firstItem = myShift || cellSchedules[0];
                 const deptName = firstItem.ten_khoa || currUser.ten_khoa || 'Khoa Đa Khoa';
-                const roomName = firstItem.ten_phong ? `${firstItem.ten_phong}${firstItem.vi_tri_tang ? ' - ' + firstItem.vi_tri_tang : ''}` : 'Khu vực tiếp đón';
+                const doctorCount = cellSchedules.filter(s => s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ'))).length;
+                const doctorsInShift = cellSchedules.filter(s => s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ')));
 
-                const clickAction = isPrivileged ? `onclick="openShiftDetailsModal('${d.date_str}', ${caId})"` : '';
-                const clickCursor = isPrivileged ? 'cursor-pointer hover:shadow-md hover:scale-[1.01]' : 'cursor-default';
-
+                // Thẻ ca trực định dạng hình trụ dọc nhỏ gọn (dạng capsule/trụ đứng)
                 html += `
-                    <div ${clickAction} class="${cardClass} ${clickCursor} p-3 h-full rounded-2xl flex flex-col justify-between transition-all select-none">
-                        <div>
-                            <div class="flex items-start justify-between gap-1.5 mb-1.5">
-                                <div class="font-extrabold text-[12px] leading-tight line-clamp-1" title="${deptName}">
-                                    ${deptName}
-                                </div>
-                                <div class="flex items-center gap-1 shrink-0">
-                                    ${isRegistered ? `<i class="fa-solid fa-circle-check text-[12px] text-emerald-200" title="Ca bạn đã đăng ký"></i>` : `<i class="fa-solid fa-users text-[11px] text-sky-200"></i>`}
-                                    ${isPrivileged ? `<i class="fa-solid fa-up-right-from-square text-[10px] opacity-75 hover:opacity-100 text-white ml-0.5" title="Bấm để xem toàn bộ nhân sự đăng ký ca này"></i>` : ''}
-                                </div>
+                    <div onclick="openShiftDetailsModal('${d.date_str}', ${caId})"
+                         class="${cardClass} cursor-pointer hover:shadow-xl hover:scale-[1.03] p-2.5 w-24 sm:w-28 mx-auto min-h-[145px] rounded-3xl flex flex-col justify-between items-center text-center transition-all select-none shadow-md border border-white/25">
+                        <div class="space-y-1 w-full">
+                            <div class="w-8 h-8 mx-auto rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold mb-1 shadow-xs">
+                                ${isRegistered ? `<i class="fa-solid fa-user-check text-emerald-200"></i>` : `<i class="fa-solid fa-user-doctor text-sky-200"></i>`}
                             </div>
-
-                            <div class="text-[11px] font-medium opacity-90 truncate flex items-center gap-1.5 text-white/90">
-                                <i class="fa-solid fa-location-dot text-[9px] text-white/70"></i>
-                                <span class="truncate" title="${roomName}">${roomName}</span>
+                            <div class="font-bold text-[11px] leading-tight text-white truncate w-full" title="${doctorCount > 0 ? doctorCount + ' Bác sĩ' : cellSchedules.length + ' Nhân sự'}">
+                                ${doctorCount > 0 ? `${doctorCount} Bác sĩ` : `${cellSchedules.length} Nhân sự`}
                             </div>
-
-                            <div class="text-[10px] font-semibold opacity-95 flex items-center gap-1 mt-1.5">
-                                <i class="fa-regular fa-clock text-[9px]"></i>
-                                <span>${shiftHours}</span>
+                            <div class="text-[9px] font-semibold opacity-90 text-white/90 bg-black/15 px-1.5 py-0.5 rounded-full mx-auto w-fit">
+                                ${shiftHours}
                             </div>
                         </div>
 
-                        <div class="pt-2 border-t border-white/20 mt-2 flex items-center justify-between text-[10px]">
+                        <div class="pt-1.5 w-full border-t border-white/20 text-[9px]">
                             ${isRegistered ? `
-                                <span class="font-bold bg-white/25 px-2 py-0.5 rounded-lg text-[9px] flex items-center gap-1">
-                                    <i class="fa-solid fa-user-check text-[8px]"></i> Bạn trực
+                                <span class="font-bold bg-white/30 px-2 py-0.5 rounded-full text-[9px] text-white block truncate">
+                                    Bạn trực
                                 </span>` : `
-                                <span class="font-medium bg-black/20 px-2 py-0.5 rounded-lg text-[9px]">
-                                    ${cellSchedules.length} nhân sự
+                                <span class="font-medium bg-black/20 px-1.5 py-0.5 rounded-full text-[9px] text-white/90 block truncate">
+                                    ${cellSchedules.length} người
                                 </span>`}
-                            <span class="text-[10px] opacity-85 font-semibold">${cellSchedules.length} người</span>
                         </div>
                     </div>
 
-                    <!-- HOVER POPOVER TOOLTIP CHI TIẾT DANH SÁCH BÁC SĨ VÀ NHÂN VIÊN CÙNG TRỰC -->
-                    <div class="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 bg-slate-900/95 backdrop-blur text-white p-4 rounded-2xl shadow-2xl pointer-events-none border border-slate-700/60">
-                        <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
-                            <div>
+                    <!-- HOVER POPOVER TOOLTIP: CHỈ HIỂN THỊ TÊN CÁC BÁC SĨ CHUNG KHOA GỌN GÀNG -->
+                    <div class="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 absolute z-50 top-0 ${popoverSideClass} w-72 bg-slate-900/95 backdrop-blur text-white p-3.5 rounded-2xl shadow-2xl pointer-events-auto border border-slate-700/80">
+                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-2 mb-2">
+                            <div class="truncate">
                                 <div class="font-bold text-xs text-amber-300">${d.day_name}, ${d.display_date}</div>
                                 <div class="text-[11px] text-slate-300 font-medium">${shiftName} (${shiftHours})</div>
                             </div>
-                            <span class="px-2 py-0.5 bg-blue-500/30 text-blue-300 border border-blue-400/30 rounded-lg text-[10px] font-bold">
+                            <span class="px-2 py-0.5 bg-blue-500/30 text-blue-300 border border-blue-400/30 rounded-lg text-[10px] font-bold shrink-0">
                                 ${cellSchedules.length} người
                             </span>
                         </div>
 
-                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center justify-between">
-                            <span class="flex items-center gap-1"><i class="fa-solid fa-users text-sky-400"></i> Đồng nghiệp và Bác sĩ trực ca:</span>
-                            <span class="text-[9px] text-slate-400 font-normal italic">${deptName}</span>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-doctor text-sky-400"></i> Bác sĩ chung khoa trực ca này:
                         </div>
 
-                        <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">`;
+                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">`;
 
-                cellSchedules.forEach(person => {
+                const listToShow = doctorsInShift.length > 0 ? doctorsInShift : cellSchedules;
+                listToShow.forEach(person => {
                     const isSelf = person.is_my_shift || person.nhan_vien_id === currUser.id;
-                    const avatarLetter = (person.ho_ten || 'NV').substring(0, 2).toUpperCase();
+                    const avatarLetter = (person.ho_ten || 'BS').substring(0, 2).toUpperCase();
                     html += `
                             <div class="flex items-center justify-between gap-2 p-1.5 rounded-xl ${isSelf ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-100' : 'bg-slate-800/80 text-slate-200'}">
                                 <div class="flex items-center gap-2 overflow-hidden">
                                     <div class="w-6 h-6 rounded-full ${isSelf ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'} flex items-center justify-center text-[10px] font-bold shrink-0">
                                         ${avatarLetter}
                                     </div>
-                                    <div class="truncate">
-                                        <div class="font-bold text-[11px] truncate ${isSelf ? 'text-emerald-300' : 'text-slate-100'}">
-                                            ${person.ho_ten || 'Nhân sự'} ${isSelf ? '<span class="text-[9px] bg-emerald-500 text-white px-1 py-0.2 rounded font-extrabold ml-1">Bạn</span>' : ''}
-                                        </div>
-                                        <div class="text-[9px] text-slate-400 truncate">
-                                            ${person.ten_khoa ? person.ten_khoa + ' • ' : ''}${person.chuc_vu || person.ten_vai_tro || 'Nhân sự y tế'}${person.ten_phong ? ' (' + person.ten_phong + ')' : ''}
-                                        </div>
+                                    <div class="truncate font-bold text-[11px] ${isSelf ? 'text-emerald-300' : 'text-slate-100'}">
+                                        ${person.hoc_vi ? person.hoc_vi + '. ' : ''}${person.ho_ten || 'Bác sĩ'}
+                                        ${isSelf ? '<span class="text-[9px] bg-emerald-500 text-white px-1 py-0.2 rounded font-extrabold ml-1">Bạn</span>' : ''}
                                     </div>
                                 </div>
                                 <span class="text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${person.trang_thai_duyet === 'DA_DUYET' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
@@ -1411,8 +1400,8 @@ function renderTimetableGrid(weekType) {
 
                 html += `
                         </div>
-                        <div class="mt-2.5 pt-2 border-t border-slate-700/80 text-[10px] text-slate-400 text-center italic">
-                            ${isPrivileged ? '<span class="text-sky-300 font-semibold"><i class="fa-solid fa-arrow-pointer mr-1"></i>Bấm vào ô để mở rộng xem toàn bộ nhân viên ca này</span>' : (isRegistered ? 'Bạn đang trực ca làm việc này' : 'Ca trực của các đồng nghiệp trong viện')}
+                        <div class="mt-2.5 pt-2 border-t border-slate-700/80 text-[10px] text-sky-300 text-center font-semibold cursor-pointer">
+                            <i class="fa-solid fa-arrow-pointer mr-1"></i>Bấm vào ô để xem toàn bộ nhân viên ca này
                         </div>
                     </div>`;
             } else {
@@ -2377,8 +2366,6 @@ async function bulkApproveRegistrations(approved) {
 // Mở modal phóng to xem toàn bộ nhân viên đăng ký ca đó (Chỉ Tiếp tân và Admin)
 function openShiftDetailsModal(dateStr, caId) {
     const isPrivileged = window.currentUser?.vai_tro === 'ADMIN' || window.currentUser?.vai_tro === 'LETAN';
-    if (!isPrivileged) return;
-
     const allSchedules = window.schedulesData || [];
     const cellSchedules = allSchedules.filter(s => 
         s.ngay_lam === dateStr && 
@@ -2404,77 +2391,104 @@ function openShiftDetailsModal(dateStr, caId) {
     document.getElementById('shift-modal-approved-count').innerText = approvedCount;
     document.getElementById('shift-modal-pending-count').innerText = pendingCount;
 
-    // Đổ danh sách vào bảng
+    // Đổ danh sách vào bảng phân chia theo từng Khoa / Khu vực
     const tbody = document.getElementById('shift-modal-tbody');
     tbody.innerHTML = '';
 
     if (cellSchedules.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-slate-400">Chưa có nhân viên nào đăng ký hoặc được phân công vào ca này.</td></tr>`;
     } else {
+        // Nhóm theo chuyên khoa hoặc khu vực
+        const grouped = {};
         cellSchedules.forEach(item => {
-            const row = document.createElement('tr');
-            row.className = "hover:bg-slate-50 transition";
-            const isDoctor = item.ma_vai_tro === 'BACSI' || item.bac_si_id;
-            const avatarLetter = (item.ho_ten || 'NV').substring(0, 2).toUpperCase();
+            const dept = item.ten_khoa || 'Khu vực Tiếp đón và Hành chính';
+            if (!grouped[dept]) grouped[dept] = [];
+            grouped[dept].push(item);
+        });
 
-            let statusBadge = '';
-            if (item.trang_thai_duyet === 'DA_DUYET') {
-                statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check mr-1"></i>Đã duyệt</span>';
-            } else if (item.trang_thai_duyet === 'CHO_DUYET') {
-                statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-hourglass-half mr-1"></i>Chờ duyệt</span>';
-            } else if (item.trang_thai_duyet === 'CHO_HUY') {
-                statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200"><i class="fa-solid fa-circle-exclamation mr-1"></i>Đang xin hủy ca</span>';
-            } else {
-                statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">${item.trang_thai_duyet || 'Bình thường'}</span>`;
-            }
-
-            let actionsHtml = '';
-            if (item.trang_thai_duyet === 'CHO_DUYET') {
-                actionsHtml = `
-                    <div class="flex items-center justify-end gap-1.5">
-                        <button onclick="approveRegistration('${item.id}', true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold">Duyệt</button>
-                        <button onclick="approveRegistration('${item.id}', false)" class="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[10px] font-bold border border-rose-200">Từ chối</button>
-                    </div>`;
-            } else if (item.trang_thai_duyet === 'CHO_HUY') {
-                actionsHtml = `
-                    <div class="flex items-center justify-end gap-1.5">
-                        <button onclick="approveCancellation('${item.id}', true)" class="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-bold">Chấp thuận hủy</button>
-                    </div>`;
-            } else {
-                actionsHtml = `
-                    <div class="flex items-center justify-end gap-1.5">
-                        <button onclick="deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded" title="Xóa ca này"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                    </div>`;
-            }
-
-            row.innerHTML = `
-                <td class="px-4 py-3">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-xl ${isDoctor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                            ${avatarLetter}
-                        </div>
-                        <div>
-                            <div class="font-bold text-slate-800">${item.ho_ten || 'Nhân sự'}</div>
-                            <div class="text-[10px] text-slate-400 font-mono">User: ${item.username || '-'} • SĐT: ${item.sdt || '-'}</div>
-                        </div>
+        Object.keys(grouped).forEach(deptName => {
+            // Hàng tiêu đề Khoa / Khu vực
+            const deptHeaderRow = document.createElement('tr');
+            deptHeaderRow.className = "bg-slate-100 border-y border-slate-200";
+            deptHeaderRow.innerHTML = `
+                <td colspan="5" class="px-4 py-2 font-bold text-xs text-slate-800">
+                    <div class="flex items-center justify-between">
+                        <span class="flex items-center gap-1.5 text-medical-800">
+                            <i class="fa-solid fa-hospital text-medical-600"></i> ${deptName}
+                        </span>
+                        <span class="px-2 py-0.5 bg-white rounded-md text-[10px] text-slate-600 border border-slate-200">
+                            ${grouped[deptName].length} nhân sự
+                        </span>
                     </div>
                 </td>
-                <td class="px-4 py-3">
-                    <div class="font-semibold text-slate-700">${item.ten_vai_tro || item.ma_vai_tro || 'Nhân viên'}</div>
-                    <div class="text-[10px] text-slate-400">${item.chuc_vu || '-'}</div>
-                </td>
-                <td class="px-4 py-3">
-                    <div class="font-bold text-indigo-700"><i class="fa-solid fa-stethoscope text-[9px] mr-1"></i>${item.ten_khoa || 'Khoa chung'}</div>
-                    <div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-[9px] mr-1 text-slate-400"></i>${item.ten_phong || 'Chưa gắn phòng'}</div>
-                </td>
-                <td class="px-4 py-3">
-                    ${statusBadge}
-                </td>
-                <td class="px-4 py-3 text-right">
-                    ${actionsHtml}
-                </td>
             `;
-            tbody.appendChild(row);
+            tbody.appendChild(deptHeaderRow);
+
+            grouped[deptName].forEach(item => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 transition border-b border-slate-100";
+                const isDoctor = item.ma_vai_tro === 'BACSI' || item.bac_si_id;
+                const avatarLetter = (item.ho_ten || 'NV').substring(0, 2).toUpperCase();
+
+                let statusBadge = '';
+                if (item.trang_thai_duyet === 'DA_DUYET') {
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check mr-1"></i>Đã duyệt</span>';
+                } else if (item.trang_thai_duyet === 'CHO_DUYET') {
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-hourglass-half mr-1"></i>Chờ duyệt</span>';
+                } else if (item.trang_thai_duyet === 'CHO_HUY') {
+                    statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200"><i class="fa-solid fa-circle-exclamation mr-1"></i>Đang xin hủy ca</span>';
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">${item.trang_thai_duyet || 'Bình thường'}</span>`;
+                }
+
+                let actionsHtml = '';
+                if (isPrivileged) {
+                    if (item.trang_thai_duyet === 'CHO_DUYET') {
+                        actionsHtml = `
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button onclick="approveRegistration('${item.id}', true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold">Duyệt</button>
+                                <button onclick="approveRegistration('${item.id}', false)" class="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[10px] font-bold border border-rose-200">Từ chối</button>
+                            </div>`;
+                    } else if (item.trang_thai_duyet === 'CHO_HUY') {
+                        actionsHtml = `
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button onclick="approveCancellation('${item.id}', true)" class="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-bold">Chấp thuận hủy</button>
+                            </div>`;
+                    } else {
+                        actionsHtml = `
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button onclick="deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded" title="Xóa ca này"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                            </div>`;
+                    }
+                } else {
+                    actionsHtml = `<span class="text-[11px] text-slate-400 italic">Xem</span>`;
+                }
+
+                row.innerHTML = `
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl ${isDoctor ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                                ${avatarLetter}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">${item.hoc_vi ? item.hoc_vi + '. ' : ''}${item.ho_ten || 'Nhân sự'}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">User: ${item.username || '-'} • SĐT: ${item.sdt || '-'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-semibold text-slate-700 block">${item.chuc_vu || item.ten_vai_tro || 'Nhân sự'}</span>
+                        <span class="text-[10px] text-slate-400">${deptName}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-slate-700 block">${item.ten_phong || 'Chưa gán'}</span>
+                        <span class="text-[10px] text-slate-400">${item.vi_tri_tang || 'Khu khám bệnh'}</span>
+                    </td>
+                    <td class="px-4 py-3">${statusBadge}</td>
+                    <td class="px-4 py-3 text-right">${actionsHtml}</td>
+                `;
+                tbody.appendChild(row);
+            });
         });
     }
 

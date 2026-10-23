@@ -89,9 +89,58 @@
     <div class="space-y-6" id="patient-records-container">
         {% if patient and patient.lich_su_kham %}
             {% for enc in patient.lich_su_kham %}
-            <div class="patient-record-card bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all"
+            <div class="patient-record-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:shadow-md"
                  data-year="{{ (enc.thoi_gian_kham or '2026')[:4] }}"
                  data-search="{{ enc.chan_doan_icd or '' }} {{ enc.chan_doan_so_bo or '' }} {{ enc.ly_do_kham or '' }} {{ enc.trieu_chung or '' }} {{ enc.bac_si or '' }} {{ enc.khoa or '' }} {{ enc.phong or '' }} {{ enc.ma_phieu or '' }} {{ enc.thoi_gian_kham or '' }} {% if enc.don_thuoc %}{% for dt in enc.don_thuoc %}{{ dt.ten }} {{ dt.hoat_chat or '' }} {% endfor %}{% endif %}">
+                <!-- TIẾN TRÌNH 5 BƯỚC KHÁM BỆNH ĐỒNG BỘ THỜI GIAN THỰC -->
+                <div class="px-6 py-3.5 bg-slate-50 border-b border-slate-200/80 overflow-x-auto no-scrollbar">
+                    <div class="flex items-center justify-between min-w-[560px] text-xs font-semibold">
+                        <!-- Bước 1 -->
+                        <div class="flex items-center gap-1.5 text-emerald-700 font-bold">
+                            <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                <i class="fa-solid fa-check"></i>
+                            </span>
+                            <span>1. Khám lâm sàng</span>
+                        </div>
+                        <div class="flex-1 max-w-[40px] h-0.5 bg-emerald-500 mx-1"></div>
+
+                        <!-- Bước 2 -->
+                        <div class="flex items-center gap-1.5 {% if enc.chi_dinh_cls or enc.can_lam_sang or enc.trang_thai in ['Chờ kết quả CLS', 'Đã có kết quả CLS', 'Hoàn thành'] %}text-emerald-700 font-bold{% else %}text-slate-400{% endif %}">
+                            <span class="w-6 h-6 rounded-full {% if enc.chi_dinh_cls or enc.can_lam_sang or enc.trang_thai in ['Chờ kết quả CLS', 'Đã có kết quả CLS', 'Hoàn thành'] %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-500{% endif %} flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                {% if enc.chi_dinh_cls or enc.can_lam_sang or enc.trang_thai in ['Chờ kết quả CLS', 'Đã có kết quả CLS', 'Hoàn thành'] %}<i class="fa-solid fa-check"></i>{% else %}2{% endif %}
+                            </span>
+                            <span>2. Chỉ định CLS</span>
+                        </div>
+                        <div class="flex-1 max-w-[40px] h-0.5 {% if enc.trang_thai in ['Đã có kết quả CLS', 'Hoàn thành'] or (enc.can_lam_sang and enc.trang_thai != 'Chờ kết quả CLS') %}bg-emerald-500{% else %}bg-slate-200{% endif %} mx-1"></div>
+
+                        <!-- Bước 3 -->
+                        <div class="flex items-center gap-1.5 {% if enc.trang_thai in ['Đã có kết quả CLS', 'Hoàn thành'] %}text-emerald-700 font-bold{% elif enc.trang_thai == 'Chờ kết quả CLS' %}text-amber-600 font-bold{% else %}text-slate-400{% endif %}">
+                            <span class="w-6 h-6 rounded-full {% if enc.trang_thai in ['Đã có kết quả CLS', 'Hoàn thành'] %}bg-emerald-600 text-white{% elif enc.trang_thai == 'Chờ kết quả CLS' %}bg-amber-500 text-white animate-pulse{% else %}bg-slate-200 text-slate-500{% endif %} flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                {% if enc.trang_thai in ['Đã có kết quả CLS', 'Hoàn thành'] %}<i class="fa-solid fa-check"></i>{% elif enc.trang_thai == 'Chờ kết quả CLS' %}<i class="fa-solid fa-spinner fa-spin"></i>{% else %}3{% endif %}
+                            </span>
+                            <span>3. Kết quả CLS</span>
+                        </div>
+                        <div class="flex-1 max-w-[40px] h-0.5 {% if enc.don_thuoc or enc.trang_thai == 'Hoàn thành' %}bg-emerald-500{% else %}bg-slate-200{% endif %} mx-1"></div>
+
+                        <!-- Bước 4 -->
+                        <div class="flex items-center gap-1.5 {% if enc.don_thuoc or enc.trang_thai == 'Hoàn thành' %}text-emerald-700 font-bold{% else %}text-slate-400{% endif %}">
+                            <span class="w-6 h-6 rounded-full {% if enc.don_thuoc or enc.trang_thai == 'Hoàn thành' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-500{% endif %} flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                {% if enc.don_thuoc or enc.trang_thai == 'Hoàn thành' %}<i class="fa-solid fa-check"></i>{% else %}4{% endif %}
+                            </span>
+                            <span>4. Toa thuốc</span>
+                        </div>
+                        <div class="flex-1 max-w-[40px] h-0.5 {% if enc.trang_thai == 'Hoàn thành' %}bg-emerald-500{% else %}bg-slate-200{% endif %} mx-1"></div>
+
+                        <!-- Bước 5 -->
+                        <div class="flex items-center gap-1.5 {% if enc.trang_thai == 'Hoàn thành' %}text-emerald-700 font-bold{% else %}text-slate-400{% endif %}">
+                            <span class="w-6 h-6 rounded-full {% if enc.trang_thai == 'Hoàn thành' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-500{% endif %} flex items-center justify-center text-xs shrink-0 shadow-xs">
+                                {% if enc.trang_thai == 'Hoàn thành' %}<i class="fa-solid fa-flag-checkered"></i>{% else %}5{% endif %}
+                            </span>
+                            <span>5. Hoàn tất</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Header đợt khám -->
                 <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                     <div class="flex items-start gap-4">
@@ -125,11 +174,11 @@
                 <div class="p-6 space-y-6">
                     <!-- Chẩn đoán và Triệu chứng -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                        <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5">
                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Triệu chứng và Lý do khám</span>
                             <p class="text-xs text-slate-700 leading-relaxed">{{ enc.trieu_chung or enc.ly_do_kham }}</p>
                         </div>
-                        <div class="p-4 rounded-xl bg-medical-50/50 border border-medical-100 space-y-1.5">
+                        <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-1.5">
                             <span class="text-xs font-bold text-medical-800 uppercase tracking-wider">Chẩn đoán xác định (ICD-10)</span>
                             <p class="text-xs font-bold text-slate-900 leading-relaxed">{{ enc.chan_doan_icd or enc.chan_doan_so_bo or 'Theo dõi sức khỏe' }}</p>
                         </div>
@@ -241,7 +290,7 @@
                     {% endif %}
 
                     <!-- Lời dặn của bác sĩ -->
-                    <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-3">
+                    <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-300 text-xs text-amber-950 flex items-start gap-3">
                         <i class="fa-solid fa-user-doctor text-base mt-0.5 text-amber-700"></i>
                         <div>
                             <span class="font-bold block">Lời dặn và Hẹn tái khám của bác sĩ:</span>

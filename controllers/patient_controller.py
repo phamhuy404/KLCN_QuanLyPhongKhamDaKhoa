@@ -53,6 +53,8 @@ def complete_profile():
         return redirect(url_for('patient.dashboard'))
 
     patient_id = _get_current_patient_id()
+    from core.catalog import get_all_catalogs
+    catalogs = get_all_catalogs()
     patient = PatientModel.get_by_id(patient_id) if patient_id else None
     cur_nhom_mau = (patient.get('nhom_mau') if patient else None) or 'Chưa rõ'
 
@@ -60,12 +62,12 @@ def complete_profile():
         cur_nhom_mau = request.form.get('nhom_mau', cur_nhom_mau)
         is_valid, errors = validate_patient_profile(request.form)
         if not is_valid:
-            return render_template('patient/complete_profile.html', errors=errors, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau)
+            return render_template('patient/complete_profile.html', errors=errors, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau, catalogs=catalogs)
 
         # Lưu thông tin hồ sơ vào SQL Server
         success, msg = UserModel.complete_patient_profile(user['id'], request.form)
         if not success:
-            return render_template('patient/complete_profile.html', errors={'db': msg}, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau)
+            return render_template('patient/complete_profile.html', errors={'db': msg}, form=request.form, patient=patient, cur_nhom_mau=cur_nhom_mau, catalogs=catalogs)
 
         # Cập nhật lại session
         user['da_hoan_thien_ho_so'] = 1
@@ -75,7 +77,7 @@ def complete_profile():
         flash('Hồ sơ bệnh nhân của bạn đã được kích hoạt thành công!', 'success')
         return redirect(url_for('patient.dashboard'))
 
-    return render_template('patient/complete_profile.html', patient=patient, cur_nhom_mau=cur_nhom_mau)
+    return render_template('patient/complete_profile.html', patient=patient, cur_nhom_mau=cur_nhom_mau, catalogs=catalogs)
 
 @patient_bp.route('/')
 @patient_bp.route('/dashboard')
@@ -176,13 +178,30 @@ def billing():
 
     return render_template('patient/billing.html', active_page='billing', patient=patient, invoices=invoices, billing_stats=billing_stats, unpaid=first_unpaid)
 
-@patient_bp.route('/profile')
+@patient_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    """Thông tin cá nhân, BHYT và số liên hệ khẩn cấp."""
+    """Thông tin cá nhân, BHYT và số liên hệ khẩn cấp kèm danh mục y tế chuẩn."""
+    from core.catalog import get_all_catalogs
     patient_id = _get_current_patient_id()
     patient = PatientModel.get_by_id(patient_id)
-    return render_template('patient/profile.html', active_page='profile', patient=patient)
+    catalogs = get_all_catalogs()
+
+    if request.method == 'POST':
+        data = request.form.to_dict()
+        success, msg = PatientModel.update_profile(patient_id, data)
+        if success:
+            if 'user' in session:
+                session['user']['ho_ten'] = data.get('ho_ten', session['user'].get('ho_ten'))
+                session['user']['sdt'] = data.get('sdt', session['user'].get('sdt'))
+                session['user']['email'] = data.get('email', session['user'].get('email'))
+                session.modified = True
+            flash('Lưu và đồng bộ hồ sơ y tế thành công!', 'success')
+            return redirect(url_for('patient.profile'))
+        else:
+            flash(f'Lỗi cập nhật hồ sơ: {msg}', 'error')
+
+    return render_template('patient/profile.html', active_page='profile', patient=patient, catalogs=catalogs)
 
 @patient_bp.route('/profile/avatar', methods=['POST'])
 @login_required

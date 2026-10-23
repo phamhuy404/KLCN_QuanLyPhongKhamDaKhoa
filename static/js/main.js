@@ -334,19 +334,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            const isExactInCatalog = (catalog || []).some(c => 
-                window.removeVietnameseTones(c).toLowerCase().trim() === window.removeVietnameseTones(query).toLowerCase().trim()
-            );
-            if (query && !selectedTags.includes(query) && !isExactInCatalog) {
-                const customBtn = document.createElement('button');
-                customBtn.type = 'button';
-                customBtn.className = 'w-full text-left px-3 py-2 text-xs rounded-lg text-medical-700 bg-medical-50/70 hover:bg-medical-100 flex items-center gap-2 font-semibold transition-colors border border-medical-200/50';
-                customBtn.innerHTML = `<i class="fa-solid fa-circle-plus"></i><span>Thêm mới: "<strong>${filterText}</strong>"</span>`;
-                customBtn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    addTag(filterText);
-                });
-                dropdown.appendChild(customBtn);
+            // Chi cho phep chon dung cac muc co trong danh muc chuan (.txt)
+            if (query && matched.length === 0) {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'p-2.5 text-center text-xs text-amber-700 bg-amber-50 rounded-lg border border-amber-200';
+                noteDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i>Vui lòng chọn đúng danh mục chuẩn trong hệ thống`;
+                dropdown.appendChild(noteDiv);
             }
 
             if (dropdown.children.length === 0) {
@@ -382,7 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 const firstBtn = dropdown.querySelector('button');
                 if (firstBtn) firstBtn.dispatchEvent(new MouseEvent('mousedown'));
-                else if (searchInput.value.trim()) addTag(searchInput.value.trim());
+                // Khong cho them tu do ngoai danh muc chuan
+                else { searchInput.value = ''; dropdown.classList.add('hidden'); }
             } else if (e.key === 'Backspace' && !searchInput.value && selectedTags.length > 0) {
                 selectedTags.pop();
                 syncHiddenInput();

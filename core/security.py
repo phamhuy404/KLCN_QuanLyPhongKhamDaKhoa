@@ -22,6 +22,9 @@ def login_required(f):
                 return jsonify({'success': False, 'message': 'Vui lòng đăng nhập để tiếp tục!'}), 401
             return redirect(url_for('auth.login', next=request.path))
         
+        if session.get('force_change_password') and request.endpoint not in ('auth.force_change_password', 'auth.logout') and not request.path.startswith('/static/'):
+            return redirect(url_for('auth.force_change_password'))
+
         user_id = session.get('user', {}).get('id')
         if user_id:
             from models.user_model import UserModel
@@ -42,6 +45,11 @@ def roles_required(*allowed_roles):
                 if request.path.startswith('/api/'):
                     return jsonify({'success': False, 'message': 'Yêu cầu đăng nhập!'}), 401
                 return redirect(url_for('auth.login', next=request.path))
+
+            if session.get('force_change_password') and request.endpoint not in ('auth.force_change_password', 'auth.logout') and not request.path.startswith('/static/'):
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'message': 'Bắt buộc đổi mật khẩu mới ở lần đăng nhập đầu!'}), 403
+                return redirect(url_for('auth.force_change_password'))
 
             user_id = session.get('user', {}).get('id')
             if user_id:

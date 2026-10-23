@@ -1,5 +1,9 @@
 {% extends "layouts/base.html" %}
 
+{% set curr_user = session.get('user', {}) %}
+{% set user_role = curr_user.get('vai_tro', '') %}
+{% set can_reset_pwd = user_role in ['ADMIN', 'LETAN'] %}
+
 {% block title %}H2T Healthcare - Quản lý Danh sách Bệnh nhân{% endblock %}
 
 {% block sidebar %}
@@ -325,9 +329,11 @@
                     <div class="flex items-center gap-2 font-mono text-slate-500 mt-0.5">
                         <span id="modal-password">••••••••</span>
                         <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Đã mã hóa</span>
-                        <button type="button" onclick="openResetPasswordModal(activeModalPatient ? activeModalPatient.id : 1)" class="text-[10px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-2 py-0.5 rounded font-bold transition-colors ml-1">
+                        {% if can_reset_pwd %}
+                        <button type="button" onclick="openResetPasswordModal(activeModalPatient ? activeModalPatient.id : 1)" class="text-[10px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-2 py-0.5 rounded font-bold transition-colors ml-1" title="Cấp lại mật khẩu mặc định (123)">
                             <i class="fa-solid fa-key mr-1"></i> Cấp Lại MK
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -550,7 +556,7 @@
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border border-slate-100">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-key text-medical-600"></i> Cấp Mật Khẩu Mới
+                <i class="fa-solid fa-key text-medical-600"></i> Cấp Lại Mật Khẩu Bệnh Nhân
             </h3>
             <button onclick="closeResetPasswordModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                 <i class="fa-solid fa-xmark text-sm"></i>
@@ -562,17 +568,12 @@
             <div><span class="text-slate-400">Tên đăng nhập (SĐT):</span> <span class="font-mono font-bold text-medical-700" id="reset-pwd-user">0901234567</span></div>
         </div>
 
-        <div class="space-y-3 text-xs">
-            <div>
-                <div class="flex items-center justify-between mb-1">
-                    <label class="font-semibold text-slate-700">Mật khẩu mới</label>
-                    <button type="button" onclick="generateRandomPassword()" class="text-medical-600 hover:underline font-bold text-[11px]">
-                        <i class="fa-solid fa-arrows-rotate mr-0.5"></i> Sinh ngẫu nhiên
-                    </button>
-                </div>
-                <input type="text" id="reset-pwd-input" value="H2T@2026" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-medical-500">
-                <span class="text-[10px] text-slate-400 block mt-1">Mật khẩu mới sẽ được mã hóa và kích hoạt ngay cho bệnh nhân.</span>
-            </div>
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
+            <p class="font-semibold flex items-center gap-1.5 text-amber-800">
+                <i class="fa-solid fa-circle-info"></i> Quy tắc cấp lại mật khẩu:
+            </p>
+            <p>Mật khẩu mới sẽ được đặt cố định là: <strong class="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300 text-rose-600 font-bold">123</strong></p>
+            <p class="text-slate-600 text-[11px]">Bệnh nhân khi đăng nhập với mật khẩu 123 sẽ bắt buộc phải tạo mật khẩu mới trước khi truy cập hồ sơ.</p>
         </div>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -580,7 +581,7 @@
                 Hủy bỏ
             </button>
             <button type="button" onclick="saveNewPassword()" class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20">
-                Lưu Mật Khẩu
+                Xác Nhận Cấp Lại
             </button>
         </div>
     </div>
@@ -707,9 +708,11 @@
                         <span class="font-bold text-slate-800 text-[11px] block">${p.username}</span>
                         <div class="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 mt-0.5">
                             <span>••••••••</span>
-                            <button type="button" onclick="openResetPasswordModal(${p.id})" class="text-[9px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-1 py-0.2 rounded font-semibold transition-colors" title="Cấp lại mật khẩu mới">
+                            ${canResetPassword ? `
+                            <button type="button" onclick="openResetPasswordModal(${p.id})" class="text-[9px] text-medical-700 bg-medical-50 hover:bg-medical-100 px-1 py-0.2 rounded font-semibold transition-colors" title="Cấp lại mật khẩu mặc định (123)">
                                 <i class="fa-solid fa-key text-[8px] mr-0.5"></i> Cấp lại MK
                             </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -1169,17 +1172,18 @@
         showAdminToast('Đã xuất thành công file JSON (Mật khẩu được bảo mật)!');
     }
 
-    // 7. CHỨC NĂNG CẤP LẠI MẬT KHẨU CHO BỆNH NHÂN (DÀNH CHO ADMIN / BÁC SĨ)
+    // 7. CHỨC NĂNG CẤP LẠI MẬT KHẨU CHO BỆNH NHÂN (DÀNH CHO ADMIN VÀ TIẾP TÂN)
+    const canResetPassword = {{ 'true' if can_reset_pwd else 'false' }};
     let resetTargetPatientId = null;
 
     function openResetPasswordModal(id) {
+        if (!canResetPassword) return;
         const p = patients.find(x => x.id === id);
         if (!p) return;
         resetTargetPatientId = id;
 
         document.getElementById('reset-pwd-name').innerText = p.ho_ten;
         document.getElementById('reset-pwd-user').innerText = p.username || p.sdt || 'Chưa có username';
-        generateRandomPassword();
 
         document.getElementById('reset-pwd-modal').classList.remove('hidden');
     }
@@ -1188,25 +1192,10 @@
         document.getElementById('reset-pwd-modal').classList.add('hidden');
     }
 
-    function generateRandomPassword() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-        let randStr = '';
-        for (let i = 0; i < 6; i++) {
-            randStr += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        document.getElementById('reset-pwd-input').value = `H2T@${randStr}`;
-    }
-
     function saveNewPassword() {
-        if (!resetTargetPatientId) return;
+        if (!resetTargetPatientId || !canResetPassword) return;
         const p = patients.find(x => x.id === resetTargetPatientId);
         if (!p) return;
-
-        const newPwd = document.getElementById('reset-pwd-input').value.trim();
-        if (!newPwd) {
-            alert('Vui lòng nhập mật khẩu mới!');
-            return;
-        }
 
         // Nếu bệnh nhân chưa có username thì lấy SĐT làm username
         if (!p.username) {
@@ -1214,28 +1203,25 @@
             p.co_tai_khoan = true;
         }
 
-        // Gửi cập nhật trực tiếp vào CSDL
+        // Gửi yêu cầu cấp lại mật khẩu mặc định 123
         fetch('/api/admin/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patient_id: resetTargetPatientId, new_password: newPwd })
+            body: JSON.stringify({ patient_id: resetTargetPatientId })
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                p.password = '•••••••• (Đã cập nhật)';
+                p.password = '123 (Chờ đổi)';
                 closeResetPasswordModal();
                 applyFilterAndSort();
-                showAdminToast(`Đã lưu mật khẩu mới (${newPwd}) vào CSDL cho bệnh nhân ${p.ho_ten}!`);
+                showAdminToast(`Đã cấp lại mật khẩu mặc định 123 cho bệnh nhân ${p.ho_ten}!`);
             } else {
                 alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
             }
         })
-        .catch(() => {
-            p.password = '•••••••• (Đã cập nhật)';
-            closeResetPasswordModal();
-            applyFilterAndSort();
-            showAdminToast(`Đã cấp mật khẩu mới (${newPwd}) cho bệnh nhân ${p.ho_ten}!`);
+        .catch(err => {
+            alert('Lỗi kết nối: ' + err.message);
         });
     }
 

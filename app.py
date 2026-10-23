@@ -63,6 +63,11 @@ def create_app():
         'admin_article_create': 'admin.article_create',
         'admin_article_edit': 'admin.article_edit',
         'admin_article_delete': 'admin.article_delete',
+        'admin_profile': 'admin.profile',
+        'admin_my_doctor_profile': 'admin.my_doctor_profile',
+        'profile': 'admin.profile',
+        'admin.doctor_create': 'admin.create_doctor',
+        'doctor_create': 'admin.create_doctor',
     }
 
 
