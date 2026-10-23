@@ -143,7 +143,7 @@ class BackupModel:
             return False, msg
 
     @staticmethod
-    def restore_backup(filename, user_name='admin'):
+    def restore_backup(filename, user_name='admin', **kwargs):
         """Phục hồi CSDL Microsoft SQL Server từ tệp .bak."""
         backup_dir = BackupModel.get_backup_dir()
         safe_filename = secure_filename(filename)

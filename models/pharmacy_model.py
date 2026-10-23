@@ -151,7 +151,7 @@ class PharmacyModel:
             return False, 'Không tìm thấy đơn thuốc!'
 
         # Đơn đã cấp phát thuốc không được chỉnh sửa trực tiếp!
-        if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát']:
+        if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát', 'Đã nhận thuốc']:
             return False, 'Đơn thuốc này đã được cấp phát, không thể chỉnh sửa trực tiếp! Vui lòng dùng quy trình điều chỉnh/hủy đơn.'
 
         if dt['trang_thai'] == 'Đã hủy':
@@ -244,7 +244,7 @@ class PharmacyModel:
             user_name = audit_user.get('ho_ten') if audit_user else 'Bác sĩ'
 
             # Nếu đơn đã cấp thuốc và yêu cầu hoàn kho
-            if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát'] and restore_stock:
+            if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát', 'Đã nhận thuốc'] and restore_stock:
                 for item in dt.get('items', []):
                     cursor.execute('''
                         UPDATE thuoc
@@ -281,7 +281,7 @@ class PharmacyModel:
 
     @staticmethod
     def dispense_prescription(prescription_id_or_code, audit_user=None):
-        """Cấp phát thuốc theo đơn: Chống trừ kho lặp lại, kiểm tra số lượng tồn và trừ an toàn."""
+        """Dược sĩ / Quản lý kho cấp phát thuốc: Kiểm tra hóa đơn đã thanh toán, trừ số lượng tồn kho và cập nhật Đã nhận thuốc."""
         dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
         if not dt:
             return False, 'Không tìm thấy đơn thuốc!'
@@ -289,7 +289,7 @@ class PharmacyModel:
         dt_id = dt['id']
 
         # Chống cấp phát lặp lại
-        if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát']:
+        if dt['trang_thai'] in ['Đã nhận thuốc', 'Đã cấp thuốc', 'Đã cấp phát']:
             return False, f"Đơn thuốc {dt['ma_don_thuoc']} đã được cấp phát trước đó! Không thể cấp phát lại để tránh trừ kho trùng lặp."
 
         if dt['trang_thai'] == 'Đã hủy':
@@ -299,7 +299,22 @@ class PharmacyModel:
         cursor = conn.cursor()
 
         try:
-            # 1. Kiểm tra tồn kho của TẤT CẢ các thuốc trong đơn trước khi trừ
+            # 1. Kiểm tra hóa đơn tiền thuốc đã được thanh toán chưa
+            cursor.execute('''
+                SELECT TOP 1 id, ma_hoa_don, trang_thai 
+                FROM hoa_don 
+                WHERE phieu_kham_id = ? AND ma_hoa_don LIKE 'HDT%' AND trang_thai != N'Đã hủy'
+                ORDER BY id DESC
+            ''', (dt.get('phieu_kham_id'),))
+            hd_row = cursor.fetchone()
+            if not hd_row:
+                conn.close()
+                return False, "Không tìm thấy hóa đơn tiền thuốc hợp lệ của đơn thuốc này!"
+            if hd_row['trang_thai'] != 'Đã thanh toán':
+                conn.close()
+                return False, f"Bệnh nhân chưa thanh toán hóa đơn tiền thuốc ({hd_row['ma_hoa_don']})! Vui lòng yêu cầu bệnh nhân thanh toán trước khi cấp phát thuốc."
+
+            # 2. Kiểm tra tồn kho của TẤT CẢ các thuốc trong đơn trước khi trừ
             items = dt.get('items', [])
             for it in items:
                 cursor.execute('SELECT ten_thuoc, so_luong_ton, trang_thai FROM thuoc WHERE id = ?', (it['thuoc_id'],))
@@ -311,7 +326,7 @@ class PharmacyModel:
                     conn.close()
                     return False, f"Thuốc '{th['ten_thuoc']}' không đủ số lượng trong kho (Còn: {th['so_luong_ton']}, Yêu cầu: {it['so_luong']})!"
 
-            # 2. Trừ số lượng tồn kho từng loại thuốc
+            # 3. Trừ số lượng tồn kho từng loại thuốc tại kho viện
             for it in items:
                 cursor.execute('''
                     UPDATE thuoc 
@@ -319,13 +334,38 @@ class PharmacyModel:
                     WHERE id = ?
                 ''', (it['so_luong'], it['thuoc_id']))
 
-            # 3. Cập nhật trạng thái đơn thuốc
-            cursor.execute("UPDATE don_thuoc SET trang_thai = ? WHERE id = ?", ('Đã cấp thuốc', dt_id))
+            # 4. Cập nhật trạng thái đơn thuốc thành 'Đã nhận thuốc'
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute("UPDATE don_thuoc SET trang_thai = ? WHERE id = ?", ('Đã nhận thuốc', dt_id))
+
+            # 5. Cập nhật trên hóa đơn bệnh nhân: trang_thai_nhan_thuoc = 'Đã nhận thuốc'
+            if hd_row:
+                cursor.execute('''
+                    UPDATE hoa_don 
+                    SET trang_thai_nhan_thuoc = N'Đã nhận thuốc'
+                    WHERE id = ?
+                ''', (hd_row['id'],))
+
+            # 6. Gửi thông báo cho bệnh nhân
+            patient_id = dt.get('benh_nhan_id')
+            if patient_id:
+                cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Nhận thuốc', '/patient/records', 0, ?)
+                    ''', (
+                        bn_row['tai_khoan_id'],
+                        f"Đã nhận thuốc: {dt['ma_don_thuoc']}",
+                        f"Bạn đã nhận đầy đủ thuốc tại Quầy dược cho đơn {dt['ma_don_thuoc']}. Vui lòng đọc kỹ hướng dẫn sử dụng và tái khám đúng hẹn.",
+                        now_str
+                    ))
 
             conn.commit()
             conn.close()
 
-            user_name = audit_user.get('ho_ten') if audit_user else 'Dược sĩ'
+            user_name = audit_user.get('ho_ten') if audit_user else 'Dược sĩ quản lý kho'
             AuditLogger.log(
                 table_name='don_thuoc',
                 row_id=dt_id,
@@ -334,10 +374,10 @@ class PharmacyModel:
                 performed_by_name=user_name,
                 reason=f"Cấp phát thuốc cho đơn {dt['ma_don_thuoc']}",
                 before_data={'trang_thai': dt['trang_thai']},
-                after_data={'trang_thai': 'Đã cấp thuốc'}
+                after_data={'trang_thai': 'Đã nhận thuốc'}
             )
 
-            return True, f"Đã xuất dược và trừ kho thành công cho đơn {dt['ma_don_thuoc']}!"
+            return True, f"Đã cấp phát thuốc thành công cho đơn {dt['ma_don_thuoc']}, trừ kho và cập nhật 'Đã nhận thuốc'!"
 
         except Exception as e:
             conn.rollback()
@@ -348,8 +388,8 @@ class PharmacyModel:
     @staticmethod
     def choose_medicine_purchase_option(prescription_id_or_code, option='Mua tại bệnh viện', audit_user=None):
         """Xử lý lựa chọn mua thuốc của bệnh nhân:
-        - 'Tự mua ngoài': Không sinh hóa đơn thuốc, không trừ kho của bệnh viện.
-        - 'Mua tại bệnh viện': Sinh hóa đơn thuốc (không có đơn giá từng loại), chuyển đơn sang Chờ cấp phát và trừ số lượng thuốc tồn kho của bệnh viện.
+        - 'Tự mua ngoài': Chuyển trạng thái 'Mua ngoài', tự động hủy hóa đơn thuốc chưa thanh toán nếu có. Chặn đổi nếu đơn đã được duyệt.
+        - 'Mua tại bệnh viện': Sinh hóa đơn thuốc (không có đơn giá từng loại), chuyển đơn sang Chờ duyệt.
         """
         dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
         if not dt:
@@ -364,11 +404,32 @@ class PharmacyModel:
             items = dt.get('items', [])
 
             if option == 'Tự mua ngoài':
+                # Chặn nếu đơn thuốc đã được tiếp tân/admin duyệt
+                locked_statuses = [
+                    'Đã duyệt đơn thuốc, vui lòng thanh toán hóa đơn và nhận thuốc tại quầy',
+                    'Đã duyệt thành công, xuống chỗ bán thuốc để lấy',
+                    'Chờ nhận thuốc',
+                    'Chưa nhận thuốc',
+                    'Đã nhận thuốc',
+                    'Đã cấp thuốc'
+                ]
+                if dt.get('trang_thai') in locked_statuses:
+                    conn.close()
+                    return False, "Đơn thuốc đã được tiếp tân/admin duyệt, bạn không thể đổi sang mua ngoài nữa! Vui lòng liên hệ quầy tiếp tân nếu cần hỗ trợ."
+
                 cursor.execute('''
                     UPDATE don_thuoc
                     SET hinh_thuc_mua = ?, trang_thai = ?
                     WHERE id = ?
-                ''', ('Tự mua ngoài', 'Tự mua ngoài', dt['id']))
+                ''', ('Tự mua ngoài', 'Mua ngoài', dt['id']))
+
+                # Tự động hủy hóa đơn thuốc tạm đã tạo trước đó nếu chưa thanh toán
+                if dt.get('phieu_kham_id'):
+                    cursor.execute('''
+                        UPDATE hoa_don
+                        SET trang_thai = N'Đã hủy'
+                        WHERE phieu_kham_id = ? AND ma_hoa_don LIKE 'HDT%' AND trang_thai = N'Chưa thanh toán'
+                    ''', (dt['phieu_kham_id'],))
 
                 # Gửi thông báo cho bệnh nhân
                 cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
@@ -379,7 +440,7 @@ class PharmacyModel:
                         VALUES (?, ?, ?, N'Đơn thuốc', '/patient/records', 0, ?)
                     ''', (
                         bn_row['tai_khoan_id'],
-                        f"Đơn thuốc {dt['ma_don_thuoc']}: Tự mua ngoài",
+                        f"Đơn thuốc {dt['ma_don_thuoc']}: Mua ngoài",
                         f"Bạn đã chọn tự mua thuốc ngoài cho đơn thuốc {dt['ma_don_thuoc']}. Bạn có thể xem và in đơn thuốc này để mua tại các nhà thuốc bên ngoài.",
                         now_str
                     ))
@@ -389,56 +450,42 @@ class PharmacyModel:
                 return True, "Đã ghi nhận lựa chọn: Bệnh nhân tự mua thuốc bên ngoài."
 
             elif option == 'Mua tại bệnh viện':
-                # Kiểm tra tồn kho của tất cả các thuốc trước khi trừ
-                for it in items:
-                    cursor.execute('SELECT ten_thuoc, so_luong_ton FROM thuoc WHERE id = ?', (it['thuoc_id'],))
-                    th = cursor.fetchone()
-                    if not th:
-                        conn.close()
-                        return False, f"Thuốc ID {it['thuoc_id']} không tồn tại trong kho viện!"
-                    if th['so_luong_ton'] < it['so_luong']:
-                        conn.close()
-                        return False, f"Thuốc '{th['ten_thuoc']}' không đủ số lượng trong kho bệnh viện (còn tồn {th['so_luong_ton']}, cần {it['so_luong']})!"
-
-                # 1. Trừ số lượng tồn kho của bệnh viện
-                for it in items:
-                    cursor.execute('''
-                        UPDATE thuoc
-                        SET so_luong_ton = so_luong_ton - ?
-                        WHERE id = ?
-                    ''', (it['so_luong'], it['thuoc_id']))
-
-                # 2. Cập nhật trạng thái đơn thuốc thành 'Chờ cấp phát' (hoặc Đã cấp thuốc nếu trừ luôn)
+                # 1. Cập nhật trạng thái đơn thuốc thành 'Chờ duyệt' (chưa trừ kho, chờ Tiếp tân/Admin duyệt)
                 cursor.execute('''
                     UPDATE don_thuoc
                     SET hinh_thuc_mua = ?, trang_thai = ?
                     WHERE id = ?
-                ''', ('Mua tại bệnh viện', 'Đã cấp thuốc', dt['id']))
+                ''', ('Mua tại bệnh viện', 'Chờ duyệt', dt['id']))
 
-                # 3. Tính tổng tiền thuốc và sinh hóa đơn thuốc
-                tong_tien_thuoc = sum(float(it.get('don_gia', 0)) * int(it.get('so_luong', 1)) for it in items)
-
-                cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM hoa_don')
-                hd_next = cursor.fetchone()['next_id']
-                ma_hd_thuoc = f"HDT2609{str(hd_next).zfill(3)}"
-
-                # Sinh hóa đơn thuốc (theo yêu cầu: hóa đơn thuốc hiển thị danh sách thuốc không có đơn giá)
+                # 2. Tính tổng tiền thuốc và sinh hóa đơn thuốc nếu chưa có
                 cursor.execute('''
-                    INSERT INTO hoa_don (ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, thanh_tien, trang_thai)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (ma_hd_thuoc, patient_id, dt.get('phieu_kham_id'), tong_tien_thuoc, 0.0, tong_tien_thuoc, 'Chưa thanh toán'))
-                hoa_don_id = cursor.lastrowid
+                    SELECT id FROM hoa_don 
+                    WHERE phieu_kham_id = ? AND ma_hoa_don LIKE 'HDT%' AND trang_thai = N'Chưa thanh toán'
+                ''', (dt.get('phieu_kham_id'),))
+                existing_hd = cursor.fetchone()
 
-                # Lưu chi tiết hóa đơn: ghi nhận các thuốc trong đơn
-                for it in items:
-                    tt = float(it.get('don_gia', 0)) * int(it.get('so_luong', 1))
-                    # Lưu tên thuốc, số lượng, lưu đơn giá 0 hoặc don_gia để tính toán
+                if not existing_hd:
+                    tong_tien_thuoc = sum(float(it.get('don_gia', 0)) * int(it.get('so_luong', 1)) for it in items)
+
+                    cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM hoa_don')
+                    hd_next = cursor.fetchone()['next_id']
+                    ma_hd_thuoc = f"HDT2609{str(hd_next).zfill(3)}"
+
                     cursor.execute('''
-                        INSERT INTO chi_tiet_hoa_don (hoa_don_id, loai_khoan_thu, ten_khoan_thu, tham_chieu_id, so_luong, don_gia, thanh_tien)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (hoa_don_id, 'Thuốc', it['ten_thuoc'], it['thuoc_id'], it['so_luong'], 0.0, tt))
+                        INSERT INTO hoa_don (ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, thanh_tien, trang_thai, trang_thai_nhan_thuoc)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, N'Chưa nhận thuốc')
+                    ''', (ma_hd_thuoc, patient_id, dt.get('phieu_kham_id'), tong_tien_thuoc, 0.0, tong_tien_thuoc, 'Chưa thanh toán'))
+                    hoa_don_id = cursor.lastrowid
 
-                # Gửi thông báo cho bệnh nhân
+                    # Lưu chi tiết hóa đơn: ghi nhận các thuốc trong đơn
+                    for it in items:
+                        tt = float(it.get('don_gia', 0)) * int(it.get('so_luong', 1))
+                        cursor.execute('''
+                            INSERT INTO chi_tiet_hoa_don (hoa_don_id, loai_khoan_thu, ten_khoan_thu, tham_chieu_id, so_luong, don_gia, thanh_tien)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ''', (hoa_don_id, 'Thuốc', it['ten_thuoc'], it['thuoc_id'], it['so_luong'], 0.0, tt))
+
+                # 3. Gửi thông báo cho bệnh nhân
                 cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
                 bn_row = cursor.fetchone()
                 if bn_row and bn_row.get('tai_khoan_id'):
@@ -447,14 +494,28 @@ class PharmacyModel:
                         VALUES (?, ?, ?, N'Đơn thuốc', '/patient/records', 0, ?)
                     ''', (
                         bn_row['tai_khoan_id'],
-                        f"Đã đăng ký mua thuốc tại bệnh viện: {dt['ma_don_thuoc']}",
-                        f"Đơn thuốc {dt['ma_don_thuoc']} đã được chuyển sang Quầy Dược để chuẩn bị và hóa đơn {ma_hd_thuoc} đã được tạo ({tong_tien_thuoc:,.0f} đ). Đã tự động cập nhật trừ tồn kho của bệnh viện.",
+                        f"Đơn thuốc {dt['ma_don_thuoc']}: Đang chờ duyệt",
+                        f"Bạn đã chọn mua thuốc tại bệnh viện cho đơn {dt['ma_don_thuoc']}. Đơn thuốc đang ở trạng thái 'Chờ duyệt'. Khi Tiếp tân/Admin duyệt, bạn sẽ nhận được thông báo để thanh toán và lấy thuốc.",
+                        now_str
+                    ))
+
+                # 4. Gửi thông báo cho Tiếp tân và Admin để duyệt đơn thuốc
+                cursor.execute('SELECT id FROM tai_khoan WHERE vai_tro_id IN (1, 2) AND trang_thai = 1')
+                reception_admins = cursor.fetchall()
+                for ra in reception_admins:
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Duyệt đơn thuốc', '/admin/pharmacy?tab=dispensing', 0, ?)
+                    ''', (
+                        ra['id'],
+                        f"Đơn thuốc mới chờ duyệt: {dt['ma_don_thuoc']}",
+                        f"Bệnh nhân {bn_row['ho_ten'] if bn_row else ''} đăng ký mua thuốc tại BV ({dt['ma_don_thuoc']}). Vui lòng kiểm tra và duyệt đơn thuốc.",
                         now_str
                     ))
 
                 conn.commit()
                 conn.close()
-                return True, f"Đã đăng ký mua thuốc tại bệnh viện thành công! Đã tạo hóa đơn {ma_hd_thuoc} và trừ tồn kho."
+                return True, f"Đã đăng ký mua thuốc tại bệnh viện thành công! Đơn thuốc đang chờ Tiếp tân/Admin duyệt."
 
             else:
                 conn.close()
@@ -464,3 +525,156 @@ class PharmacyModel:
             conn.rollback()
             conn.close()
             return False, f"Lỗi xử lý tùy chọn mua thuốc: {str(e)}"
+
+    @staticmethod
+    def approve_prescription(prescription_id_or_code, reviewer_user=None):
+        """Tiếp tân hoặc Admin duyệt đơn thuốc mua tại bệnh viện: Kiểm tra tồn kho, đổi trạng thái yêu cầu thanh toán (CHƯA trừ kho)."""
+        dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
+        if not dt:
+            return False, 'Không tìm thấy đơn thuốc!'
+
+        approved_statuses = [
+            'Đã duyệt đơn thuốc, vui lòng thanh toán hóa đơn và nhận thuốc tại quầy',
+            'Đã duyệt thành công, xuống chỗ bán thuốc để lấy',
+            'Chờ nhận thuốc',
+            'Chưa nhận thuốc',
+            'Đã nhận thuốc',
+            'Đã cấp thuốc'
+        ]
+        if dt['trang_thai'] in approved_statuses:
+            return False, 'Đơn thuốc này đã được phê duyệt trước đó!'
+
+        if dt['trang_thai'] == 'Đã hủy':
+            return False, 'Đơn thuốc này đã bị hủy, không thể duyệt!'
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            items = dt.get('items', [])
+            # 1. Kiểm tra tồn kho của TẤT CẢ các thuốc (chỉ kiểm tra xem đủ không, KHÔNG trừ kho ở bước này)
+            for it in items:
+                cursor.execute('SELECT ten_thuoc, so_luong_ton FROM thuoc WHERE id = ?', (it['thuoc_id'],))
+                th = cursor.fetchone()
+                if not th:
+                    conn.close()
+                    return False, f"Thuốc ID {it['thuoc_id']} không tồn tại trong kho viện!"
+                if th['so_luong_ton'] < it['so_luong']:
+                    conn.close()
+                    return False, f"Thuốc '{th['ten_thuoc']}' không đủ tồn kho (còn {th['so_luong_ton']}, yêu cầu {it['so_luong']})!"
+
+            # 2. Cập nhật trạng thái đơn thuốc (Tiếp tân/Admin KHÔNG trừ kho)
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            reviewer_name = reviewer_user.get('ho_ten') if reviewer_user else 'Tiếp tân / Admin'
+            new_status = 'Đã duyệt đơn thuốc, vui lòng thanh toán hóa đơn và nhận thuốc tại quầy'
+
+            cursor.execute('''
+                UPDATE don_thuoc
+                SET trang_thai = ?, nguoi_duyet = ?, ngay_duyet = ?
+                WHERE id = ?
+            ''', (new_status, reviewer_name, now_str, dt['id']))
+
+            # 3. Gửi thông báo cho bệnh nhân đi thanh toán hóa đơn và nhận thuốc
+            patient_id = dt.get('benh_nhan_id')
+            if patient_id:
+                cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Nhận thuốc', '/patient/invoices', 0, ?)
+                    ''', (
+                        bn_row['tai_khoan_id'],
+                        f"Đơn thuốc {dt['ma_don_thuoc']}: Đã duyệt",
+                        f"Đơn thuốc {dt['ma_don_thuoc']} đã được {reviewer_name} duyệt. Vui lòng thanh toán hóa đơn viện phí tiền thuốc và nhận thuốc tại quầy dược.",
+                        now_str
+                    ))
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='don_thuoc',
+                row_id=dt['id'],
+                action='APPROVE_PRESCRIPTION',
+                performed_by=reviewer_user.get('id') if reviewer_user else None,
+                performed_by_name=reviewer_name,
+                reason='Tiếp tân/Admin duyệt đơn thuốc mua tại viện (chuyển trạng thái yêu cầu thanh toán)',
+                before_data={'trang_thai': dt['trang_thai']},
+                after_data={'trang_thai': new_status}
+            )
+
+            return True, f"Đã duyệt đơn thuốc {dt['ma_don_thuoc']}, vui lòng thanh toán hóa đơn và nhận thuốc tại quầy!"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi phê duyệt đơn thuốc: {str(e)}"
+
+    @staticmethod
+    def reject_prescription(prescription_id_or_code, reason=None, reviewer_user=None):
+        """Tiếp tân hoặc Admin từ chối duyệt đơn thuốc tại bệnh viện (ví dụ hết thuốc) và hủy hóa đơn thuốc chưa thanh toán."""
+        dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
+        if not dt:
+            return False, 'Không tìm thấy đơn thuốc!'
+
+        if dt['trang_thai'] in ['Đã nhận thuốc', 'Đã cấp thuốc', 'Đã cấp phát']:
+            return False, 'Đơn thuốc này đã cấp phát, không thể từ chối duyệt!'
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            reviewer_name = reviewer_user.get('ho_ten') if reviewer_user else 'Tiếp tân / Admin'
+            ly_do_text = reason or 'Kho dược phòng khám tạm hết thuốc'
+            new_status = 'Bị từ chối duyệt (Hết thuốc viện, vui lòng mua ngoài)'
+
+            cursor.execute('''
+                UPDATE don_thuoc
+                SET trang_thai = ?, ly_do_huy = ?, nguoi_huy = ?, thoi_gian_huy = ?, nguoi_duyet = ?, ngay_duyet = ?
+                WHERE id = ?
+            ''', (new_status, ly_do_text, reviewer_name, now_str, reviewer_name, now_str, dt['id']))
+
+            # Hủy hóa đơn tiền thuốc liên quan
+            if dt.get('phieu_kham_id'):
+                cursor.execute('''
+                    UPDATE hoa_don
+                    SET trang_thai = N'Đã hủy'
+                    WHERE phieu_kham_id = ? AND ma_hoa_don LIKE 'HDT%' AND trang_thai = N'Chưa thanh toán'
+                ''', (dt['phieu_kham_id'],))
+
+            # Gửi thông báo cho bệnh nhân
+            patient_id = dt.get('benh_nhan_id')
+            if patient_id:
+                cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Đơn thuốc', '/patient/records', 0, ?)
+                    ''', (
+                        bn_row['tai_khoan_id'],
+                        f"Đơn thuốc {dt['ma_don_thuoc']}: Bị từ chối duyệt",
+                        f"Đơn thuốc {dt['ma_don_thuoc']} không thể duyệt tại bệnh viện. Lý do: {ly_do_text}. Bạn có thể xem đơn thuốc và tự mua ngoài tại các nhà thuốc.",
+                        now_str
+                    ))
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='don_thuoc',
+                row_id=dt['id'],
+                action='REJECT_PRESCRIPTION',
+                performed_by=reviewer_user.get('id') if reviewer_user else None,
+                performed_by_name=reviewer_name,
+                reason=ly_do_text,
+                before_data={'trang_thai': dt['trang_thai']},
+                after_data={'trang_thai': new_status}
+            )
+
+            return True, f"Đã từ chối duyệt đơn thuốc {dt['ma_don_thuoc']} và hủy hóa đơn viện phí liên quan!"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi từ chối duyệt đơn thuốc: {str(e)}"

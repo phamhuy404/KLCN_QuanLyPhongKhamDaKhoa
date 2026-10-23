@@ -50,43 +50,28 @@
                     class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 relative transition-all" 
                     title="Thông báo hệ thống">
                 <i class="fa-regular fa-bell text-sm"></i>
-                <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                <span id="admin-unread-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center ring-2 ring-white hidden animate-pulse">0</span>
             </button>
             
             <!-- Menu Dropdown Thông báo -->
             <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-100 py-3 z-50">
-                <div class="px-4 pb-2 border-b border-slate-100 flex items-center justify-between">
+                <div class="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
                     <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Mới Nhất
+                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Hệ Thống
                     </h5>
-                    <button type="button" onclick="triggerTestNotification('success')" class="text-[11px] text-medical-600 hover:underline font-semibold">
-                        + Thử thông báo mới
+                    <button type="button" onclick="markAllNotificationsAsRead()" class="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-check-double text-[10px]"></i> Đã đọc tất cả
                     </button>
                 </div>
-                <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 text-xs" id="notification-list">
-                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <i class="fa-solid fa-calendar-check text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h6 class="font-semibold text-slate-800 text-xs">Lịch hẹn khám mới</h6>
-                            <p class="text-slate-500 text-[11px] mt-0.5">Bệnh nhân Hoàng Bảo Nam vừa đặt hẹn lúc 09:30 sáng nay.</p>
-                            <span class="text-[10px] text-slate-400 mt-1 block">5 phút trước</span>
-                        </div>
-                    </div>
-                    <div class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                            <i class="fa-solid fa-flask text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h6 class="font-semibold text-slate-800 text-xs">Kết quả xét nghiệm</h6>
-                            <p class="text-slate-500 text-[11px] mt-0.5">Phòng xét nghiệm vừa hoàn tất sinh hóa máu cho mã BN2609001.</p>
-                            <span class="text-[10px] text-slate-400 mt-1 block">20 phút trước</span>
-                        </div>
+                <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs" id="notification-list">
+                    <div class="p-6 text-center text-slate-400 text-xs">
+                        <i class="fa-solid fa-spinner fa-spin text-medical-600 text-base mb-1 block"></i>
+                        Đang đồng bộ thông báo...
                     </div>
                 </div>
-                <div class="px-4 pt-2 border-t border-slate-100 text-center">
-                    <a href="{{ url_for('admin.dashboard') }}" class="text-[11px] text-slate-500 hover:text-medical-600 font-medium">Xem tất cả trên Dashboard</a>
+                <div class="px-4 pt-2.5 border-t border-slate-100 text-center flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400 italic">Tự động cập nhật thời gian thực</span>
+                    <a href="{{ url_for('admin.dashboard') }}" class="text-medical-600 hover:underline font-semibold">Xem Dashboard</a>
                 </div>
             </div>
         </div>
@@ -94,13 +79,15 @@
         <!-- Thông tin tài khoản nhân sự đăng nhập -->
         {% set curr_user = session.get('user', {}) %}
         <div class="flex items-center gap-2.5 pl-2.5 border-l border-slate-200">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
-                {{ (curr_user.get('ho_ten', 'AD'))[0] }}
-            </div>
-            <div class="hidden md:block text-left">
-                <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px]">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
-                <span class="text-[10px] text-teal-700 font-semibold block leading-tight">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
-            </div>
+            <a href="{{ url_for('admin.profile') }}" class="flex items-center gap-2.5 hover:opacity-80 transition-all cursor-pointer group" title="Xem & chỉnh sửa hồ sơ cá nhân">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    {{ (curr_user.get('ho_ten', 'AD'))[0] }}
+                </div>
+                <div class="hidden md:block text-left">
+                    <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px] group-hover:text-medical-600 transition-colors">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
+                    <span class="text-[10px] text-teal-700 font-semibold block leading-tight">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
+                </div>
+            </a>
             <a href="{{ url_for('logout') }}" 
                class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-all ml-1" 
                title="Đăng xuất khỏi hệ thống">
@@ -232,4 +219,161 @@
             duration: 4500
         });
     }
+
+    // ==========================================
+    // CƠ CHẾ ĐỒNG BỘ THÔNG BÁO THỜI GIAN THỰC (POLLING & TOAST REALTIME)
+    // ==========================================
+    let lastNotificationId = parseInt(sessionStorage.getItem('h2t_last_notif_id') || '0');
+    let isFirstNotificationPoll = true;
+
+    async function pollNotificationsRealtime() {
+        try {
+            const res = await fetch(`/api/notifications/poll?last_id=${lastNotificationId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success) return;
+
+            // 1. Cập nhật Badge số lượng chưa đọc trên icon chuông
+            const badge = document.getElementById('admin-unread-badge');
+            if (badge) {
+                if (data.unread_count > 0) {
+                    badge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+
+            // 2. Render danh sách thông báo vào menu Dropdown
+            renderNotificationDropdownList(data.recent_list || []);
+
+            // 3. Nếu có thông báo mới (và không phải lần đầu tải trang): Bật Toast Notification
+            if (!isFirstNotificationPoll && data.new_notifications && data.new_notifications.length > 0) {
+                // Đảo ngược để thông báo cũ hiện trước, mới nhất hiện sau
+                data.new_notifications.slice().reverse().forEach(n => {
+                    let type = 'info';
+                    const loai = (n.loai_thong_bao || '').toLowerCase();
+                    if (loai.includes('thanh toán') || loai.includes('tiếp nhận') || loai.includes('thành công')) {
+                        type = 'success';
+                    } else if (loai.includes('hủy') || loai.includes('từ chối') || loai.includes('cảnh báo')) {
+                        type = 'warning';
+                    }
+
+                    showAppNotification({
+                        title: n.tieu_de,
+                        message: n.noi_dung,
+                        type: type,
+                        duration: 5000
+                    });
+                });
+            }
+
+            // 4. Lưu lại ID thông báo lớn nhất
+            if (data.recent_list && data.recent_list.length > 0) {
+                const maxId = Math.max(...data.recent_list.map(n => n.id));
+                if (maxId > lastNotificationId) {
+                    lastNotificationId = maxId;
+                    sessionStorage.setItem('h2t_last_notif_id', maxId);
+                }
+            }
+
+            isFirstNotificationPoll = false;
+        } catch (err) {
+            console.warn('Lỗi kết nối polling thông báo:', err);
+        }
+    }
+
+    function renderNotificationDropdownList(list) {
+        const container = document.getElementById('notification-list');
+        if (!container) return;
+
+        if (!list || list.length === 0) {
+            container.innerHTML = `
+                <div class="p-8 text-center text-slate-400">
+                    <i class="fa-regular fa-bell-slash text-2xl mb-1.5 text-slate-300 block"></i>
+                    Chưa có thông báo nào.
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        list.forEach(n => {
+            const isUnread = !n.da_doc;
+            const loai = (n.loai_thong_bao || '').toLowerCase();
+            let iconClass = 'fa-solid fa-bell text-blue-600 bg-blue-50';
+            if (loai.includes('lịch') || loai.includes('hẹn')) {
+                iconClass = 'fa-solid fa-calendar-check text-indigo-600 bg-indigo-50';
+            } else if (loai.includes('khám') || loai.includes('cận lâm sàng')) {
+                iconClass = 'fa-solid fa-stethoscope text-emerald-600 bg-emerald-50';
+            } else if (loai.includes('thuốc') || loai.includes('dược')) {
+                iconClass = 'fa-solid fa-pills text-purple-600 bg-purple-50';
+            } else if (loai.includes('thanh toán') || loai.includes('hóa đơn')) {
+                iconClass = 'fa-solid fa-receipt text-amber-600 bg-amber-50';
+            } else if (loai.includes('hủy') || loai.includes('từ chối')) {
+                iconClass = 'fa-solid fa-circle-exclamation text-rose-600 bg-rose-50';
+            }
+
+            const iconParts = iconClass.split(' ');
+            const bgClass = iconParts.pop();
+            const fgClass = iconParts.join(' ');
+
+            html += `
+                <div onclick="handleNotificationClick(${n.id}, '${n.lien_ket || ''}')" 
+                     class="p-3 hover:bg-slate-50 transition-colors flex items-start gap-3 cursor-pointer ${isUnread ? 'bg-blue-50/40' : ''}">
+                    <div class="w-8 h-8 rounded-xl ${bgClass} flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="${fgClass} text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1">
+                            <h6 class="font-bold text-slate-800 text-xs truncate ${isUnread ? 'text-blue-900' : ''}">${n.tieu_de}</h6>
+                            ${isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>' : ''}
+                        </div>
+                        <p class="text-slate-600 text-[11px] mt-0.5 line-clamp-2 leading-relaxed">${n.noi_dung}</p>
+                        <span class="text-[10px] text-slate-400 mt-1 block">${n.thoi_gian_tao || ''}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    async function handleNotificationClick(id, link) {
+        try {
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ notification_id: id })
+            });
+            pollNotificationsRealtime();
+            if (link && link.trim()) {
+                window.location.href = link;
+            }
+        } catch (e) {
+            if (link && link.trim()) window.location.href = link;
+        }
+    }
+
+    async function markAllNotificationsAsRead() {
+        try {
+            const res = await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ all: true })
+            });
+            const data = await res.json();
+            if (data.success) {
+                pollNotificationsRealtime();
+            }
+        } catch (e) {
+            console.error('Lỗi đánh dấu đã đọc:', e);
+        }
+    }
+
+    // Bắt đầu chu trình polling khi tải trang và lặp lại mỗi 5 giây
+    document.addEventListener('DOMContentLoaded', () => {
+        pollNotificationsRealtime();
+        setInterval(pollNotificationsRealtime, 5000);
+    });
 </script>

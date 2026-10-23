@@ -13,8 +13,12 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.before_request
 @roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 def admin_access_guard():
-    """Bảo vệ phân hệ quản trị: Chỉ cho phép nhân viên y tế và admin truy cập."""
-    pass
+    """Bảo vệ phân hệ quản trị: Chỉ cho phép nhân viên y tế và admin truy cập, bắt buộc bác sĩ hoàn thiện hồ sơ."""
+    user = session.get('user')
+    if user and user.get('vai_tro') == 'BACSI':
+        if user.get('da_hoan_thien_ho_so') == 0:
+            if request.endpoint and request.endpoint not in ['admin.doctor_complete_profile', 'auth.logout', 'static']:
+                return redirect(url_for('admin.doctor_complete_profile'))
 
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
@@ -86,7 +90,7 @@ def reception():
 
     stats = {
         'tong_benh_nhan': len(patients_list),
-        'dang_cho': len([a for a in appointments_list if a.get('trang_thai') not in ['Đang khám', 'Đã khám']]),
+        'dang_cho': len([a for a in appointments_list if a.get('trang_thai') in ['Chờ tiếp nhận', 'Đã tiếp nhận', 'Chờ xác nhận']]),
         'dang_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đang khám']),
         'da_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đã khám'])
     }
@@ -96,7 +100,33 @@ def reception():
 @admin_bp.route('/emr')
 def emr():
     """Phân hệ bác sĩ: Bệnh án điện tử EMR, chẩn đoán ICD và ra y lệnh."""
-    patients_list = PatientModel.get_all(include_history=True)
+    curr_user = session.get('user', {})
+    user_role = curr_user.get('vai_tro')
+    doc_id = curr_user.get('bac_si_id')
+
+    all_patients = PatientModel.get_all(include_history=True)
+
+    # Ưu tiên đưa bệnh nhân trong hàng đợi tiếp nhận hôm nay của bác sĩ lên đầu
+    if user_role == 'BACSI' and doc_id:
+        from core.database import get_db
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT DISTINCT benh_nhan_id
+            FROM lich_hen
+            WHERE (bac_si_id = ? OR phong_kham_id IN (SELECT phong_kham_chinh_id FROM bac_si WHERE id = ?))
+              AND CAST(ngay_hen AS DATE) = CAST(GETDATE() AS DATE)
+              AND trang_thai IN (N'Đã tiếp nhận', N'Đang khám', N'Chờ kết quả CLS')
+        ''', (doc_id, doc_id))
+        queue_ids = {r['benh_nhan_id'] for r in cursor.fetchall()}
+        conn.close()
+
+        queue_patients = [p for p in all_patients if p['id'] in queue_ids]
+        other_patients = [p for p in all_patients if p['id'] not in queue_ids]
+        patients_list = queue_patients + other_patients
+    else:
+        patients_list = all_patients
+
     medicines = PharmacyModel.get_all_medicines()
     services = ClinicModel.get_all_services()
     doctors = UserModel.get_all_doctors()
@@ -350,6 +380,59 @@ def import_csv(module):
 
     return redirect(request.referrer or url_for('admin.dashboard'))
 
+@admin_bp.route('/doctors/create', methods=['POST'])
+@roles_required('ADMIN')
+def create_doctor():
+    """Tạo tài khoản bác sĩ mới từ trang danh sách bác sĩ với mật khẩu mặc định là 123."""
+    data = request.form if request.form else (request.get_json() or {})
+    ho_ten = data.get('ho_ten')
+    sdt = data.get('sdt')
+    email = data.get('email')
+    chuyen_khoa_id = data.get('chuyen_khoa_id')
+
+    success, msg = UserModel.create_doctor_account(
+        ho_ten=ho_ten,
+        sdt=sdt,
+        email=email,
+        chuyen_khoa_id=chuyen_khoa_id,
+        audit_user=session.get('user')
+    )
+
+    if request.is_json:
+        return jsonify({'success': success, 'message': msg})
+    if success:
+        flash(msg, 'success')
+    else:
+        flash(msg, 'error')
+    return redirect(url_for('admin.doctors'))
+
+@admin_bp.route('/doctor/complete-profile', methods=['GET', 'POST'])
+def doctor_complete_profile():
+    """Trang điền thông tin cá nhân, chọn chuyên khoa và đổi mật khẩu mới cho bác sĩ đăng nhập lần đầu."""
+    user = session.get('user')
+    if not user or user.get('vai_tro') != 'BACSI':
+        return redirect(url_for('auth.login'))
+
+    # Nếu bác sĩ đã hoàn thiện hồ sơ rồi thì về dashboard
+    if user.get('da_hoan_thien_ho_so'):
+        return redirect(url_for('admin.dashboard'))
+
+    departments = ClinicModel.get_all_departments(active_only=True)
+
+    if request.method == 'POST':
+        data = request.form
+        success, msg = UserModel.complete_doctor_profile(user['id'], data)
+        if success:
+            session['user']['da_hoan_thien_ho_so'] = 1
+            session['user']['ho_ten'] = data.get('ho_ten', user.get('ho_ten'))
+            session.modified = True
+            flash('Kích hoạt tài khoản bác sĩ thành công! Chào mừng bạn đến với H2T Healthcare.', 'success')
+            return redirect(url_for('admin.dashboard'))
+        return render_template('admin/doctor_complete_profile.html', error=msg, departments=departments, form_data=data)
+
+    doctor_info = UserModel.get_doctor_by_user_id(user['id']) or {}
+    return render_template('admin/doctor_complete_profile.html', departments=departments, doctor=doctor_info)
+
 @admin_bp.route('/doctors')
 def doctors():
     """Danh sách đội ngũ bác sĩ chuyên khoa."""
@@ -394,6 +477,36 @@ def doctor_detail(doctor_id):
         appointments=appointments,
         visits=visits
     )
+
+@admin_bp.route('/profile', methods=['GET', 'POST'])
+@admin_bp.route('/my-profile', methods=['GET', 'POST'])
+def profile():
+    """Hồ sơ cá nhân và đổi mật khẩu dành cho nhân sự y tế & quản trị viên."""
+    user = session.get('user', {})
+    if not user:
+        return redirect(url_for('login'))
+
+    account_id = user['id']
+    if request.method == 'POST':
+        curr_pw = request.form.get('current_password')
+        new_pw = request.form.get('new_password')
+        confirm_pw = request.form.get('confirm_password')
+
+        if new_pw and new_pw != confirm_pw:
+            flash('Xác nhận mật khẩu mới không trùng khớp!', 'error')
+            staff_prof = UserModel.get_staff_profile(account_id)
+            return render_template('admin/profile.html', active_page='admin_profile', staff=staff_prof)
+
+        success, msg = UserModel.update_staff_profile(account_id, request.form, current_password=curr_pw, new_password=new_pw, audit_user=user)
+        if success:
+            flash(msg, 'success')
+            user['ho_ten'] = request.form.get('ho_ten', user.get('ho_ten'))
+            session['user'] = user
+        else:
+            flash(msg, 'error')
+
+    staff_prof = UserModel.get_staff_profile(account_id)
+    return render_template('admin/profile.html', active_page='admin_profile', staff=staff_prof)
 
 @admin_bp.route('/my-doctor-profile')
 def my_doctor_profile():

@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Hồ Sơ Cá Nhân - Phòng Khám Đa Khoa{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header & Breadcrumbs -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+                <a href="{{ url_for('admin.dashboard') }}" class="hover:text-medical-600">Quản trị</a>
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                <span class="text-medical-600 font-semibold">Hồ sơ cá nhân</span>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                <i class="fa-solid fa-id-badge text-medical-600"></i> Hồ Sơ Cá Nhân & Tài Khoản
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Quản lý thông tin định danh, liên hệ công tác và bảo mật tài khoản cá nhân</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold flex items-center gap-1.5 border border-emerald-200">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Tài khoản đang hoạt động
+            </span>
+        </div>
+    </div>
+
+    <!-- Flash alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 rounded-xl text-xs font-semibold flex items-center gap-2.5 shadow-xs {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-rose-50 text-rose-800 border border-rose-200{% endif %}">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check text-emerald-600{% else %}fa-circle-exclamation text-rose-600{% endif %} text-sm"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- CỘT TRÁI: CARD TỔNG QUAN TÀI KHOẢN (4 COLS) -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 text-center space-y-4">
+                <div class="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-tr from-medical-600 to-teal-500 text-white font-bold text-3xl flex items-center justify-center shadow-lg shadow-medical-500/20">
+                    {{ (staff.ho_ten or staff.username or 'AD')[0]|upper }}
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">{{ staff.ho_ten or staff.username }}</h3>
+                    <p class="text-xs text-slate-500 font-mono mt-0.5">Mã NV: {{ staff.ma_nhan_vien or 'AD0001' }} • @{{ staff.username }}</p>
+                </div>
+
+                <div class="pt-2 flex flex-wrap gap-2 justify-center">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold 
+                        {% if staff.ma_vai_tro == 'ADMIN' %}bg-purple-50 text-purple-700 border border-purple-200
+                        {% elif staff.ma_vai_tro == 'BACSI' %}bg-blue-50 text-blue-700 border border-blue-200
+                        {% elif staff.ma_vai_tro == 'LETAN' %}bg-teal-50 text-teal-700 border border-teal-200
+                        {% elif staff.ma_vai_tro == 'DUOCSI' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+                        <i class="fa-solid fa-shield-halved text-[10px] mr-1"></i> {{ staff.ten_vai_tro or staff.ma_vai_tro }}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {{ staff.chuc_vu or 'Nhân viên chuyên môn' }}
+                    </span>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4 text-left space-y-2.5 text-xs text-slate-600">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Số điện thoại:</span>
+                        <span class="font-mono font-semibold text-slate-800">{{ staff.sdt or 'Chưa cập nhật' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Email:</span>
+                        <span class="font-medium text-slate-800 truncate max-w-[170px]">{{ staff.email or 'Chưa cập nhật' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Ngày vào làm:</span>
+                        <span class="font-mono font-semibold text-slate-800">{{ staff.ngay_vao_lam or 'Theo quyết định' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Đăng nhập gần nhất:</span>
+                        <span class="font-mono text-slate-500 text-[11px]">{{ staff.lan_dang_nhap_cuoi or 'Vừa xong' }}</span>
+                    </div>
+                    {% if staff.ten_khoa %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Chuyên khoa:</span>
+                        <span class="font-semibold text-teal-700">{{ staff.ten_khoa }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hộp ghi chú chính sách bảo mật -->
+            <div class="bg-blue-50/60 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 space-y-2">
+                <h4 class="font-bold flex items-center gap-1.5 text-blue-800">
+                    <i class="fa-solid fa-circle-info"></i> Quy định tài khoản nội bộ
+                </h4>
+                <p class="text-blue-800/80 leading-relaxed text-[11px]">
+                    Thông tin định danh và số điện thoại được dùng để xác thực hệ thống và phân công ca trực. Vui lòng bảo mật mật khẩu cá nhân và không chia sẻ tài khoản cho người khác.
+                </p>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: FORM CHỈNH SỬA THÔNG TIN & ĐỔI MẬT KHẨU (8 COLS) -->
+        <div class="lg:col-span-8 space-y-6">
+            <form method="POST" action="{{ url_for('admin.profile') }}" class="space-y-6">
+                <!-- KHỐI 1: THÔNG TIN ĐỊNH DANH & LIÊN HỆ -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                    <div class="pb-3 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-pen text-medical-600"></i> Thông Tin Cá Nhân & Liên Hệ
+                        </h3>
+                        <span class="text-xs text-slate-400 italic">Áp dụng cho toàn bộ nhân sự nội bộ</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Họ và tên <span class="text-rose-500">*</span></label>
+                            <input type="text" name="ho_ten" value="{{ staff.ho_ten or '' }}" required
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-semibold text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Tên đăng nhập (Username)</label>
+                            <input type="text" value="{{ staff.username }}" disabled
+                                   class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl font-mono text-slate-500 cursor-not-allowed">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Số điện thoại liên hệ <span class="text-rose-500">*</span></label>
+                            <input type="text" name="sdt" value="{{ staff.sdt or '' }}" required
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-mono text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Địa chỉ Email</label>
+                            <input type="email" name="email" value="{{ staff.email or '' }}"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Số CCCD / Hộ chiếu</label>
+                            <input type="text" name="cccd" value="{{ staff.cccd or '' }}" maxlength="20"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-mono text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Ngày sinh</label>
+                            <input type="date" name="ngay_sinh" value="{{ staff.ngay_sinh or '' }}"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Giới tính</label>
+                            <select name="gioi_tinh" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-medium text-slate-800">
+                                <option value="1" {% if staff.gioi_tinh in [1, True, '1'] %}selected{% endif %}>Nam</option>
+                                <option value="0" {% if staff.gioi_tinh in [0, False, '0'] %}selected{% endif %}>Nữ</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Địa chỉ thường trú / liên hệ</label>
+                            <input type="text" name="dia_chi" value="{{ staff.dia_chi or '' }}" placeholder="Ví dụ: Quận 10, TP. Hồ Chí Minh"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">
+                        </div>
+                    </div>
+
+                    {% if staff.ma_vai_tro == 'BACSI' %}
+                    <!-- Khối thông tin chuyên môn Bác sĩ -->
+                    <div class="pt-4 border-t border-slate-100 space-y-3">
+                        <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider text-medical-700">Thông tin chuyên môn y khoa</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Học vị / Học hàm</label>
+                                <input type="text" name="hoc_vi" value="{{ staff.hoc_vi or 'Bác sĩ CKI' }}"
+                                       class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-700 mb-1">Kinh nghiệm công tác</label>
+                                <input type="text" name="kinh_nghiem" value="{{ staff.kinh_nghiem or '5 năm kinh nghiệm' }}"
+                                       class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block font-semibold text-slate-700 mb-1">Giới thiệu tóm tắt / Lĩnh vực chuyên sâu</label>
+                                <textarea name="gioi_thieu" rows="2" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 text-slate-800">{{ staff.gioi_thieu or '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- KHỐI 2: ĐỔI MẬT KHẨU TÀI KHOẢN -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                    <div class="pb-3 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-key text-amber-500"></i> Đổi Mật Khẩu Tài Khoản
+                        </h3>
+                        <span class="text-xs text-slate-400 italic">Bỏ trống nếu không muốn đổi mật khẩu</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Mật khẩu hiện tại</label>
+                            <input type="password" name="current_password" placeholder="••••••••"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-mono text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Mật khẩu mới (>= 6 ký tự)</label>
+                            <input type="password" name="new_password" placeholder="••••••••" minlength="6"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-mono text-slate-800">
+                        </div>
+
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Xác nhận mật khẩu mới</label>
+                            <input type="password" name="confirm_password" placeholder="••••••••" minlength="6"
+                                   class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500 font-mono text-slate-800">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nút lưu thay đổi -->
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <a href="{{ url_for('admin.dashboard') }}" 
+                       class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all">
+                        Hủy bỏ
+                    </a>
+                    <button type="submit" 
+                            class="bg-medical-600 hover:bg-medical-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-medical-600/20 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i> Lưu Thay Đổi Hồ Sơ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

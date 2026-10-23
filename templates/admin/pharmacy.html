@@ -287,7 +287,11 @@
         bac_si: p.bac_si,
         thuoc: p.thuoc || 'Theo đơn bác sĩ',
         gio: (p.gio || '').toString().slice(11, 16) || '09:00',
-        status: p.trang_thai === 'Đã phát' ? 'completed' : 'waiting'
+        trang_thai: p.trang_thai || 'Chờ duyệt',
+        hinh_thuc_mua: p.hinh_thuc_mua || 'Chưa chọn',
+        trang_thai_hoa_don: p.trang_thai_hoa_don || 'Chưa thanh toán',
+        trang_thai_nhan_thuoc: p.trang_thai_nhan_thuoc || '',
+        ma_hoa_don: p.ma_hoa_don || ''
     }));
 
     function renderMedicines(data) {
@@ -324,9 +328,74 @@
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-50 transition-colors';
 
-            const badge = d.status === 'waiting'
-                ? '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ phát thuốc</span>'
-                : '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã xuất dược</span>';
+            let badge = '';
+            let actionBtn = '';
+
+            const st = d.trang_thai || '';
+            const isPaid = d.trang_thai_hoa_don === 'Đã thanh toán';
+
+            if (st === 'Chờ duyệt') {
+                badge = '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px] border border-amber-200 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-clock"></i> Chờ duyệt</span>';
+                actionBtn = `
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button type="button" onclick="approvePrescription('${d.ma_don}')" class="px-2.5 py-1.5 bg-gradient-to-r from-teal-600 to-medical-600 hover:from-teal-700 hover:to-medical-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center gap-1 cursor-pointer" title="Duyệt đơn thuốc và chuyển bệnh nhân thanh toán">
+                            <i class="fa-solid fa-circle-check"></i> Duyệt
+                        </button>
+                        <button type="button" onclick="rejectPrescription('${d.ma_don}')" class="px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg text-xs border border-rose-200 flex items-center gap-1 cursor-pointer" title="Từ chối duyệt đơn (khi hết thuốc)">
+                            <i class="fa-solid fa-xmark"></i> Từ chối
+                        </button>
+                    </div>
+                `;
+            } else if (st.includes('Đã duyệt đơn thuốc') || st.includes('vui lòng thanh toán hóa đơn') || st.includes('xuống chỗ bán thuốc')) {
+                if (isPaid) {
+                    badge = '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold text-[10px] border border-amber-300 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-box-open text-amber-600"></i> Đã thanh toán - Chưa nhận thuốc</span>';
+                    actionBtn = `
+                        <button type="button" onclick="dispenseMed('${d.ma_don}')" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center gap-1 mx-auto cursor-pointer">
+                            <i class="fa-solid fa-hand-holding-medical"></i> Phát Thuốc (Trừ Kho)
+                        </button>
+                    `;
+                } else {
+                    badge = '<span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px] border border-blue-200 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-receipt"></i> Đã duyệt - Chờ thanh toán</span>';
+                    actionBtn = `
+                        <span class="text-[11px] text-slate-400 font-medium italic"><i class="fa-solid fa-lock"></i> Chưa thanh toán</span>
+                    `;
+                }
+            } else if (st === 'Chờ nhận thuốc' || st === 'Chưa nhận thuốc') {
+                badge = '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold text-[10px] border border-amber-300 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-box-open text-amber-600"></i> Chưa nhận thuốc</span>';
+                actionBtn = `
+                    <button type="button" onclick="dispenseMed('${d.ma_don}')" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center gap-1 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-hand-holding-medical"></i> Phát Thuốc (Trừ Kho)
+                    </button>
+                `;
+            } else if (st === 'Đã nhận thuốc' || st === 'Đã cấp thuốc' || st === 'Đã phát') {
+                badge = '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-circle-check"></i> Đã nhận thuốc</span>';
+                actionBtn = `
+                    <button type="button" onclick="window.print()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs flex items-center gap-1 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-print"></i> In HDSD
+                    </button>
+                `;
+            } else if (st === 'Mua ngoài' || st === 'Tự mua ngoài') {
+                badge = '<span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px] border border-slate-200 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-store"></i> Mua ngoài</span>';
+                actionBtn = `
+                    <button type="button" onclick="window.print()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs flex items-center gap-1 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-print"></i> In Toa
+                    </button>
+                `;
+            } else if (st.includes('từ chối')) {
+                badge = '<span class="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200 flex items-center gap-1 justify-center w-max mx-auto"><i class="fa-solid fa-circle-xmark"></i> Bị từ chối duyệt</span>';
+                actionBtn = `
+                    <button type="button" onclick="window.print()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs flex items-center gap-1 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-print"></i> In Toa
+                    </button>
+                `;
+            } else {
+                badge = `<span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">${st || 'Chờ xử lý'}</span>`;
+                actionBtn = `
+                    <button type="button" onclick="approvePrescription('${d.ma_don}')" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs shadow-sm flex items-center gap-1 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-circle-check"></i> Duyệt
+                    </button>
+                `;
+            }
 
             tr.innerHTML = `
                 <td class="py-3 px-4 font-mono font-bold text-medical-700">${d.ma_don}</td>
@@ -338,19 +407,52 @@
                 <td class="py-3 px-4 text-slate-800 font-medium">${d.thuoc}</td>
                 <td class="py-3 px-4 font-mono text-slate-500">${d.gio}</td>
                 <td class="py-3 px-4 text-center">${badge}</td>
-                <td class="py-3 px-4 text-center">
-                    ${d.status === 'waiting' ? `
-                        <button type="button" onclick="dispenseMed('${d.ma_don}')" class="px-3 py-1.5 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-lg text-xs shadow-sm">
-                            <i class="fa-solid fa-check mr-1"></i> Phát Thuốc
-                        </button>
-                    ` : `
-                        <button type="button" onclick="window.print()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs">
-                            <i class="fa-solid fa-print mr-1"></i> In HDSD
-                        </button>
-                    `}
-                </td>
+                <td class="py-3 px-4 text-center">${actionBtn}</td>
             `;
             tbody.appendChild(tr);
+        });
+    }
+
+    function approvePrescription(maDon) {
+        if (!confirm(`Xác nhận phê duyệt đơn thuốc #${maDon}? Hệ thống sẽ thông báo cho bệnh nhân đi thanh toán hóa đơn viện phí và nhận thuốc tại quầy.`)) return;
+        fetch('/api/prescription/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ma_don: maDon })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || `Đã duyệt đơn thuốc #${maDon}, vui lòng thanh toán hóa đơn và nhận thuốc tại quầy!`);
+                location.reload();
+            } else {
+                alert('Lỗi duyệt đơn thuốc: ' + (data.message || 'Không thể cập nhật'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
+        });
+    }
+
+    function rejectPrescription(maDon) {
+        const reason = prompt(`Nhập lý do từ chối duyệt đơn thuốc #${maDon} (Hết thuốc trong kho, thuốc tạm ngưng...):`, "Kho dược phòng khám tạm thời hết thuốc");
+        if (reason === null) return;
+        fetch('/api/prescription/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ma_don: maDon, reason: reason })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || `Đã từ chối duyệt đơn thuốc #${maDon}`);
+                location.reload();
+            } else {
+                alert('Lỗi từ chối: ' + (data.message || 'Không thể cập nhật'));
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err.message);
         });
     }
 

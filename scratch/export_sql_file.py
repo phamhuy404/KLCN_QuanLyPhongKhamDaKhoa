@@ -8,7 +8,8 @@ import pyodbc
 from werkzeug.security import generate_password_hash
 
 def export_sql():
-    sql_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'cosodulieu.sql')
+    sql_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'cosodulieu.sql')
+    os.makedirs(os.path.dirname(sql_path), exist_ok=True)
     
     # Đọc lại dữ liệu chuẩn từ SQL Server để sinh file .sql hoàn chỉnh
     import config

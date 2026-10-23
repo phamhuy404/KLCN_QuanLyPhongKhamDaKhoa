@@ -1,6 +1,7 @@
 import pyodbc
 import re
 import sys
+import os
 
 # Ensure UTF-8 output
 sys.stdout.reconfigure(encoding='utf-8')
@@ -8,7 +9,11 @@ sys.stdout.reconfigure(encoding='utf-8')
 conn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};SERVER=localhost;DATABASE=master;Trusted_Connection=yes;', autocommit=True)
 cursor = conn.cursor()
 
-with open('cosodulieu.sql', 'r', encoding='utf-8') as f:
+sql_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'database', 'cosodulieu.sql')
+if not os.path.exists(sql_path):
+    sql_path = 'cosodulieu.sql'
+
+with open(sql_path, 'r', encoding='utf-8') as f:
     sql_text = f.read()
 
 # Tách các lô lệnh theo lệnh GO (không phân biệt hoa thường, nằm riêng trên 1 dòng)

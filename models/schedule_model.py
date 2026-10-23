@@ -42,9 +42,9 @@ class ScheduleModel:
         cursor = conn.cursor()
         sql = '''
             SELECT COUNT(*) AS cnt
-            FROM lich_lam_viec llv
-            JOIN nhan_vien nv ON llv.nhan_vien_id = nv.id
-            JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+            FROM lich_lam_viec llv WITH (NOLOCK)
+            JOIN nhan_vien nv WITH (NOLOCK) ON llv.nhan_vien_id = nv.id
+            JOIN tai_khoan t WITH (NOLOCK) ON nv.tai_khoan_id = t.id
             WHERE llv.ngay_lam = ? 
               AND llv.ca_lam = ? 
               AND t.vai_tro_id = ?
@@ -61,6 +61,35 @@ class ScheduleModel:
         conn.close()
         cnt = row['cnt'] if row else 0
         return cnt, 5, cnt >= 5
+
+    @staticmethod
+    def check_doctor_dept_capacity(ngay_lam, ca_lam, chuyen_khoa_id, exclude_schedule_id=None):
+        """Kiểm tra số bác sĩ cùng chuyên khoa trong một ca trực (tối đa 3 bác sĩ/khoa/ca)."""
+        if not chuyen_khoa_id:
+            return 0, 3, False
+        conn = get_db()
+        cursor = conn.cursor()
+        sql = '''
+            SELECT COUNT(*) AS cnt
+            FROM lich_lam_viec llv WITH (NOLOCK)
+            JOIN nhan_vien nv WITH (NOLOCK) ON llv.nhan_vien_id = nv.id
+            JOIN bac_si bs WITH (NOLOCK) ON bs.nhan_vien_id = nv.id
+            WHERE llv.ngay_lam = ? 
+              AND llv.ca_lam = ? 
+              AND bs.chuyen_khoa_id = ?
+              AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+              AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
+        '''
+        params = [str(ngay_lam)[:10], int(ca_lam), int(chuyen_khoa_id)]
+        if exclude_schedule_id:
+            sql += ' AND llv.id != ?'
+            params.append(exclude_schedule_id)
+
+        cursor.execute(sql, tuple(params))
+        row = cursor.fetchone()
+        conn.close()
+        cnt = row['cnt'] if row else 0
+        return cnt, 3, cnt >= 3
 
     @staticmethod
     def get_all(filter_doctor_id=None, filter_room_id=None, filter_date=None, from_date=None, to_date=None, current_user=None):
@@ -83,7 +112,7 @@ class ScheduleModel:
             LEFT JOIN bac_si bs ON llv.bac_si_id = bs.id OR bs.nhan_vien_id = nv.id
             LEFT JOIN phong_kham pk ON llv.phong_kham_id = pk.id
             LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
-            WHERE 1=1
+            WHERE 1=1 AND (v.ma_vai_tro IS NULL OR v.ma_vai_tro != 'ADMIN')
         '''
         params = []
         if filter_doctor_id:
@@ -179,8 +208,8 @@ class ScheduleModel:
         return dict(row) if row else None
 
     @staticmethod
-    def register_schedule(user, ngay_lam, ca_lam, phong_kham_id=None, ghi_chu=None):
-        """Nhân sự tự đăng ký ca làm trong 2 tuần tiếp theo với giới hạn tối đa 5 người/ca/role."""
+    def register_schedule(user, ngay_lam, ca_lam, phong_kham_id=None, ghi_chu=None, chuyen_khoa_id=None):
+        """Nhân sự tự đăng ký ca làm trong 2 tuần tiếp theo với giới hạn tối đa 5 người/ca/role và 3 bác sĩ/khoa/ca."""
         if not user or not user.get('id'):
             return False, "Vui lòng đăng nhập để đăng ký ca trực!"
 
@@ -188,11 +217,12 @@ class ScheduleModel:
         cursor = conn.cursor()
         cursor.execute('''
             SELECT nv.id AS staff_id, nv.ho_ten, t.vai_tro_id, v.ma_vai_tro, v.ten_vai_tro,
-                   bs.id AS bac_si_id, bs.phong_kham_chinh_id
+                   bs.id AS bac_si_id, bs.phong_kham_chinh_id, bs.chuyen_khoa_id, ck.ten_khoa
             FROM nhan_vien nv
             JOIN tai_khoan t ON nv.tai_khoan_id = t.id
             JOIN vai_tro v ON t.vai_tro_id = v.id
             LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
             WHERE t.id = ?
         ''', (user['id'],))
         staff_row = cursor.fetchone()
@@ -208,6 +238,11 @@ class ScheduleModel:
         except Exception:
             conn.close()
             return False, "Ngày làm hoặc ca làm việc không hợp lệ!"
+
+        # Tài khoản Admin không cần đăng ký ca trực
+        if staff_row.get('ma_vai_tro') == 'ADMIN':
+            conn.close()
+            return False, "Tài khoản Quản trị viên (Admin) không cần đăng ký ca trực và không xuất hiện trên lịch làm việc!"
 
         bounds = ScheduleModel.get_week_bounds()
         start_w1 = bounds['next_week_1'][0]
@@ -227,25 +262,43 @@ class ScheduleModel:
             conn.close()
             return False, f"Bạn đã đăng ký ca {ca_lam} vào ngày {work_date} rồi!"
 
-        # Kiểm tra tối đa 5 người/ca cho mỗi vai trò
+        # 1. Kiểm tra tối đa 5 người/ca cho mỗi vai trò
         cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(work_date, ca_lam, staff_row['vai_tro_id'])
         if is_full:
             conn.close()
             ca_name = ScheduleModel.CA_LAM_INFO.get(ca_lam, {}).get('ten', f'Ca {ca_lam}')
             return False, f"{ca_name} ngày {work_date} đã đủ tối đa {max_cap} nhân sự thuộc bộ phận {staff_row['ten_vai_tro']}!"
 
+        # 2. Kiểm tra tối đa 3 bác sĩ cùng chuyên khoa trong một ca
+        effective_dept_id = chuyen_khoa_id or staff_row.get('chuyen_khoa_id')
+        if effective_dept_id:
+            bs_cnt, bs_cap, bs_full = ScheduleModel.check_doctor_dept_capacity(work_date, ca_lam, effective_dept_id)
+            if bs_full:
+                conn.close()
+                ca_name = ScheduleModel.CA_LAM_INFO.get(ca_lam, {}).get('ten', f'Ca {ca_lam}')
+                dept_name = staff_row.get('ten_khoa') or 'chuyên khoa này'
+                return False, f"{ca_name} ngày {work_date} đã đủ tối đa {bs_cap} bác sĩ thuộc {dept_name}!"
+
         ca_info = ScheduleModel.CA_LAM_INFO.get(ca_lam, ScheduleModel.CA_LAM_INFO[1])
         bs_id = staff_row.get('bac_si_id')
         pk_id = phong_kham_id or staff_row.get('phong_kham_chinh_id') or 1
 
+        # Lễ tân tự động phê duyệt ngay khi đăng ký
+        is_letan = staff_row.get('ma_vai_tro') == 'LETAN'
+        status_duyet = 'DA_DUYET' if is_letan else 'CHO_DUYET'
+        nguoi_duyet = user.get('id') if is_letan else None
+        now_duyet = datetime.now().strftime('%Y-%m-%d %H:%M:%S') if is_letan else None
+
         cursor.execute('''
-            INSERT INTO lich_lam_viec (nhan_vien_id, bac_si_id, phong_kham_id, ngay_lam, ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky, trang_thai, trang_thai_duyet, ghi_chu)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 20, 0, 1, 'DA_DUYET', ?)
-        ''', (staff_row['staff_id'], bs_id, pk_id, str(work_date), ca_lam, ca_info['bat_dau'], ca_info['ket_thuc'], ghi_chu))
+            INSERT INTO lich_lam_viec (nhan_vien_id, bac_si_id, phong_kham_id, ngay_lam, ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky, trang_thai, trang_thai_duyet, nguoi_duyet_id, ngay_duyet, ghi_chu)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 20, 0, 1, ?, ?, ?, ?)
+        ''', (staff_row['staff_id'], bs_id, pk_id, str(work_date), ca_lam, ca_info['bat_dau'], ca_info['ket_thuc'], status_duyet, nguoi_duyet, now_duyet, ghi_chu))
 
         conn.commit()
         conn.close()
-        return True, "Đăng ký ca làm việc thành công!"
+        if is_letan:
+            return True, "Lễ tân đăng ký ca làm việc thành công (Đã tự động phê duyệt)!"
+        return True, "Đăng ký ca làm việc thành công, đang chờ Quản trị / Tiếp tân duyệt!"
 
     @staticmethod
     def request_cancellation(schedule_id, user, reason):
@@ -304,6 +357,25 @@ class ScheduleModel:
             WHERE id = ?
         ''', (new_status, active_status, reviewer_user.get('id'), schedule_id))
 
+        if approved:
+            cursor.execute('SELECT bac_si_id, ngay_lam, ca_lam FROM lich_lam_viec WHERE id = ?', (schedule_id,))
+            sch_info = cursor.fetchone()
+            if sch_info and sch_info.get('bac_si_id'):
+                # Chuyển các lịch hẹn chưa khám đã gán cho bác sĩ này về Chờ tiếp nhận để Lễ tân điều phối lại
+                cursor.execute('''
+                    UPDATE lich_hen
+                    SET bac_si_id = NULL, trang_thai = N'Chờ tiếp nhận'
+                    WHERE bac_si_id = ? AND ngay_hen = ? AND trang_thai IN (N'Chờ tiếp nhận', N'Đã tiếp nhận', N'Chờ xác nhận')
+                ''', (sch_info['bac_si_id'], sch_info['ngay_lam']))
+
+                from models.notification_model import NotificationModel
+                NotificationModel.notify_admins_and_receptionists(
+                    tieu_de="Điều phối lịch khám (Bác sĩ hủy ca)",
+                    noi_dung=f"Bác sĩ đã được duyệt hủy ca trực ngày {sch_info['ngay_lam']}. Vui lòng kiểm tra và phân công bác sĩ thay thế cho các lịch hẹn.",
+                    loai_thong_bao="Lịch khám",
+                    lien_ket="/admin/reception"
+                )
+
         conn.commit()
         conn.close()
         msg = "Đã duyệt hủy ca trực thành công!" if approved else "Đã từ chối đơn xin hủy, ca trực vẫn được duy trì."
@@ -311,19 +383,24 @@ class ScheduleModel:
 
     @staticmethod
     def approve_schedule(schedule_id, reviewer_user, approved=True):
-        """Duyệt yêu cầu đăng ký ca làm mới kèm kiểm tra hạn mức 5 người/ca/role."""
+        """Duyệt yêu cầu đăng ký ca làm mới kèm kiểm tra hạn mức 5 người/ca/role và 3 bác sĩ/khoa/ca."""
         reviewer_role = reviewer_user.get('vai_tro') if reviewer_user else ''
         if reviewer_role not in ['ADMIN', 'LETAN']:
             return False, "Chỉ Quản trị viên hoặc Tiếp tân mới có quyền duyệt ca trực!"
 
+        from models.notification_model import NotificationModel
+
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT llv.*, t.vai_tro_id, v.ten_vai_tro
+            SELECT llv.*, t.id AS tai_khoan_id, t.vai_tro_id, v.ma_vai_tro, v.ten_vai_tro,
+                   bs.id AS bac_si_id, bs.chuyen_khoa_id, ck.ten_khoa
             FROM lich_lam_viec llv
             JOIN nhan_vien nv ON llv.nhan_vien_id = nv.id
             JOIN tai_khoan t ON nv.tai_khoan_id = t.id
             JOIN vai_tro v ON t.vai_tro_id = v.id
+            LEFT JOIN bac_si bs ON (llv.bac_si_id = bs.id OR bs.nhan_vien_id = nv.id)
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
             WHERE llv.id = ?
         ''', (schedule_id,))
         row = cursor.fetchone()
@@ -332,12 +409,21 @@ class ScheduleModel:
             return False, "Không tìm thấy ca trực cần duyệt!"
 
         if approved:
-            # Kiểm tra hạn mức 5 người
+            # 1. Kiểm tra hạn mức 5 người/role
             cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(row['ngay_lam'], row['ca_lam'], row['vai_tro_id'], exclude_schedule_id=schedule_id)
             if is_full:
                 conn.close()
                 ca_name = ScheduleModel.CA_LAM_INFO.get(row['ca_lam'], {}).get('ten', f"Ca {row['ca_lam']}")
                 return False, f"{ca_name} ngày {row['ngay_lam']} đã đủ tối đa {max_cap} người thuộc bộ phận {row['ten_vai_tro']}!"
+
+            # 2. Kiểm tra hạn mức tối đa 3 bác sĩ cùng chuyên khoa
+            if row.get('chuyen_khoa_id'):
+                bs_cnt, bs_cap, bs_full = ScheduleModel.check_doctor_dept_capacity(row['ngay_lam'], row['ca_lam'], row['chuyen_khoa_id'], exclude_schedule_id=schedule_id)
+                if bs_full:
+                    conn.close()
+                    ca_name = ScheduleModel.CA_LAM_INFO.get(row['ca_lam'], {}).get('ten', f"Ca {row['ca_lam']}")
+                    dept_name = row.get('ten_khoa') or 'chuyên khoa'
+                    return False, f"{ca_name} ngày {row['ngay_lam']} đã đủ tối đa {bs_cap} bác sĩ thuộc {dept_name}!"
 
             cursor.execute('''
                 UPDATE lich_lam_viec
@@ -345,6 +431,16 @@ class ScheduleModel:
                 WHERE id = ?
             ''', (reviewer_user.get('id'), schedule_id))
             msg = "Đã duyệt ca trực thành công!"
+
+            # Thông báo lại cho bác sĩ/nhân viên: chỉ cần thông báo không cần kèm ca đã xác nhận
+            if row.get('tai_khoan_id'):
+                NotificationModel.create(
+                    tai_khoan_id=row['tai_khoan_id'],
+                    tieu_de="Phê duyệt lịch làm việc",
+                    noi_dung="Lịch làm việc của bạn đã được phê duyệt thành công!",
+                    loai_thong_bao="Lịch trực",
+                    lien_ket="/admin/staff?tab=schedules"
+                )
         else:
             cursor.execute('''
                 UPDATE lich_lam_viec
@@ -353,9 +449,106 @@ class ScheduleModel:
             ''', (reviewer_user.get('id'), schedule_id))
             msg = "Đã từ chối đăng ký ca trực."
 
+            if row.get('tai_khoan_id'):
+                NotificationModel.create(
+                    tai_khoan_id=row['tai_khoan_id'],
+                    tieu_de="Từ chối lịch làm việc",
+                    noi_dung="Đăng ký ca làm việc của bạn đã bị từ chối.",
+                    loai_thong_bao="Lịch trực",
+                    lien_ket="/admin/staff?tab=schedules"
+                )
+
         conn.commit()
         conn.close()
         return True, msg
+
+    @staticmethod
+    def bulk_approve_schedules(schedule_ids, reviewer_user, approved=True):
+        """Duyệt hoặc từ chối hàng loạt ca làm việc và gom nhóm thông báo (1 thông báo duy nhất/nhân sự)."""
+        reviewer_role = reviewer_user.get('vai_tro') if reviewer_user else ''
+        if reviewer_role not in ['ADMIN', 'LETAN']:
+            return False, "Chỉ Quản trị viên hoặc Tiếp tân mới có quyền duyệt ca trực!", 0
+
+        if not schedule_ids or not isinstance(schedule_ids, list):
+            return False, "Danh sách ca trực trống!", 0
+
+        from models.notification_model import NotificationModel
+
+        conn = get_db()
+        cursor = conn.cursor()
+        success_count = 0
+        notified_accounts = set()
+
+        for s_id in schedule_ids:
+            try:
+                cursor.execute('''
+                    SELECT llv.*, t.id AS tai_khoan_id, t.vai_tro_id, v.ma_vai_tro, v.ten_vai_tro,
+                           bs.id AS bac_si_id, bs.chuyen_khoa_id, ck.ten_khoa
+                    FROM lich_lam_viec llv
+                    JOIN nhan_vien nv ON llv.nhan_vien_id = nv.id
+                    JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+                    JOIN vai_tro v ON t.vai_tro_id = v.id
+                    LEFT JOIN bac_si bs ON (llv.bac_si_id = bs.id OR bs.nhan_vien_id = nv.id)
+                    LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                    WHERE llv.id = ?
+                ''', (s_id,))
+                row = cursor.fetchone()
+                if not row:
+                    continue
+
+                if approved:
+                    cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(row['ngay_lam'], row['ca_lam'], row['vai_tro_id'], exclude_schedule_id=s_id)
+                    if is_full:
+                        continue
+
+                    if row.get('chuyen_khoa_id'):
+                        bs_cnt, bs_cap, bs_full = ScheduleModel.check_doctor_dept_capacity(row['ngay_lam'], row['ca_lam'], row['chuyen_khoa_id'], exclude_schedule_id=s_id)
+                        if bs_full:
+                            continue
+
+                    cursor.execute('''
+                        UPDATE lich_lam_viec
+                        SET trang_thai_duyet = 'DA_DUYET', trang_thai = 1, nguoi_duyet_id = ?, ngay_duyet = GETDATE()
+                        WHERE id = ?
+                    ''', (reviewer_user.get('id'), s_id))
+                else:
+                    cursor.execute('''
+                        UPDATE lich_lam_viec
+                        SET trang_thai_duyet = 'TU_CHOI', trang_thai = 0, nguoi_duyet_id = ?, ngay_duyet = GETDATE()
+                        WHERE id = ?
+                    ''', (reviewer_user.get('id'), s_id))
+
+                conn.commit()
+                success_count += 1
+                if row.get('tai_khoan_id'):
+                    notified_accounts.add(row['tai_khoan_id'])
+            except Exception:
+                continue
+
+        conn.commit()
+        conn.close()
+
+        # Gom nhóm: Gửi đúng 1 thông báo duy nhất cho mỗi nhân sự
+        for acc_id in notified_accounts:
+            if approved:
+                NotificationModel.create(
+                    tai_khoan_id=acc_id,
+                    tieu_de="Phê duyệt lịch làm việc",
+                    noi_dung="Lịch làm việc của bạn đã được phê duyệt thành công!",
+                    loai_thong_bao="Lịch trực",
+                    lien_ket="/admin/staff?tab=schedules"
+                )
+            else:
+                NotificationModel.create(
+                    tai_khoan_id=acc_id,
+                    tieu_de="Từ chối lịch làm việc",
+                    noi_dung="Đăng ký ca làm việc của bạn đã bị từ chối.",
+                    loai_thong_bao="Lịch trực",
+                    lien_ket="/admin/staff?tab=schedules"
+                )
+
+        action_msg = "phê duyệt" if approved else "từ chối"
+        return True, f"Đã {action_msg} thành công {success_count} ca làm việc!", success_count
 
     @staticmethod
     def get_pending_approvals(filter_role=None, filter_ca=None):
@@ -647,7 +840,7 @@ class ScheduleModel:
         return days
 
     @staticmethod
-    def register_multiple_schedules(user, shifts, phong_kham_id=None, ghi_chu=None):
+    def register_multiple_schedules(user, shifts, phong_kham_id=None, ghi_chu=None, chuyen_khoa_id=None):
         """Nhân viên đăng ký nhiều ca làm việc cùng lúc trong 2 tuần tiếp theo."""
         if not user or not user.get('id'):
             return False, "Vui lòng đăng nhập để đăng ký ca trực!", []
@@ -661,12 +854,24 @@ class ScheduleModel:
             ca = s.get('ca_lam')
             pk = s.get('phong_kham_id') or phong_kham_id
             note = s.get('ghi_chu') or ghi_chu
-            ok, msg = ScheduleModel.register_schedule(user, ngay, ca, pk, note)
+            ck_id = s.get('chuyen_khoa_id') or chuyen_khoa_id
+            ok, msg = ScheduleModel.register_schedule(user, ngay, ca, pk, note, chuyen_khoa_id=ck_id)
             if ok:
                 success_count += 1
             else:
                 ca_name = ScheduleModel.CA_LAM_INFO.get(int(ca or 1), {}).get('ten', f'Ca {ca}')
                 errors.append(f"{ngay} ({ca_name}): {msg}")
+
+        if success_count > 0 and user.get('vai_tro') != 'LETAN':
+            from models.notification_model import NotificationModel
+            staff_name = user.get('ho_ten') or user.get('username') or 'Nhân sự y tế'
+            role_name = user.get('chuc_vu') or user.get('ten_vai_tro') or 'Nhân sự'
+            NotificationModel.notify_admins_and_receptionists(
+                tieu_de="Đăng ký ca làm việc mới",
+                noi_dung=f"{role_name} {staff_name} vừa đăng ký {success_count} ca làm việc mới, đang chờ duyệt.",
+                loai_thong_bao="Lịch trực",
+                lien_ket="/admin/staff?tab=approvals"
+            )
 
         if success_count == len(shifts):
             return True, f"Đăng ký thành công toàn bộ {success_count} ca làm việc!", success_count, errors

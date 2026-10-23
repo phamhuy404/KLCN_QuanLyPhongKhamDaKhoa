@@ -235,6 +235,15 @@
 
         <!-- 4. TIỆN ÍCH NGOÀI & ĐĂNG XUẤT -->
         <div class="pt-2 mt-2 border-t border-slate-800 space-y-1 overflow-hidden">
+            <a href="{{ url_for('admin.profile') }}"
+                class="nav-item {% if active_page == 'admin_profile' %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs"
+                title="Hồ sơ cá nhân">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-id-badge nav-icon text-sm"></i>
+                </div>
+                <span class="sidebar-text-fade font-medium">Hồ sơ cá nhân</span>
+            </a>
+
             <a href="{{ url_for('patient_dashboard') }}"
                 class="nav-item nav-item-dark-inactive flex items-center h-10 rounded-xl transition-all group overflow-hidden text-xs"
                 title="Cổng Bệnh nhân">
@@ -257,18 +266,18 @@
 
     <!-- Staff Profile Footer (Luôn hiển thị cố định ở chân sidebar) -->
     {% set curr_user = session.get('user', {}) %}
-    <div class="p-2 m-2 rounded-2xl bg-slate-800/70 border border-slate-800 shrink-0 overflow-hidden">
+    <a href="{{ url_for('admin.profile') }}" class="p-2 m-2 rounded-2xl bg-slate-800/70 border border-slate-800 shrink-0 overflow-hidden hover:bg-slate-800 transition-colors block group" title="Xem hồ sơ cá nhân">
         <div class="flex items-center">
             <div class="sidebar-icon-box w-10 min-w-[2.5rem] h-10">
                 <div
-                    class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 text-white flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-medical-500/30">
+                    class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-500 to-teal-400 text-white flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-medical-500/30 group-hover:scale-105 transition-transform">
                     {{ (curr_user.get('ho_ten', 'AD'))[0] }}
                 </div>
             </div>
             <div class="sidebar-text-fade ml-2 overflow-hidden">
-                <h4 class="text-xs font-semibold text-white leading-tight truncate">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
+                <h4 class="text-xs font-semibold text-white leading-tight truncate group-hover:text-medical-400 transition-colors">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
                 <span class="text-[11px] text-teal-400 flex items-center gap-1 mt-0.5">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
             </div>
         </div>
-    </div>
+    </a>
 </aside>

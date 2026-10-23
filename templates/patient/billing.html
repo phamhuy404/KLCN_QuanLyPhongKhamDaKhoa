@@ -138,9 +138,22 @@
                             <td class="py-3.5 px-5 font-bold text-slate-900">{{ "{:,.0f}".format(inv.thanh_tien) }} đ</td>
                             <td class="py-3.5 px-5 text-center">
                                 {% if inv.trang_thai == 'Đã thanh toán' %}
-                                <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Đã thanh toán</span>
+                                <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px] block w-max mx-auto">Đã thanh toán</span>
+                                {% if inv.trang_thai_nhan_thuoc %}
+                                    {% if inv.trang_thai_nhan_thuoc == 'Đã nhận thuốc' %}
+                                    <span class="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 block w-max mx-auto">
+                                        <i class="fa-solid fa-check"></i> Đã nhận thuốc
+                                    </span>
+                                    {% else %}
+                                    <span class="mt-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 block w-max mx-auto">
+                                        <i class="fa-solid fa-clock"></i> Chưa nhận thuốc
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
+                                {% elif inv.trang_thai == 'Đã hủy' %}
+                                <span class="bg-slate-100 text-slate-500 font-semibold px-2.5 py-1 rounded-full text-[11px] block w-max mx-auto">Đã hủy</span>
                                 {% else %}
-                                <span class="bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">Chờ thanh toán</span>
+                                <span class="bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-full text-[11px] block w-max mx-auto">Chờ thanh toán</span>
                                 {% endif %}
                             </td>
                             <td class="py-3.5 px-5 text-right">

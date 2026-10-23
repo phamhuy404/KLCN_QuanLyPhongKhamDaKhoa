@@ -366,6 +366,9 @@
                         const avatarUrl = doc.avatar || '/static/images/default-avatar.png';
                         const isChecked = selectedDoctorId === doc.id ? 'checked' : '';
                         const slotsLeft = Math.max(0, (doc.so_luong_kham_toi_da || 20) - (doc.so_luong_da_dang_ky || 0));
+                        const statusBadge = doc.is_active_now 
+                            ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Đang hoạt động</span>`
+                            : `<span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Ngoài giờ làm việc</span>`;
 
                         html += `
                             <label class="cursor-pointer doctor-item">
@@ -376,6 +379,9 @@
                                         <div class="flex items-center justify-between">
                                             <h4 class="font-bold text-xs text-slate-800 truncate">${doc.hoc_vi || 'BS'} ${doc.ho_ten}</h4>
                                             <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Còn ${slotsLeft} lượt</span>
+                                        </div>
+                                        <div class="mt-0.5 mb-1">
+                                            ${statusBadge}
                                         </div>
                                         <span class="text-[11px] text-medical-600 block truncate">${doc.ten_khoa || 'Chuyên khoa'} • ${doc.ten_phong || 'Phòng khám'}</span>
                                         <span class="text-[10px] text-slate-400 block truncate mt-0.5">${doc.kinh_nghiem || 'Bác sĩ chuyên khoa trực ca'}</span>

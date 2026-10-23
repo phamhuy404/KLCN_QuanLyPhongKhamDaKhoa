@@ -18,7 +18,14 @@ class MedicalRecordModel:
                 COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
                 dv.id AS dich_vu_id, dv.ten_dich_vu AS dich_vu, dv.loai_dich_vu AS loai, dv.don_gia,
                 ct.id AS chi_tiet_id, ct.ket_qua, ct.file_ket_qua, ct.ktv_thuc_hien, ct.thoi_gian_thuc_hien,
-                ct.trang_thai, ct.bac_si_duyet, ct.thoi_gian_duyet, ct.ghi_chu_duyet
+                ct.trang_thai, ct.bac_si_duyet, ct.thoi_gian_duyet, ct.ghi_chu_duyet,
+                COALESCE(
+                    (SELECT TOP 1 hd.trang_thai 
+                     FROM hoa_don hd 
+                     WHERE hd.phieu_kham_id = pk.id AND hd.ma_hoa_don NOT LIKE 'HDT%' AND hd.trang_thai != N'Đã hủy'
+                     ORDER BY hd.id ASC),
+                    N'Chưa thanh toán'
+                ) AS trang_thai_thanh_toan
             FROM phieu_chi_dinh cd
             JOIN phieu_kham pk ON cd.phieu_kham_id = pk.id
             JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
@@ -192,11 +199,15 @@ class MedicalRecordModel:
         cursor.execute('''
             SELECT 
                 dt.id, dt.ma_don_thuoc AS ma_don, dt.thoi_gian_ke AS gio, dt.loi_dan, dt.trang_thai,
+                dt.hinh_thuc_mua, dt.nguoi_duyet, dt.ngay_duyet,
                 dt.ly_do_huy, dt.nguoi_huy, dt.thoi_gian_huy,
                 bn.id AS patient_id, bn.ma_benh_nhan AS ma_bn, bn.ho_ten AS benh_nhan,
                 COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                t.id AS thuoc_id, t.ten_thuoc AS thuoc,
-                ct.id AS chi_tiet_id, ct.so_luong, ct.lieu_dung, ct.cach_dung
+                t.id AS thuoc_id, t.ten_thuoc, t.don_vi_tinh,
+                ct.id AS chi_tiet_id, ct.so_luong, ct.lieu_dung, ct.cach_dung,
+                (SELECT TOP 1 hd.trang_thai FROM hoa_don hd WHERE hd.phieu_kham_id = pk.id AND hd.ma_hoa_don LIKE 'HDT%' AND hd.trang_thai != N'Đã hủy' ORDER BY hd.id DESC) AS trang_thai_hoa_don,
+                (SELECT TOP 1 hd.trang_thai_nhan_thuoc FROM hoa_don hd WHERE hd.phieu_kham_id = pk.id AND hd.ma_hoa_don LIKE 'HDT%' AND hd.trang_thai != N'Đã hủy' ORDER BY hd.id DESC) AS trang_thai_nhan_thuoc,
+                (SELECT TOP 1 hd.ma_hoa_don FROM hoa_don hd WHERE hd.phieu_kham_id = pk.id AND hd.ma_hoa_don LIKE 'HDT%' AND hd.trang_thai != N'Đã hủy' ORDER BY hd.id DESC) AS ma_hoa_don
             FROM don_thuoc dt
             JOIN phieu_kham pk ON dt.phieu_kham_id = pk.id
             JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
@@ -206,8 +217,25 @@ class MedicalRecordModel:
             LEFT JOIN thuoc t ON ct.thuoc_id = t.id
             ORDER BY dt.id DESC
         ''')
-        prescriptions = [dict(r) for r in cursor.fetchall()]
+        rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
+
+        # Nhóm theo từng mã đơn thuốc
+        grouped = {}
+        for r in rows:
+            dt_id = r['id']
+            if dt_id not in grouped:
+                item_copy = dict(r)
+                item_copy['medicines_list'] = []
+                grouped[dt_id] = item_copy
+            if r.get('ten_thuoc'):
+                med_str = f"{r['ten_thuoc']} ({r['so_luong']} {r.get('don_vi_tinh') or 'viên'})"
+                grouped[dt_id]['medicines_list'].append(med_str)
+
+        prescriptions = list(grouped.values())
+        for p in prescriptions:
+            p['thuoc'] = ", ".join(p['medicines_list']) if p['medicines_list'] else 'Theo đơn bác sĩ'
+
         return prescriptions
 
     @staticmethod
@@ -280,7 +308,92 @@ class MedicalRecordModel:
             return False, f"Lỗi cập nhật bệnh án: {str(e)}"
 
     @staticmethod
-    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, audit_user=None):
+    def finish_examination(record_id, diagnosis, icd, treatment, advice, reexam_date=None, medicines=None, images=None, audit_user=None):
+        """Bác sĩ kết luận chẩn đoán xác định, kê đơn thuốc và hoàn tất phiên khám sau khi có kết quả CLS."""
+        old_rec = MedicalRecordModel.get_examination_by_id(record_id)
+        if not old_rec:
+            return False, "Không tìm thấy hồ sơ bệnh án!"
+
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            # 1. Cập nhật phiếu khám sang Hoàn thành
+            import json
+            images_json = json.dumps(images, ensure_ascii=False) if isinstance(images, list) else (str(images) if images else None)
+            cursor.execute('''
+                UPDATE phieu_kham
+                SET chan_doan_so_bo = ?, chan_doan_icd = ?, huong_dieu_tri = ?, loi_dan = ?, ngay_tai_kham = ?,
+                    hinh_anh_kham = COALESCE(?, hinh_anh_kham), trang_thai = N'Hoàn thành'
+                WHERE id = ?
+            ''', (diagnosis, icd, treatment, advice, reexam_date, images_json, record_id))
+
+            # 2. Cập nhật lịch hẹn sang Đã khám
+            cursor.execute('''
+                UPDATE TOP (1) lich_hen
+                SET trang_thai = N'Đã khám'
+                WHERE benh_nhan_id = ? AND trang_thai IN (N'Chờ kết quả CLS', N'Đang khám', N'Đã tiếp nhận')
+            ''', (old_rec['benh_nhan_id'],))
+
+            # 3. Kê đơn thuốc nếu có
+            if medicines and len(medicines) > 0:
+                cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM don_thuoc')
+                dt_next = cursor.fetchone()['next_id']
+                ma_dt = f"DT2609{str(dt_next).zfill(3)}"
+
+                cursor.execute('''
+                    INSERT INTO don_thuoc (ma_don_thuoc, phieu_kham_id, bac_si_id, loi_dan, trang_thai, hinh_thuc_mua)
+                    VALUES (?, ?, ?, ?, N'Chờ bệnh nhân xác nhận mua', N'Chưa chọn')
+                ''', (ma_dt, record_id, old_rec.get('bac_si_id'), advice))
+                don_thuoc_id = cursor.lastrowid
+
+                for m in medicines:
+                    thuoc_id = m.get('thuoc_id')
+                    so_luong = int(m.get('so_luong', 1))
+                    lieu_dung = m.get('lieu_dung', 'Theo hướng dẫn bác sĩ')
+                    cach_dung = m.get('cach_dung', 'Uống sau ăn')
+                    cursor.execute('''
+                        INSERT INTO chi_tiet_don_thuoc (don_thuoc_id, thuoc_id, so_luong, lieu_dung, cach_dung)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (don_thuoc_id, thuoc_id, so_luong, lieu_dung, cach_dung))
+
+            # Gửi thông báo hoàn tất phiên khám cho bệnh nhân
+            if old_rec.get('benh_nhan_id'):
+                cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (old_rec['benh_nhan_id'],))
+                bn_fin = cursor.fetchone()
+                if bn_fin and bn_fin.get('tai_khoan_id'):
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, 'Khám bệnh', '/patient/records', 0, ?)
+                    ''', (
+                        bn_fin['tai_khoan_id'],
+                        f"Hoàn thành khám bệnh: {old_rec.get('ma_phieu')}",
+                        f"Bác sĩ đã có kết quả cận lâm sàng và kết luận chẩn đoán: {icd}. Vui lòng kiểm tra hồ sơ bệnh án và đơn thuốc.",
+                        now_str
+                    ))
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='phieu_kham',
+                row_id=record_id,
+                action='FINISH_EXAMINATION',
+                performed_by=audit_user.get('id') if audit_user else None,
+                performed_by_name=audit_user.get('ho_ten') if audit_user else 'Bác sĩ',
+                reason='Bác sĩ hoàn tất phiên khám sau khi có kết quả CLS',
+                after_data={'trang_thai': 'Hoàn thành', 'chan_doan_icd': icd}
+            )
+
+            return True, "Hoàn tất phiên khám thành công!"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi hoàn tất phiên khám: {str(e)}"
+
+    @staticmethod
+    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, images=None, audit_user=None):
         """Lưu toàn bộ phiên khám EMR (Phiếu khám, chỉ định CLS, đơn thuốc và hóa đơn viện phí)."""
         conn = get_db()
         cursor = conn.cursor()
@@ -317,20 +430,38 @@ class MedicalRecordModel:
                         'cach_dung': m.get('cach_dung', 'Uống sau bữa ăn no 30 phút')
                     })
 
-            # 1. Tạo phiếu khám bệnh
+            # 1. Tạo phiếu khám bệnh (Nếu có CLS thì để 'Chờ kết quả CLS', không có thì 'Hoàn thành')
+            has_cls = bool(lab_service_ids and len(lab_service_ids) > 0)
+            initial_pk_status = 'Chờ kết quả CLS' if has_cls else 'Hoàn thành'
+            appt_status = 'Chờ kết quả CLS' if has_cls else 'Đã khám'
+
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM phieu_kham')
             pk_id = cursor.fetchone()['next_id']
             ma_phieu = f"PK2609{str(pk_id).zfill(3)}"
 
+            import json
+            images_json = json.dumps(images, ensure_ascii=False) if isinstance(images, list) else (str(images) if images else None)
             cursor.execute('''
-                INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, trang_thai)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ma_phieu, patient_id, valid_doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date, 'Hoàn thành'))
+                INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, hinh_anh_kham, trang_thai)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (ma_phieu, patient_id, valid_doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date, images_json, initial_pk_status))
             phieu_kham_id = cursor.lastrowid
 
-            # Khoản thu ban đầu: Tiền khám bệnh chuyên khoa
+            # Cập nhật lịch hẹn tương ứng
+            cursor.execute('''
+                UPDATE TOP (1) lich_hen
+                SET trang_thai = ?
+                WHERE benh_nhan_id = ? 
+                  AND trang_thai IN (N'Đã tiếp nhận', N'Đang khám', N'Chờ tiếp nhận', N'Chờ kết quả CLS')
+            ''', (appt_status, patient_id))
+
+            cursor.execute('SELECT bhyt FROM benh_nhan WHERE id = ?', (patient_id,))
+            p_check = cursor.fetchone()
+            has_bhyt = bool(p_check and p_check.get('bhyt') and str(p_check.get('bhyt')).strip())
+
+            # Khoản thu ban đầu: Tiền khám bệnh chuyên khoa (BHYT chi trả 80% nếu có BHYT)
             tong_tien_kham = 150000.0
-            tien_bhyt = 120000.0
+            tien_bhyt = 120000.0 if has_bhyt else 0.0
             invoice_items = [
                 ('Khám bệnh', 'Khám Chuyên Khoa Ngoại Trú', phieu_kham_id, 1, 150000.0, 150000.0)
             ]
@@ -354,7 +485,7 @@ class MedicalRecordModel:
                     if dv_row:
                         assigned_lab_names.append(dv_row['ten_dich_vu'])
                         dg = float(dv_row['don_gia'])
-                        bh_pt = float(dv_row['bhyt_chi_tra_pt']) / 100.0
+                        bh_pt = (float(dv_row['bhyt_chi_tra_pt']) / 100.0) if has_bhyt else 0.0
                         tong_tien_kham += dg
                         tien_bhyt += dg * bh_pt
                         invoice_items.append((dv_row['loai_dich_vu'] or 'Cận lâm sàng', dv_row['ten_dich_vu'], s_id, 1, dg, dg))
@@ -364,7 +495,7 @@ class MedicalRecordModel:
                         VALUES (?, ?, NULL, ?)
                     ''', (chi_dinh_id, s_id, 'Chờ thực hiện'))
 
-                # Gửi thông báo hướng dẫn các bước tiếp theo cho bệnh nhân
+                # Gửi thông báo chuyển cận lâm sàng cho bệnh nhân
                 cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (patient_id,))
                 bn_cls_row = cursor.fetchone()
                 if bn_cls_row and bn_cls_row.get('tai_khoan_id'):
@@ -374,8 +505,8 @@ class MedicalRecordModel:
                         VALUES (?, ?, ?, N'Chỉ định Cận lâm sàng', '/patient/lab-results', 0, ?)
                     ''', (
                         bn_cls_row['tai_khoan_id'],
-                        f"Chỉ định Cận lâm sàng: {ma_cd}",
-                        f"Bác sĩ đã ra chỉ định Cận lâm sàng cho bạn (Mã: {ma_cd}) gồm: {', '.join(assigned_lab_names)}. Vui lòng di chuyển đến Khu Cận lâm sàng để Kỹ thuật viên tiến hành chụp X-Quang, siêu âm hoặc lấy mẫu xét nghiệm.",
+                        f"Hoàn tất khám lâm sàng & Chuyển Cận lâm sàng: {ma_cd}",
+                        f"Bác sĩ đã hoàn tất khám lâm sàng và chỉ định thực hiện Cận lâm sàng ({ma_cd}) gồm: {', '.join(assigned_lab_names)}. Vui lòng di chuyển đến Khu Cận lâm sàng để kỹ thuật viên thực hiện xét nghiệm/chẩn đoán hình ảnh.",
                         now_cls_str
                     ))
 
@@ -418,18 +549,45 @@ class MedicalRecordModel:
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (hoa_don_id, l_khoan, ten_khoan, tham_chieu, sl, dg, tt))
 
-            # 5. Gửi thông báo in-app cho tài khoản bệnh nhân
+            # 5. Gửi các thông báo in-app cho tài khoản bệnh nhân
             cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
             bn_row = cursor.fetchone()
             if bn_row and bn_row.get('tai_khoan_id'):
                 now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                p_uid = bn_row['tai_khoan_id']
+
+                # Chỉ gửi thông báo hoàn tất khám nếu KHÔNG có chỉ định CLS (nếu có CLS thì đã gửi thông báo đi làm CLS ở trên)
+                if not has_cls:
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, 'Khám bệnh', '/patient/records', 0, ?)
+                    ''', (
+                        p_uid,
+                        f"Hoàn thành khám bệnh: {ma_phieu}",
+                        f"Bác sĩ đã hoàn tất phiên khám cho bạn (Chẩn đoán: {icd}). Vui lòng kiểm tra hồ sơ bệnh án và hướng điều trị.",
+                        now_str
+                    ))
+
+                # Thông báo có đơn thuốc kê (nếu có đơn thuốc)
+                if validated_medicines:
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, 'Đơn thuốc', '/patient/prescriptions', 0, ?)
+                    ''', (
+                        p_uid,
+                        f"Bác sĩ đã kê đơn thuốc mới: {ma_dt}",
+                        f"Đơn thuốc điều trị gồm {len(validated_medicines)} loại thuốc đã được tạo. Bạn có thể chọn Mua tại bệnh viện hoặc Tự mua ngoài.",
+                        now_str
+                    ))
+
+                # Thông báo thanh toán viện phí
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Khám bệnh', '/patient/records', 0, ?)
+                    VALUES (?, ?, ?, 'Thanh toán', '/patient/invoices', 0, ?)
                 ''', (
-                    bn_row['tai_khoan_id'],
-                    f"Hoàn thành khám bệnh: {ma_phieu}",
-                    f"Bác sĩ đã hoàn tất phiên khám cho bạn (Chẩn đoán: {icd}). Toa thuốc và hóa đơn viện phí {ma_hd} đã được cập nhật.",
+                    p_uid,
+                    f"Thông báo thanh toán viện phí: {ma_hd}",
+                    f"Hóa đơn viện phí khám bệnh của bạn đã được khởi tạo. Số tiền cần thanh toán: {int(thanh_tien):,} VNĐ. Vui lòng thanh toán tại Quầy hoặc qua cổng trực tuyến.",
                     now_str
                 ))
 

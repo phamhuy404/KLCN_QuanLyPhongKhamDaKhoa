@@ -22,6 +22,7 @@ class BillingModel:
                 hd.thanh_tien,
                 hd.hinh_thuc_thanh_toan, 
                 hd.trang_thai, 
+                hd.trang_thai_nhan_thuoc,
                 hd.thoi_gian_thanh_toan,
                 hd.thoi_gian_thanh_toan AS ngay_tao, 
                 hd.nhan_vien_thu,
@@ -95,13 +96,19 @@ class BillingModel:
 
     @staticmethod
     def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân'):
-        """Xác nhận thu viện phí và đổi trạng thái hóa đơn thành Đã thanh toán."""
+        """Xác nhận thu viện phí và đổi trạng thái hóa đơn thành Đã thanh toán kèm thông báo in-app."""
         conn = get_db()
         cursor = conn.cursor()
 
         try:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             is_num = str(invoice_id_or_code).isdigit()
+            if is_num:
+                cursor.execute('SELECT id, ma_hoa_don, benh_nhan_id, phieu_kham_id, thanh_tien FROM hoa_don WHERE id = ? OR ma_hoa_don = ?', (int(invoice_id_or_code), str(invoice_id_or_code)))
+            else:
+                cursor.execute('SELECT id, ma_hoa_don, benh_nhan_id, phieu_kham_id, thanh_tien FROM hoa_don WHERE ma_hoa_don = ?', (str(invoice_id_or_code),))
+            hd_row = cursor.fetchone()
+
             if is_num:
                 cursor.execute('''
                     UPDATE hoa_don 
@@ -120,6 +127,51 @@ class BillingModel:
                         thoi_gian_thanh_toan = ?
                     WHERE ma_hoa_don = ?
                 ''', ('Đã thanh toán', payment_method, cashier_name, now_str, str(invoice_id_or_code)))
+
+            # Nếu là hóa đơn tiền thuốc (HDT): Cập nhật trạng thái nhận thuốc trên hóa đơn và đơn thuốc
+            is_drug_invoice = hd_row and str(hd_row.get('ma_hoa_don', '')).startswith('HDT')
+            if is_drug_invoice and hd_row.get('phieu_kham_id'):
+                cursor.execute('''
+                    UPDATE hoa_don 
+                    SET trang_thai_nhan_thuoc = N'Chưa nhận thuốc'
+                    WHERE id = ?
+                ''', (hd_row['id'],))
+
+                cursor.execute('''
+                    UPDATE don_thuoc 
+                    SET trang_thai = N'Chờ nhận thuốc'
+                    WHERE phieu_kham_id = ? AND hinh_thuc_mua = N'Mua tại bệnh viện'
+                ''', (hd_row['phieu_kham_id'],))
+
+                # Gửi thông báo cho Quản lý kho dược (Dược sĩ & Admin) để chuẩn bị phát thuốc
+                cursor.execute("SELECT id FROM tai_khoan WHERE vai_tro_id IN (1, 4) AND trang_thai = 1")
+                pharmacists = cursor.fetchall()
+                for ph in pharmacists:
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Cấp phát thuốc', '/admin/pharmacy?tab=dispensing', 0, ?)
+                    ''', (
+                        ph['id'],
+                        f"Đơn thuốc mới đã thanh toán ({hd_row['ma_hoa_don']})",
+                        f"Hóa đơn tiền thuốc {hd_row['ma_hoa_don']} đã được thanh toán. Đơn thuốc chuyển sang 'Chờ nhận thuốc', vui lòng chuẩn bị và cấp phát cho bệnh nhân.",
+                        now_str
+                    ))
+
+            # Gửi thông báo thanh toán thành công cho bệnh nhân
+            if hd_row and hd_row.get('benh_nhan_id'):
+                cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (hd_row['benh_nhan_id'],))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    so_tien = int(hd_row.get('thanh_tien') or 0)
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, 'Thanh toán thành công', '/patient/invoices', 0, ?)
+                    ''', (
+                        bn_row['tai_khoan_id'],
+                        f"Thanh toán thành công: {hd_row['ma_hoa_don']}",
+                        f"Hóa đơn {hd_row['ma_hoa_don']} ({so_tien:,} VNĐ) đã được thanh toán thành công qua {payment_method}. Người thu: {cashier_name}.",
+                        now_str
+                    ))
 
             conn.commit()
             conn.close()

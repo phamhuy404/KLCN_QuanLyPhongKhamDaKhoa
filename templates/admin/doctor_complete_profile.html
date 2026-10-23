@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoàn thiện hồ sơ & Đổi mật khẩu Bác Sĩ - H2T Healthcare</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        medical: {
+                            50: '#eefcf6',
+                            100: '#d4f8e8',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#065f46',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+
+<body class="bg-gradient-to-br from-slate-50 via-teal-50/20 to-slate-100 font-sans antialiased text-slate-800 min-h-screen py-10 px-4 sm:px-6">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-teal-900/5 border border-slate-100 overflow-hidden">
+
+        <!-- Top Header Banner -->
+        <div class="bg-gradient-to-r from-teal-800 via-medical-700 to-emerald-700 p-6 sm:p-8 text-white relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl">
+                <i class="fa-solid fa-user-doctor"></i>
+            </div>
+
+            <div class="flex items-center justify-between relative z-10">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-2xl shadow-inner border border-white/20">
+                        <i class="fa-solid fa-stethoscope"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-amber-950 font-bold text-[10px] uppercase tracking-wider">
+                                Lần đầu đăng nhập
+                            </span>
+                            <span class="text-teal-200 text-xs font-mono">BS#{{ session.user.id }}</span>
+                        </div>
+                        <h1 class="text-xl sm:text-2xl font-black tracking-tight">KÍCH HOẠT TÀI KHOẢN BÁC SĨ CHUYÊN KHOA</h1>
+                        <p class="text-teal-100 text-xs sm:text-sm mt-0.5">Hoàn thiện hồ sơ y khoa, chọn chuyên khoa công tác và đổi mật khẩu mới bảo mật.</p>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('auth.logout') }}" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold backdrop-blur-md transition-all flex items-center gap-1.5 border border-white/20">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
+                </a>
+            </div>
+
+            <!-- Steps Indicator -->
+            <div class="mt-6 pt-5 border-t border-white/15 flex items-center justify-between text-xs font-semibold relative z-10">
+                <div class="flex items-center gap-2 text-white">
+                    <span class="w-6 h-6 rounded-full bg-emerald-400 text-teal-900 flex items-center justify-center text-xs font-bold">✓</span>
+                    <span>1. Quản trị viên cấp tài khoản (MK: 123)</span>
+                </div>
+                <div class="h-0.5 flex-1 mx-3 bg-white/30"></div>
+                <div class="flex items-center gap-2 text-amber-300 font-bold">
+                    <span class="w-6 h-6 rounded-full bg-amber-400 text-amber-950 flex items-center justify-center text-xs">2</span>
+                    <span>2. Đổi mật khẩu & Khai báo chuyên môn (Đang làm)</span>
+                </div>
+                <div class="h-0.5 flex-1 mx-3 bg-white/30"></div>
+                <div class="flex items-center gap-2 text-white/60">
+                    <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">3</span>
+                    <span>3. Bắt đầu phiên khám EMR</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Body -->
+        <div class="p-6 sm:p-10">
+
+            {% if error %}
+            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+                <div class="font-medium">{{ error }}</div>
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('admin.doctor_complete_profile') }}" method="POST" class="space-y-8">
+
+                <!-- PHẦN 1: THIẾT LẬP MẬT KHẨU MỚI BẢO MẬT -->
+                <div class="bg-amber-50/60 p-5 sm:p-6 rounded-2xl border border-amber-200/80">
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm shrink-0 shadow-sm">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-amber-950 uppercase tracking-wide">
+                                1. Bắt buộc thay đổi mật khẩu mặc định (Hiện tại: 123)
+                            </h3>
+                            <p class="text-xs text-amber-800/80 mt-0.5">
+                                Để đảm bảo an toàn bệnh án và thông tin y tế, vui lòng đặt mật khẩu mới có độ dài tối thiểu 6 ký tự.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Mật khẩu mới <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="password" name="new_password" required minlength="6" placeholder="Nhập mật khẩu mới..."
+                                    class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 pr-10">
+                                <i class="fa-solid fa-lock absolute right-3.5 top-3 text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Xác nhận mật khẩu mới <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <input type="password" name="confirm_password" required minlength="6" placeholder="Nhập lại mật khẩu mới..."
+                                    class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 pr-10">
+                                <i class="fa-solid fa-shield-check absolute right-3.5 top-3 text-slate-400 text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 2: THÔNG TIN CÁ NHÂN BÁC SĨ -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-id-card-clip text-teal-600"></i> 2. Thông tin định danh cá nhân Bác Sĩ
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Họ và tên Bác Sĩ <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="ho_ten" required 
+                                value="{{ form_data.ho_ten if form_data else (doctor.ho_ten or session.user.ho_ten or '') }}" 
+                                placeholder="Ví dụ: BS. Trần Minh Quân"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-semibold">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Giới tính <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="gioi_tinh" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                                <option value="1" {{ 'selected' if (doctor.gioi_tinh|string == '1' or doctor.gioi_tinh|string == 'True') else '' }}>Nam</option>
+                                <option value="0" {{ 'selected' if (doctor.gioi_tinh|string == '0' or doctor.gioi_tinh|string == 'False') else '' }}>Nữ</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Ngày sinh <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" name="ngay_sinh" required 
+                                value="{{ form_data.ngay_sinh if form_data else (doctor.ngay_sinh or '1985-05-15') }}"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Số CCCD / CMND <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="cccd" maxlength="12" required 
+                                value="{{ form_data.cccd if form_data else (doctor.cccd or '') }}" 
+                                placeholder="12 chữ số CCCD"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Số điện thoại liên hệ
+                            </label>
+                            <input type="tel" name="sdt" readonly 
+                                value="{{ doctor.sdt or session.user.sdt or session.user.username }}"
+                                class="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-mono text-slate-500 cursor-not-allowed">
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Email làm việc
+                            </label>
+                            <input type="email" name="email" 
+                                value="{{ form_data.email if form_data else (doctor.email or '') }}" 
+                                placeholder="doctor@h2thealthcare.vn"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Địa chỉ thường trú
+                            </label>
+                            <input type="text" name="dia_chi" 
+                                value="{{ form_data.dia_chi if form_data else (doctor.dia_chi or 'TP. Hồ Chí Minh') }}" 
+                                placeholder="Quận/Huyện, Tỉnh/TP"
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 3: THÔNG TIN CHUYÊN MÔN Y KHOA & HỌC VỊ -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50/70 px-3 py-2 rounded-lg mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-user-graduate text-teal-600"></i> 3. Chuyên môn y khoa & Khoa phòng công tác
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Chuyên Khoa Công Tác <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="chuyen_khoa_id" required
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 font-semibold">
+                                {% for ck in departments %}
+                                <option value="{{ ck.id }}" {{ 'selected' if (doctor.chuyen_khoa_id == ck.id) else '' }}>
+                                    {{ ck.ten_khoa }} (Mã: {{ ck.ma_khoa }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Học Hàm / Học Vị <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="hoc_vi" required
+                                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
+                                <option value="Bác sĩ" {{ 'selected' if doctor.hoc_vi == 'Bác sĩ' else '' }}>Bác sĩ</option>
+                                <option value="Bác sĩ Chuyên khoa I" {{ 'selected' if doctor.hoc_vi == 'Bác sĩ Chuyên khoa I' else '' }}>Bác sĩ Chuyên khoa I (BS.CKI)</option>
+                                <option value="Bác sĩ Chuyên khoa II" {{ 'selected' if doctor.hoc_vi == 'Bác sĩ Chuyên khoa II' else '' }}>Bác sĩ Chuyên khoa II (BS.CKII)</option>
+                                <option value="Thạc sĩ Y khoa" {{ 'selected' if doctor.hoc_vi == 'Thạc sĩ Y khoa' else '' }}>Thạc sĩ Y khoa (ThS.BS)</option>
+                                <option value="Tiến sĩ Y khoa" {{ 'selected' if doctor.hoc_vi == 'Tiến sĩ Y khoa' else '' }}>Tiến sĩ Y khoa (TS.BS)</option>
+                                <option value="Phó Giáo sư, Tiến sĩ" {{ 'selected' if doctor.hoc_vi == 'Phó Giáo sư, Tiến sĩ' else '' }}>Phó Giáo sư, Tiến sĩ (PGS.TS.BS)</option>
+                                <option value="Giáo sư, Tiến sĩ" {{ 'selected' if doctor.hoc_vi == 'Giáo sư, Tiến sĩ' else '' }}>Giáo sư, Tiến sĩ (GS.TS.BS)</option>
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                Kinh nghiệm & Bằng cấp chuyên môn
+                            </label>
+                            <textarea name="kinh_nghiem" rows="3" placeholder="Ví dụ: Tốt nghiệp Đại học Y Dược TP.HCM. Hơn 10 năm kinh nghiệm điều trị chuyên sâu bệnh lý nội khoa..."
+                                class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">{{ form_data.kinh_nghiem if form_data else (doctor.kinh_nghiem or 'Hơn 5 năm kinh nghiệm công tác trong lĩnh vực y tế chuyên sâu') }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-600 text-sm"></i>
+                        Thông tin được bảo mật chuẩn hệ thống bệnh viện H2T Healthcare
+                    </div>
+
+                    <button type="submit"
+                        class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-medical-600 to-teal-700 hover:from-medical-700 hover:to-teal-800 text-white font-bold text-sm rounded-xl shadow-lg shadow-teal-700/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-circle-check"></i> LƯU & KÍCH HOẠT HỒ SƠ BÁC SĨ
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

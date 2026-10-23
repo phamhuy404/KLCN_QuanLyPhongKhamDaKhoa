@@ -390,7 +390,20 @@
                                     <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" 
                                         class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
                                     <h4 class="font-bold text-slate-900 text-sm mt-3.5">{{ doc.hoc_vi or 'Bác sĩ' }} {{ doc.ho_ten }}</h4>
-                                    <span class="text-xs text-medical-700 font-semibold block mt-0.5">{{ doc.ten_khoa or 'Chuyên khoa' }}</span>
+                                    <div class="mt-1 flex items-center justify-center">
+                                        {% if doc.is_active_now %}
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Đang hoạt động
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            Ngoài giờ làm việc
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="text-xs text-medical-700 font-semibold block mt-1">{{ doc.ten_khoa or 'Chuyên khoa' }}</span>
                                     <p class="text-[11px] text-slate-400 mt-1 leading-relaxed line-clamp-2">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm thăm khám.' }}</p>
                                 </div>
                                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">

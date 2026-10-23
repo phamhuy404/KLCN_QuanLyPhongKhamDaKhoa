@@ -22,6 +22,7 @@ from models.user_model import UserModel
 from models.appointment_model import AppointmentModel
 from models.medical_record_model import MedicalRecordModel
 from models.pharmacy_model import PharmacyModel
+from models.billing_model import BillingModel
 
 
 class Features6To10TestCase(unittest.TestCase):
@@ -121,6 +122,11 @@ class Features6To10TestCase(unittest.TestCase):
         self.assertFalse(ok_past, "Không được phép đặt lịch hẹn trong quá khứ")
 
         # 2. Đặt lịch tương lai hợp lệ -> Thành công
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM lich_hen WHERE benh_nhan_id = 1 AND ngay_hen = ? AND gio_hen = '08:30'", (future_date,))
+        conn.commit()
+        conn.close()
         ok_fut, code_or_err = AppointmentModel.create(
             benh_nhan_id=1,
             chuyen_khoa_id=1,
@@ -319,7 +325,7 @@ class Features6To10TestCase(unittest.TestCase):
         # Tạo đơn thuốc mới qua EMR với Thuốc 1 (Paracetamol, tồn kho ban đầu)
         conn = get_db()
         cur = conn.cursor()
-        cur.execute('SELECT id, ten_thuoc, so_luong_ton FROM thuoc WHERE id = 1')
+        cur.execute('SELECT TOP 1 id, ten_thuoc, so_luong_ton FROM thuoc WHERE so_luong_ton >= 30 ORDER BY id ASC')
         t1 = cur.fetchone()
         t1_id = t1['id']
         t1_ton_ban_dau = t1['so_luong_ton']
@@ -361,6 +367,24 @@ class Features6To10TestCase(unittest.TestCase):
             audit_user=doc_user
         )
         self.assertTrue(ok_upd_dt, f"Cập nhật đơn thuốc chưa cấp thất bại: {msg_upd_dt}")
+
+        # 1.1 Bệnh nhân chọn mua tại bệnh viện
+        ok_opt, msg_opt = PharmacyModel.choose_medicine_purchase_option(dt_id, 'Mua tại bệnh viện')
+        self.assertTrue(ok_opt, f"Chọn mua tại viện thất bại: {msg_opt}")
+
+        # 1.2 Tiếp tân/Admin duyệt đơn thuốc
+        admin_user = {'id': 1, 'ho_ten': 'Admin Tiếp tân', 'vai_tro': 'ADMIN'}
+        ok_appr, msg_appr = PharmacyModel.approve_prescription(dt_id, reviewer_user=admin_user)
+        self.assertTrue(ok_appr, f"Duyệt đơn thuốc thất bại: {msg_appr}")
+
+        # 1.3 Bệnh nhân thanh toán hóa đơn tiền thuốc
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT TOP 1 ma_hoa_don FROM hoa_don WHERE phieu_kham_id = (SELECT phieu_kham_id FROM don_thuoc WHERE id = ?) AND ma_hoa_don LIKE 'HDT%' AND trang_thai != N'Đã hủy' ORDER BY id DESC", (dt_id,))
+        hd_code = cur.fetchone()['ma_hoa_don']
+        conn.close()
+        ok_pay, msg_pay = BillingModel.pay_invoice(hd_code, payment_method='Tiền mặt', cashier_name='Thu ngân')
+        self.assertTrue(ok_pay, f"Thanh toán hóa đơn thuốc thất bại: {msg_pay}")
 
         # 2. Dược sĩ xuất thuốc lần 1 -> Thành công, trừ 10 viên trong kho
         duocsi_user = {'id': 30, 'ho_ten': 'Dược sĩ Lê Văn D', 'vai_tro': 'DUOCSI'}
@@ -498,7 +522,7 @@ class Features6To10TestCase(unittest.TestCase):
         # 5. Kiểm tra cập nhật avatar bệnh nhân qua endpoint /patient/profile/avatar
         with self.client.session_transaction() as sess:
             sess['logged_in'] = True
-            sess['user'] = {'id': 5, 'username': '0901234567', 'vai_tro': 'BENHNHAN', 'benh_nhan_id': 1}
+            sess['user'] = {'id': 5, 'username': '0901234567', 'vai_tro': 'BENHNHAN', 'benh_nhan_id': 1, 'da_hoan_thien_ho_so': 1}
 
         res_post = self.client.post('/patient/profile/avatar', data={
             'avatar_url': 'https://images.unsplash.com/photo-sample'

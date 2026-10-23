@@ -32,7 +32,7 @@ Cách A: Dùng script nạp tự động (khuyến nghị):
 python scratch/seed_database.py
 
 Cách B: Mở SQL Server Management Studio (SSMS):
-- Mở file cosodulieu.sql
+- Mở file database/cosodulieu.sql
 - Nhấn Execute (F5) để tự động tạo cơ sở dữ liệu quan_ly_phong_kham và nạp đầy đủ cấu trúc bảng, danh mục và dữ liệu chuẩn.
 
 

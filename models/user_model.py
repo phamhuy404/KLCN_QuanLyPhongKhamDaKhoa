@@ -102,8 +102,8 @@ class UserModel:
 
 
     @staticmethod
-    def register_patient(ho_ten, sdt, password, email=None):
-        """Đăng ký tài khoản bệnh nhân mới trực tuyến (chưa hoàn thiện thông tin)."""
+    def register_patient(ho_ten, sdt, password, email=None, **kwargs):
+        """Đăng ký tài khoản bệnh nhân mới trực tuyến (chưa hoặc đã hoàn thiện thông tin)."""
         conn = get_db()
         cursor = conn.cursor()
 
@@ -113,22 +113,29 @@ class UserModel:
                 conn.close()
                 return False, 'Số điện thoại này đã được đăng ký tài khoản!'
 
+            has_full_info = bool(kwargs.get('cccd') and kwargs.get('ngay_sinh'))
+            da_hoan_thien = 1 if has_full_info else 0
+
             hashed_pwd = hash_password(password)
             cursor.execute('''
                 INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai, da_hoan_thien_ho_so)
-                VALUES (6, ?, ?, ?, ?, 1, 0)
-            ''', (sdt, hashed_pwd, email, sdt))
+                VALUES (6, ?, ?, ?, ?, 1, ?)
+            ''', (sdt, hashed_pwd, email, sdt, da_hoan_thien))
             tai_khoan_id = cursor.lastrowid
 
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM benh_nhan')
             next_id = cursor.fetchone()['next_id']
             ma_benh_nhan = f"BN2609{str(next_id).zfill(3)}"
 
-            # Tạo hồ sơ sơ bộ, chờ bệnh nhân hoàn thiện sau khi đăng nhập lần đầu
+            ngay_sinh = kwargs.get('ngay_sinh') or '2000-01-01'
+            gioi_tinh = kwargs.get('gioi_tinh') or 'Nam'
+            cccd = kwargs.get('cccd')
+            bhyt = kwargs.get('bhyt')
+
             cursor.execute('''
-                INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, co_tai_khoan)
-                VALUES (?, ?, ?, '2000-01-01', N'Nam', ?, ?, 1)
-            ''', (tai_khoan_id, ma_benh_nhan, ho_ten, sdt, email))
+                INSERT INTO benh_nhan (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, cccd, bhyt, sdt, email, co_tai_khoan)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ''', (tai_khoan_id, ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, cccd, bhyt, sdt, email))
             benh_nhan_id = cursor.lastrowid
 
             cursor.execute('''
@@ -147,7 +154,8 @@ class UserModel:
                 reason='Bệnh nhân đăng ký tài khoản mới trực tuyến'
             )
 
-            return True, 'Đăng ký tài khoản thành công! Vui lòng đăng nhập để hoàn thiện thông tin cá nhân.'
+            msg = 'Đăng ký tài khoản thành công!' if has_full_info else 'Đăng ký tài khoản thành công! Vui lòng đăng nhập để hoàn thiện thông tin cá nhân.'
+            return True, msg
         except Exception as e:
             conn.rollback()
             conn.close()
@@ -271,23 +279,225 @@ class UserModel:
 
     @staticmethod
     def get_all_doctors():
-        """Lấy danh sách bác sĩ chuyên khoa."""
+        """Lấy danh sách bác sĩ chuyên khoa kèm trạng thái hoạt động thực tế trong ngày."""
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
             SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
                    nv.id AS nhan_vien_id, nv.ho_ten, nv.sdt, nv.email,
                    ck.id AS chuyen_khoa_id, ck.ten_khoa,
-                   pk.id AS phong_kham_id, pk.ten_phong
+                   pk.id AS phong_kham_id, pk.ten_phong,
+                   CASE WHEN EXISTS (
+                       SELECT 1 FROM lich_lam_viec llv WITH (NOLOCK)
+                       WHERE (llv.bac_si_id = bs.id OR llv.nhan_vien_id = bs.nhan_vien_id)
+                         AND llv.ngay_lam = CAST(GETDATE() AS DATE)
+                         AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+                         AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
+                         AND (
+                             (llv.gio_bat_dau IS NOT NULL AND llv.gio_ket_thuc IS NOT NULL 
+                              AND CAST(GETDATE() AS TIME) BETWEEN llv.gio_bat_dau AND llv.gio_ket_thuc)
+                             OR
+                             (llv.ca_lam = 1 AND CAST(GETDATE() AS TIME) BETWEEN '07:30:00' AND '11:30:00')
+                             OR
+                             (llv.ca_lam = 2 AND CAST(GETDATE() AS TIME) BETWEEN '13:30:00' AND '17:30:00')
+                             OR
+                             (llv.ca_lam = 3 AND CAST(GETDATE() AS TIME) BETWEEN '17:30:00' AND '20:30:00')
+                         )
+                   ) THEN 1 ELSE 0 END AS is_active_now
             FROM bac_si bs
             JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
             LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
             ORDER BY bs.id ASC
         ''')
         doctors = [dict(r) for r in cursor.fetchall()]
         conn.close()
+
+        for d in doctors:
+            is_act = bool(d.get('is_active_now'))
+            d['is_active_now'] = is_act
+            d['trang_thai_hoat_dong'] = 'Đang hoạt động' if is_act else 'Ngoài giờ làm việc'
+            d['ten_khoa'] = d.get('ten_khoa') or 'Chưa phân khoa'
+
         return doctors
+
+    @staticmethod
+    def create_doctor_account(ho_ten, sdt, email=None, chuyen_khoa_id=None, audit_user=None):
+        """Admin tạo tài khoản bác sĩ mới với mật khẩu mặc định là 123 và cờ chưa hoàn thiện hồ sơ."""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            sdt = str(sdt or '').strip()
+            ho_ten = str(ho_ten or '').strip()
+            email = str(email or '').strip() or None
+            chuyen_khoa_id = int(chuyen_khoa_id) if chuyen_khoa_id else 1
+
+            if not sdt:
+                conn.close()
+                return False, 'Số điện thoại không được để trống!'
+            if not ho_ten:
+                conn.close()
+                return False, 'Họ tên bác sĩ không được để trống!'
+
+            # Kiểm tra trùng SĐT
+            cursor.execute('SELECT id FROM tai_khoan WHERE username = ? OR sdt = ?', (sdt, sdt))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Số điện thoại này đã được đăng ký tài khoản!'
+
+            cursor.execute('SELECT id FROM nhan_vien WHERE sdt = ?', (sdt,))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Số điện thoại này đã tồn tại trong danh sách nhân viên!'
+
+            # Mật khẩu mặc định là 123
+            default_pwd = '123'
+            hashed_pwd = hash_password(default_pwd)
+
+            # 1. Tạo tài khoản Bác sĩ (da_hoan_thien_ho_so = 0)
+            cursor.execute("SELECT id FROM vai_tro WHERE ma_vai_tro = 'BACSI'")
+            vt_row = cursor.fetchone()
+            bacsi_role_id = vt_row['id'] if vt_row else 3
+
+            cursor.execute('''
+                INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai, da_hoan_thien_ho_so)
+                VALUES (?, ?, ?, ?, ?, 1, 0)
+            ''', (bacsi_role_id, sdt, hashed_pwd, email, sdt))
+            tai_khoan_id = cursor.lastrowid
+
+            # 2. Tạo nhân viên y tế
+            cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM nhan_vien')
+            nv_next = cursor.fetchone()['next_id']
+            ma_nv = f"NV2609{str(nv_next).zfill(3)}"
+
+            cursor.execute('''
+                INSERT INTO nhan_vien (tai_khoan_id, ma_nhan_vien, ho_ten, sdt, email, chuc_vu, ngay_vao_lam, trang_thai)
+                VALUES (?, ?, ?, ?, ?, N'Bác sĩ', CAST(GETDATE() AS DATE), 1)
+            ''', (tai_khoan_id, ma_nv, ho_ten, sdt, email))
+            nhan_vien_id = cursor.lastrowid
+
+            # 3. Tạo hồ sơ bác sĩ
+            cursor.execute('''
+                INSERT INTO bac_si (nhan_vien_id, chuyen_khoa_id, hoc_vi, kinh_nghiem, avatar, gia_kham, trang_thai_lam_viec)
+                VALUES (?, ?, N'Bác sĩ', N'Đang cập nhật hồ sơ', 'default_doctor.png', 150000.0, N'Đang làm việc')
+            ''', (nhan_vien_id, chuyen_khoa_id))
+            bac_si_id = cursor.lastrowid
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='bac_si',
+                row_id=bac_si_id,
+                action='CREATE_DOCTOR',
+                performed_by=audit_user.get('id') if audit_user else None,
+                performed_by_name=audit_user.get('ho_ten') if audit_user else 'Admin',
+                reason='Admin tạo tài khoản Bác sĩ mới (Mật khẩu mặc định 123)',
+                after_data={'username': sdt, 'ho_ten': ho_ten, 'bac_si_id': bac_si_id}
+            )
+
+            return True, f'Tạo tài khoản Bác sĩ thành công cho {ho_ten}! Mật khẩu mặc định là 123.'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f'Lỗi hệ thống khi tạo tài khoản bác sĩ: {str(e)}'
+
+    @staticmethod
+    def get_doctor_by_user_id(tai_khoan_id):
+        """Lấy thông tin bác sĩ theo ID tài khoản."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT bs.id AS bac_si_id, bs.chuyen_khoa_id, bs.hoc_vi, bs.kinh_nghiem, bs.avatar, bs.gia_kham,
+                   nv.id AS nhan_vien_id, nv.ho_ten, nv.sdt, nv.email, nv.cccd, nv.ngay_sinh, nv.gioi_tinh, nv.dia_chi,
+                   ck.ten_khoa
+            FROM nhan_vien nv
+            JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            WHERE nv.tai_khoan_id = ?
+        ''', (tai_khoan_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def complete_doctor_profile(tai_khoan_id, data):
+        """Bác sĩ hoàn thiện thông tin cá nhân, chọn khoa và đổi mật khẩu mới trong lần đăng nhập đầu tiên."""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            new_password = str(data.get('new_password', '')).strip()
+            confirm_password = str(data.get('confirm_password', '')).strip()
+
+            if new_password == '123':
+                conn.close()
+                return False, 'Mật khẩu mới không được trùng với mật khẩu mặc định (123)!'
+            if not new_password or len(new_password) < 6:
+                conn.close()
+                return False, 'Mật khẩu mới phải có ít nhất 6 ký tự!'
+            if new_password != confirm_password:
+                conn.close()
+                return False, 'Mật khẩu xác nhận không khớp với mật khẩu mới!'
+
+            ho_ten = str(data.get('ho_ten', '')).strip()
+            if not ho_ten:
+                conn.close()
+                return False, 'Họ tên bác sĩ không được để trống!'
+
+            ngay_sinh = str(data.get('ngay_sinh', '')).strip() or None
+            gioi_tinh = 1 if str(data.get('gioi_tinh', '1')) in ['1', 'Nam', 'nam'] else 0
+            cccd = str(data.get('cccd', '')).strip() or None
+            email = str(data.get('email', '')).strip() or None
+            dia_chi = str(data.get('dia_chi', '')).strip() or None
+            chuyen_khoa_id = int(data.get('chuyen_khoa_id', 1))
+            hoc_vi = str(data.get('hoc_vi', 'Bác sĩ')).strip() or 'Bác sĩ'
+            kinh_nghiem = str(data.get('kinh_nghiem', '')).strip() or 'Nhiều năm kinh nghiệm công tác'
+            avatar = str(data.get('avatar', '')).strip() or 'default_doctor.png'
+
+            # 1. Cập nhật tài khoản: Băm mật khẩu mới, kích hoạt da_hoan_thien_ho_so = 1
+            hashed_pwd = hash_password(new_password)
+            cursor.execute('''
+                UPDATE tai_khoan
+                SET password = ?, email = COALESCE(?, email), da_hoan_thien_ho_so = 1
+                WHERE id = ?
+            ''', (hashed_pwd, email, tai_khoan_id))
+
+            # 2. Cập nhật nhân viên
+            cursor.execute('''
+                UPDATE nhan_vien
+                SET ho_ten = ?, ngay_sinh = ?, gioi_tinh = ?, cccd = ?, email = COALESCE(?, email), dia_chi = ?
+                WHERE tai_khoan_id = ?
+            ''', (ho_ten, ngay_sinh, gioi_tinh, cccd, email, dia_chi, tai_khoan_id))
+
+            # 3. Lấy nhan_vien_id để cập nhật bảng bác sĩ
+            cursor.execute('SELECT id FROM nhan_vien WHERE tai_khoan_id = ?', (tai_khoan_id,))
+            nv_row = cursor.fetchone()
+            if nv_row:
+                cursor.execute('''
+                    UPDATE bac_si
+                    SET chuyen_khoa_id = ?, hoc_vi = ?, kinh_nghiem = ?, avatar = COALESCE(?, avatar)
+                    WHERE nhan_vien_id = ?
+                ''', (chuyen_khoa_id, hoc_vi, kinh_nghiem, avatar, nv_row['id']))
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='tai_khoan',
+                row_id=tai_khoan_id,
+                action='DOCTOR_COMPLETE_PROFILE',
+                performed_by=tai_khoan_id,
+                performed_by_name=ho_ten,
+                reason='Bác sĩ đổi mật khẩu mặc định và hoàn thiện thông tin y khoa lần đầu'
+            )
+
+            return True, 'Hoàn tất hồ sơ bác sĩ và đổi mật khẩu mới thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f'Lỗi hệ thống khi cập nhật hồ sơ bác sĩ: {str(e)}'
 
     @staticmethod
     def get_all_staff(user_info=None):
@@ -988,4 +1198,124 @@ class UserModel:
             "staff": role_counts.get("LETAN", 0) + role_counts.get("DUOCSI", 0) + role_counts.get("KTV", 0),
             "patient": role_counts.get("BENHNHAN", 0),
         }
+
+    @staticmethod
+    def get_staff_profile(account_id):
+        """Lấy hồ sơ cá nhân chi tiết của nhân sự y tế / quản trị viên (Admin, Bác sĩ, Lễ tân, Dược sĩ, KTV)."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT 
+                t.id AS tai_khoan_id, t.username, t.vai_tro_id, t.da_hoan_thien_ho_so, t.lan_dang_nhap_cuoi,
+                v.ma_vai_tro, v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
+                nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.gioi_tinh, nv.ngay_sinh,
+                nv.sdt, nv.email, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.ngay_vao_lam, nv.trang_thai AS trang_thai_nv,
+                bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, bs.trang_thai_lam_viec,
+                ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                pk.id AS phong_kham_id, pk.ten_phong
+            FROM tai_khoan t
+            JOIN vai_tro v ON t.vai_tro_id = v.id
+            LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
+            LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+            WHERE t.id = ?
+        ''', (account_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def update_staff_profile(account_id, form_data, current_password=None, new_password=None, audit_user=None):
+        """Cập nhật thông tin hồ sơ cá nhân và đổi mật khẩu cho nhân sự / admin."""
+        from core.security import verify_password, hash_password
+        conn = get_db()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute('SELECT password, username FROM tai_khoan WHERE id = ?', (account_id,))
+            acc_row = cursor.fetchone()
+            if not acc_row:
+                conn.close()
+                return False, "Không tìm thấy tài khoản nhân viên!"
+
+            # 1. Đổi mật khẩu nếu có yêu cầu
+            if new_password and new_password.strip():
+                if not current_password or not verify_password(acc_row['password'], current_password):
+                    conn.close()
+                    return False, "Mật khẩu hiện tại không chính xác!"
+                if len(new_password.strip()) < 6:
+                    conn.close()
+                    return False, "Mật khẩu mới phải có ít nhất 6 ký tự!"
+                hashed_pw = hash_password(new_password.strip())
+                cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed_pw, account_id))
+
+            # 2. Cập nhật thông tin nhân viên trong bảng nhan_vien
+            ho_ten = (form_data.get('ho_ten') or '').strip()
+            sdt = (form_data.get('sdt') or '').strip()
+            email = (form_data.get('email') or '').strip()
+            cccd = (form_data.get('cccd') or '').strip()
+            dia_chi = (form_data.get('dia_chi') or '').strip()
+            ngay_sinh = form_data.get('ngay_sinh') or None
+            gioi_tinh = 1 if str(form_data.get('gioi_tinh', '1')) in ['1', 'Nam', 'True', 'true'] else 0
+
+            if not ho_ten:
+                conn.close()
+                return False, "Họ và tên không được để trống!"
+
+            # Kiểm tra xem có bản ghi nhan_vien chưa
+            cursor.execute('SELECT id FROM nhan_vien WHERE tai_khoan_id = ?', (account_id,))
+            nv_exist = cursor.fetchone()
+
+            if nv_exist:
+                cursor.execute('''
+                    UPDATE nhan_vien
+                    SET ho_ten = ?, sdt = ?, email = ?, cccd = ?, dia_chi = ?, ngay_sinh = ?, gioi_tinh = ?
+                    WHERE tai_khoan_id = ?
+                ''', (ho_ten, sdt, email, cccd, dia_chi, ngay_sinh, gioi_tinh, account_id))
+            else:
+                cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM nhan_vien')
+                next_nv_id = cursor.fetchone()['next_id']
+                ma_nv = f"NV{str(next_nv_id).zfill(4)}"
+                cursor.execute('''
+                    INSERT INTO nhan_vien (tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi, chuc_vu)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, N'Quản trị viên')
+                ''', (account_id, ma_nv, ho_ten, gioi_tinh, ngay_sinh, sdt, email, cccd, dia_chi))
+
+            # Cập nhật số điện thoại ở tài khoản
+            if sdt:
+                cursor.execute('UPDATE tai_khoan SET sdt = ? WHERE id = ?', (sdt, account_id))
+
+            # Nếu là bác sĩ và có thông tin chuyên khoa/giới thiệu
+            if form_data.get('hoc_vi') or form_data.get('kinh_nghiem') or form_data.get('gioi_thieu'):
+                hoc_vi = form_data.get('hoc_vi')
+                kinh_nghiem = form_data.get('kinh_nghiem')
+                gioi_thieu = form_data.get('gioi_thieu')
+                cursor.execute('''
+                    UPDATE bac_si
+                    SET hoc_vi = COALESCE(?, hoc_vi),
+                        kinh_nghiem = COALESCE(?, kinh_nghiem),
+                        gioi_thieu = COALESCE(?, gioi_thieu)
+                    WHERE nhan_vien_id = (SELECT id FROM nhan_vien WHERE tai_khoan_id = ?)
+                ''', (hoc_vi, kinh_nghiem, gioi_thieu, account_id))
+
+            conn.commit()
+            conn.close()
+
+            AuditLogger.log(
+                table_name='nhan_vien',
+                row_id=account_id,
+                action='UPDATE_STAFF_PROFILE',
+                performed_by=audit_user.get('id') if audit_user else account_id,
+                performed_by_name=audit_user.get('ho_ten') if audit_user else ho_ten,
+                reason='Cập nhật hồ sơ cá nhân nhân sự',
+                after_data={'ho_ten': ho_ten, 'sdt': sdt, 'email': email}
+            )
+
+            return True, "Cập nhật hồ sơ cá nhân thành công!"
+
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi cập nhật hồ sơ: {str(e)}"
 

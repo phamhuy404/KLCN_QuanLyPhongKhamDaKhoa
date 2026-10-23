@@ -89,7 +89,14 @@ class TestUpgradedFeatures(unittest.TestCase):
 
         # Tuần hiện tại (chặn đăng ký trực tiếp)
         today_str = str(date.today())
-        test_user = {'id': 1, 'vai_tro': 'ADMIN', 'staff_id': 1}
+        # Kiểm tra Admin bị chặn đăng ký ca trực
+        test_admin = {'id': 1, 'vai_tro': 'ADMIN', 'staff_id': 1}
+        ok_adm, msg_adm = ScheduleModel.register_schedule(test_admin, today_str, ca_lam=1)
+        self.assertFalse(ok_adm)
+        self.assertIn('không cần đăng ký ca trực', msg_adm)
+
+        # Kiểm tra Bác sĩ đăng ký tuần hiện tại bị chặn
+        test_user = {'id': 2, 'vai_tro': 'BACSI', 'staff_id': 2}
         ok_cur, msg_cur = ScheduleModel.register_schedule(test_user, today_str, ca_lam=1)
         self.assertFalse(ok_cur)
         self.assertIn('2 tuần tiếp theo', msg_cur)
@@ -101,7 +108,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Xóa dữ liệu ca test cũ nếu có
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam = ? AND ca_lam = 1", (str(w1_start),))
+        cursor.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam = ? AND ca_lam = 1", (str(w1_start),))
         conn.commit()
         conn.close()
 
@@ -111,7 +118,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Dọn dẹp sau khi test
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam = ? AND ca_lam = 1", (str(w1_start),))
+        cursor.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam = ? AND ca_lam = 1", (str(w1_start),))
         conn.commit()
         conn.close()
 
@@ -169,7 +176,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         d1 = datetime.strptime(w1_start, "%Y-%m-%d").date() if isinstance(w1_start, str) else w1_start
         d2 = d1 + timedelta(days=1)
 
-        test_user = {'id': 1, 'vai_tro': 'ADMIN', 'staff_id': 1}
+        test_user = {'id': 2, 'vai_tro': 'BACSI', 'staff_id': 2}
         shifts_to_register = [
             {'ngay_lam': str(d1), 'ca_lam': 1},
             {'ngay_lam': str(d2), 'ca_lam': 2}
@@ -178,7 +185,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Dọn dẹp trước
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
         conn.commit()
         conn.close()
 
@@ -190,7 +197,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Dọn dẹp sau khi test
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
         conn.commit()
         conn.close()
 
@@ -213,18 +220,18 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Dọn dẹp trước
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
         conn.commit()
         conn.close()
 
         with client.session_transaction() as sess:
             sess['logged_in'] = True
             sess['user'] = {
-                'id': 1,
-                'username': 'admin',
-                'ho_ten': 'Quản Trị Viên',
-                'vai_tro': 'ADMIN',
-                'staff_id': 1
+                'id': 2,
+                'username': 'bacsi1',
+                'ho_ten': 'BS. Trần Minh Quân',
+                'vai_tro': 'BACSI',
+                'staff_id': 2
             }
 
         payload = {
@@ -245,7 +252,7 @@ class TestUpgradedFeatures(unittest.TestCase):
         # Dọn dẹp sau khi test
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id = 1 AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
+        c.execute("DELETE FROM lich_lam_viec WHERE nhan_vien_id IN (1, 2) AND ngay_lam IN (?, ?)", (str(d1), str(d2)))
         conn.commit()
         conn.close()
 

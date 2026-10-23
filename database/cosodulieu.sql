@@ -133,13 +133,16 @@ CREATE TABLE nhan_vien (
     ngay_sinh DATE NULL,
     sdt NVARCHAR(15) NOT NULL UNIQUE,
     email NVARCHAR(100),
-    cccd NVARCHAR(20) UNIQUE,
+    cccd NVARCHAR(20) NULL,
     dia_chi NVARCHAR(255),
     chuc_vu NVARCHAR(100) NOT NULL,
     ngay_vao_lam DATE DEFAULT CAST(GETDATE() AS DATE),
     trang_thai BIT DEFAULT 1,
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
 );
+
+CREATE UNIQUE NONCLUSTERED INDEX UQ_nhan_vien_cccd ON nhan_vien(cccd) WHERE cccd IS NOT NULL;
+GO
 
 CREATE TABLE bac_si (
     id INT IDENTITY(1,1) PRIMARY KEY,
@@ -254,6 +257,7 @@ CREATE TABLE phieu_kham (
     huong_dieu_tri NVARCHAR(MAX),
     loi_dan NVARCHAR(MAX),
     ngay_tai_kham DATE NULL,
+    hinh_anh_kham NVARCHAR(MAX) NULL,
     trang_thai NVARCHAR(50) DEFAULT N'Hoàn thành',
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
     FOREIGN KEY (bac_si_id) REFERENCES bac_si(id),
@@ -278,7 +282,7 @@ CREATE TABLE chi_tiet_chi_dinh (
     phieu_chi_dinh_id INT NOT NULL,
     dich_vu_id INT NOT NULL,
     ket_qua NVARCHAR(MAX),
-    file_ket_qua NVARCHAR(255),
+    file_ket_qua NVARCHAR(MAX),
     ktv_thuc_hien NVARCHAR(100),
     thoi_gian_thuc_hien DATETIME,
     trang_thai NVARCHAR(50) DEFAULT N'Hoàn thành',
@@ -297,11 +301,13 @@ CREATE TABLE don_thuoc (
     bac_si_id INT NULL,
     thoi_gian_ke DATETIME DEFAULT GETDATE(),
     loi_dan NVARCHAR(MAX),
-    trang_thai NVARCHAR(50) DEFAULT N'Đã cấp thuốc',
+    trang_thai NVARCHAR(200) DEFAULT N'Đã cấp thuốc',
     hinh_thuc_mua NVARCHAR(50) DEFAULT N'Chưa chọn',
     ly_do_huy NVARCHAR(MAX) NULL,
     nguoi_huy NVARCHAR(100) NULL,
     thoi_gian_huy DATETIME NULL,
+    nguoi_duyet NVARCHAR(100) NULL,
+    ngay_duyet DATETIME NULL,
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id) ON DELETE CASCADE,
     FOREIGN KEY (bac_si_id) REFERENCES bac_si(id)
 );
@@ -330,6 +336,7 @@ CREATE TABLE hoa_don (
     trang_thai NVARCHAR(50) DEFAULT N'Đã thanh toán',
     thoi_gian_thanh_toan DATETIME DEFAULT GETDATE(),
     nhan_vien_thu NVARCHAR(100),
+    trang_thai_nhan_thuoc NVARCHAR(50) NULL,
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
 );

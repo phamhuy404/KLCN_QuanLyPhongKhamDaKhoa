@@ -120,9 +120,12 @@ def booking():
         gio_hen = request.form.get('gio_hen')
         ly_do = request.form.get('ly_do', '')
 
-        success, _ = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
-        flash('Đặt lịch khám thành công! Hệ thống đang chờ Lễ tân tiếp nhận.', 'success')
-        return redirect(url_for('patient.dashboard'))
+        success, res = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do)
+        if success:
+            flash('Đặt lịch khám thành công! Hệ thống đang chờ Lễ tân tiếp nhận.', 'success')
+            return redirect(url_for('patient.dashboard'))
+        else:
+            flash(f'Đặt lịch khám thất bại: {res}', 'error')
 
     patient = PatientModel.get_by_id(patient_id)
     departments = ClinicModel.get_all_departments(active_only=True)

@@ -122,7 +122,7 @@ PHẦN II. CÁCH CẤU HÌNH VÀ CHẠY DỰ ÁN
    * Cách 2 (Nếu máy tính của bạn đã cài Microsoft SQL Server):
      DB_ENGINE = 'sqlserver'
      Kiểm tra thông số trong SQLSERVER_CONFIG (tên server, database quan_ly_phong_kham).
-     Chạy file cosodulieu.sql trong SSMS trước khi chạy app.
+     Chạy file database/cosodulieu.sql trong SSMS trước khi chạy app.
 
 2. LỆNH KHỞI ĐỘNG ỨNG DỤNG:
    Mở PowerShell hoặc Command Prompt tại thư mục dự án và chạy:

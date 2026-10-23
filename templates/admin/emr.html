@@ -184,6 +184,44 @@
                             <input type="date" id="emr-reexam" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                         </div>
                     </div>
+
+                    <!-- Upload & Xem trước ảnh khám lâm sàng (tối đa 10 ảnh) -->
+                    <div class="pt-2">
+                        <label class="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-camera text-medical-600"></i>
+                                <span>Hình ảnh khám lâm sàng (Tối đa 10 ảnh: tổn thương da, vết thương, tư liệu hội chẩn)</span>
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-mono" id="emr-image-count-badge">0 / 10 ảnh</span>
+                        </label>
+                        
+                        <!-- Dropzone khung kéo thả hoặc click chọn file -->
+                        <div id="emr-dropzone" onclick="document.getElementById('emr-image-input').click()" 
+                             ondragover="handleEmrDragOver(event)" ondragleave="handleEmrDragLeave(event)" ondrop="handleEmrDrop(event)"
+                             class="p-4 border-2 border-dashed border-slate-200 hover:border-medical-500 rounded-2xl bg-slate-50 hover:bg-medical-50/30 text-center cursor-pointer transition-all">
+                            <input type="file" id="emr-image-input" multiple accept="image/*" class="hidden" onchange="handleEmrFilesSelect(this.files)">
+                            <div class="flex flex-col items-center justify-center space-y-1">
+                                <div class="w-9 h-9 rounded-xl bg-white text-medical-600 flex items-center justify-center shadow-sm">
+                                    <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+                                </div>
+                                <p class="text-xs font-bold text-slate-700">Kéo thả ảnh vào đây hoặc bấm để chọn ảnh từ máy tính</p>
+                                <p class="text-[11px] text-slate-400">Hỗ trợ JPG, PNG, WebP (Tối đa 10 ảnh cùng lúc)</p>
+                            </div>
+                        </div>
+
+                        <!-- Khung dạng cột ảnh 2x2 xem trước nhỏ có thể kéo xuống -->
+                        <div id="emr-preview-container" class="hidden mt-3 space-y-2">
+                            <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                <span class="font-bold">Ảnh đã chọn xem trước (Bấm vào để phóng to):</span>
+                                <button type="button" onclick="clearAllEmrImages()" class="text-rose-500 hover:text-rose-700 font-semibold cursor-pointer">
+                                    <i class="fa-solid fa-trash-can mr-1"></i> Xóa tất cả ảnh
+                                </button>
+                            </div>
+                            <div id="emr-thumbnails-grid" class="grid grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                                <!-- Render động ảnh 2x2 -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -218,6 +256,18 @@
                     <div class="font-bold text-slate-800 text-xs flex items-center gap-2">
                         <i class="fa-solid fa-pills text-medical-600"></i>
                         Thêm Thuốc Vào Đơn Khám
+                    </div>
+
+                    <!-- BANNER CẢNH BÁO DỊ ỨNG THUỐC THỜI GIAN THỰC -->
+                    <div id="allergy-danger-banner" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg animate-pulse shrink-0"></i>
+                            <div>
+                                <strong class="block font-bold text-rose-800">⚠️ CẢNH BÁO DỊ ỨNG THUỐC THỜI GIAN THỰC:</strong>
+                                <span id="allergy-danger-text">Bệnh nhân có tiền sử dị ứng, đề nghị bác sĩ cẩn trọng!</span>
+                            </div>
+                        </div>
+                        <span class="text-[10px] bg-rose-200/80 text-rose-900 px-2 py-0.5 rounded font-bold uppercase shrink-0">Nguy cơ dị ứng</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -308,6 +358,13 @@
 
             <!-- NỘI DUNG TAB 4: KẾT QUẢ CLS & HÌNH ẢNH ĐÃ THỰC HIỆN -->
             <div id="tab-view-cls" class="space-y-4 hidden text-xs">
+                <div id="emr-pending-finish-banner" class="hidden p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs flex items-center justify-between text-amber-900">
+                    <div class="flex items-center gap-2.5">
+                        <i class="fa-solid fa-hourglass-half text-amber-600 text-base shrink-0"></i>
+                        <span>Phiếu khám <strong id="pending-finish-code" class="font-mono text-teal-800"></strong> đang ở trạng thái <strong>Chờ kết quả CLS</strong>. Sau khi xem xét kết quả bên dưới, bác sĩ hãy bổ sung chẩn đoán/đơn thuốc rồi bấm <strong>"Kết Luận & Hoàn Tất Ca Khám Sau CLS"</strong>.</span>
+                    </div>
+                </div>
+
                 <div class="p-3 bg-teal-50 border border-teal-200 rounded-xl text-teal-800 text-xs flex items-center justify-between">
                     <span class="flex items-center gap-2">
                         <i class="fa-solid fa-photo-film text-teal-600"></i>
@@ -328,14 +385,17 @@
                     Bấm Hoàn Tất để chốt khám, đẩy chỉ định xuống KTV và chuyển toa sang Dược sĩ.
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap justify-end">
                     <button type="button" onclick="window.print()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center gap-1.5">
                         <i class="fa-solid fa-print"></i> In Phiếu Khám
+                    </button>
+                    <button type="button" id="btn-finish-cls" onclick="finishExaminationRecord()" class="hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-medical-600 hover:from-teal-700 hover:to-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer" title="Chốt kết luận chẩn đoán xác định và hoàn tất ca khám sau khi đã có đầy đủ kết quả cận lâm sàng">
+                        <i class="fa-solid fa-flag-checkered"></i> Kết Luận & Hoàn Tất Ca Khám Sau CLS
                     </button>
                     <button type="button" onclick="completeNormalExamination()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-md shadow-teal-500/20 flex items-center gap-1.5 cursor-pointer" title="Áp dụng khi khám lâm sàng bình thường, không cần cận lâm sàng và không cần kê thuốc">
                         <i class="fa-solid fa-heart-pulse"></i> Sức Khỏe Tốt (Xuất Hóa Đơn Ngay)
                     </button>
-                    <button type="button" onclick="completeExamination()" class="px-6 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" id="btn-complete-exam" onclick="completeExamination()" class="px-6 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
                         <i class="fa-solid fa-circle-check"></i> Hoàn Tất & Chuyển Phiên Khám
                     </button>
                 </div>
@@ -354,7 +414,23 @@
 <script>
     let rawPatients = JSON.parse(document.getElementById('emr-patients-data').textContent || '[]');
     let currentSelectedPatientId = rawPatients.length > 0 ? rawPatients[0].id : 1;
+    let currentActiveEncounterId = null;
     let prescriptionItems = [];
+    let emrSelectedImages = [];
+
+    // Helper: phân tích mảng ảnh từ chuỗi JSON hoặc URL đơn
+    function parseImageFiles(str) {
+        if (!str) return [];
+        if (Array.isArray(str)) return str;
+        if (typeof str === 'string' && str.trim().startsWith('[') && str.trim().endsWith(']')) {
+            try {
+                return JSON.parse(str);
+            } catch (e) {
+                return [str];
+            }
+        }
+        return [str];
+    }
 
     // Khởi tạo một số thuốc mẫu ban đầu để bác sĩ tiện chỉnh sửa
     prescriptionItems.push({
@@ -378,10 +454,111 @@
         cach_dung: 'Uống trước ăn sáng và ăn tối 30 phút'
     });
     renderPrescriptionTable();
-    if (rawPatients.length > 0) {
-        renderPatientClsResults(rawPatients[0]);
+
+    // ==========================================
+    // Quản lý kéo thả và xem trước nhiều ảnh EMR (Tối đa 10 ảnh, lưới 2x2 cuộn được)
+    // ==========================================
+    function handleEmrDragOver(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById('emr-dropzone');
+        if (dz) dz.classList.add('border-medical-500', 'bg-medical-50/50');
     }
 
+    function handleEmrDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById('emr-dropzone');
+        if (dz) dz.classList.remove('border-medical-500', 'bg-medical-50/50');
+    }
+
+    function handleEmrDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dz = document.getElementById('emr-dropzone');
+        if (dz) dz.classList.remove('border-medical-500', 'bg-medical-50/50');
+        if (e.dataTransfer && e.dataTransfer.files) {
+            handleEmrFilesSelect(e.dataTransfer.files);
+        }
+    }
+
+    function handleEmrFilesSelect(files) {
+        if (!files || files.length === 0) return;
+        const remaining = 10 - emrSelectedImages.length;
+        if (remaining <= 0) {
+            alert('Bạn đã chọn tối đa 10 ảnh khám lâm sàng!');
+            return;
+        }
+
+        const filesToProcess = Array.from(files).slice(0, remaining);
+        let processedCount = 0;
+
+        filesToProcess.forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                processedCount++;
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                emrSelectedImages.push(e.target.result);
+                processedCount++;
+                if (processedCount === filesToProcess.length) {
+                    renderEmrThumbnails();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function removeEmrImage(index) {
+        emrSelectedImages.splice(index, 1);
+        renderEmrThumbnails();
+    }
+
+    function clearAllEmrImages() {
+        emrSelectedImages = [];
+        renderEmrThumbnails();
+        const input = document.getElementById('emr-image-input');
+        if (input) input.value = '';
+    }
+
+    function renderEmrThumbnails() {
+        const container = document.getElementById('emr-preview-container');
+        const grid = document.getElementById('emr-thumbnails-grid');
+        const badge = document.getElementById('emr-image-count-badge');
+        if (!container || !grid) return;
+
+        badge.innerText = `${emrSelectedImages.length} / 10 ảnh`;
+
+        if (emrSelectedImages.length === 0) {
+            container.classList.add('hidden');
+            grid.innerHTML = '';
+            return;
+        }
+
+        container.classList.remove('hidden');
+        grid.innerHTML = '';
+
+        emrSelectedImages.forEach((imgSrc, idx) => {
+            const card = document.createElement('div');
+            card.className = "relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm aspect-video sm:aspect-square flex items-center justify-center";
+            card.innerHTML = `
+                <img src="${imgSrc}" alt="Ảnh lâm sàng #${idx+1}" 
+                     onclick="openEmrImageModal('${imgSrc}', 'Ảnh khám lâm sàng #${idx+1}', 'Tư liệu khám và hội chẩn')"
+                     class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-all duration-200">
+                <span class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-mono">#${idx+1}</span>
+                <button type="button" onclick="removeEmrImage(${idx})" title="Xóa ảnh này"
+                        class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600/90 hover:bg-rose-700 text-white flex items-center justify-center text-xs shadow-md transition-all cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // ==========================================
+    // Chọn bệnh nhân & đồng bộ trạng thái EMR
+    // ==========================================
     function selectEmrPatient(id) {
         currentSelectedPatientId = parseInt(id);
         const p = rawPatients.find(x => x.id === currentSelectedPatientId);
@@ -400,8 +577,46 @@
         }
 
         document.getElementById('current-patient-bhyt').innerText = p.bhyt || 'Không áp dụng';
-        document.getElementById('current-patient-allergy').innerText = p.di_ung || 'Không ghi nhận dị ứng';
+        
+        // Cảnh báo dị ứng nổi bật
+        const allergyBox = document.getElementById('allergy-warning-box');
+        const allergyEl = document.getElementById('current-patient-allergy');
+        const allergyVal = p.di_ung || '';
+        const hasAllergy = allergyVal && allergyVal !== 'Không có' && allergyVal !== 'Không ghi nhận dị ứng thuốc' && allergyVal !== 'Không ghi nhận dị ứng';
+        
+        if (allergyEl) allergyEl.innerText = allergyVal || 'Không ghi nhận dị ứng thuốc';
+        if (allergyBox) {
+            if (hasAllergy) {
+                allergyBox.className = "p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs flex items-center justify-between text-rose-800 animate-pulse";
+            } else {
+                allergyBox.className = "p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-800";
+            }
+        }
+
         document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
+
+        // Kiểm tra phiên khám đang chờ kết quả CLS (để kích hoạt nút Kết Luận & Hoàn Tất sau CLS)
+        let activeEncounter = null;
+        if (p && p.lich_su_kham && Array.isArray(p.lich_su_kham)) {
+            activeEncounter = p.lich_su_kham.find(e => e.trang_thai === 'Chờ kết quả CLS' || e.trang_thai === 'Đang khám');
+        }
+        const btnFinishCls = document.getElementById('btn-finish-cls');
+        const bannerPending = document.getElementById('emr-pending-finish-banner');
+        if (activeEncounter) {
+            currentActiveEncounterId = activeEncounter.id;
+            if (btnFinishCls) btnFinishCls.classList.remove('hidden');
+            if (bannerPending) {
+                bannerPending.classList.remove('hidden');
+                document.getElementById('pending-finish-code').innerText = activeEncounter.ma_phieu;
+            }
+            if (activeEncounter.chan_doan_icd) document.getElementById('emr-icd').value = activeEncounter.chan_doan_icd;
+            if (activeEncounter.huong_dieu_tri) document.getElementById('emr-treatment').value = activeEncounter.huong_dieu_tri;
+            if (activeEncounter.loi_dan) document.getElementById('emr-advice').value = activeEncounter.loi_dan;
+        } else {
+            currentActiveEncounterId = null;
+            if (btnFinishCls) btnFinishCls.classList.add('hidden');
+            if (bannerPending) bannerPending.classList.add('hidden');
+        }
 
         // Render danh sách kết quả cận lâm sàng của bệnh nhân
         renderPatientClsResults(p);
@@ -417,6 +632,10 @@
                 }
             }
         });
+    }
+
+    if (rawPatients.length > 0) {
+        selectEmrPatient(rawPatients[0].id);
     }
 
     function switchEmrTab(tabId) {
@@ -488,7 +707,16 @@
         `;
 
         allCls.forEach(c => {
-            const hasImage = !!c.file_ket_qua;
+            const images = parseImageFiles(c.file_ket_qua);
+            let imgBtnHtml = '<span class="text-slate-400 text-[11px]">Không có ảnh</span>';
+            if (images.length > 0) {
+                imgBtnHtml = `
+                    <button type="button" onclick="openEmrImageModal('${images[0]}', '${c.ten}', '${c.ket_qua || ''}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-images"></i>
+                        <span>${images.length > 1 ? images.length + ' ảnh' : 'Xem ảnh'}</span>
+                    </button>
+                `;
+            }
             html += `
                 <tr class="hover:bg-slate-50/50">
                     <td class="py-2.5 px-3 font-bold text-slate-800">${c.ten || 'Chỉ định CLS'}</td>
@@ -496,16 +724,7 @@
                     <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${c.ma_phieu || 'EMR'}</td>
                     <td class="py-2.5 px-3 text-slate-600">${c.bac_si_thuc_hien || 'KTV'}</td>
                     <td class="py-2.5 px-3 text-teal-800 font-medium">${c.ket_qua || 'Chưa có kết luận'}</td>
-                    <td class="py-2.5 px-3 text-center">
-                        ${hasImage ? `
-                            <button type="button" onclick="openEmrImageModal('${c.file_ket_qua}', '${c.ten}', '${c.ket_qua || ''}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm">
-                                <i class="fa-solid fa-image"></i>
-                                <span>Xem ảnh</span>
-                            </button>
-                        ` : `
-                            <span class="text-slate-400 text-[11px]">Không có ảnh</span>
-                        `}
-                    </td>
+                    <td class="py-2.5 px-3 text-center">${imgBtnHtml}</td>
                     <td class="py-2.5 px-3 text-center">
                         <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                             ${c.trang_thai || 'Hoàn tất'}
@@ -542,7 +761,7 @@
         document.getElementById('cls-selected-count').innerText = `${checked.length} kỹ thuật được chọn`;
     }
 
-    // Xử lý khi chọn thuốc từ dropdown: Cảnh báo tồn kho ít
+    // Xử lý khi chọn thuốc từ dropdown: Cảnh báo tồn kho ít & Cảnh báo dị ứng thời gian thực
     function onMedicineSelected() {
         const sel = document.getElementById('select-medicine');
         const opt = sel.options[sel.selectedIndex];
@@ -552,6 +771,8 @@
 
         if (!opt || !opt.value) {
             warningBanner.classList.add('hidden');
+            const allergyBanner = document.getElementById('allergy-danger-banner');
+            if (allergyBanner) allergyBanner.classList.add('hidden');
             return;
         }
 
@@ -563,13 +784,34 @@
 
         document.getElementById('input-medicine-usage').value = defaultUsage || 'Uống sau ăn 30 phút';
 
-        // CẢNH BÁO TỒN KHO ÍT
+        // 1. CẢNH BÁO TỒN KHO ÍT
         if (ton <= minStock) {
             document.getElementById('warning-med-name').innerText = name;
             document.getElementById('warning-stock-qty').innerText = `${ton} ${dvt}`;
             warningBanner.classList.remove('hidden');
         } else {
             warningBanner.classList.add('hidden');
+        }
+
+        // 2. CẢNH BÁO DỊ ỨNG THUỐC THỜI GIAN THỰC
+        const p = rawPatients.find(x => x.id === currentSelectedPatientId);
+        const allergyBanner = document.getElementById('allergy-danger-banner');
+        const allergyText = document.getElementById('allergy-danger-text');
+        const allergyVal = (p && p.di_ung) ? p.di_ung.toLowerCase().trim() : '';
+        const hasAllergy = allergyVal && allergyVal !== 'không có' && allergyVal !== 'không ghi nhận dị ứng' && allergyVal !== 'không ghi nhận dị ứng thuốc';
+
+        if (hasAllergy && name && allergyBanner) {
+            const medLower = name.toLowerCase();
+            const keywords = allergyVal.split(/[,;\s]+/).filter(k => k.length > 2);
+            const isSuspected = keywords.some(k => medLower.includes(k)) || medLower.includes(allergyVal);
+            if (isSuspected) {
+                allergyText.innerHTML = `Bệnh nhân có tiền sử dị ứng: <strong class="text-rose-700">${p.di_ung}</strong>. Thuốc <strong class="text-slate-900">${name}</strong> có nguy cơ gây dị ứng phản vệ! Bác sĩ hãy kiểm tra kỹ trước khi thêm vào đơn.`;
+                allergyBanner.classList.remove('hidden');
+            } else {
+                allergyBanner.classList.add('hidden');
+            }
+        } else if (allergyBanner) {
+            allergyBanner.classList.add('hidden');
         }
     }
 
@@ -600,6 +842,25 @@
             return;
         }
         errBanner.classList.add('hidden');
+
+        // Kiểm tra cảnh báo dị ứng trước khi cho phép thêm
+        const p = rawPatients.find(x => x.id === currentSelectedPatientId);
+        const allergyVal = (p && p.di_ung) ? p.di_ung.toLowerCase().trim() : '';
+        const hasAllergy = allergyVal && allergyVal !== 'không có' && allergyVal !== 'không ghi nhận dị ứng' && allergyVal !== 'không ghi nhận dị ứng thuốc';
+        if (hasAllergy && name) {
+            const medLower = name.toLowerCase();
+            const keywords = allergyVal.split(/[,;\s]+/).filter(k => k.length > 2);
+            const isSuspected = keywords.some(k => medLower.includes(k)) || medLower.includes(allergyVal);
+            if (isSuspected) {
+                if (!confirm(`⚠️ CẢNH BÁO NGUY HIỂM VỀ DỊ ỨNG THUỐC:
+Bệnh nhân có tiền sử: "${p.di_ung}"
+Thuốc bạn đang kê: "${name}"
+
+Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`)) {
+                    return;
+                }
+            }
+        }
 
         // Nếu đã có thuốc trong đơn thì tăng số lượng
         const existing = prescriptionItems.find(x => x.thuoc_id === thuocId);
@@ -703,7 +964,8 @@
                 so_luong: x.so_luong,
                 lieu_dung: x.lieu_dung,
                 cach_dung: x.cach_dung
-            }))
+            })),
+            images: emrSelectedImages
         };
 
         fetch('/api/emr/save', {
@@ -722,6 +984,57 @@
         })
         .catch(err => {
             alert('Lỗi kết nối khi lưu phiên khám: ' + err);
+        });
+    }
+
+    // Bác sĩ chốt kết luận và hoàn tất ca khám sau khi có kết quả CLS
+    function finishExaminationRecord() {
+        if (!currentActiveEncounterId) {
+            alert('Không tìm thấy phiếu khám đang chờ kết quả CLS cho bệnh nhân này!');
+            return;
+        }
+
+        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày mạn tính';
+        const treatment = document.getElementById('emr-treatment')?.value || 'Điều trị nội khoa sau khi có kết quả cận lâm sàng';
+        const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám đúng hẹn';
+        const reexam = document.getElementById('emr-reexam')?.value || null;
+
+        if (!confirm('Xác nhận hoàn tất phiên khám EMR sau khi đã xem xét đầy đủ kết quả cận lâm sàng?\nHệ thống sẽ chốt bệnh án, chuyển đơn thuốc sang Dược sĩ và cập nhật trạng thái đã khám.')) {
+            return;
+        }
+
+        const payload = {
+            record_id: currentActiveEncounterId,
+            diagnosis: diagnosis,
+            icd: diagnosis,
+            treatment: treatment,
+            advice: advice,
+            reexam_date: reexam,
+            medicines: prescriptionItems.map(x => ({
+                thuoc_id: x.thuoc_id,
+                so_luong: x.so_luong,
+                lieu_dung: x.lieu_dung,
+                cach_dung: x.cach_dung
+            })),
+            images: emrSelectedImages
+        };
+
+        fetch('/api/emr/finish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ KẾT THÚC PHIÊN KHÁM THÀNH CÔNG!\n${data.message || 'Đã chốt kết luận và hoàn tất ca khám.'}`);
+                window.location.reload();
+            } else {
+                alert('❌ LỖI:\n' + data.message);
+            }
+        })
+        .catch(err => {
+            alert('Lỗi kết nối máy chủ: ' + err);
         });
     }
 

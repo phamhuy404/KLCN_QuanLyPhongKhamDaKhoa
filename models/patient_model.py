@@ -148,6 +148,7 @@ class PatientModel:
             SELECT 
                 pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
                 pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
+                pk.hinh_anh_kham, pk.trang_thai,
                 COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
                 COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
                 COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong

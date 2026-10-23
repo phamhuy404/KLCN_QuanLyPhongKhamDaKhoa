@@ -9,6 +9,8 @@ def login():
     """Xử lý đăng nhập tự động nhận diện vai trò người dùng và trạng thái hồ sơ."""
     if session.get('logged_in') and session.get('user'):
         user = session['user']
+        if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('admin.doctor_complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
@@ -26,8 +28,12 @@ def login():
         session['logged_in'] = True
         session['user'] = user
 
+        # Nếu là Bác sĩ mới tạo và chưa hoàn thiện hồ sơ lần đầu
+        if user['vai_tro'] == 'BACSI' and user.get('da_hoan_thien_ho_so') == 0:
+            return redirect(url_for('admin.doctor_complete_profile'))
+
         # Nếu là Bệnh nhân và chưa hoàn thiện hồ sơ lần đầu
-        if user['vai_tro'] == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
+        if user['vai_tro'] == 'BENHNHAN' and user.get('da_hoan_thien_ho_so') == 0:
             return redirect(url_for('patient.complete_profile'))
 
         next_url = request.args.get('next')
