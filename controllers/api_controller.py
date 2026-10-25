@@ -1,6 +1,11 @@
 from datetime import datetime, date
-from flask import Blueprint, request, jsonify, session
-from core.security import login_required, roles_required
+from flask import Blueprint, g, request, jsonify, session
+from core.security import (
+    generate_mobile_access_token,
+    login_required,
+    mobile_patient_required,
+    roles_required,
+)
 from models.user_model import UserModel
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
@@ -9,6 +14,104 @@ from models.pharmacy_model import PharmacyModel
 from models.billing_model import BillingModel
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+def _mobile_auth_response(user):
+    identity = UserModel.get_mobile_identity(user.get('id'))
+    if not identity:
+        return jsonify({'success': False, 'message': 'Tài khoản không hoạt động hoặc không tồn tại!'}), 401
+    if identity.get('vai_tro') != 'BENHNHAN' or not identity.get('patient_id'):
+        return jsonify({'success': False, 'message': 'Chỉ tài khoản bệnh nhân được sử dụng Mobile App!'}), 403
+
+    return jsonify({
+        'success': True,
+        'access_token': generate_mobile_access_token(identity['account_id']),
+        'token_type': 'Bearer',
+        'expires_in': 3600,
+        'user': {
+            'account_id': identity['account_id'],
+            'patient_id': identity['patient_id'],
+            'patient_code': identity.get('ma_benh_nhan'),
+            'name': identity.get('ho_ten') or '',
+            'email': identity.get('email') or '',
+            'phone': identity.get('sdt') or '',
+            'role': identity['vai_tro'],
+        },
+    })
+
+
+@api_bp.route('/v1/mobile/auth/login', methods=['POST'])
+def mobile_login():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'success': False, 'message': 'Dữ liệu yêu cầu không hợp lệ!'}), 400
+
+    identifier = str(data.get('identifier') or '').strip()
+    password = str(data.get('password') or '')
+    if not identifier or not password:
+        return jsonify({'success': False, 'message': 'Vui lòng nhập tên đăng nhập/số điện thoại và mật khẩu!'}), 400
+
+    user = UserModel.authenticate(identifier, password)
+    if not user:
+        return jsonify({'success': False, 'message': 'Tên đăng nhập/số điện thoại hoặc mật khẩu không chính xác!'}), 401
+    return _mobile_auth_response(user)
+
+
+@api_bp.route('/v1/mobile/auth/register', methods=['POST'])
+def mobile_register():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'success': False, 'message': 'Dữ liệu yêu cầu không hợp lệ!'}), 400
+
+    ho_ten = str(data.get('ho_ten') or '').strip()
+    sdt = str(data.get('sdt') or '').strip()
+    ngay_sinh = str(data.get('ngay_sinh') or '').strip()
+    gioi_tinh = str(data.get('gioi_tinh') or 'Nam').strip()
+    password = str(data.get('password') or '')
+    if not ho_ten or not sdt or not ngay_sinh or not password:
+        return jsonify({'success': False, 'message': 'Vui lòng nhập họ tên, số điện thoại, ngày sinh và mật khẩu!'}), 400
+    if len(password) < 6:
+        return jsonify({'success': False, 'message': 'Mật khẩu cần ít nhất 6 ký tự!'}), 400
+    try:
+        datetime.strptime(ngay_sinh, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Ngày sinh phải có định dạng YYYY-MM-DD!'}), 400
+
+    success, message = UserModel.register_patient(
+        ho_ten=ho_ten,
+        sdt=sdt,
+        ngay_sinh=ngay_sinh,
+        gioi_tinh=gioi_tinh,
+        cccd=str(data.get('cccd') or '').strip(),
+        email=str(data.get('email') or '').strip(),
+        bhyt=str(data.get('bhyt') or '').strip(),
+        password=password,
+    )
+    if not success:
+        return jsonify({'success': False, 'message': message}), 400
+
+    user = UserModel.authenticate(sdt, password)
+    if not user:
+        return jsonify({'success': False, 'message': 'Đăng ký thành công nhưng không thể tạo phiên đăng nhập. Vui lòng đăng nhập lại!'}), 500
+    return _mobile_auth_response(user)
+
+
+@api_bp.route('/v1/mobile/auth/me', methods=['GET'])
+@mobile_patient_required
+def mobile_current_user():
+    identity = g.mobile_user
+    return jsonify({
+        'success': True,
+        'user': {
+            'account_id': identity['account_id'],
+            'patient_id': identity['patient_id'],
+            'patient_code': identity.get('ma_benh_nhan'),
+            'name': identity.get('ho_ten') or '',
+            'email': identity.get('email') or '',
+            'phone': identity.get('sdt') or '',
+            'role': identity['vai_tro'],
+        },
+    })
+
 
 @api_bp.route('/appointment/book', methods=['POST'])
 @login_required

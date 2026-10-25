@@ -1,4 +1,10 @@
+<<<<<<< Updated upstream
 from flask import Flask, session, url_for as flask_url_for, redirect
+=======
+import os
+
+from flask import Flask, session, url_for as flask_url_for, redirect, request, abort, jsonify
+>>>>>>> Stashed changes
 import config
 from core.database import init_db
 from controllers.home_controller import home_bp
@@ -136,6 +142,52 @@ def create_app():
             str=str
         )
 
+<<<<<<< Updated upstream
+=======
+    # 4. Kiểm tra bảo vệ CSRF đối với tất cả mutating requests (POST, PUT, DELETE, PATCH)
+    @app.before_request
+    def check_csrf():
+        if app.config.get('TESTING') and not app.config.get('WTF_CSRF_ENABLED'):
+            return
+        if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+            if request.path.startswith('/api/v1/mobile/'):
+                return
+            token = (
+                request.headers.get('X-CSRFToken') or
+                request.headers.get('X-CSRF-Token') or
+                request.form.get('csrf_token')
+            )
+            if not token and request.is_json:
+                data = request.get_json(silent=True) or {}
+                token = data.get('csrf_token')
+
+            if not token or not validate_csrf_token(token):
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'message': 'CSRF token không hợp lệ hoặc đã hết hạn!'}), 400
+                abort(400, description="CSRF token không hợp lệ hoặc đã hết hạn!")
+
+    @app.after_request
+    def allow_flutter_web_dev_origin(response):
+        origin = request.headers.get('Origin')
+        if (
+                request.path.startswith('/api/v1/mobile/')
+                and origin == 'http://localhost:5001'
+        ):
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+                response.vary.add('Origin')
+        return response
+
+    @app.after_request
+    def sandbox_uploaded_svg(response):
+        path = request.path.lower()
+        if path.startswith('/static/uploads/') and path.endswith('.svg'):
+            response.headers['Content-Security-Policy'] = "sandbox; default-src 'none';"
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+        return response
+
+>>>>>>> Stashed changes
     return app
 
 app = create_app()

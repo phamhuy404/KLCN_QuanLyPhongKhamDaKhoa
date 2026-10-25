@@ -199,6 +199,17 @@ python app.py
 ```
 Mở trình duyệt web và truy cập địa chỉ: `http://127.0.0.1:5000`
 
+### Chạy ứng dụng Flutter
+Giữ máy chủ Flask ở bước trên đang chạy, mở terminal thứ hai tại thư mục dự án:
+```powershell
+Set-Location ..\appmobide\appmobi
+flutter pub get
+flutter run -d web-server --web-hostname localhost --web-port 5001 --dart-define=API_BASE_URL=http://127.0.0.1:5000
+```
+Mở `http://localhost:5001` để sử dụng ứng dụng Flutter. Tài khoản bệnh nhân mẫu: `0901234567`, mật khẩu `123456`. Origin Flutter Web được giới hạn ở `http://localhost:5001`.
+
+Để chạy trên Android Emulator, cài Android SDK và khởi động emulator trước, sau đó chạy `flutter run -d <device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5000` trong thư mục `appmobide\appmobi`.
+
 ### Bước 4: Chạy bộ kiểm thử tự động
 Để kiểm tra tính toàn vẹn của toàn bộ 32 chức năng:
 ```bash

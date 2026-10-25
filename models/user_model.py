@@ -1,4 +1,4 @@
-from datetime import datetime
+Pfrom datetime import datetime
 from core.database import get_db
 from core.security import hash_password, verify_password
 from core.audit import AuditLogger
@@ -98,6 +98,26 @@ class UserModel:
         if not row:
             return True
         return bool(row['trang_thai'])
+
+    @staticmethod
+    def get_mobile_identity(account_id):
+        """Resolve the current active account role and linked patient for Mobile auth."""
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT t.id AS account_id, t.username, t.email, t.sdt,
+                   t.trang_thai AS account_status, v.ma_vai_tro AS vai_tro,
+                   bn.id AS patient_id, bn.ma_benh_nhan, bn.ho_ten
+            FROM tai_khoan t
+            JOIN vai_tro v ON t.vai_tro_id = v.id
+            LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
+            WHERE t.id = ?
+        ''', (account_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row or not bool(row.get('account_status')):
+            return None
+        return dict(row)
 
 
     @staticmethod
@@ -924,4 +944,3 @@ class UserModel:
             "staff": role_counts.get("LETAN", 0) + role_counts.get("DUOCSI", 0) + role_counts.get("KTV", 0),
             "patient": role_counts.get("BENHNHAN", 0),
         }
-

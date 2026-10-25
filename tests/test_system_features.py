@@ -11,6 +11,7 @@ import unittest
 import os
 import sys
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 # Đảm bảo import được module từ thư mục gốc
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -24,6 +25,7 @@ from core.notification_service import NotificationService
 from models.clinic_model import ClinicModel
 from models.user_model import UserModel
 from models.schedule_model import ScheduleModel
+from core.security import generate_mobile_access_token
 
 
 class SystemFeaturesTestCase(unittest.TestCase):
@@ -314,6 +316,144 @@ class SystemFeaturesTestCase(unittest.TestCase):
         finally:
             # Dọn dẹp ca trực test
             ScheduleModel.delete_schedule(created_id)
+
+
+class MobileAuthenticationApiTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        app.config['TESTING'] = True
+        app.config['WTF_CSRF_ENABLED'] = False
+        cls.client = app.test_client()
+
+    @staticmethod
+    def patient_identity():
+        return {
+            'account_id': 42,
+            'patient_id': 7,
+            'ma_benh_nhan': 'BN000007',
+            'ho_ten': 'Bệnh nhân kiểm thử',
+            'email': 'patient@example.test',
+            'sdt': '0900000007',
+            'vai_tro': 'BENHNHAN',
+        }
+
+    def test_mobile_login_returns_patient_token_and_profile(self):
+        with patch.object(UserModel, 'authenticate', return_value={
+            'id': 42, 'vai_tro': 'BENHNHAN'
+        }), patch.object(
+            UserModel, 'get_mobile_identity', return_value=self.patient_identity()
+        ):
+            response = self.client.post('/api/v1/mobile/auth/login', json={
+                'identifier': '0900000007',
+                'password': 'correct-password',
+            })
+
+        self.assertEqual(response.status_code, 200)
+        body = response.get_json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['token_type'], 'Bearer')
+        self.assertEqual(body['user']['patient_id'], 7)
+        self.assertEqual(body['user']['role'], 'BENHNHAN')
+        self.assertTrue(body['access_token'])
+
+    def test_mobile_login_rejects_non_patient_role(self):
+        with patch.object(UserModel, 'authenticate', return_value={
+            'id': 88, 'vai_tro': 'BACSI'
+        }), patch.object(
+            UserModel, 'get_mobile_identity', return_value={
+                **self.patient_identity(),
+                'account_id': 88,
+                'vai_tro': 'BACSI',
+            }
+        ):
+            response = self.client.post('/api/v1/mobile/auth/login', json={
+                'identifier': 'doctor',
+                'password': 'correct-password',
+            })
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(response.get_json()['success'])
+
+    def test_mobile_login_rejects_invalid_credentials(self):
+        with patch.object(UserModel, 'authenticate', return_value=None):
+            response = self.client.post('/api/v1/mobile/auth/login', json={
+                'identifier': 'missing-user',
+                'password': 'wrong-password',
+            })
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_mobile_registration_reuses_patient_model_and_returns_token(self):
+        with patch.object(
+            UserModel, 'register_patient', return_value=(True, 'Đăng ký thành công!')
+        ) as register_patient, patch.object(UserModel, 'authenticate', return_value={
+            'id': 42, 'vai_tro': 'BENHNHAN'
+        }), patch.object(
+            UserModel, 'get_mobile_identity', return_value=self.patient_identity()
+        ):
+            response = self.client.post('/api/v1/mobile/auth/register', json={
+                'ho_ten': 'Bệnh nhân kiểm thử',
+                'sdt': '0900000007',
+                'ngay_sinh': '1990-01-01',
+                'gioi_tinh': 'Nam',
+                'email': 'patient@example.test',
+                'password': 'correct-password',
+            })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.get_json()['access_token'])
+        register_patient.assert_called_once()
+
+    def test_mobile_registration_rejects_invalid_date_without_writing(self):
+        with patch.object(UserModel, 'register_patient') as register_patient:
+            response = self.client.post('/api/v1/mobile/auth/register', json={
+                'ho_ten': 'Bệnh nhân kiểm thử',
+                'sdt': '0900000007',
+                'ngay_sinh': 'not-a-date',
+                'password': 'correct-password',
+            })
+
+        self.assertEqual(response.status_code, 400)
+        register_patient.assert_not_called()
+
+    def test_mobile_profile_requires_valid_patient_bearer_token(self):
+        missing = self.client.get('/api/v1/mobile/auth/me')
+        self.assertEqual(missing.status_code, 401)
+
+        invalid = self.client.get(
+            '/api/v1/mobile/auth/me',
+            headers={'Authorization': 'Bearer invalid-token'},
+        )
+        self.assertEqual(invalid.status_code, 401)
+
+        with app.app_context():
+            token = generate_mobile_access_token(42)
+        with patch.object(
+            UserModel, 'get_mobile_identity', return_value=self.patient_identity()
+        ):
+            valid = self.client.get(
+                '/api/v1/mobile/auth/me',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+
+        self.assertEqual(valid.status_code, 200)
+        self.assertEqual(valid.get_json()['user']['patient_id'], 7)
+
+    def test_mobile_api_is_csrf_exempt_but_web_logout_is_not(self):
+        csrf_setting = app.config.get('WTF_CSRF_ENABLED')
+        app.config['WTF_CSRF_ENABLED'] = True
+        try:
+            mobile_response = self.client.post(
+                '/api/v1/mobile/auth/register',
+                json={},
+            )
+            web_response = self.client.post('/logout')
+        finally:
+            app.config['WTF_CSRF_ENABLED'] = csrf_setting
+
+        self.assertEqual(mobile_response.status_code, 400)
+        self.assertNotIn('CSRF', mobile_response.get_json()['message'])
+        self.assertEqual(web_response.status_code, 400)
 
 
 if __name__ == '__main__':
