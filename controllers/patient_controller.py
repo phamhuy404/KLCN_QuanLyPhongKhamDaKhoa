@@ -243,8 +243,12 @@ def feedbacks():
     patient = PatientModel.get_by_id(patient_id)
 
     if request.method == 'POST':
-        chu_de = request.form.get('chu_de', 'Dịch vụ khám bệnh')
-        diem_danh_gia = request.form.get('diem_danh_gia', 5, type=int)
+        chu_de = request.form.get('chu_de') or request.form.get('tieu_de') or 'Dịch vụ khám bệnh'
+        raw_diem = request.form.get('diem_danh_gia') or request.form.get('danh_gia') or 5
+        try:
+            diem_danh_gia = int(raw_diem)
+        except (ValueError, TypeError):
+            diem_danh_gia = 5
         noi_dung = request.form.get('noi_dung', '')
         phieu_kham_id = request.form.get('phieu_kham_id', type=int)
         FeedbackModel.create(patient_id, phieu_kham_id, chu_de, diem_danh_gia, noi_dung)

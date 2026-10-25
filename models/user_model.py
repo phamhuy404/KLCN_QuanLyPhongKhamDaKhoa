@@ -499,6 +499,10 @@ class UserModel:
                     conn.close()
                     return False, res_cccd
                 cccd = res_cccd
+                cursor.execute('SELECT id FROM nhan_vien WHERE cccd = ? AND tai_khoan_id != ?', (cccd, tai_khoan_id))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, 'Số CCCD này đã được đăng ký bởi nhân viên khác trong hệ thống!'
 
             email = str(data.get('email', '')).strip() or None
             if email:
@@ -1488,3 +1492,29 @@ class UserModel:
         if not doc:
             return False, "Không tìm thấy hồ sơ bác sĩ!"
         return UserModel.update_staff_profile(doc['tai_khoan_id'], data, audit_user=audit_user)
+
+    @staticmethod
+    def update_username(account_id, new_username):
+        """Cập nhật tên đăng nhập với các ràng buộc: không khoảng cách, độ dài 3-50, không trùng."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            new_username = str(new_username or '').strip()
+            if ' ' in new_username:
+                conn.close()
+                return False, 'Tên đăng nhập không được chứa khoảng cách!'
+            if len(new_username) < 3 or len(new_username) > 50:
+                conn.close()
+                return False, 'Tên đăng nhập phải từ 3 đến 50 ký tự!'
+            cursor.execute('SELECT id FROM tai_khoan WHERE username = ? AND id != ?', (new_username, account_id))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Tên đăng nhập này đã được sử dụng bởi tài khoản khác!'
+            cursor.execute('UPDATE tai_khoan SET username = ? WHERE id = ?', (new_username, account_id))
+            conn.commit()
+            conn.close()
+            return True, 'Cập nhật tên đăng nhập thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)

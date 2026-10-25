@@ -325,12 +325,12 @@ class PatientModel:
                 data.get('sdt'),
                 data.get('email', ''),
                 data.get('cccd', ''),
-                data.get('bhyt', ''),
+                data.get('bhyt') or data.get('so_bhyt', ''),
                 data.get('dia_chi', ''),
                 data.get('nhom_mau', 'Chưa rõ'),
-                data.get('ghi_chu_nhom_mau', ''),
-                data.get('di_ung', 'Không có'),
-                data.get('tien_su_benh', 'Không có'),
+                data.get('ghi_chu_nhom_mau') or data.get('nhom_mau_bien_the', ''),
+                data.get('di_ung') or data.get('tien_su_di_ung', 'Không có'),
+                data.get('tien_su_benh') or data.get('benh_ly_nen', 'Không có'),
                 co_tai_khoan
             ))
             patient_id = cursor.lastrowid
@@ -441,38 +441,38 @@ class PatientModel:
 
             cursor.execute('''
                 UPDATE benh_nhan
-                SET ho_ten = ?,
-                    ngay_sinh = ?,
-                    gioi_tinh = ?,
-                    sdt = ?,
-                    email = ?,
-                    cccd = ?,
-                    bhyt = ?,
-                    dia_chi = ?,
-                    nhom_mau = ?,
-                    ghi_chu_nhom_mau = ?,
-                    di_ung = ?,
-                    tien_su_benh = ?,
-                    nguoi_than_ho_ten = ?,
-                    nguoi_than_sdt = ?,
-                    nguoi_than_quan_he = ?
+                SET ho_ten = COALESCE(NULLIF(?, ''), ho_ten),
+                    ngay_sinh = COALESCE(?, ngay_sinh),
+                    gioi_tinh = COALESCE(NULLIF(?, ''), gioi_tinh),
+                    sdt = COALESCE(NULLIF(?, ''), sdt),
+                    email = COALESCE(?, email),
+                    cccd = COALESCE(NULLIF(?, ''), cccd),
+                    bhyt = COALESCE(?, bhyt),
+                    dia_chi = COALESCE(?, dia_chi),
+                    nhom_mau = COALESCE(NULLIF(?, ''), nhom_mau),
+                    ghi_chu_nhom_mau = COALESCE(?, ghi_chu_nhom_mau),
+                    di_ung = COALESCE(?, di_ung),
+                    tien_su_benh = COALESCE(?, tien_su_benh),
+                    nguoi_than_ho_ten = COALESCE(?, nguoi_than_ho_ten),
+                    nguoi_than_sdt = COALESCE(?, nguoi_than_sdt),
+                    nguoi_than_quan_he = COALESCE(?, nguoi_than_quan_he)
                 WHERE id = ?
             ''', (
                 data.get('ho_ten'),
                 data.get('ngay_sinh'),
-                data.get('gioi_tinh', 'Nam'),
+                data.get('gioi_tinh'),
                 data.get('sdt'),
-                data.get('email', ''),
-                data.get('cccd', ''),
-                data.get('bhyt', ''),
-                data.get('dia_chi', ''),
-                data.get('nhom_mau', 'Chưa rõ'),
-                data.get('ghi_chu_nhom_mau', ''),
-                data.get('di_ung', 'Không có'),
-                data.get('tien_su_benh', 'Không có'),
-                data.get('nguoi_than_ho_ten', ''),
-                data.get('nguoi_than_sdt', ''),
-                data.get('nguoi_than_quan_he', ''),
+                data.get('email'),
+                data.get('cccd'),
+                data.get('bhyt') or data.get('so_bhyt'),
+                data.get('dia_chi'),
+                data.get('nhom_mau'),
+                data.get('ghi_chu_nhom_mau') or data.get('nhom_mau_bien_the'),
+                data.get('di_ung') or data.get('tien_su_di_ung'),
+                data.get('tien_su_benh') or data.get('benh_ly_nen'),
+                data.get('nguoi_than_ho_ten'),
+                data.get('nguoi_than_sdt'),
+                data.get('nguoi_than_quan_he'),
                 patient_id
             ))
 
@@ -481,7 +481,8 @@ class PatientModel:
             if p_row and p_row.get('tai_khoan_id'):
                 cursor.execute('''
                     UPDATE tai_khoan
-                    SET email = ?, sdt = ?
+                    SET email = COALESCE(NULLIF(?, ''), email),
+                        sdt = COALESCE(NULLIF(?, ''), sdt)
                     WHERE id = ?
                 ''', (data.get('email', ''), data.get('sdt', ''), p_row['tai_khoan_id']))
 

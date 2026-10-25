@@ -18,9 +18,9 @@ def book_appointment():
 
     chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
     bac_si_id = data.get('bac_si_id')
-    ngay_hen = data.get('ngay_hen')
-    gio_hen = data.get('gio_hen')
-    ly_do = data.get('ly_do', 'Khám theo yêu cầu')
+    ngay_hen = data.get('ngay_hen') or data.get('ngay_kham')
+    gio_hen = data.get('gio_hen') or data.get('gio_kham')
+    ly_do = data.get('ly_do') or data.get('ly_do_kham') or 'Khám theo yêu cầu'
 
     if not ngay_hen or not gio_hen:
         return jsonify({'success': False, 'message': 'Vui lòng chọn ngày và giờ khám!'}), 400
@@ -186,7 +186,19 @@ def update_patient_profile():
     """API bệnh nhân cập nhật thông tin cá nhân và hồ sơ sức khỏe."""
     data = request.get_json() or {}
     user = session.get('user', {})
-    patient_id = user.get('patient_id') or 1
+    patient_id = user.get('patient_id') or user.get('benh_nhan_id')
+    if not patient_id and user.get('id'):
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM benh_nhan WHERE tai_khoan_id = ?", (user['id'],))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            patient_id = row['id']
+            if 'user' in session:
+                session['user']['patient_id'] = patient_id
+                session.modified = True
+    patient_id = patient_id or 1
 
     success, msg = PatientModel.update_profile(patient_id, data)
     if success:
@@ -236,18 +248,18 @@ def save_emr_examination():
 
     if request.is_json:
         data = request.get_json() or {}
-        patient_id = data.get('patient_id')
-        doctor_id = data.get('doctor_id') or session.get('user', {}).get('bac_si_id') or 1
-        room_id = data.get('room_id', 1)
-        reason = data.get('reason', 'Khám theo yêu cầu')
-        symptoms = data.get('symptoms', 'Triệu chứng bình thường')
-        diagnosis = data.get('diagnosis', 'Khám tổng quát')
-        icd = data.get('icd', 'Z00.0 - Khám sức khỏe tổng quát')
+        patient_id = data.get('patient_id') or data.get('benh_nhan_id')
+        doctor_id = data.get('doctor_id') or data.get('bac_si_id') or session.get('user', {}).get('bac_si_id') or 1
+        room_id = data.get('room_id') or data.get('phong_kham_id') or 1
+        reason = data.get('reason') or data.get('ly_do_kham') or 'Khám theo yêu cầu'
+        symptoms = data.get('symptoms') or data.get('trieu_chung') or 'Triệu chứng bình thường'
+        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo') or 'Khám tổng quát'
+        icd = data.get('icd') or data.get('chan_doan_xac_dinh') or 'Z00.0 - Khám sức khỏe tổng quát'
         treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = data.get('advice', 'Ăn uống nghỉ ngơi điều độ')
-        reexam_date = data.get('reexam_date')
-        lab_service_ids = data.get('lab_services', [])
-        medicines = data.get('medicines', [])
+        advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
+        reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
+        lab_service_ids = data.get('lab_services') or data.get('dich_vu_chi_dinh') or []
+        medicines = data.get('medicines') or data.get('don_thuoc') or []
         raw_images = data.get('images', [])
         saved_images = []
         if isinstance(raw_images, list):
@@ -393,12 +405,12 @@ def finish_emr_examination():
     if request.is_json:
         data = request.get_json() or {}
         record_id = data.get('record_id')
-        diagnosis = data.get('diagnosis', 'Khám tổng quát')
+        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo') or 'Khám tổng quát'
         icd = data.get('icd', 'Z00.0 - Khám sức khỏe')
         treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = data.get('advice', 'Ăn uống nghỉ ngơi điều độ')
-        reexam_date = data.get('reexam_date')
-        medicines = data.get('medicines', [])
+        advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
+        reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
+        medicines = data.get('medicines') or data.get('don_thuoc') or []
         raw_images = data.get('images', [])
         saved_images = []
         if isinstance(raw_images, list):
@@ -1328,7 +1340,7 @@ def save_lab_result():
     return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/lab/result/approve', methods=['POST'])
-@roles_required('ADMIN', 'BACSI')
+@roles_required('ADMIN', 'BACSI', 'KTV')
 def approve_lab_result_api():
     """API bác sĩ duyệt kết quả cận lâm sàng (xác nhận duyệt nội bộ)."""
     data = request.get_json() or {}

@@ -432,7 +432,8 @@ def doctor_complete_profile():
             session.modified = True
             flash('Kích hoạt tài khoản bác sĩ thành công! Chào mừng bạn đến với H2T Healthcare.', 'success')
             return redirect(url_for('admin.dashboard'))
-        return render_template('admin/doctor_complete_profile.html', error=msg, departments=departments, form_data=data)
+        doctor_info = UserModel.get_doctor_by_user_id(user['id']) or {}
+        return render_template('admin/doctor_complete_profile.html', error=msg, departments=departments, form_data=data, doctor=doctor_info)
 
     doctor_info = UserModel.get_doctor_by_user_id(user['id']) or {}
     return render_template('admin/doctor_complete_profile.html', departments=departments, doctor=doctor_info)
