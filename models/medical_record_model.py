@@ -14,7 +14,7 @@ class MedicalRecordModel:
         cursor.execute('''
             SELECT 
                 cd.id, cd.ma_chi_dinh, cd.thoi_gian_chi_dinh, cd.trang_thai AS trang_thai_phieu, cd.ghi_chu,
-                bn.id AS patient_id, bn.ma_benh_nhan, bn.ho_ten AS benh_nhan, bn.sdt AS sdt_benh_nhan,
+                bn.id AS patient_id, bn.ma_benh_nhan, bn.ma_benh_nhan AS ma_bn, bn.ho_ten AS benh_nhan, bn.sdt AS sdt_benh_nhan,
                 COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
                 dv.id AS dich_vu_id, dv.ten_dich_vu AS dich_vu, dv.loai_dich_vu AS loai, dv.don_gia,
                 ct.id AS chi_tiet_id, ct.ket_qua, ct.file_ket_qua, ct.ktv_thuc_hien, ct.thoi_gian_thuc_hien,

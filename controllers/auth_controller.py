@@ -59,6 +59,10 @@ def register():
     """Đăng ký tài khoản bệnh nhân mới trực tuyến với kiểm tra ràng buộc an toàn."""
     if session.get('logged_in') and session.get('user'):
         user = session['user']
+        if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('admin.doctor_complete_profile'))
+        if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
         return redirect(url_for('patient.dashboard'))
@@ -113,6 +117,10 @@ def force_change_password():
 
     user = session.get('user', {})
     if not user.get('yeu_cau_doi_mat_khau'):
+        if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('admin.doctor_complete_profile'))
+        if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
         return redirect(url_for('patient.dashboard'))
@@ -155,6 +163,10 @@ def force_change_password():
         session.pop('force_change_password', None)
         flash('Đổi mật khẩu thành công! Tài khoản của bạn đã được kích hoạt an toàn.', 'success')
 
+        if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('admin.doctor_complete_profile'))
+        if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
+            return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
         return redirect(url_for('patient.dashboard'))

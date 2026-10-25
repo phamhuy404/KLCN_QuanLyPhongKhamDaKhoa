@@ -110,6 +110,12 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tên đăng nhập (Username)</label>
+                        <input type="text" id="profile-username" value="{{ curr_user.get('username', '') }}" placeholder="Nhập tên đăng nhập" pattern="^\S+$" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-medical-500">
+                        <p class="text-[10px] text-slate-400 mt-0.5">Không chứa khoảng cách</p>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Ngày sinh</label>
                         <input type="date" id="profile-dob" value="{{ patient.ngay_sinh if patient else '' }}" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                     </div>
@@ -576,6 +582,7 @@
         function saveProfile() {
             const payload = {
                 ho_ten: document.getElementById('profile-name').value.trim(),
+                username: document.getElementById('profile-username') ? document.getElementById('profile-username').value.trim() : '',
                 sdt: document.getElementById('profile-phone').value.trim(),
                 ngay_sinh: document.getElementById('profile-dob').value,
                 gioi_tinh: document.getElementById('profile-gender').value,

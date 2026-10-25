@@ -302,7 +302,7 @@ class PatientModel:
                 cursor.execute('SELECT id FROM tai_khoan WHERE username = ? OR sdt = ?', (sdt, sdt))
                 existing_acc = cursor.fetchone()
                 if not existing_acc:
-                    pwd = data.get('password') or '123456'
+                    pwd = data.get('password') or '123'
                     cursor.execute('''
                         INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai)
                         VALUES (6, ?, ?, ?, ?, 1)
@@ -366,6 +366,24 @@ class PatientModel:
 
         try:
             from core.validators import validate_name, validate_phone, validate_cccd, validate_bhyt, validate_birth_date, validate_email
+            if data.get('username'):
+                new_username = str(data.get('username')).strip()
+                if ' ' in new_username:
+                    conn.close()
+                    return False, "Tên đăng nhập không được chứa khoảng cách!"
+                if len(new_username) < 3 or len(new_username) > 50:
+                    conn.close()
+                    return False, "Tên đăng nhập phải từ 3 đến 50 ký tự!"
+                cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (patient_id,))
+                bn_row = cursor.fetchone()
+                if bn_row and bn_row.get('tai_khoan_id'):
+                    acc_id = bn_row['tai_khoan_id']
+                    cursor.execute('SELECT id FROM tai_khoan WHERE username = ? AND id != ?', (new_username, acc_id))
+                    if cursor.fetchone():
+                        conn.close()
+                        return False, "Tên đăng nhập này đã được sử dụng bởi tài khoản khác!"
+                    cursor.execute('UPDATE tai_khoan SET username = ? WHERE id = ?', (new_username, acc_id))
+
             if data.get('ho_ten'):
                 ok_name, res_name = validate_name(data.get('ho_ten'), 'Họ và tên bệnh nhân')
                 if not ok_name:

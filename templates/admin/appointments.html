@@ -638,7 +638,7 @@
             const res = await fetch('/api/appointment/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, ly_do: reason.trim() })
+                body: JSON.stringify({ id: id, appointment_id: id, ly_do: reason.trim(), reason: reason.trim() })
             });
             const data = await res.json();
             if (data.success) {

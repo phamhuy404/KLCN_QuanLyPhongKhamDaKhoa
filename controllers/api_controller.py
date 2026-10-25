@@ -35,7 +35,7 @@ def book_appointment():
 def assign_doctor():
     """API phân công bác sĩ phụ trách lịch hẹn hoặc bác sĩ tự nhận ca khám."""
     data = request.get_json() or {}
-    appointment_id = data.get('appointment_id')
+    appointment_id = data.get('appointment_id') or data.get('id')
     user = session.get('user', {})
     user_role = user.get('vai_tro')
 
@@ -123,7 +123,7 @@ def reschedule_appointment():
 def cancel_appointment():
     """API hủy lịch hẹn khám (Bệnh nhân hủy trước giờ khám; nhân viên được hủy sau giờ khám)."""
     data = request.get_json() or {}
-    appointment_id = data.get('appointment_id')
+    appointment_id = data.get('appointment_id') or data.get('id')
     reason = data.get('reason') or data.get('ly_do')
     user = session.get('user')
 
@@ -194,6 +194,8 @@ def update_patient_profile():
             session['user']['ho_ten'] = data.get('ho_ten', session['user'].get('ho_ten'))
             session['user']['sdt'] = data.get('sdt', session['user'].get('sdt'))
             session['user']['email'] = data.get('email', session['user'].get('email'))
+            if data.get('username'):
+                session['user']['username'] = data.get('username')
             session.modified = True
         return jsonify({'success': True, 'message': 'Cập nhật thông tin thành công!'})
     return jsonify({'success': False, 'message': msg}), 400

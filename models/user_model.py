@@ -13,11 +13,13 @@ class UserModel:
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT t.*, v.ma_vai_tro, v.ten_vai_tro
+            SELECT TOP 1 t.*, v.ma_vai_tro, v.ten_vai_tro
             FROM tai_khoan t
             JOIN vai_tro v ON t.vai_tro_id = v.id
-            WHERE t.username = ? OR t.sdt = ?
-        ''', (username, username))
+            LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
+            LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
+            WHERE t.username = ? OR t.sdt = ? OR t.email = ? OR nv.sdt = ? OR nv.email = ? OR bn.sdt = ? OR bn.email = ?
+        ''', (username, username, username, username, username, username, username))
         user_row = cursor.fetchone()
 
         if not user_row or not verify_password(user_row['password'], password):
@@ -326,7 +328,7 @@ class UserModel:
         return doctors
 
     @staticmethod
-    def create_doctor_account(ho_ten, sdt, email=None, chuyen_khoa_id=None, audit_user=None):
+    def create_doctor_account(ho_ten, sdt, email=None, chuyen_khoa_id=None, audit_user=None, username=None):
         """Admin tạo tài khoản bác sĩ mới với mật khẩu mặc định là 123 và cờ chưa hoàn thiện hồ sơ."""
         conn = get_db()
         cursor = conn.cursor()
@@ -334,15 +336,23 @@ class UserModel:
         try:
             sdt = str(sdt or '').strip()
             ho_ten = str(ho_ten or '').strip()
+            username = str(username or '').strip() or sdt
             email = str(email or '').strip() or None
             chuyen_khoa_id = int(chuyen_khoa_id) if chuyen_khoa_id else 1
 
-            from core.validators import validate_name, validate_phone, validate_email
-            ok_name, res_name = validate_name(ho_ten, 'Họ tên bác sĩ')
-            if not ok_name:
+            if not ho_ten or len(ho_ten) < 2:
                 conn.close()
-                return False, res_name
-            ho_ten = res_name
+                return False, 'Vui lòng nhập họ và tên bác sĩ hợp lệ (ít nhất 2 ký tự)!'
+
+            if ' ' in username:
+                conn.close()
+                return False, 'Tên đăng nhập không được chứa khoảng cách!'
+
+            if len(username) < 3 or len(username) > 50:
+                conn.close()
+                return False, 'Tên đăng nhập phải từ 3 đến 50 ký tự!'
+
+            from core.validators import validate_phone, validate_email
 
             ok_phone, res_phone = validate_phone(sdt, 'Số điện thoại bác sĩ')
             if not ok_phone:
@@ -357,16 +367,21 @@ class UserModel:
                     return False, res_email
                 email = res_email
 
-            # Kiểm tra trùng SĐT
-            cursor.execute('SELECT id FROM tai_khoan WHERE username = ? OR sdt = ?', (sdt, sdt))
+            # Kiểm tra trùng tên đăng nhập hoặc SĐT
+            cursor.execute('SELECT id FROM tai_khoan WHERE username = ?', (username,))
             if cursor.fetchone():
                 conn.close()
-                return False, 'Số điện thoại này đã được đăng ký tài khoản!'
+                return False, 'Tên đăng nhập này đã tồn tại trong hệ thống!'
+
+            cursor.execute('SELECT id FROM tai_khoan WHERE sdt = ?', (sdt,))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Số điện thoại này đã được đăng ký cho bác sĩ/nhân viên khác trong hệ thống!'
 
             cursor.execute('SELECT id FROM nhan_vien WHERE sdt = ?', (sdt,))
             if cursor.fetchone():
                 conn.close()
-                return False, 'Số điện thoại này đã tồn tại trong danh sách nhân viên!'
+                return False, 'Số điện thoại này đã được đăng ký cho bác sĩ/nhân viên khác trong hệ thống!'
 
             # Mật khẩu mặc định là 123
             default_pwd = '123'
@@ -378,9 +393,9 @@ class UserModel:
             bacsi_role_id = vt_row['id'] if vt_row else 3
 
             cursor.execute('''
-                INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai, da_hoan_thien_ho_so)
-                VALUES (?, ?, ?, ?, ?, 1, 0)
-            ''', (bacsi_role_id, sdt, hashed_pwd, email, sdt))
+                INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai, da_hoan_thien_ho_so, yeu_cau_doi_mat_khau)
+                VALUES (?, ?, ?, ?, ?, 1, 0, 0)
+            ''', (bacsi_role_id, username, hashed_pwd, email, sdt))
             tai_khoan_id = cursor.lastrowid
 
             # 2. Tạo nhân viên y tế
@@ -619,7 +634,10 @@ class UserModel:
         vai_tro_id = data.get('vai_tro_id', 2)
         email = data.get('email', '').strip() or None
         username = data.get('username', '').strip() or sdt
-        password = data.get('password', 'Staff@123')
+        password = data.get('password') or '123'
+
+        if ' ' in username:
+            return False, 'Tên đăng nhập không được chứa khoảng cách!' 
         cccd = data.get('cccd', '').strip() or None
         gioi_tinh = int(data.get('gioi_tinh', 1))
         ngay_sinh = data.get('ngay_sinh')
@@ -636,10 +654,20 @@ class UserModel:
 
         try:
             # Kiểm tra trùng username hoặc sdt trong tai_khoan
-            cursor.execute('SELECT id FROM tai_khoan WHERE username = ? OR sdt = ?', (username, sdt))
+            cursor.execute('SELECT id FROM tai_khoan WHERE username = ?', (username,))
             if cursor.fetchone():
                 conn.close()
-                return False, 'Tên đăng nhập hoặc số điện thoại đã tồn tại trong hệ thống!'
+                return False, 'Tên đăng nhập này đã tồn tại trong hệ thống!'
+
+            cursor.execute('SELECT id FROM tai_khoan WHERE sdt = ?', (sdt,))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Số điện thoại này đã được đăng ký cho bác sĩ/nhân viên khác trong hệ thống!'
+
+            cursor.execute('SELECT id FROM nhan_vien WHERE sdt = ?', (sdt,))
+            if cursor.fetchone():
+                conn.close()
+                return False, 'Số điện thoại này đã được đăng ký cho bác sĩ/nhân viên khác trong hệ thống!'
 
             # Tạo tài khoản
             hashed_pwd = hash_password(password)
@@ -1311,6 +1339,21 @@ class UserModel:
                 hashed_pw = hash_password(new_password.strip())
                 cursor.execute('UPDATE tai_khoan SET password = ? WHERE id = ?', (hashed_pw, account_id))
 
+            # Cập nhật username nếu có thay đổi
+            new_username = (form_data.get('username') or '').strip()
+            if new_username and new_username != acc_row['username']:
+                if ' ' in new_username:
+                    conn.close()
+                    return False, "Tên đăng nhập không được chứa khoảng cách!"
+                if len(new_username) < 3 or len(new_username) > 50:
+                    conn.close()
+                    return False, "Tên đăng nhập phải từ 3 đến 50 ký tự!"
+                cursor.execute('SELECT id FROM tai_khoan WHERE username = ? AND id != ?', (new_username, account_id))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, "Tên đăng nhập này đã được sử dụng bởi tài khoản khác!"
+                cursor.execute('UPDATE tai_khoan SET username = ? WHERE id = ?', (new_username, account_id))
+
             # 2. Cập nhật thông tin nhân viên trong bảng nhan_vien
             from core.validators import validate_name, validate_phone, validate_cccd, validate_birth_date, validate_email, validate_address
             ho_ten = (form_data.get('ho_ten') or '').strip()
@@ -1368,7 +1411,13 @@ class UserModel:
             if nv_exist:
                 cursor.execute('''
                     UPDATE nhan_vien
-                    SET ho_ten = ?, sdt = ?, email = ?, cccd = ?, dia_chi = ?, ngay_sinh = ?, gioi_tinh = ?
+                    SET ho_ten = ?,
+                        sdt = COALESCE(NULLIF(?, ''), sdt),
+                        email = COALESCE(NULLIF(?, ''), email),
+                        cccd = COALESCE(NULLIF(?, ''), cccd),
+                        dia_chi = COALESCE(NULLIF(?, ''), dia_chi),
+                        ngay_sinh = COALESCE(?, ngay_sinh),
+                        gioi_tinh = ?
                     WHERE tai_khoan_id = ?
                 ''', (ho_ten, sdt, email, cccd, dia_chi, ngay_sinh, gioi_tinh, account_id))
             else:

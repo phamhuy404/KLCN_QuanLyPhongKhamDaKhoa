@@ -79,8 +79,11 @@ class UnifiedConnection:
     def close(self):
         return self._conn.close()
 
+_SCHEMA_INITIALIZED = False
+
 def get_db():
     """Tạo kết nối trực tiếp tới Microsoft SQL Server qua pyodbc."""
+    global _SCHEMA_INITIALIZED
     cfg = config.SQLSERVER_CONFIG
     servers_to_try = [cfg.get('server', 'localhost'), 'localhost', r'.\SQLEXPRESS', r'localhost\SQLEXPRESS', '.']
     seen = set()
@@ -93,8 +96,15 @@ def get_db():
         else:
             conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};UID={cfg['uid']};PWD={cfg['pwd']};"
         try:
-            conn = pyodbc.connect(conn_str, timeout=4)
-            return UnifiedConnection(conn)
+            raw_conn = pyodbc.connect(conn_str, timeout=4)
+            conn = UnifiedConnection(raw_conn)
+            if not _SCHEMA_INITIALIZED:
+                try:
+                    ensure_schema_updates(conn)
+                    _SCHEMA_INITIALIZED = True
+                except Exception as ex_init:
+                    print("[Database] Schema check exception:", ex_init)
+            return conn
         except Exception as e:
             last_err = e
             continue
@@ -106,6 +116,15 @@ def ensure_schema_updates(conn):
         cursor = conn.cursor()
         stmts = [
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'da_hoan_thien_ho_so') ALTER TABLE tai_khoan ADD da_hoan_thien_ho_so BIT DEFAULT 0;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('phieu_kham') AND name = 'hinh_anh_kham') ALTER TABLE phieu_kham ADD hinh_anh_kham NVARCHAR(MAX) NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('bac_si') AND name = 'gioi_thieu') ALTER TABLE bac_si ADD gioi_thieu NVARCHAR(MAX) NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('bac_si') AND name = 'gia_kham') ALTER TABLE bac_si ADD gia_kham DECIMAL(18,2) DEFAULT 150000;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('bac_si') AND name = 'kinh_nghiem') ALTER TABLE bac_si ADD kinh_nghiem INT DEFAULT 5;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('bac_si') AND name = 'avatar') ALTER TABLE bac_si ADD avatar NVARCHAR(500) NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('bac_si') AND name = 'trang_thai_lam_viec') ALTER TABLE bac_si ADD trang_thai_lam_viec NVARCHAR(50) DEFAULT N'Đang làm việc';",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'yeu_cau_doi_mat_khau') ALTER TABLE tai_khoan ADD yeu_cau_doi_mat_khau TINYINT DEFAULT 0;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'sdt') ALTER TABLE tai_khoan ADD sdt NVARCHAR(20) NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'email') ALTER TABLE tai_khoan ADD email NVARCHAR(100) NULL;",
             "UPDATE tai_khoan SET da_hoan_thien_ho_so = 1 WHERE vai_tro_id IN (1, 2, 3, 4, 5);",
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('thuoc') AND name = 'ton_kho_toi_thieu') ALTER TABLE thuoc ADD ton_kho_toi_thieu INT DEFAULT 20;",
             "UPDATE thuoc SET ton_kho_toi_thieu = 20 WHERE ton_kho_toi_thieu IS NULL;",

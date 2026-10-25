@@ -27,7 +27,8 @@ def dashboard():
     stats = ClinicModel.get_dashboard_stats()
     patients = PatientModel.get_all()
     appointments = AppointmentModel.get_all()
-    return render_template('admin/dashboard.html', active_page='admin_dashboard', stats=stats, patients=patients, appointments=appointments)
+    rooms = ClinicModel.get_all_rooms(active_only=True)
+    return render_template('admin/dashboard.html', active_page='admin_dashboard', stats=stats, patients=patients, appointments=appointments, rooms=rooms)
 
 @admin_bp.route('/patients')
 def patients():
@@ -314,7 +315,7 @@ def toggle_account_status(account_id=None):
     return jsonify({'success': True, 'new_status': res, 'status': res, 'message': 'Đã thay đổi trạng thái thành công'})
 
 @admin_bp.route('/accounts/create-staff', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def create_staff_account():
     """Tạo mới tài khoản nhân viên / tiếp tân / bác sĩ."""
     data = request.form.to_dict()
@@ -382,13 +383,14 @@ def import_csv(module):
     return redirect(request.referrer or url_for('admin.dashboard'))
 
 @admin_bp.route('/doctors/create', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def create_doctor():
     """Tạo tài khoản bác sĩ mới từ trang danh sách bác sĩ với mật khẩu mặc định là 123."""
     data = request.form if request.form else (request.get_json() or {})
     ho_ten = data.get('ho_ten')
     sdt = data.get('sdt')
     email = data.get('email')
+    username = data.get('username')
     chuyen_khoa_id = data.get('chuyen_khoa_id')
 
     success, msg = UserModel.create_doctor_account(
@@ -396,7 +398,8 @@ def create_doctor():
         sdt=sdt,
         email=email,
         chuyen_khoa_id=chuyen_khoa_id,
-        audit_user=session.get('user')
+        audit_user=session.get('user'),
+        username=username
     )
 
     if request.is_json:
@@ -545,6 +548,8 @@ def doctor_update_profile(doctor_id):
         flash(msg, 'success')
         if user_role == 'BACSI':
             curr_user['ho_ten'] = request.form.get('ho_ten', curr_user.get('ho_ten'))
+            if request.form.get('username'):
+                curr_user['username'] = request.form.get('username')
             session['user'] = curr_user
             session.modified = True
     else:

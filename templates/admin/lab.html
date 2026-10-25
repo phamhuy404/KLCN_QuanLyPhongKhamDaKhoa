@@ -246,7 +246,7 @@
         ma_cd: o.ma_chi_dinh,
         patient_id: o.patient_id,
         benh_nhan: o.benh_nhan,
-        ma_bn: o.ma_bn,
+        ma_bn: o.ma_benh_nhan || o.ma_bn || 'BN',
         dich_vu: o.dich_vu || 'Chỉ định cận lâm sàng',
         loai: o.loai || 'Xét nghiệm',
         bac_si: o.bac_si,

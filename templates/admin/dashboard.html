@@ -117,11 +117,17 @@
                     <h3 class="font-bold text-lg text-slate-800">Danh sách chờ khám bệnh</h3>
                     <p class="text-xs text-slate-400">Cập nhật theo thời gian thực tại các phòng khám</p>
                 </div>
-                <select class="bg-slate-100 border-none text-sm px-3 py-1.5 rounded-xl outline-none font-medium text-slate-600 cursor-pointer">
-                    <option>Tất cả các phòng</option>
-                    <option>Phòng Khám Nội 01</option>
-                    <option>Phòng Khám Nhi</option>
-                    <option>Phòng Tai Mũi Họng</option>
+                <select id="dashboard-room-filter" onchange="filterDashboardQueue()" class="bg-slate-100 border-none text-sm px-3 py-1.5 rounded-xl outline-none font-medium text-slate-600 cursor-pointer">
+                    <option value="">Tất cả các phòng</option>
+                    {% if rooms %}
+                        {% for r in rooms %}
+                        <option value="{{ r.ten_phong }}">{{ r.ten_phong }} ({{ r.ten_khoa }})</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="Phòng Khám Nội 01">Phòng Khám Nội 01</option>
+                        <option value="Phòng Khám Nhi">Phòng Khám Nhi</option>
+                        <option value="Phòng Tai Mũi Họng">Phòng Tai Mũi Họng</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -140,7 +146,7 @@
                     <tbody class="text-sm divide-y divide-slate-100">
                         {% if appointments %}
                             {% for appt in appointments[:5] %}
-                            <tr class="hover:bg-slate-50/80 transition-all">
+                            <tr class="queue-row hover:bg-slate-50/80 transition-all" data-room="{{ appt.ten_phong or appt.ten_khoa or '' }}">
                                 <td class="py-3.5 px-4 font-bold text-medical-600">#{{ "%02d"|format(loop.index) }}</td>
                                 <td class="py-3.5 px-4">
                                     <div class="font-medium text-slate-800">{{ appt.ho_ten_benh_nhan }}</div>
@@ -161,6 +167,9 @@
                                 </td>
                             </tr>
                             {% endfor %}
+                        <tr id="dashboard-queue-empty" style="display: none;">
+                            <td colspan="5" class="py-6 text-center text-slate-400 text-xs">Không có bệnh nhân trong phòng khám đã chọn</td>
+                        </tr>
                         {% else %}
                             <tr>
                                 <td colspan="5" class="py-6 text-center text-slate-400 text-xs">Hiện tại không có bệnh nhân trong hàng đợi</td>
@@ -207,4 +216,26 @@
         </div>
 
     </div>
+
+<script>
+function filterDashboardQueue() {
+    const filter = (document.getElementById('dashboard-room-filter').value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.queue-row');
+    let visible = 0;
+    rows.forEach(r => {
+        const room = (r.getAttribute('data-room') || '').toLowerCase().trim();
+        if (!filter || room.includes(filter) || filter.includes(room)) {
+            r.style.display = '';
+            visible++;
+        } else {
+            r.style.display = 'none';
+        }
+    });
+    const emptyRow = document.getElementById('dashboard-queue-empty');
+    if (emptyRow) {
+        emptyRow.style.display = (visible === 0 && rows.length > 0) ? '' : 'none';
+    }
+}
+</script>
+
 {% endblock %}
