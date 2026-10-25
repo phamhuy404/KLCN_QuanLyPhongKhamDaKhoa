@@ -322,35 +322,27 @@ class UserModel:
         for d in doctors:
             is_act = bool(d.get('is_active_now'))
             d['is_active_now'] = is_act
-            d['trang_thai_hoat_dong'] = 'Đang hoạt động' if is_act else 'Ngoài giờ làm việc'
+            d['trang_thai_hoat_dong'] = 'Đang làm việc' if is_act else 'Ngoài giờ làm việc'
             d['ten_khoa'] = d.get('ten_khoa') or 'Chưa phân khoa'
 
         return doctors
 
     @staticmethod
-    def create_doctor_account(ho_ten, sdt, email=None, chuyen_khoa_id=None, audit_user=None, username=None):
-        """Admin tạo tài khoản bác sĩ mới với mật khẩu mặc định là 123 và cờ chưa hoàn thiện hồ sơ."""
+    def create_doctor_account(ho_ten=None, sdt=None, email=None, chuyen_khoa_id=None, audit_user=None, username=None):
+        """Admin/Tiếp tân tạo tài khoản bác sĩ mới: chỉ cần SĐT, mật khẩu tự gán 123. Bác sĩ tự điền họ tên và hoàn thiện hồ sơ khi đăng nhập lần đầu."""
         conn = get_db()
         cursor = conn.cursor()
 
         try:
+            # Hỗ trợ truyền linh hoạt vị trí đối số (nếu truyền 1 tham số là sdt)
+            if sdt is None and ho_ten and (str(ho_ten).startswith('0') or str(ho_ten).isdigit()):
+                sdt = ho_ten
+                ho_ten = None
+
             sdt = str(sdt or '').strip()
-            ho_ten = str(ho_ten or '').strip()
             username = str(username or '').strip() or sdt
             email = str(email or '').strip() or None
             chuyen_khoa_id = int(chuyen_khoa_id) if chuyen_khoa_id else 1
-
-            if not ho_ten or len(ho_ten) < 2:
-                conn.close()
-                return False, 'Vui lòng nhập họ và tên bác sĩ hợp lệ (ít nhất 2 ký tự)!'
-
-            if ' ' in username:
-                conn.close()
-                return False, 'Tên đăng nhập không được chứa khoảng cách!'
-
-            if len(username) < 3 or len(username) > 50:
-                conn.close()
-                return False, 'Tên đăng nhập phải từ 3 đến 50 ký tự!'
 
             from core.validators import validate_phone, validate_email
 
@@ -359,6 +351,17 @@ class UserModel:
                 conn.close()
                 return False, res_phone
             sdt = res_phone
+
+            # Họ tên: nếu không nhập thì đặt tên tạm thời, bác sĩ sẽ tự điền khi đăng nhập lần đầu
+            ho_ten = str(ho_ten or '').strip() or f"Bác sĩ {sdt}"
+
+            if ' ' in username:
+                conn.close()
+                return False, 'Tên đăng nhập không được chứa khoảng cách!'
+
+            if len(username) < 3 or len(username) > 50:
+                conn.close()
+                return False, 'Tên đăng nhập phải từ 3 đến 50 ký tự!'
 
             if email:
                 ok_email, res_email = validate_email(email, required=False)
@@ -475,7 +478,7 @@ class UserModel:
 
             from core.validators import validate_name, validate_cccd, validate_birth_date, validate_email, validate_address
             ho_ten = str(data.get('ho_ten', '')).strip()
-            ok_name, res_name = validate_name(ho_ten, 'Họ tên bác sĩ')
+            ok_name, res_name = validate_name(ho_ten, 'Họ tên bác sĩ', allow_titles=True)
             if not ok_name:
                 conn.close()
                 return False, res_name

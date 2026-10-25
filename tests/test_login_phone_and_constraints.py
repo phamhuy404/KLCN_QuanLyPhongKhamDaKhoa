@@ -219,5 +219,60 @@ class TestLoginPhoneAndConstraints(unittest.TestCase):
             self.assertIn('ma_bn', o)
             self.assertTrue(o['ma_bn'], "ma_bn không được để trống hoặc None")
 
+    def test_07_create_doctor_only_phone_and_complete_profile_later(self):
+        """Kiểm tra Admin chỉ cần nhập SĐT tạo tài khoản, Bác sĩ tự điền họ tên khi đăng nhập lần đầu."""
+        random_suffix = random.randint(1000000, 9999999)
+        test_phone = f"096{random_suffix}"
+
+        # 1. Admin tạo tài khoản chỉ bằng SĐT (không truyền ho_ten)
+        ok_create, msg_create = UserModel.create_doctor_account(sdt=test_phone)
+        self.assertTrue(ok_create, f"Không tạo được tài khoản bác sĩ bằng SĐT: {msg_create}")
+
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, da_hoan_thien_ho_so FROM tai_khoan WHERE username = ?", (test_phone,))
+        acc = cursor.fetchone()
+        self.assertIsNotNone(acc)
+        self.assertEqual(acc['da_hoan_thien_ho_so'], 0)
+
+        # 2. Đăng xuất phiên admin trước đó nếu có và Bác sĩ đăng nhập lần đầu bằng SĐT và 123
+        self.client.get('/logout')
+        login_res = self.client.post('/login', data={
+            'username': test_phone,
+            'password': '123'
+        }, follow_redirects=False)
+        self.assertEqual(login_res.status_code, 302)
+        self.assertIn('/admin/doctor/complete-profile', login_res.headers.get('Location', ''))
+
+        # 3. Bác sĩ tự khai báo họ tên thật và hoàn tất hồ sơ
+        actual_name = "BS. CKII Lê Minh Trí"
+        complete_ok, complete_msg = UserModel.complete_doctor_profile(acc['id'], {
+            'ho_ten': actual_name,
+            'new_password': 'SecureDoctorPass@123',
+            'confirm_password': 'SecureDoctorPass@123',
+            'chuyen_khoa_id': 1,
+            'hoc_vi': 'BS. CKII',
+            'gioi_tinh': 1,
+            'ngay_sinh': '1985-10-10',
+            'cccd': '079085000123'
+        })
+        self.assertTrue(complete_ok, f"Lỗi hoàn thiện hồ sơ bác sĩ: {complete_msg}")
+
+        # 4. Xác nhận họ tên thật đã được cập nhật thành công trong nhan_vien
+        cursor.execute("SELECT ho_ten FROM nhan_vien WHERE tai_khoan_id = ?", (acc['id'],))
+        nv_updated = cursor.fetchone()
+        self.assertEqual(nv_updated['ho_ten'], actual_name)
+
+        # Dọn dẹp
+        cursor.execute("SELECT id FROM nhan_vien WHERE tai_khoan_id = ?", (acc['id'],))
+        nv = cursor.fetchone()
+        if nv:
+            cursor.execute("DELETE FROM bac_si WHERE nhan_vien_id = ?", (nv['id'],))
+            cursor.execute("DELETE FROM nhan_vien WHERE id = ?", (nv['id'],))
+        cursor.execute("DELETE FROM tai_khoan WHERE id = ?", (acc['id'],))
+        conn.commit()
+        conn.close()
+
 if __name__ == '__main__':
     unittest.main()
+

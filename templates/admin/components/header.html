@@ -94,7 +94,7 @@
                     <div class="flex items-center gap-1.5">
                         <h4 class="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px] group-hover:text-medical-600 transition-colors">{{ curr_user.get('ho_ten', 'Quản trị viên') }}</h4>
                         <span id="header-user-status-badge" class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Trong ca trực
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Đang làm việc
                         </span>
                     </div>
                     <span class="text-[10px] text-teal-700 font-semibold block leading-tight mt-0.5">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro', 'ADMIN') }}</span>
@@ -166,13 +166,10 @@
 
         if (inShift1 || inShift2 || inShift3) {
             badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1";
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Trong ca trực';
-        } else if (totalMin > 1230 || (totalMin > 690 && totalMin < 810) || (totalMin > 1020 && totalMin < 1050)) {
-            badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1";
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Hết giờ ca trực';
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Đang làm việc';
         } else {
             badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1";
-            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Ngoài giờ làm';
+            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Ngoài giờ làm việc';
         }
     }
     updateHeaderDutyStatus();

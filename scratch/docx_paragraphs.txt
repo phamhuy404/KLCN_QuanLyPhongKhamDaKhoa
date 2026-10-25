@@ -1,0 +1,7 @@
+1: Kịch bản số 1 hiện không có chỗ để nhập tên đăng nhập thêm ràng buộc là không cho có khoảng cách  , và ràng buộc ở họ tên bác sĩ nên bỏkhi nhấn vào biểu tượng ở cuối thì nó hiển thị lỗi như trên khi nhấn vòa biểu tượng xem chi tiết thì nó báo lỗi như trên 
+2: Kịch bản 2tạo tài khoản thành công khi đăng nhập bằng tài khoản mới vào thì chưa đưa vào trang để nhập thông tin 
+3: Kịch bản 3khi ấn vào nút ở dưới thì báo lỗi ở trên 
+4: có thể tiếp nhận bệnh nhân, nhưng khi hủy thì lại không đượcở danh sách bệnh nhân chờ,khi chọn phòng khám khác thì danh sachs ở dướinó không thay đổi  
+5: khi tôi nhán vào tên bệnh nhân thì nó hiển thị lỗi ở trên 
+6: khi nhấn vào menu quản lý bệnh nhân thì nó hiển thị lỗi ở trên 
+7: khi nhấn vào hồ sơ của tôi thì nó hiển thị lỗi như trên khi nhấn vào menu nhân sự và lịch trực thì nó hiển thị lỗi như trên 

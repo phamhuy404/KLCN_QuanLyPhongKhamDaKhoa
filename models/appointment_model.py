@@ -230,7 +230,7 @@ class AppointmentModel:
                 (shift == 3 and 17 <= now_h < 21)
             ))
             r['is_active_now'] = is_active_now
-            r['trang_thai_hoat_dong'] = 'Đang hoạt động' if is_active_now else 'Ngoài giờ làm việc'
+            r['trang_thai_hoat_dong'] = 'Đang làm việc' if is_active_now else 'Ngoài giờ làm việc'
 
         return rows, shift
 

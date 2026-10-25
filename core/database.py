@@ -125,7 +125,7 @@ def ensure_schema_updates(conn):
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'yeu_cau_doi_mat_khau') ALTER TABLE tai_khoan ADD yeu_cau_doi_mat_khau TINYINT DEFAULT 0;",
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'sdt') ALTER TABLE tai_khoan ADD sdt NVARCHAR(20) NULL;",
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tai_khoan') AND name = 'email') ALTER TABLE tai_khoan ADD email NVARCHAR(100) NULL;",
-            "UPDATE tai_khoan SET da_hoan_thien_ho_so = 1 WHERE vai_tro_id IN (1, 2, 3, 4, 5);",
+            "UPDATE tai_khoan SET da_hoan_thien_ho_so = 1 WHERE vai_tro_id IN (1, 2, 3, 4, 5) AND da_hoan_thien_ho_so IS NULL;",
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('thuoc') AND name = 'ton_kho_toi_thieu') ALTER TABLE thuoc ADD ton_kho_toi_thieu INT DEFAULT 20;",
             "UPDATE thuoc SET ton_kho_toi_thieu = 20 WHERE ton_kho_toi_thieu IS NULL;",
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('benh_nhan') AND name = 'ghi_chu_nhom_mau') ALTER TABLE benh_nhan ADD ghi_chu_nhom_mau NVARCHAR(255) NULL;",

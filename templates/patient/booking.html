@@ -367,7 +367,7 @@
                         const isChecked = selectedDoctorId === doc.id ? 'checked' : '';
                         const slotsLeft = Math.max(0, (doc.so_luong_kham_toi_da || 20) - (doc.so_luong_da_dang_ky || 0));
                         const statusBadge = doc.is_active_now 
-                            ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Đang hoạt động</span>`
+                            ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Đang làm việc</span>`
                             : `<span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Ngoài giờ làm việc</span>`;
 
                         html += `

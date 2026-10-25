@@ -170,9 +170,9 @@ class DoctorAndPrescriptionWorkflowTestCase(unittest.TestCase):
         for doc in doctors:
             self.assertIn('is_active_now', doc)
             self.assertIn('trang_thai_hoat_dong', doc)
-            self.assertIn(doc['trang_thai_hoat_dong'], ['Đang hoạt động', 'Ngoài giờ làm việc'])
+            self.assertIn(doc['trang_thai_hoat_dong'], ['Đang làm việc', 'Ngoài giờ làm việc'])
             if doc['is_active_now']:
-                self.assertEqual(doc['trang_thai_hoat_dong'], 'Đang hoạt động')
+                self.assertEqual(doc['trang_thai_hoat_dong'], 'Đang làm việc')
             else:
                 self.assertEqual(doc['trang_thai_hoat_dong'], 'Ngoài giờ làm việc')
 
