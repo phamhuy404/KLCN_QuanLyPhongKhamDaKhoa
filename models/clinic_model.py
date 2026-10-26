@@ -219,16 +219,27 @@ class ClinicModel:
             return False, f"Lỗi tạo phòng khám: {str(e)}"
 
     @staticmethod
-    def update_room(room_id, chuyen_khoa_id, ma_phong, ten_phong, vi_tri_tang='Tầng 1', trang_thai=1):
+    def update_room(room_id, chuyen_khoa_id=None, ma_phong=None, ten_phong=None, vi_tri_tang=None, trang_thai=None):
         """Cập nhật thông tin phòng khám."""
-        ma_phong = (ma_phong or '').strip().upper()
-        ten_phong = (ten_phong or '').strip()
-        if not chuyen_khoa_id or not ma_phong or not ten_phong:
-            return False, "Thông tin phòng khám không được để trống!"
-
         conn = get_db()
         cursor = conn.cursor()
         try:
+            cursor.execute('SELECT chuyen_khoa_id, ma_phong, ten_phong, vi_tri_tang, trang_thai FROM phong_kham WHERE id = ?', (room_id,))
+            cur_room = cursor.fetchone()
+            if not cur_room:
+                conn.close()
+                return False, "Không tìm thấy phòng khám!"
+
+            chuyen_khoa_id = chuyen_khoa_id or cur_room['chuyen_khoa_id']
+            ma_phong = (ma_phong or cur_room['ma_phong'] or '').strip().upper()
+            ten_phong = (ten_phong or cur_room['ten_phong'] or '').strip()
+            vi_tri_tang = vi_tri_tang or cur_room.get('vi_tri_tang') or 'Tầng 1'
+            trang_thai = int(trang_thai) if trang_thai is not None else cur_room.get('trang_thai', 1)
+
+            if not chuyen_khoa_id or not ma_phong or not ten_phong:
+                conn.close()
+                return False, "Thông tin phòng khám không được để trống!"
+
             cursor.execute('SELECT id FROM phong_kham WHERE ma_phong = ? AND id != ?', (ma_phong, room_id))
             if cursor.fetchone():
                 conn.close()

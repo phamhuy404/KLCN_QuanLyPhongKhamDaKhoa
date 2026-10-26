@@ -329,6 +329,7 @@ def create_staff_account():
     return redirect(url_for('admin.staff', tab='staff'))
 
 @admin_bp.route('/sample-csv/<string:module>')
+@admin_bp.route('/download-sample-csv/<string:module>')
 @roles_required('ADMIN', 'LETAN', 'DUOCSI')
 def download_sample_csv(module):
     """Tải tệp CSV mẫu chuẩn UTF-8-SIG."""

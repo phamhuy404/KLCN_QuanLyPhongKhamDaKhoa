@@ -1455,14 +1455,16 @@ class UserModel:
                 except (ValueError, TypeError):
                     pass
 
+            trang_thai_lam_viec = form_data.get('trang_thai_lam_viec')
             cursor.execute('''
                 UPDATE bac_si
                 SET hoc_vi = COALESCE(?, hoc_vi),
                     kinh_nghiem = COALESCE(?, kinh_nghiem),
                     gioi_thieu = COALESCE(?, gioi_thieu),
-                    gia_kham = COALESCE(?, gia_kham)
+                    gia_kham = COALESCE(?, gia_kham),
+                    trang_thai_lam_viec = COALESCE(NULLIF(?, ''), trang_thai_lam_viec)
                 WHERE nhan_vien_id = (SELECT id FROM nhan_vien WHERE tai_khoan_id = ?)
-            ''', (hoc_vi, kinh_nghiem, gioi_thieu, gia_kham_val, account_id))
+            ''', (hoc_vi, kinh_nghiem, gioi_thieu, gia_kham_val, trang_thai_lam_viec, account_id))
 
             conn.commit()
             conn.close()
@@ -1514,6 +1516,28 @@ class UserModel:
             conn.commit()
             conn.close()
             return True, 'Cập nhật tên đăng nhập thành công!'
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+
+    @staticmethod
+    def toggle_doctor_work_status(doctor_id):
+        """Bật/tắt trạng thái làm việc của bác sĩ: Đang làm việc <-> Ngoài giờ làm việc."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('SELECT trang_thai_lam_viec FROM bac_si WHERE id = ?', (doctor_id,))
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return False, 'Không tìm thấy thông tin bác sĩ!'
+            current = row.get('trang_thai_lam_viec') or 'Đang làm việc'
+            new_st = 'Ngoài giờ làm việc' if current == 'Đang làm việc' else 'Đang làm việc'
+            cursor.execute('UPDATE bac_si SET trang_thai_lam_viec = ? WHERE id = ?', (new_st, doctor_id))
+            conn.commit()
+            conn.close()
+            return True, new_st
         except Exception as e:
             conn.rollback()
             conn.close()

@@ -46,6 +46,22 @@ class CSVService:
                 ['LH2609901', '0901234567', 'Hoàng Bảo Nam', 1, 1, '2026-10-25', '09:00', 'Tái khám dạ dày định kỳ', 'Chờ xác nhận'],
                 ['LH2609902', '0908111222', 'Nguyễn Thị Lan', 3, '', '2026-10-26', '14:30', 'Khám tổng quát sức khỏe', 'Chờ xác nhận']
             ]
+        },
+        'patients': {
+            'name': 'Danh sách bệnh nhân',
+            'headers': ['Mã Bệnh Nhân', 'Họ Và Tên', 'Ngày Sinh', 'Giới Tính', 'Số Điện Thoại', 'Email', 'CCCD', 'Mã BHYT', 'Địa Chỉ', 'Nhóm Máu', 'Dị Ứng', 'Bệnh Lý Nền'],
+            'sample_rows': [
+                ['BN2609001', 'Nguyễn Văn An', '1990-05-15', 'Nam', '0901234567', 'an.nguyen@email.com', '079190001234', '0791950001', 'Quận 1, TP.HCM', 'O+', 'Không có', 'Không có'],
+                ['BN2609002', 'Trần Thị Bình', '1995-10-20', 'Nữ', '0908111222', 'binh.tran@email.com', '079195005678', '0791950002', 'Quận 3, TP.HCM', 'A+', 'Penicillin', 'Tăng huyết áp']
+            ]
+        },
+        'doctors': {
+            'name': 'Danh sách bác sĩ chuyên khoa',
+            'headers': ['Mã Bác Sĩ', 'Họ Và Tên', 'Chuyên Khoa ID', 'Học Vị', 'Số Điện Thoại', 'Email', 'Kinh Nghiệm', 'Giá Khám', 'Trạng Thái'],
+            'sample_rows': [
+                ['BS001', 'BS.CKI Trần Minh Quân', 1, 'Bác sĩ Chuyên khoa I', '0912111001', 'quan.bs@h2tcare.vn', '10 năm kinh nghiệm', 250000, 'Đang làm việc'],
+                ['BS002', 'ThS.BS Lê Hồng Phúc', 2, 'Thạc sĩ Y khoa', '0912111002', 'phuc.bs@h2tcare.vn', '8 năm kinh nghiệm', 200000, 'Đang làm việc']
+            ]
         }
     }
 
@@ -186,6 +202,50 @@ class CSVService:
                     str(r.get('gio_hen') or '')[:5],
                     r.get('ly_do_kham') or '',
                     r.get('trang_thai') or 'Chờ xác nhận'
+                ])
+
+        elif module == 'patients':
+            writer.writerow(cfg['headers'])
+            cursor.execute('''
+                SELECT ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su_benh
+                FROM benh_nhan
+                ORDER BY id ASC
+            ''')
+            for r in cursor.fetchall():
+                writer.writerow([
+                    r.get('ma_benh_nhan') or '',
+                    r.get('ho_ten') or '',
+                    str(r.get('ngay_sinh') or '')[:10],
+                    r.get('gioi_tinh') or 'Nam',
+                    r.get('sdt') or '',
+                    r.get('email') or '',
+                    r.get('cccd') or '',
+                    r.get('bhyt') or '',
+                    r.get('dia_chi') or '',
+                    r.get('nhom_mau') or 'Chưa rõ',
+                    r.get('di_ung') or 'Không có',
+                    r.get('tien_su_benh') or 'Không có'
+                ])
+
+        elif module == 'doctors':
+            writer.writerow(cfg['headers'])
+            cursor.execute('''
+                SELECT bs.id, nv.ho_ten, bs.chuyen_khoa_id, bs.hoc_vi, nv.sdt, nv.email, bs.kinh_nghiem, bs.gia_kham, bs.trang_thai_lam_viec
+                FROM bac_si bs
+                JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                ORDER BY bs.id ASC
+            ''')
+            for r in cursor.fetchall():
+                writer.writerow([
+                    f"BS{str(r.get('id')).zfill(3)}",
+                    r.get('ho_ten') or '',
+                    r.get('chuyen_khoa_id') or 1,
+                    r.get('hoc_vi') or 'Bác sĩ',
+                    r.get('sdt') or '',
+                    r.get('email') or '',
+                    r.get('kinh_nghiem') or '',
+                    r.get('gia_kham') or 150000,
+                    r.get('trang_thai_lam_viec') or 'Đang làm việc'
                 ])
 
         conn.close()

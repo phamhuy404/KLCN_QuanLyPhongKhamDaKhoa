@@ -231,7 +231,11 @@ class ScheduleModel:
             return False, "Không tìm thấy hồ sơ nhân viên y tế liên kết với tài khoản này!"
 
         try:
-            ca_lam = int(ca_lam)
+            if isinstance(ca_lam, str):
+                ca_map = {'sáng': 1, 'sang': 1, 'chiều': 2, 'chieu': 2, 'tối': 3, 'toi': 3, '1': 1, '2': 2, '3': 3}
+                ca_lam = ca_map.get(ca_lam.strip().lower(), 1)
+            else:
+                ca_lam = int(ca_lam)
             if ca_lam not in [1, 2, 3]:
                 ca_lam = 1
             work_date = datetime.strptime(str(ngay_lam)[:10], '%Y-%m-%d').date()

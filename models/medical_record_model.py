@@ -240,19 +240,33 @@ class MedicalRecordModel:
 
     @staticmethod
     def get_examination_by_id(record_id):
-        """Lấy thông tin chi tiết một phiếu khám bệnh EMR."""
+        """Lấy thông tin chi tiết một phiếu khám bệnh EMR theo ID hoặc mã phiếu."""
+        if not record_id:
+            return None
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT pk.*, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.ngay_sinh, bn.gioi_tinh,
-                   nv.ho_ten AS ten_bac_si, p.ten_phong
-            FROM phieu_kham pk
-            JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
-            LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
-            LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-            LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
-            WHERE pk.id = ?
-        ''', (record_id,))
+        if str(record_id).isdigit():
+            cursor.execute('''
+                SELECT pk.*, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.ngay_sinh, bn.gioi_tinh,
+                       nv.ho_ten AS ten_bac_si, p.ten_phong
+                FROM phieu_kham pk
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
+                WHERE pk.id = ? OR pk.ma_phieu = ?
+            ''', (int(record_id), str(record_id)))
+        else:
+            cursor.execute('''
+                SELECT pk.*, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan, bn.ngay_sinh, bn.gioi_tinh,
+                       nv.ho_ten AS ten_bac_si, p.ten_phong
+                FROM phieu_kham pk
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
+                WHERE pk.ma_phieu = ?
+            ''', (str(record_id),))
         row = cursor.fetchone()
         conn.close()
         return dict(row) if row else None

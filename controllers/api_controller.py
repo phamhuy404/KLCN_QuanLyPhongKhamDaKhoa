@@ -56,8 +56,8 @@ def assign_doctor():
 @roles_required('ADMIN', 'BACSI', 'LETAN')
 def doctor_schedule_availability():
     """API tra cứu bác sĩ theo chuyên khoa kèm lịch trực và số lượt còn trống trong ngày."""
-    dept_id = request.args.get('department_id', type=int)
-    date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    dept_id = request.args.get('department_id', type=int) or request.args.get('chuyen_khoa_id', type=int)
+    date_str = request.args.get('date') or request.args.get('ngay_hen') or datetime.now().strftime('%Y-%m-%d')
     if not dept_id:
         return jsonify({'success': False, 'message': 'Thiếu mã chuyên khoa!'}), 400
 
@@ -997,8 +997,8 @@ def create_schedule():
     bs_id = data.get('bac_si_id')
     nhan_vien_id = data.get('nhan_vien_id')
     pk_id = data.get('phong_kham_id')
-    ngay = data.get('ngay_lam')
-    ca = data.get('ca_lam', 1)
+    ngay = data.get('ngay_lam') or data.get('ngay_lam_viec') or data.get('ngay')
+    ca = data.get('ca_lam') or data.get('ca_lam_viec') or data.get('ca', 1)
     bd = data.get('gio_bat_dau')
     kt = data.get('gio_ket_thuc')
     sl = data.get('so_luong_kham_toi_da', 20)
@@ -1015,10 +1015,10 @@ def register_schedule():
     from models.schedule_model import ScheduleModel
     data = request.get_json() or {}
     user = session.get('user')
-    ngay = data.get('ngay_lam')
-    ca = data.get('ca_lam', 1)
-    pk_id = data.get('phong_kham_id')
-    ghi_chu = data.get('ghi_chu')
+    ngay = data.get('ngay_lam') or data.get('ngay_lam_viec') or data.get('ngay') or data.get('date')
+    ca = data.get('ca_lam') if data.get('ca_lam') is not None else (data.get('ca_lam_viec') if data.get('ca_lam_viec') is not None else (data.get('ca') if data.get('ca') is not None else 1))
+    pk_id = data.get('phong_kham_id') or data.get('room_id')
+    ghi_chu = data.get('ghi_chu') or data.get('note')
     ok, msg = ScheduleModel.register_schedule(user, ngay, ca, pk_id, ghi_chu)
     if ok:
         return jsonify({'success': True, 'message': msg})
@@ -1163,8 +1163,8 @@ def delete_schedule():
 def get_available_doctors():
     """API lấy danh sách bác sĩ có ca trực phù hợp theo chuyên khoa và ngày khám."""
     from models.schedule_model import ScheduleModel
-    ck_id = request.args.get('chuyen_khoa_id', type=int)
-    ngay = request.args.get('ngay_hen')
+    ck_id = request.args.get('chuyen_khoa_id', type=int) or request.args.get('department_id', type=int)
+    ngay = request.args.get('ngay_hen') or request.args.get('date') or request.args.get('ngay')
     if not ck_id or not ngay:
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp chuyên khoa và ngày khám!'}), 400
 
@@ -1379,11 +1379,15 @@ def view_lab_result(chi_tiet_id):
 # 9. CHỈNH SỬA VÀ QUẢN LÝ BỆNH ÁN ĐIỆN TỬ
 
 @api_bp.route('/emr/detail/<int:record_id>', methods=['GET'])
+@api_bp.route('/emr/detail', methods=['GET'])
 @login_required
-def get_emr_detail(record_id):
+def get_emr_detail(record_id=None):
     """API xem chi tiết một phiếu khám bệnh án EMR."""
+    target_id = record_id or request.args.get('record_id') or request.args.get('id') or request.args.get('ma_phieu')
+    if not target_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID hoặc mã phiếu khám!'}), 400
     user = session.get('user', {})
-    rec = MedicalRecordModel.get_examination_by_id(record_id)
+    rec = MedicalRecordModel.get_examination_by_id(target_id)
     if not rec:
         return jsonify({'success': False, 'message': 'Không tìm thấy hồ sơ bệnh án!'}), 404
 
@@ -1427,11 +1431,23 @@ def update_emr_record():
     return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/emr/history/<int:record_id>', methods=['GET'])
+@api_bp.route('/emr/history', methods=['GET'])
 @roles_required('ADMIN', 'BACSI')
-def get_emr_history(record_id):
-    """API xem lịch sử chỉnh sửa hồ sơ bệnh án."""
+def get_emr_history(record_id=None):
+    """API xem lịch sử chỉnh sửa hồ sơ bệnh án hoặc lịch sử khám của bệnh nhân."""
+    target_rec = record_id or request.args.get('record_id') or request.args.get('id')
+    patient_id = request.args.get('patient_id') or request.args.get('benh_nhan_id')
+    
+    if patient_id:
+        from models.patient_model import PatientModel
+        history_records = PatientModel.get_patient_history(patient_id)
+        return jsonify({'success': True, 'history': history_records, 'records': history_records})
+
+    if not target_rec:
+        return jsonify({'success': False, 'message': 'Thiếu ID phiếu khám hoặc ID bệnh nhân!'}), 400
+
     from core.audit import AuditLogger
-    logs = AuditLogger.get_logs(table_name='phieu_kham', row_id=record_id)
+    logs = AuditLogger.get_logs(table_name='phieu_kham', row_id=target_rec)
     return jsonify({'success': True, 'history': logs})
 
 
@@ -1634,3 +1650,26 @@ def approve_prescription_api(prescription_id=None):
     if success:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
+
+
+@api_bp.route('/doctor/toggle-work-status', methods=['POST'])
+@roles_required('ADMIN', 'BACSI', 'LETAN')
+def toggle_doctor_work_status_api():
+    """API chuyển đổi trạng thái làm việc: Đang làm việc <-> Ngoài giờ làm việc."""
+    from models.user_model import UserModel
+    data = request.get_json() or {}
+    doctor_id = data.get('doctor_id') or data.get('bac_si_id')
+    user = session.get('user', {})
+    
+    # Bác sĩ chỉ được đổi trạng thái của chính mình trừ khi là ADMIN/LETAN
+    if user.get('vai_tro') == 'BACSI':
+        if not doctor_id or int(doctor_id) != int(user.get('bac_si_id', 0)):
+            doctor_id = user.get('bac_si_id')
+
+    if not doctor_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID bác sĩ!'}), 400
+
+    ok, res = UserModel.toggle_doctor_work_status(doctor_id)
+    if ok:
+        return jsonify({'success': True, 'new_status': res, 'message': f'Đã chuyển trạng thái sang: {res}'})
+    return jsonify({'success': False, 'message': res}), 400

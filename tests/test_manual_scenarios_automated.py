@@ -517,5 +517,180 @@ class ComprehensiveScenariosTestCase(unittest.TestCase):
                 res = self.client.get(route)
                 self.assertEqual(res.status_code, 200, f"Route {route} trả về status {res.status_code}")
 
+    def test_scenario_08_staff_schedule_management_and_shift_capacity(self):
+        """Kịch bản 8: Đăng ký lịch trực, kiểm tra hạn mức ca trực và tra cứu bác sĩ trực khả dụng"""
+        from models.schedule_model import ScheduleModel
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'bs_noi_1', 'password': 'Password@123'}, follow_redirects=True)
+
+        bounds = ScheduleModel.get_week_bounds()
+        target_date = bounds['next_week_2'][0].strftime('%Y-%m-%d')
+
+        # Thử đăng ký ca trực tối
+        reg_res = self.client.post('/api/schedule/register', json={
+            'ngay_lam_viec': target_date,
+            'ca_lam_viec': 3,
+            'phong_kham_id': 1,
+            'ghi_chu': 'Trực ca tối phòng 101'
+        })
+        self.assertIn(reg_res.status_code, [200, 400])
+        if reg_res.status_code == 400:
+            msg = reg_res.get_json().get('message', '')
+            self.assertTrue(any(w in msg for w in ['đã đủ', 'tối đa', 'đã đăng ký', 'Xung đột']))
+
+        # Tra cứu bác sĩ trực khả dụng
+        avail_res = self.client.get(f'/api/schedule/available-doctors?chuyen_khoa_id=1&ngay_hen={target_date}')
+        self.assertEqual(avail_res.status_code, 200)
+
+        # Admin kiểm tra trang quản lý nhân sự
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+        staff_res = self.client.get('/admin/staff')
+        self.assertEqual(staff_res.status_code, 200)
+
+    def test_scenario_09_medical_catalogs_update_and_toggle(self):
+        """Kịch bản 9: Cập nhật thông tin danh mục phòng khám và bật/tắt kích hoạt trạng thái"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        cat_res = self.client.get('/admin/catalogs')
+        self.assertEqual(cat_res.status_code, 200)
+
+        # Cập nhật thông tin phòng khám 1
+        update_res = self.client.post('/api/catalog/room/update', json={
+            'id': 1,
+            'ten_phong': 'Phòng Khám Nội 101 (Test)',
+            'chuyen_khoa_id': 1
+        })
+        self.assertEqual(update_res.status_code, 200)
+        self.assertTrue(update_res.get_json().get('success'))
+
+        # Toggle tắt và bật lại
+        tog1 = self.client.post('/api/catalog/room/toggle', json={'id': 1})
+        self.assertEqual(tog1.status_code, 200)
+        tog2 = self.client.post('/api/catalog/room/toggle', json={'id': 1})
+        self.assertEqual(tog2.status_code, 200)
+        self.assertEqual(tog2.get_json().get('new_status'), 1)
+
+    def test_scenario_10_cms_article_creation_and_banner_publishing(self):
+        """Kịch bản 10: Quản trị viên đăng bài viết y khoa, banner và hiển thị trang tin tức công khai"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        ts = datetime.now().strftime('%H%M%S')
+        art_res = self.client.post('/admin/articles/create', data={
+            'tieu_de': f'Chăm sóc sức khỏe mùa lạnh {ts}',
+            'danh_muc': 'Cam nang suc khoe',
+            'tom_tat': 'Bảo vệ đường hô hấp trong mùa đông.',
+            'noi_dung': '<p>Nội dung chi tiết bài viết cẩm nang y tế sức khỏe...</p>',
+            'trang_thai': '1'
+        }, follow_redirects=True)
+        self.assertEqual(art_res.status_code, 200)
+
+        banner_res = self.client.post('/admin/banners/create', data={
+            'tieu_de': f'Banner Khám Tổng Quát {ts}',
+            'loai_banner': 'popup',
+            'trang_thai': '1'
+        }, follow_redirects=True)
+        self.assertEqual(banner_res.status_code, 200)
+
+        # Trang tin tức công khai
+        pub_res = self.client.get('/articles')
+        self.assertEqual(pub_res.status_code, 200)
+
+    def test_scenario_11_system_database_backup(self):
+        """Kịch bản 11: Tạo bản sao lưu cơ sở dữ liệu hệ thống từ giao diện quản trị"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        bk_page = self.client.get('/admin/backups')
+        self.assertEqual(bk_page.status_code, 200)
+
+        bk_res = self.client.post('/api/backup/create', json={'type': 'database'})
+        self.assertEqual(bk_res.status_code, 200)
+        data = bk_res.get_json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('.bak', data.get('message', ''))
+
+    def test_scenario_12_multi_entity_csv_export_and_sample_templates(self):
+        """Kịch bản 12: Xuất dữ liệu CSV và tải mẫu CSV cho tất cả các phân hệ quản lý"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        modules = ['patients', 'doctors', 'medicines', 'appointments', 'services', 'articles']
+        for mod in modules:
+            with self.subTest(module=mod):
+                exp = self.client.get(f'/admin/export-csv/{mod}')
+                self.assertEqual(exp.status_code, 200, f"Export CSV {mod} failed")
+                self.assertIn('text/csv', exp.content_type)
+
+                sample = self.client.get(f'/admin/download-sample-csv/{mod}')
+                self.assertEqual(sample.status_code, 200, f"Sample CSV {mod} failed")
+
+    def test_scenario_13_reports_financial_and_clinic_analytics(self):
+        """Kịch bản 13: Báo cáo thống kê tài chính, lượt khám và biểu đồ phân tích"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        rep_all = self.client.get('/admin/reports')
+        self.assertEqual(rep_all.status_code, 200)
+
+        rep_filter = self.client.get('/admin/reports?from_date=2026-01-01&to_date=2026-12-31')
+        self.assertEqual(rep_filter.status_code, 200)
+
+    def test_scenario_14_emr_save_normal_and_history_retrieval(self):
+        """Kịch bản 14: Bác sĩ hoàn thành khám sức khỏe nhanh (save-normal) và tra cứu hồ sơ bệnh án"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'bs_noi_1', 'password': 'Password@123'}, follow_redirects=True)
+
+        save_res = self.client.post('/api/emr/save-normal', json={
+            'patient_id': 1,
+            'room_id': 1
+        })
+        self.assertEqual(save_res.status_code, 200)
+        data = save_res.get_json()
+        self.assertTrue(data.get('success'))
+        ma_phieu = data.get('ma_phieu')
+        self.assertTrue(ma_phieu)
+
+        # Chi tiết phiếu khám
+        detail_res = self.client.get(f'/api/emr/detail?ma_phieu={ma_phieu}')
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertTrue(detail_res.get_json().get('success'))
+
+        # Lịch sử bệnh án bệnh nhân
+        history_res = self.client.get('/api/emr/history?patient_id=1')
+        self.assertEqual(history_res.status_code, 200)
+        self.assertTrue(history_res.get_json().get('success'))
+
+    def test_scenario_15_in_app_notifications_and_automated_reminders(self):
+        """Kịch bản 15: Kiểm tra hệ thống quét nhắc lịch tự động và polling thông báo in-app"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        rem_res = self.client.post('/api/notifications/run-reminders')
+        self.assertEqual(rem_res.status_code, 200)
+        self.assertTrue(rem_res.get_json().get('success'))
+
+        poll_res = self.client.get('/api/notifications/poll')
+        self.assertEqual(poll_res.status_code, 200)
+        self.assertTrue(poll_res.get_json().get('success'))
+
+    def test_scenario_16_doctor_work_status_toggle(self):
+        """Kịch bản 16: Bật/tắt trạng thái làm việc (Đang làm việc <-> Ngoài giờ làm việc) của bác sĩ"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        tog1 = self.client.post('/api/doctor/toggle-work-status', json={'doctor_id': 1})
+        self.assertEqual(tog1.status_code, 200)
+        status1 = tog1.get_json().get('new_status')
+        self.assertIn(status1, ['Đang làm việc', 'Ngoài giờ làm việc'])
+
+        tog2 = self.client.post('/api/doctor/toggle-work-status', json={'doctor_id': 1})
+        self.assertEqual(tog2.status_code, 200)
+        status2 = tog2.get_json().get('new_status')
+        self.assertIn(status2, ['Đang làm việc', 'Ngoài giờ làm việc'])
+        self.assertNotEqual(status1, status2)
+
 if __name__ == '__main__':
     unittest.main()
