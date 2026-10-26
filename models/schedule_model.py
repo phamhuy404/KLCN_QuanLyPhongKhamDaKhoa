@@ -12,13 +12,22 @@ class ScheduleModel:
 
     @staticmethod
     def get_week_bounds(target_date=None):
-        """Tính toán khoảng ngày của tuần hiện tại và 2 tuần tiếp theo."""
+        """Tính toán khoảng ngày của tuần hiện tại và 2 tuần tiếp theo tương thích đa định dạng."""
         if not target_date:
             today = date.today()
-        elif isinstance(target_date, str):
-            today = datetime.strptime(str(target_date)[:10], '%Y-%m-%d').date()
+        elif isinstance(target_date, (datetime, date)):
+            today = target_date.date() if isinstance(target_date, datetime) else target_date
         else:
-            today = target_date
+            s = str(target_date).strip()[:10]
+            today = None
+            for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+                try:
+                    today = datetime.strptime(s, fmt).date()
+                    break
+                except ValueError:
+                    pass
+            if not today:
+                today = date.today()
 
         start_cur = today - timedelta(days=today.weekday())
         end_cur = start_cur + timedelta(days=6)
@@ -238,7 +247,20 @@ class ScheduleModel:
                 ca_lam = int(ca_lam)
             if ca_lam not in [1, 2, 3]:
                 ca_lam = 1
-            work_date = datetime.strptime(str(ngay_lam)[:10], '%Y-%m-%d').date()
+            work_date = None
+            if isinstance(ngay_lam, (datetime, date)):
+                work_date = ngay_lam.date() if isinstance(ngay_lam, datetime) else ngay_lam
+            else:
+                s = str(ngay_lam).strip()[:10]
+                for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+                    try:
+                        work_date = datetime.strptime(s, fmt).date()
+                        break
+                    except ValueError:
+                        pass
+            if not work_date:
+                conn.close()
+                return False, "Ngày làm hoặc ca làm việc không hợp lệ!"
         except Exception:
             conn.close()
             return False, "Ngày làm hoặc ca làm việc không hợp lệ!"

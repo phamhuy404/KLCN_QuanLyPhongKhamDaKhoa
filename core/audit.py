@@ -9,6 +9,13 @@ class AuditLogger:
     def log(table_name, row_id, action, performed_by=None, performed_by_name=None, reason=None, before_data=None, after_data=None):
         """Ghi nhận vết kiểm toán vào bảng audit_log."""
         try:
+            safe_row_id = None
+            if row_id is not None:
+                try:
+                    safe_row_id = int(str(row_id).strip())
+                except (ValueError, TypeError):
+                    safe_row_id = None
+
             conn = get_db()
             cursor = conn.cursor()
             before_json = json.dumps(before_data, ensure_ascii=False, default=str) if before_data is not None else None
@@ -18,7 +25,7 @@ class AuditLogger:
             cursor.execute('''
                 INSERT INTO audit_log (table_name, row_id, action, performed_by, performed_by_name, performed_at, reason, before_json, after_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (table_name, row_id, action, performed_by, performed_by_name, now_str, reason, before_json, after_json))
+            ''', (table_name, safe_row_id, action, performed_by, performed_by_name, now_str, reason, before_json, after_json))
             conn.commit()
             conn.close()
             return True

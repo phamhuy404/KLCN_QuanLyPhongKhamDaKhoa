@@ -121,12 +121,12 @@
                     <option value="">Tất cả các phòng</option>
                     {% if rooms %}
                         {% for r in rooms %}
-                        <option value="{{ r.ten_phong }}">{{ r.ten_phong }} ({{ r.ten_khoa }})</option>
+                        <option value="{{ r.id }}" data-name="{{ r.ten_phong }}">{{ r.ten_phong }} ({{ r.ten_khoa }})</option>
                         {% endfor %}
                     {% else %}
-                        <option value="Phòng Khám Nội 01">Phòng Khám Nội 01</option>
-                        <option value="Phòng Khám Nhi">Phòng Khám Nhi</option>
-                        <option value="Phòng Tai Mũi Họng">Phòng Tai Mũi Họng</option>
+                        <option value="1" data-name="Phòng Khám Nội 01">Phòng Khám Nội 01</option>
+                        <option value="2" data-name="Phòng Khám Nhi">Phòng Khám Nhi</option>
+                        <option value="3" data-name="Phòng Tai Mũi Họng">Phòng Tai Mũi Họng</option>
                     {% endif %}
                 </select>
             </div>
@@ -145,8 +145,8 @@
                     </thead>
                     <tbody class="text-sm divide-y divide-slate-100">
                         {% if appointments %}
-                            {% for appt in appointments[:5] %}
-                            <tr class="queue-row hover:bg-slate-50/80 transition-all" data-room="{{ appt.ten_phong or appt.ten_khoa or '' }}">
+                            {% for appt in appointments[:40] %}
+                            <tr class="queue-row hover:bg-slate-50/80 transition-all" data-room-id="{{ appt.phong_kham_id or '' }}" data-room-name="{{ (appt.ten_phong or '') | lower }}" data-dept-name="{{ (appt.ten_khoa or '') | lower }}">
                                 <td class="py-3.5 px-4 font-bold text-medical-600">#{{ "%02d"|format(loop.index) }}</td>
                                 <td class="py-3.5 px-4">
                                     <div class="font-medium text-slate-800">{{ appt.ho_ten_benh_nhan }}</div>
@@ -219,23 +219,45 @@
 
 <script>
 function filterDashboardQueue() {
-    const filter = (document.getElementById('dashboard-room-filter').value || '').toLowerCase().trim();
+    const select = document.getElementById('dashboard-room-filter');
+    const selectedVal = (select.value || '').trim();
+    const selectedText = select.options[select.selectedIndex]?.text?.toLowerCase() || '';
+    const selectedName = (select.options[select.selectedIndex]?.getAttribute('data-name') || '').toLowerCase().trim();
     const rows = document.querySelectorAll('.queue-row');
     let visible = 0;
+
     rows.forEach(r => {
-        const room = (r.getAttribute('data-room') || '').toLowerCase().trim();
-        if (!filter || room.includes(filter) || filter.includes(room)) {
+        const roomId = (r.getAttribute('data-room-id') || '').trim();
+        const roomName = (r.getAttribute('data-room-name') || '').toLowerCase().trim();
+        const deptName = (r.getAttribute('data-dept-name') || '').toLowerCase().trim();
+
+        let match = false;
+        if (!selectedVal) {
+            match = (visible < 6);
+        } else {
+            if (roomId && String(roomId) === String(selectedVal)) {
+                match = true;
+            } else if (selectedName && roomName && (roomName.includes(selectedName) || selectedName.includes(roomName))) {
+                match = true;
+            } else if (selectedText && deptName && selectedText.includes(deptName)) {
+                match = true;
+            }
+        }
+
+        if (match) {
             r.style.display = '';
             visible++;
         } else {
             r.style.display = 'none';
         }
     });
+
     const emptyRow = document.getElementById('dashboard-queue-empty');
     if (emptyRow) {
         emptyRow.style.display = (visible === 0 && rows.length > 0) ? '' : 'none';
     }
 }
+document.addEventListener('DOMContentLoaded', filterDashboardQueue);
 </script>
 
 {% endblock %}

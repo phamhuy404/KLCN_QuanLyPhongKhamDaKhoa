@@ -82,85 +82,24 @@
                             onchange="onDateOrTimeChange()">
                     </div>
 
-                    <!-- Khung giờ khám theo 3 ca làm việc chuẩn -->
-                    <div class="space-y-3 pt-2">
-                        <!-- Ca 1: Sáng (07:00 - 11:30) -> Giờ khám: 08:00 đến 10:30 -->
-                        <div>
-                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
-                                <i class="fa-solid fa-sun text-amber-500 text-xs"></i> Ca Sáng (07:00 - 11:30)
-                            </span>
-                            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="08:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:00</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="08:30" checked class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">08:30</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="09:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:00</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="09:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">09:30</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="10:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">10:00</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="10:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">10:30</div>
-                                </label>
-                            </div>
-                        </div>
+                    <!-- Chú thích quy tắc hiển thị màu khung giờ -->
+                    <div class="flex flex-wrap items-center gap-3 pt-2 pb-1 text-xs">
+                        <span class="text-slate-500 font-medium">Trạng thái:</span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Còn trống (Có thể chọn)
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Đã có người hẹn (Khóa)
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-300 text-[11px] font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span> Ngoài giờ làm việc (Khóa)
+                        </span>
+                    </div>
 
-                        <!-- Ca 2: Chiều (13:30 - 17:00) -> Giờ khám: 14:30 đến 16:00 -->
-                        <div class="pt-2">
-                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
-                                <i class="fa-solid fa-cloud-sun text-teal-500 text-xs"></i> Ca Chiều (13:30 - 17:00)
-                            </span>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="14:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">14:30</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="15:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:00</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="15:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">15:30</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="16:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">16:00</div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Ca 3: Tối (17:30 - 20:30) -> Giờ khám: 18:30 đến 19:30 -->
-                        <div class="pt-2">
-                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
-                                <i class="fa-solid fa-moon text-indigo-500 text-xs"></i> Ca Tối (17:30 - 20:30)
-                            </span>
-                            <div class="grid grid-cols-3 gap-2">
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="18:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">18:30</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="19:00" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">19:00</div>
-                                </label>
-                                <label class="cursor-pointer">
-                                    <input type="radio" name="time_slot" value="19:30" class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
-                                    <div class="py-2.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all">19:30</div>
-                                </label>
-                            </div>
+                    <!-- Khung giờ khám tải động từ máy chủ theo 3 ca làm việc chuẩn -->
+                    <div id="dynamic-time-slots-container" class="space-y-4 pt-1">
+                        <div class="text-center py-6 text-xs text-slate-400">
+                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải dữ liệu khung giờ khám...
                         </div>
                     </div>
                 </div>
@@ -303,7 +242,8 @@
             document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
             document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
 
-            // Tải lại danh sách bác sĩ trực ca theo chuyên khoa mới
+            // Tải lại khung giờ và danh sách bác sĩ trực ca theo chuyên khoa mới
+            fetchTimeSlots();
             fetchDoctorsByShift();
         }
 
@@ -319,6 +259,7 @@
                 const parts = dateInput.split('-');
                 if (parts.length === 3) currentDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
                 updateSummaryTime();
+                fetchTimeSlots();
                 fetchDoctorsByShift();
             }
         }
@@ -331,6 +272,91 @@
             selectedDoctorId = el.value ? parseInt(el.value) : null;
             selectedDoctorName = el.dataset.name || (selectedDoctorId ? "Bác sĩ trực ca" : "Để phòng khám tự phân công bác sĩ");
             document.getElementById('sum-doctor').textContent = selectedDoctorName;
+            // Tải lại trạng thái khung giờ theo bác sĩ đã chọn
+            fetchTimeSlots();
+        }
+
+        // Tải trạng thái các khung giờ khám 30 phút theo ca (còn trống, đã hẹn, ngoài giờ)
+        async function fetchTimeSlots() {
+            const dateInput = document.getElementById('booking-date').value;
+            if (!dateInput) return;
+
+            const container = document.getElementById('dynamic-time-slots-container');
+            const docParam = selectedDoctorId ? `&doctor_id=${selectedDoctorId}` : '';
+            const url = `/api/appointment/time-slots?date=${dateInput}&department_id=${selectedSpecialtyId}${docParam}`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.success || !data.shifts) {
+                    container.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Không thể tải khung giờ.</div>`;
+                    return;
+                }
+
+                let html = '';
+                let firstAvailableSlot = null;
+                let isCurrentTimeAvailable = false;
+
+                data.shifts.forEach(s => {
+                    const iconClass = s.shift === 1 ? 'fa-sun text-amber-500' : (s.shift === 2 ? 'fa-cloud-sun text-teal-500' : 'fa-moon text-indigo-500');
+                    html += `
+                        <div>
+                            <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid ${iconClass} text-xs"></i> ${s.name}
+                            </span>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                    `;
+
+                    s.slots.forEach(slot => {
+                        if (slot.status === 'available') {
+                            if (!firstAvailableSlot) firstAvailableSlot = slot.time;
+                            const isChecked = (currentTime === slot.time);
+                            if (isChecked) isCurrentTimeAvailable = true;
+
+                            html += `
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="time_slot" value="${slot.time}" ${isChecked ? 'checked' : ''} class="peer sr-only" onchange="onTimeSlotSelected(this.value)">
+                                    <div class="py-2 px-1 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-500 peer-checked:text-white hover:border-medical-300 text-center text-xs font-semibold transition-all flex flex-col items-center justify-center gap-0.5">
+                                        <span class="font-bold text-xs">${slot.time}</span>
+                                        <span class="text-[9px] text-emerald-600 peer-checked:text-emerald-100 font-normal">Còn trống</span>
+                                    </div>
+                                </label>
+                            `;
+                        } else if (slot.status === 'booked') {
+                            html += `
+                                <div class="py-2 px-1 rounded-xl border border-amber-300 bg-amber-50/90 text-amber-900 text-center text-xs font-semibold cursor-not-allowed opacity-90 shadow-sm flex flex-col items-center justify-center gap-0.5" title="${slot.reason || 'Đã có người hẹn'}">
+                                    <span class="font-bold text-xs line-through text-amber-700">${slot.time}</span>
+                                    <span class="text-[9px] font-bold text-amber-800 bg-amber-200/80 px-1 py-0.2 rounded">Đã hẹn</span>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="py-2 px-1 rounded-xl border border-rose-300 bg-rose-50/90 text-rose-800 text-center text-xs font-semibold cursor-not-allowed opacity-85 shadow-sm flex flex-col items-center justify-center gap-0.5" title="${slot.reason || 'Ngoài giờ làm việc'}">
+                                    <span class="font-bold text-xs line-through text-rose-600">${slot.time}</span>
+                                    <span class="text-[9px] font-semibold text-rose-700 bg-rose-200/80 px-1 py-0.2 rounded">Ngoài giờ</span>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                if (!isCurrentTimeAvailable && firstAvailableSlot) {
+                    currentTime = firstAvailableSlot;
+                    updateSummaryTime();
+                    const radio = document.querySelector(`input[name="time_slot"][value="${firstAvailableSlot}"]`);
+                    if (radio) radio.checked = true;
+                    fetchDoctorsByShift();
+                }
+            } catch (err) {
+                container.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Lỗi kết nối khi tải khung giờ khám.</div>`;
+            }
         }
 
         // Tải danh sách bác sĩ có ca trực tương ứng với ngày, giờ khám và chuyên khoa
@@ -466,7 +492,8 @@
                 selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
             }
 
-            // Tải danh sách bác sĩ trực ca ngay khi tải trang
+            // Tải danh sách khung giờ và bác sĩ trực ca ngay khi tải trang
+            fetchTimeSlots();
             fetchDoctorsByShift();
         });
     </script>

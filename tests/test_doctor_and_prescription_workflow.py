@@ -436,6 +436,7 @@ class DoctorAndPrescriptionWorkflowTestCase(unittest.TestCase):
 
         # Tạo ca trực test trong lich_lam_viec
         today_str = datetime.now().strftime('%Y-%m-%d')
+        cursor.execute("DELETE FROM lich_hen WHERE bac_si_id = ? AND ngay_hen = ? AND gio_hen = '08:30'", (bs_id, today_str))
         cursor.execute('''
             INSERT INTO lich_lam_viec (bac_si_id, ngay_lam, ca_lam, so_luong_kham_toi_da, so_luong_da_dang_ky, trang_thai, trang_thai_duyet)
             VALUES (?, ?, 1, 20, 2, 1, 'DA_DUYET')

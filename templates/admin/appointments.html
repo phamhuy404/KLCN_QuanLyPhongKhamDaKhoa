@@ -239,7 +239,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Chuyên khoa <span class="text-rose-500">*</span></label>
-                    <select id="app-dept" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                    <select id="app-dept" required onchange="refreshAdminTimeSlots()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
                         {% for dept in departments %}
                         <option value="{{ dept.id }}">{{ dept.ten_khoa }}</option>
                         {% endfor %}
@@ -247,7 +247,7 @@
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Bác sĩ phụ trách</label>
-                    <select id="app-doctor" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                    <select id="app-doctor" onchange="refreshAdminTimeSlots()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
                         <option value="">-- Để phòng khám tự phân công --</option>
                         {% for d in doctors %}
                         <option value="{{ d.id }}">{{ d.hoc_vi or 'BS' }}. {{ d.ho_ten }} ({{ d.ten_khoa or 'Chuyên khoa' }})</option>
@@ -259,18 +259,18 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1">Ngày hẹn khám <span class="text-rose-500">*</span></label>
-                    <input type="date" id="app-date" required value="2026-09-25" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                    <input type="date" id="app-date" required onchange="refreshAdminTimeSlots()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1">Khung giờ hẹn <span class="text-rose-500">*</span></label>
+                    <label class="block font-semibold text-slate-700 mb-1">Khung giờ hẹn (30 phút) <span class="text-rose-500">*</span></label>
                     <select id="app-time" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
-                        <option value="08:00 - 08:30">08:00 - 08:30</option>
-                        <option value="08:30 - 09:00">08:30 - 09:00</option>
-                        <option value="09:00 - 09:30">09:00 - 09:30</option>
-                        <option value="09:30 - 10:00">09:30 - 10:00</option>
-                        <option value="14:00 - 14:30">14:00 - 14:30</option>
-                        <option value="14:30 - 15:00">14:30 - 15:00</option>
+                        <option value="">-- Đang tải khung giờ... --</option>
                     </select>
+                    <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                        <span class="text-emerald-600 font-semibold">🟢 Trống</span>
+                        <span class="text-amber-600 font-semibold">🟡 Đã hẹn (Khóa)</span>
+                        <span class="text-rose-600 font-semibold">🔴 Ngoài giờ (Khóa)</span>
+                    </div>
                 </div>
             </div>
 
@@ -584,7 +584,7 @@
             const data = await res.json();
             if (data.success) {
                 alert(`✅ Đã tiếp nhận thành công lịch khám #${maHen}! Thông báo tiếp nhận đã được gửi cho bệnh nhân.`);
-                const app = appointments.find(a => a.id === id);
+                const app = appointments.find(a => Number(a.id) === Number(id));
                 if (app) app.trang_thai = 'confirmed';
                 filterAppointments();
             } else {
@@ -614,7 +614,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                const app = appointments.find(a => a.id === id);
+                const app = appointments.find(a => Number(a.id) === Number(id));
                 if (app) app.trang_thai = nextStatus;
                 filterAppointments();
             } else {
@@ -643,7 +643,7 @@
             const data = await res.json();
             if (data.success) {
                 alert(data.message || 'Đã hủy lịch hẹn thành công!');
-                const app = appointments.find(a => a.id === id);
+                const app = appointments.find(a => Number(a.id) === Number(id));
                 if (app) app.trang_thai = 'cancelled';
                 filterAppointments();
             } else {
@@ -772,6 +772,44 @@
         }
     }
 
+    async function refreshAdminTimeSlots() {
+        const dateInput = document.getElementById('app-date')?.value;
+        const deptId = document.getElementById('app-dept')?.value;
+        const docId = document.getElementById('app-doctor')?.value;
+        const timeSelect = document.getElementById('app-time');
+        if (!timeSelect || !dateInput) return;
+
+        timeSelect.innerHTML = '<option value="">Đang kiểm tra tình trạng khung giờ...</option>';
+        try {
+            const docParam = docId ? `&doctor_id=${docId}` : '';
+            const res = await fetch(`/api/appointment/time-slots?date=${dateInput}&department_id=${deptId || 1}${docParam}`);
+            const data = await res.json();
+            if (!data.success || !data.shifts) {
+                timeSelect.innerHTML = '<option value="08:00">08:00 (Mặc định)</option>';
+                return;
+            }
+
+            let html = '';
+            data.shifts.forEach(s => {
+                html += `<optgroup label="${s.name}">`;
+                s.slots.forEach(slot => {
+                    if (slot.status === 'available') {
+                        html += `<option value="${slot.time}">${slot.time} - Còn trống</option>`;
+                    } else if (slot.status === 'booked') {
+                        html += `<option value="${slot.time}" disabled style="background-color: #fef3c7; color: #92400e;">[ĐÃ HẸN] ${slot.time} - Đã có người hẹn</option>`;
+                    } else {
+                        html += `<option value="${slot.time}" disabled style="background-color: #ffe4e6; color: #9f1239;">[NGOÀI GIỜ] ${slot.time} - Ngoài giờ</option>`;
+                    }
+                });
+                html += `</optgroup>`;
+            });
+
+            timeSelect.innerHTML = html;
+        } catch (e) {
+            timeSelect.innerHTML = '<option value="08:00">08:00</option><option value="08:30">08:30</option>';
+        }
+    }
+
     // Modal tạo lịch hẹn mới có khóa tự động theo bác sĩ
     function openNewAppointmentModal() {
         const modal = document.getElementById('new-appointment-modal');
@@ -800,6 +838,8 @@
             }
             if (banner) banner.classList.remove('hidden');
         }
+
+        refreshAdminTimeSlots();
     }
 
     function closeNewAppointmentModal() {

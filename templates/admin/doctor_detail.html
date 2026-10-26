@@ -98,9 +98,15 @@
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
                             {{ doctor.hoc_vi }}
                         </span>
+                        {% if (doctor.trang_thai_lam_viec or 'Đang làm việc') == 'Đang làm việc' %}
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {{ doctor.trang_thai_lam_viec or 'Đang làm việc' }}
+                            Đang làm việc
                         </span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            Ngoài giờ làm việc
+                        </span>
+                        {% endif %}
                     </div>
 
                     <p class="text-xs font-semibold text-slate-700">

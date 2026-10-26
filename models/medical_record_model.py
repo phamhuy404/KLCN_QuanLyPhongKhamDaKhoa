@@ -2,6 +2,20 @@ from datetime import datetime
 from core.database import get_db
 from core.audit import AuditLogger
 
+def normalize_reexam_date(reexam_date):
+    """Chuẩn hóa ngày tái khám sang chuỗi YYYY-MM-DD hoặc None nếu rỗng/không hợp lệ."""
+    if not reexam_date:
+        return None
+    s = str(reexam_date).strip()
+    if not s or s.lower() in ['none', 'null', '']:
+        return None
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+        try:
+            return datetime.strptime(s[:10], fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+    return None
+
 class MedicalRecordModel:
     """Model quản lý hồ sơ bệnh án điện tử EMR, phiếu khám, chỉ định CLS và đơn thuốc."""
 
@@ -286,7 +300,7 @@ class MedicalRecordModel:
                 UPDATE phieu_kham
                 SET chan_doan_so_bo = ?, chan_doan_icd = ?, huong_dieu_tri = ?, loi_dan = ?, ngay_tai_kham = ?
                 WHERE id = ?
-            ''', (diagnosis, icd, treatment, advice, reexam_date, record_id))
+            ''', (diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), record_id))
 
             conn.commit()
             conn.close()
@@ -340,7 +354,7 @@ class MedicalRecordModel:
                 SET chan_doan_so_bo = ?, chan_doan_icd = ?, huong_dieu_tri = ?, loi_dan = ?, ngay_tai_kham = ?,
                     hinh_anh_kham = COALESCE(?, hinh_anh_kham), trang_thai = N'Hoàn thành'
                 WHERE id = ?
-            ''', (diagnosis, icd, treatment, advice, reexam_date, images_json, record_id))
+            ''', (diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), images_json, record_id))
 
             # 2. Cập nhật lịch hẹn sang Đã khám
             cursor.execute('''
@@ -458,7 +472,7 @@ class MedicalRecordModel:
             cursor.execute('''
                 INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, hinh_anh_kham, trang_thai)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ma_phieu, patient_id, valid_doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date, images_json, initial_pk_status))
+            ''', (ma_phieu, patient_id, valid_doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), images_json, initial_pk_status))
             phieu_kham_id = cursor.lastrowid
 
             # Cập nhật lịch hẹn tương ứng

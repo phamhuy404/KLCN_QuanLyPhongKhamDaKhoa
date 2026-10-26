@@ -653,8 +653,15 @@ class UserModel:
         phong_kham_id = data.get('phong_kham_id')
         hoc_vi = data.get('hoc_vi', 'Bác sĩ')
 
-        if not ho_ten or not sdt or not chuc_vu:
-            return False, 'Họ tên, số điện thoại và chức vụ là bắt buộc!'
+        if not chuc_vu:
+            role_dict = {1: 'Quản trị viên', 2: 'Tiếp tân', 3: 'Bác sĩ', 4: 'Dược sĩ', 5: 'Kỹ thuật viên'}
+            chuc_vu = role_dict.get(int(vai_tro_id or 2), 'Nhân viên y tế')
+
+        if int(vai_tro_id or 2) == 3 and not ho_ten:
+            ho_ten = f"Bác sĩ {sdt}"
+
+        if not ho_ten or not sdt:
+            return False, 'Họ tên và số điện thoại là bắt buộc!'
 
         conn = get_db()
         cursor = conn.cursor()
@@ -1155,21 +1162,38 @@ class UserModel:
         """Lấy thông tin chi tiết đầy đủ của một bác sĩ phục vụ trang hồ sơ bác sĩ 360 độ."""
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
-                   nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.sdt, nv.email, nv.gioi_tinh,
-                   nv.ngay_sinh, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.trang_thai,
-                   t.id AS tai_khoan_id, t.username, t.ngay_tao, t.lan_dang_nhap_cuoi,
-                   ck.id AS chuyen_khoa_id, ck.ten_khoa,
-                   pk.id AS phong_kham_id, pk.ten_phong
-            FROM bac_si bs
-            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-            JOIN tai_khoan t ON nv.tai_khoan_id = t.id
-            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
-            LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
-            WHERE bs.id = ?
-        ''', (doctor_id,))
-        row = cursor.fetchone()
+        try:
+            cursor.execute('''
+                SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+                       nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.sdt, nv.email, nv.gioi_tinh,
+                       nv.ngay_sinh, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.trang_thai,
+                       t.id AS tai_khoan_id, t.username, t.ngay_tao, t.lan_dang_nhap_cuoi,
+                       ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                       pk.id AS phong_kham_id, pk.ten_phong
+                FROM bac_si bs
+                JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+                JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+                WHERE bs.id = ?
+            ''', (doctor_id,))
+            row = cursor.fetchone()
+        except Exception:
+            cursor.execute('''
+                SELECT bs.id, bs.hoc_vi, bs.kinh_nghiem, NULL AS gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+                       nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.sdt, nv.email, nv.gioi_tinh,
+                       nv.ngay_sinh, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.trang_thai,
+                       t.id AS tai_khoan_id, t.username, t.ngay_tao, t.lan_dang_nhap_cuoi,
+                       ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                       pk.id AS phong_kham_id, pk.ten_phong
+                FROM bac_si bs
+                JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+                JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+                WHERE bs.id = ?
+            ''', (doctor_id,))
+            row = cursor.fetchone()
         if not row:
             conn.close()
             return None
@@ -1292,24 +1316,44 @@ class UserModel:
         """Lấy hồ sơ cá nhân chi tiết của nhân sự y tế / quản trị viên (Admin, Bác sĩ, Lễ tân, Dược sĩ, KTV)."""
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT 
-                t.id AS tai_khoan_id, t.username, t.vai_tro_id, t.da_hoan_thien_ho_so, t.lan_dang_nhap_cuoi,
-                v.ma_vai_tro, v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
-                nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.gioi_tinh, nv.ngay_sinh,
-                nv.sdt, nv.email, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.ngay_vao_lam, nv.trang_thai AS trang_thai_nv,
-                bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
-                ck.id AS chuyen_khoa_id, ck.ten_khoa,
-                pk.id AS phong_kham_id, pk.ten_phong
-            FROM tai_khoan t
-            JOIN vai_tro v ON t.vai_tro_id = v.id
-            LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
-            LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
-            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
-            LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
-            WHERE t.id = ?
-        ''', (account_id,))
-        row = cursor.fetchone()
+        try:
+            cursor.execute('''
+                SELECT 
+                    t.id AS tai_khoan_id, t.username, t.vai_tro_id, t.da_hoan_thien_ho_so, t.lan_dang_nhap_cuoi,
+                    v.ma_vai_tro, v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
+                    nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.gioi_tinh, nv.ngay_sinh,
+                    nv.sdt, nv.email, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.ngay_vao_lam, nv.trang_thai AS trang_thai_nv,
+                    bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, bs.gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+                    ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                    pk.id AS phong_kham_id, pk.ten_phong
+                FROM tai_khoan t
+                JOIN vai_tro v ON t.vai_tro_id = v.id
+                LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
+                LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+                LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+                WHERE t.id = ?
+            ''', (account_id,))
+            row = cursor.fetchone()
+        except Exception:
+            cursor.execute('''
+                SELECT 
+                    t.id AS tai_khoan_id, t.username, t.vai_tro_id, t.da_hoan_thien_ho_so, t.lan_dang_nhap_cuoi,
+                    v.ma_vai_tro, v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
+                    nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.gioi_tinh, nv.ngay_sinh,
+                    nv.sdt, nv.email, nv.cccd, nv.dia_chi, nv.chuc_vu, nv.ngay_vao_lam, nv.trang_thai AS trang_thai_nv,
+                    bs.id AS bac_si_id, bs.hoc_vi, bs.kinh_nghiem, NULL AS gioi_thieu, bs.avatar, bs.gia_kham, bs.trang_thai_lam_viec,
+                    ck.id AS chuyen_khoa_id, ck.ten_khoa,
+                    pk.id AS phong_kham_id, pk.ten_phong
+                FROM tai_khoan t
+                JOIN vai_tro v ON t.vai_tro_id = v.id
+                LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
+                LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+                LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                LEFT JOIN phong_kham pk ON bs.phong_kham_chinh_id = pk.id
+                WHERE t.id = ?
+            ''', (account_id,))
+            row = cursor.fetchone()
         conn.close()
         if not row:
             return None

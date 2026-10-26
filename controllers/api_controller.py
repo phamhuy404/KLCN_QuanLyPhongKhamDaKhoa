@@ -82,6 +82,16 @@ def doctors_available_by_shift():
         'total': len(doctors)
     })
 
+@api_bp.route('/appointment/time-slots', methods=['GET'])
+def appointment_time_slots():
+    """API tra cứu trạng thái khung giờ khám 30 phút theo ca (còn trống: xanh, đã có người hẹn: vàng, ngoài giờ: đỏ)."""
+    date_val = request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
+    dept_id = request.args.get('department_id', type=int) or request.args.get('chuyen_khoa_id', type=int)
+    doc_id = request.args.get('doctor_id', type=int) or request.args.get('bac_si_id', type=int)
+
+    data = AppointmentModel.get_time_slots_status(date_val, dept_id, doc_id)
+    return jsonify(data)
+
 @api_bp.route('/appointment/update-status', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'LETAN')
 def update_appointment_status():
@@ -103,11 +113,11 @@ def update_appointment_status():
 def reschedule_appointment():
     """API đổi lịch hẹn khám (Bệnh nhân tự đổi trước giờ khám; nhân viên được đổi sau giờ khám)."""
     data = request.get_json() or {}
-    appointment_id = data.get('appointment_id')
-    new_date = data.get('ngay_hen')
-    new_time = data.get('gio_hen')
-    ly_do = data.get('ly_do')
-    new_doc_id = data.get('bac_si_id')
+    appointment_id = data.get('appointment_id') or data.get('id') or data.get('ma_lich_hen')
+    new_date = data.get('ngay_hen') or data.get('ngay_hen_moi') or data.get('ngay')
+    new_time = data.get('gio_hen') or data.get('gio_hen_moi') or data.get('gio')
+    ly_do = data.get('ly_do') or data.get('reason')
+    new_doc_id = data.get('bac_si_id') or data.get('doctor_id')
     user = session.get('user')
 
     if not appointment_id or not new_date or not new_time:
@@ -123,8 +133,8 @@ def reschedule_appointment():
 def cancel_appointment():
     """API hủy lịch hẹn khám (Bệnh nhân hủy trước giờ khám; nhân viên được hủy sau giờ khám)."""
     data = request.get_json() or {}
-    appointment_id = data.get('appointment_id') or data.get('id')
-    reason = data.get('reason') or data.get('ly_do')
+    appointment_id = data.get('appointment_id') or data.get('id') or data.get('ma_lich_hen')
+    reason = data.get('reason') or data.get('ly_do') or data.get('ly_do_huy')
     user = session.get('user')
 
     if not appointment_id:
@@ -1234,7 +1244,7 @@ def set_account_role_api():
     """API quản trị viên gán vai trò theo danh sách vai trò hiện có trong CSDL."""
     data = request.get_json() or {}
     account_id = data.get('account_id') or data.get('id')
-    role_id = data.get('role_id')
+    role_id = data.get('role_id') or data.get('vai_tro_id')
     user = session.get('user')
 
     if not account_id or not role_id:

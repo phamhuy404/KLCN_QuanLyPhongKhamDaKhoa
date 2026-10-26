@@ -26,6 +26,14 @@ class ComprehensiveScenariosTestCase(unittest.TestCase):
         self.db = get_db()
         self.cursor = self.db.cursor()
 
+    def tearDown(self):
+        try:
+            if hasattr(self, 'db') and self.db:
+                self.db.commit()
+                self.db.close()
+        except Exception:
+            pass
+
     def test_scenario_01_doctor_onboarding_and_profile_completion(self):
         """Kịch bản 1: Admin tạo Bác sĩ mới bằng SĐT -> Bác sĩ đăng nhập 123 -> Đổi MK & Hoàn tất hồ sơ"""
         ts = datetime.now().strftime('%M%S%f')[-7:]
@@ -195,6 +203,8 @@ class ComprehensiveScenariosTestCase(unittest.TestCase):
 
         # 2. Đặt lịch khám trực tuyến qua API /api/appointment/book
         book_date = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
+        self.cursor.execute("DELETE FROM lich_hen WHERE bac_si_id = 1 AND ngay_hen = ? AND gio_hen = '09:00'", (book_date,))
+        self.db.commit()
         book_res = self.client.post('/api/appointment/book', json={
             'chuyen_khoa_id': 1,
             'bac_si_id': 1,
@@ -691,6 +701,570 @@ class ComprehensiveScenariosTestCase(unittest.TestCase):
         status2 = tog2.get_json().get('new_status')
         self.assertIn(status2, ['Đang làm việc', 'Ngoài giờ làm việc'])
         self.assertNotEqual(status1, status2)
+
+    def test_scenario_17_patient_portal_views_and_feedback_submission(self):
+        """Kịch bản 17: Toàn bộ cổng thông tin bệnh nhân (Patient Portal) và gửi đánh giá phản hồi"""
+        ts = datetime.now().strftime('%M%S%f')[-6:]
+        p_phone = f"097{ts}"
+        p_cccd = f"079198{ts}"
+        p_pass = "PatientPortal@123"
+
+        ok, msg = UserModel.register_patient(
+            ho_ten=f"Bệnh Nhân Portal {ts}",
+            sdt=p_phone,
+            password=p_pass,
+            ngay_sinh="1996-06-20",
+            gioi_tinh="Nữ",
+            cccd=p_cccd
+        )
+        self.assertTrue(ok)
+
+        self.client.get('/logout')
+        login_res = self.client.post('/login', data={'username': p_phone, 'password': p_pass}, follow_redirects=True)
+        self.assertEqual(login_res.status_code, 200)
+
+        routes = [
+            '/patient/dashboard',
+            '/patient/records',
+            '/patient/billing',
+            '/patient/lab-results',
+            '/patient/notifications',
+            '/patient/profile',
+            '/patient/feedbacks'
+        ]
+        for r in routes:
+            with self.subTest(route=r):
+                res = self.client.get(r)
+                self.assertEqual(res.status_code, 200)
+
+        # Gửi đánh giá phản hồi
+        fb_res = self.client.post('/patient/feedbacks', data={
+            'bac_si_id': '1',
+            'so_sao': '5',
+            'noi_dung': 'Dịch vụ khám bệnh chuyên nghiệp, bác sĩ rất tận tình!',
+            'dich_vu_id': ''
+        }, follow_redirects=True)
+        self.assertEqual(fb_res.status_code, 200)
+
+        # Admin xem danh sách đánh giá
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+        admin_fb = self.client.get('/admin/feedbacks')
+        self.assertEqual(admin_fb.status_code, 200)
+
+    def test_scenario_18_account_management_role_toggle_and_reset(self):
+        """Kịch bản 18: Quản trị tài khoản, gán phân quyền vai trò, bật/tắt kích hoạt và cấp lại mật khẩu"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        ts = datetime.now().strftime('%M%S%f')[-6:]
+        staff_phone = f"092{ts}"
+        staff_res = self.client.post('/admin/accounts/create-staff', data={
+            'ho_ten': f'Nhân viên {ts}',
+            'sdt': staff_phone,
+            'vai_tro_id': '4',
+            'email': f'staff_{ts}@h2tcare.vn'
+        }, follow_redirects=True)
+        self.assertEqual(staff_res.status_code, 200)
+
+        self.db.commit()
+        self.cursor.execute("SELECT id FROM tai_khoan WHERE sdt = ?", (staff_phone,))
+        acc_row = self.cursor.fetchone()
+        self.assertIsNotNone(acc_row)
+        acc_id = acc_row['id']
+
+        # Lấy thông tin tài khoản
+        acc_detail = self.client.get(f'/api/admin/account/{acc_id}')
+        self.assertEqual(acc_detail.status_code, 200)
+        self.assertTrue(acc_detail.get_json().get('success'))
+
+        # Đổi vai trò tài khoản sang Lễ tân (vai_tro_id = 2)
+        role_res = self.client.post('/api/admin/account/set-role', json={
+            'account_id': acc_id,
+            'vai_tro_id': 2
+        })
+        self.assertEqual(role_res.status_code, 200)
+        self.assertTrue(role_res.get_json().get('success'))
+
+        # Bật/tắt trạng thái tài khoản
+        tog_res = self.client.post('/api/admin/account/toggle', json={'account_id': acc_id})
+        self.assertEqual(tog_res.status_code, 200)
+        self.assertTrue(tog_res.get_json().get('success'))
+
+        # Cấp lại mật khẩu mặc định (123)
+        reset_res = self.client.post('/api/admin/account/reset-password', json={'account_id': acc_id})
+        self.assertEqual(reset_res.status_code, 200)
+        self.assertTrue(reset_res.get_json().get('success'))
+
+    def test_scenario_19_appointment_reschedule_and_cancellation(self):
+        """Kịch bản 19: Bệnh nhân đổi lịch hẹn và hủy lịch hẹn trước giờ khám"""
+        ts = datetime.now().strftime('%M%S%f')[-6:]
+        p_phone = f"095{ts}"
+        p_cccd = f"079199{ts}"
+        p_pass = "ApptFlow@123"
+
+        ok, msg = UserModel.register_patient(
+            ho_ten=f"Bệnh Nhân Hẹn {ts}",
+            sdt=p_phone,
+            password=p_pass,
+            ngay_sinh="1994-04-14",
+            gioi_tinh="Nam",
+            cccd=p_cccd
+        )
+        self.assertTrue(ok)
+
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': p_phone, 'password': p_pass}, follow_redirects=True)
+
+        target_date = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
+        book_res = self.client.post('/api/appointment/book', json={
+            'ngay_hen': target_date,
+            'gio_hen': '08:30',
+            'chuyen_khoa_id': 1,
+            'bac_si_id': 1,
+            'ly_do': 'Khám tai mũi họng theo hẹn'
+        })
+        self.assertEqual(book_res.status_code, 200)
+        book_data = book_res.get_json()
+        self.assertTrue(book_data.get('success'))
+        appt_ref = book_data.get('ma_lich_hen') or book_data.get('appointment_id')
+
+        # Đổi lịch hẹn sang ngày tiếp theo
+        resched_date = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+        resched_res = self.client.post('/api/appointment/reschedule', json={
+            'appointment_id': appt_ref,
+            'ngay_hen_moi': resched_date,
+            'gio_hen_moi': '09:30'
+        })
+        self.assertEqual(resched_res.status_code, 200)
+        self.assertTrue(resched_res.get_json().get('success'))
+
+        # Hủy lịch hẹn
+        cancel_res = self.client.post('/api/appointment/cancel', json={
+            'appointment_id': appt_ref,
+            'ly_do_huy': 'Đổi kế hoạch cá nhân'
+        })
+        self.assertEqual(cancel_res.status_code, 200)
+        self.assertTrue(cancel_res.get_json().get('success'))
+
+    def test_scenario_20_staff_shift_cancellation_flow(self):
+        """Kịch bản 20: Bác sĩ gửi đơn xin hủy ca trực và Quản trị viên xét duyệt đơn"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'bs_noi_1', 'password': 'Password@123'}, follow_redirects=True)
+
+        self.db.commit()
+        self.cursor.execute("""
+            SELECT TOP 1 llv.id 
+            FROM lich_lam_viec llv
+            JOIN bac_si bs ON llv.bac_si_id = bs.id
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+            WHERE t.username = 'bs_noi_1' AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+        """)
+        shift_row = self.cursor.fetchone()
+        if shift_row:
+            s_id = shift_row['id']
+            req_cancel = self.client.post('/api/schedule/cancel-request', json={
+                'schedule_id': s_id,
+                'ly_do': 'Lý do sức khỏe đột xuất'
+            })
+            self.assertEqual(req_cancel.status_code, 200)
+            self.assertTrue(req_cancel.get_json().get('success'))
+
+            # Admin duyệt đơn xin hủy
+            self.client.get('/logout')
+            self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+            approve_res = self.client.post('/api/schedule/approve-cancellation', json={
+                'schedule_id': s_id,
+                'approved': True
+            })
+            self.assertEqual(approve_res.status_code, 200)
+            self.assertTrue(approve_res.get_json().get('success'))
+
+    def test_scenario_21_csv_data_import(self):
+        """Kịch bản 21: Nhập dữ liệu phân hệ Thuốc bằng tệp CSV chuẩn UTF-8-SIG"""
+        import io
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        ts = datetime.now().strftime('%H%M%S')
+        csv_content = f"ten_thuoc,don_vi_tinh,gia_ban,so_luong_ton,cong_dung,huong_dan_su_dung\nThuốc Bổ Phế H2T {ts},Lọ,65000,120,Bổ phế giảm ho,Ngày uống 2 lần\n"
+        data = {
+            'file': (io.BytesIO(csv_content.encode('utf-8-sig')), f'test_meds_{ts}.csv')
+        }
+        import_res = self.client.post('/admin/import-csv/medicines', data=data, content_type='multipart/form-data', follow_redirects=True)
+        self.assertEqual(import_res.status_code, 200)
+
+    def test_scenario_22_connection_resilience_and_double_close_safety(self):
+        """Kịch bản 22: Cơ chế chịu lỗi kết nối CSDL, gọi đóng và rollback lặp lại an toàn không crash"""
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT 1 AS alive")
+        row = cur.fetchone()
+        self.assertEqual(row['alive'], 1)
+        
+        # Đóng kết nối
+        conn.close()
+        # Gọi tiếp các thao tác dọn dẹp sau khi đã đóng xem có tự động xử lý an toàn không
+        conn.close()
+        conn.rollback()
+        conn.commit()
+
+    def test_scenario_23_appointment_datetime_multi_format_and_shift_normalization(self):
+        """Kịch bản 23: Chuẩn hóa ngày giờ đa định dạng và phân bổ ca trực chuẩn xác (12h/24h, DD/MM/YYYY)"""
+        from models.appointment_model import AppointmentModel
+        from datetime import date, timedelta
+
+        today = date.today()
+        # 1. Chuẩn hóa ngày
+        self.assertEqual(AppointmentModel.normalize_date('2026-11-20'), '2026-11-20')
+        self.assertEqual(AppointmentModel.normalize_date('20/11/2026'), '2026-11-20')
+        self.assertEqual(AppointmentModel.normalize_date('20-11-2026'), '2026-11-20')
+
+        # 2. Chuẩn hóa giờ và ca làm việc
+        self.assertEqual(AppointmentModel.normalize_time('8:30'), '08:30')
+        self.assertEqual(AppointmentModel.get_shift_from_time('8:30'), 1)
+
+        self.assertEqual(AppointmentModel.normalize_time('09:15 AM'), '09:15')
+        self.assertEqual(AppointmentModel.get_shift_from_time('09:15 AM'), 1)
+
+        self.assertEqual(AppointmentModel.normalize_time('2:30 PM'), '14:30')
+        self.assertEqual(AppointmentModel.get_shift_from_time('2:30 PM'), 2)
+
+        self.assertEqual(AppointmentModel.normalize_time('07:30 PM'), '19:30')
+        self.assertEqual(AppointmentModel.get_shift_from_time('07:30 PM'), 3)
+
+        # 3. Đặt lịch khám bằng ngày DD/MM/YYYY và giờ 12h PM
+        ts = datetime.now().strftime('%M%S%f')[-6:]
+        p_phone = f"091{ts}"
+        UserModel.register_patient(
+            ho_ten=f"Bệnh Nhân Hẹn Đa Định Dạng {ts}",
+            sdt=p_phone,
+            password="Password@123",
+            ngay_sinh="1995-05-15",
+            gioi_tinh="Nam",
+            cccd=f"079198{ts}"
+        )
+
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': p_phone, 'password': 'Password@123'}, follow_redirects=True)
+
+        future_str = (today + timedelta(days=6)).strftime('%d/%m/%Y')
+        work_d = (today + timedelta(days=6)).strftime('%Y-%m-%d')
+        self.cursor.execute("DELETE FROM lich_hen WHERE bac_si_id = 1 AND ngay_hen = ? AND (gio_hen = '14:30:00' OR gio_hen = '14:30')", (work_d,))
+        self.db.commit()
+        book_res = self.client.post('/api/appointment/book', json={
+            'ngay_hen': future_str,
+            'gio_hen': '2:30 PM',
+            'chuyen_khoa_id': 1,
+            'bac_si_id': 1,
+            'ly_do': 'Khám chuyên khoa nội'
+        })
+        self.assertEqual(book_res.status_code, 200)
+        self.assertTrue(book_res.get_json().get('success'))
+
+        # 4. Thử đặt lịch ngày quá khứ -> Bị từ chối
+        past_str = (today - timedelta(days=2)).strftime('%Y-%m-%d')
+        past_res = self.client.post('/api/appointment/book', json={
+            'ngay_hen': past_str,
+            'gio_hen': '09:00',
+            'chuyen_khoa_id': 1,
+            'bac_si_id': 1,
+            'ly_do': 'Cố tình đặt lịch quá khứ'
+        })
+        self.assertEqual(past_res.status_code, 400)
+        self.assertIn("quá khứ", past_res.get_json().get('message', ''))
+
+    def test_scenario_24_patient_age_calculation_multi_format_and_accuracy(self):
+        """Kịch bản 24: Tính tuổi bệnh nhân chính xác từ đa định dạng ngày sinh (YYYY-MM-DD, DD/MM/YYYY)"""
+        from models.patient_model import calculate_patient_age
+        from datetime import date
+        today = date.today()
+        birth_year = today.year - 25
+
+        # Đa dạng các cách nhập ngày sinh
+        self.assertEqual(calculate_patient_age(f"{birth_year}-01-01"), 25)
+        self.assertEqual(calculate_patient_age(f"01/01/{birth_year}"), 25)
+        self.assertEqual(calculate_patient_age(f"01-01-{birth_year}"), 25)
+        self.assertEqual(calculate_patient_age(str(birth_year)), 25)
+
+    def test_scenario_25_reexamination_date_dynamic_delta_and_sanitization(self):
+        """Kịch bản 25: Tính toán khoảng cách ngày tái khám chính xác (Sau N ngày) và chuẩn hóa ngày tái khám"""
+        from models.medical_record_model import normalize_reexam_date
+        from models.patient_model import PatientModel
+        from datetime import date, timedelta
+
+        # 1. Chuẩn hóa ngày tái khám
+        self.assertIsNone(normalize_reexam_date(None))
+        self.assertIsNone(normalize_reexam_date(''))
+        self.assertEqual(normalize_reexam_date('15/12/2026'), '2026-12-15')
+        self.assertEqual(normalize_reexam_date('2026-12-15'), '2026-12-15')
+
+        # 2. Khám bệnh và hẹn tái khám sau 10 ngày
+        today = date.today()
+        reexam_d = (today + timedelta(days=10)).strftime('%d/%m/%Y')
+        ts = datetime.now().strftime('%M%S%f')[-6:]
+        p_phone = f"093{ts}"
+        UserModel.register_patient(
+            ho_ten=f"Bệnh Nhân Tái Khám {ts}",
+            sdt=p_phone,
+            password="Password@123",
+            ngay_sinh="1990-10-10",
+            gioi_tinh="Nữ",
+            cccd=f"079199{ts}"
+        )
+
+        self.db.commit()
+        self.cursor.execute("SELECT id FROM benh_nhan WHERE sdt = ?", (p_phone,))
+        p_id = self.cursor.fetchone()['id']
+
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'bs_noi_1', 'password': 'Password@123'}, follow_redirects=True)
+
+        save_res = self.client.post('/api/emr/save', json={
+            'patient_id': p_id,
+            'doctor_id': 1,
+            'room_id': 1,
+            'reason': 'Kiểm tra sức khỏe định kỳ',
+            'symptoms': 'Không có triệu chứng',
+            'diagnosis': 'Z00.0 - Khám sức khỏe tổng quát',
+            'icd': 'Z00.0',
+            'treatment': 'Tư vấn chế độ ăn uống',
+            'advice': 'Tái khám sau 10 ngày',
+            'reexam_date': reexam_d,
+            'medicines': [
+                {'thuoc_id': 6, 'so_luong': 5, 'lieu_dung': '1 viên/ngày', 'cach_dung': 'Sau ăn'}
+            ],
+            'lab_services': []
+        })
+        self.assertEqual(save_res.status_code, 200)
+
+        # Kiểm tra sổ y bạ hiển thị đúng khoảng cách 10 ngày thay vì số ngày cố định
+        p_history = PatientModel.get_patient_history(p_id)
+        self.assertTrue(len(p_history) > 0)
+        self.assertIn("Sau 10 ngày", p_history[0].get('lich_tai_kham', ''))
+
+    def test_scenario_26_invoice_payment_by_code_and_id_resilience(self):
+        """Kịch bản 26: Xác nhận thanh toán viện phí linh hoạt bằng cả mã chuỗi (HD...) lẫn ID nguyên bản"""
+        self.client.get('/logout')
+        self.client.post('/login', data={'username': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+        # Lấy một hóa đơn chưa thanh toán hoặc vừa sinh
+        self.db.commit()
+        self.cursor.execute("SELECT TOP 1 id, ma_hoa_don FROM hoa_don ORDER BY id DESC")
+        hd_row = self.cursor.fetchone()
+        if hd_row:
+            pay_code_res = self.client.post('/api/billing/pay', json={
+                'invoice_id': hd_row['ma_hoa_don'],
+                'payment_method': 'Tiền mặt'
+            })
+            self.assertEqual(pay_code_res.status_code, 200)
+            self.assertTrue(pay_code_res.get_json().get('success'))
+
+    def test_scenario_27_single_patient_per_doctor_slot_enforcement(self):
+        """Kịch bản 27: Chỉ nhận 1 bệnh nhân cho mỗi lịch hẹn 30 phút trong ca của bác sĩ (chặn trùng lịch)"""
+        from datetime import date, timedelta
+        target_date = (date.today() + timedelta(days=9)).strftime('%Y-%m-%d')
+        slot_time = '10:00'
+
+        # Dọn sạch các lịch hẹn thử nghiệm trùng ngày giờ
+        self.cursor.execute("DELETE FROM lich_hen WHERE bac_si_id = 1 AND ngay_hen = ? AND gio_hen = ?", (target_date, slot_time))
+        self.db.commit()
+
+        # Bệnh nhân 1 đặt lịch thành công
+        ok1, res1 = AppointmentModel.create(
+            benh_nhan_id=1,
+            chuyen_khoa_id=1,
+            bac_si_id=1,
+            ngay_hen=target_date,
+            gio_hen=slot_time,
+            ly_do_kham="Bệnh nhân 1 khám tổng quát"
+        )
+        self.assertTrue(ok1, f"Bệnh nhân 1 đặt lịch thất bại: {res1}")
+
+        # Bệnh nhân 2 cùng đặt bác sĩ 1 vào cùng khung giờ 30 phút -> Bị từ chối
+        ok2, res2 = AppointmentModel.create(
+            benh_nhan_id=2,
+            chuyen_khoa_id=1,
+            bac_si_id=1,
+            ngay_hen=target_date,
+            gio_hen=slot_time,
+            ly_do_kham="Bệnh nhân 2 đặt trùng giờ bác sĩ"
+        )
+        self.assertFalse(ok2)
+        self.assertIn("Mỗi khung giờ 30 phút bác sĩ chỉ nhận 1 bệnh nhân", res2)
+
+    def test_scenario_28_time_slots_status_colors_and_restrictions(self):
+        """Kịch bản 28: Kiểm tra trạng thái khung giờ khám (vàng: đã có người hẹn, đỏ: ngoài giờ, xanh: còn trống)"""
+        from datetime import date, timedelta
+        target_date = (date.today() + timedelta(days=9)).strftime('%Y-%m-%d')
+        slot_time = '10:00'
+
+        res = self.client.get(f'/api/appointment/time-slots?date={target_date}&department_id=1&doctor_id=1')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data.get('success'))
+
+        morning_shift = next((s for s in data['shifts'] if s['shift'] == 1), None)
+        self.assertIsNotNone(morning_shift)
+
+        # Khung giờ 10:00 đã có bệnh nhân 1 đặt -> Phải có màu vàng và không thể chọn
+        booked_slot = next((s for s in morning_shift['slots'] if s['time'] == slot_time), None)
+        self.assertIsNotNone(booked_slot)
+        self.assertEqual(booked_slot['status'], 'booked')
+        self.assertEqual(booked_slot['color'], 'yellow')
+        self.assertFalse(booked_slot['selectable'])
+
+        # Kiểm tra khung giờ quá khứ trên ngày hiện tại -> Phải có màu đỏ (ngoài giờ) và không thể chọn
+        today_str = date.today().strftime('%Y-%m-%d')
+        today_res = self.client.get(f'/api/appointment/time-slots?date={today_str}&department_id=1')
+        self.assertEqual(today_res.status_code, 200)
+        today_data = today_res.get_json()
+        early_slot = today_data['shifts'][0]['slots'][0]
+        self.assertEqual(early_slot['status'], 'off_duty')
+        self.assertEqual(early_slot['color'], 'red')
+        self.assertFalse(early_slot['selectable'])
+
+    def test_scenario_29_reschedule_conflict_prevention_on_slot(self):
+        """Kịch bản 29: Dời lịch hẹn sang khung giờ bác sĩ đã có bệnh nhân khác -> Bị từ chối"""
+        from datetime import date, timedelta
+        date_a = (date.today() + timedelta(days=10)).strftime('%Y-%m-%d')
+        date_b = (date.today() + timedelta(days=11)).strftime('%Y-%m-%d')
+
+        self.cursor.execute("DELETE FROM lich_hen WHERE bac_si_id = 1 AND ngay_hen IN (?, ?)", (date_a, date_b))
+        self.db.commit()
+
+        # Tạo lịch 1 tại date_a 08:30
+        ok1, code1 = AppointmentModel.create(1, 1, 1, date_a, '08:30', 'Lịch A')
+        self.assertTrue(ok1)
+        # Tạo lịch 2 tại date_b 08:30
+        ok2, code2 = AppointmentModel.create(2, 1, 1, date_b, '08:30', 'Lịch B')
+        self.assertTrue(ok2)
+
+        self.cursor.execute("SELECT id FROM lich_hen WHERE ma_lich_hen = ?", (code2,))
+        appt2_id = self.cursor.fetchone()['id']
+
+        # Dời lịch 2 sang date_a lúc 08:30 (trùng với lịch 1 của bác sĩ 1) -> Phải thất bại
+        ok_resched, msg_resched = AppointmentModel.reschedule(
+            appt2_id,
+            new_date=date_a,
+            new_time='08:30',
+            user_info={'vai_tro': 'ADMIN', 'id': 1, 'ho_ten': 'Admin'}
+        )
+        self.assertFalse(ok_resched)
+        self.assertIn("Mỗi khung giờ 30 phút bác sĩ chỉ nhận 1 bệnh nhân", msg_resched)
+
+    def test_scenario_30_assign_doctor_conflict_prevention_on_slot(self):
+        """Kịch bản 30: Phân công bác sĩ vào lịch hẹn khi bác sĩ đã có bệnh nhân trong khung giờ 30 phút -> Bị từ chối"""
+        from datetime import date, timedelta
+        target_date = (date.today() + timedelta(days=12)).strftime('%Y-%m-%d')
+
+        self.cursor.execute("DELETE FROM lich_hen WHERE ngay_hen = ?", (target_date,))
+        self.db.commit()
+
+        # Lịch 1: Bác sĩ 1 phụ trách lúc 09:30
+        ok1, code1 = AppointmentModel.create(1, 1, 1, target_date, '09:30', 'Lịch đã có bác sĩ')
+        self.assertTrue(ok1)
+
+        # Lịch 2: Chưa có bác sĩ phụ trách lúc 09:30
+        ok2, code2 = AppointmentModel.create(2, 1, None, target_date, '09:30', 'Lịch chờ phân công')
+        self.assertTrue(ok2)
+
+        self.cursor.execute("SELECT id FROM lich_hen WHERE ma_lich_hen = ?", (code2,))
+        appt2_id = self.cursor.fetchone()['id']
+
+        # Thử phân công Bác sĩ 1 vào Lịch 2 -> Phải bị từ chối vì Bác sĩ 1 đã kín lịch lúc 09:30
+        ok_assign, msg_assign = AppointmentModel.assign_doctor(
+            appointment_id=appt2_id,
+            doctor_id=1,
+            user_info={'vai_tro': 'LETAN', 'id': 2, 'ho_ten': 'Tiếp tân'}
+        )
+        self.assertFalse(ok_assign)
+        self.assertIn("Mỗi khung giờ 30 phút bác sĩ chỉ nhận 1 bệnh nhân", msg_assign)
+
+    def test_scenario_31_doctor_creation_without_ho_ten_and_no_space_username(self):
+        """Kịch bản 31: Tạo tài khoản bác sĩ không cần nhập họ tên, kiểm tra ràng buộc username không có khoảng trắng"""
+        ts = datetime.now().strftime('%M%S%f')[-7:]
+        test_phone = f"098{ts}"
+
+        # Thử username có khoảng trắng -> Bị từ chối
+        ok_space, msg_space = UserModel.create_doctor_account(
+            sdt=test_phone,
+            username='bs test_space',
+            chuyen_khoa_id=1
+        )
+        self.assertFalse(ok_space)
+        self.assertIn("không được chứa khoảng cách", msg_space)
+
+        # Tạo không cần nhập họ tên -> Thành công, tự động gán tên mặc định
+        valid_user = f"bs_{ts}"
+        ok_create, msg_create = UserModel.create_doctor_account(
+            ho_ten=None,
+            sdt=test_phone,
+            username=valid_user,
+            chuyen_khoa_id=1
+        )
+        self.assertTrue(ok_create)
+
+        # Kiểm tra hồ sơ bác sĩ vừa tạo
+        self.cursor.execute("SELECT t.da_hoan_thien_ho_so, nv.ho_ten FROM tai_khoan t JOIN nhan_vien nv ON t.id = nv.tai_khoan_id WHERE t.username = ?", (valid_user,))
+        acc = self.cursor.fetchone()
+        self.db.commit()
+        self.assertEqual(acc['da_hoan_thien_ho_so'], 0)
+        self.assertIn(test_phone, acc['ho_ten'])
+
+    def test_scenario_32_patient_and_doctor_schema_fallback_compatibility(self):
+        """Kịch bản 32: Đảm bảo get_patient_history, get_doctor_by_id và get_staff_profile chạy an toàn kể cả khi thiếu cột"""
+        history = PatientModel.get_patient_history(1)
+        self.assertIsInstance(history, list)
+
+        doctor = UserModel.get_doctor_by_id(1)
+        self.assertIsNotNone(doctor)
+        self.assertIn('ho_ten', doctor)
+        self.assertIn('trang_thai_lam_viec', doctor)
+
+        staff = UserModel.get_staff_profile(1)
+        self.assertIsNotNone(staff)
+        self.assertIn('username', staff)
+
+    def test_scenario_33_cancel_appointment_endpoint_and_state(self):
+        """Kịch bản 33: Hủy lịch hẹn khám qua API /api/appointment/cancel và cập nhật trạng thái an toàn"""
+        from datetime import date, timedelta
+        target_date = (date.today() + timedelta(days=15)).strftime('%Y-%m-%d')
+        ok, code = AppointmentModel.create(1, 1, 1, target_date, '14:00', 'Khám kiểm tra hủy hẹn')
+        self.assertTrue(ok)
+
+        appt = AppointmentModel.get_by_id(code)
+        self.assertIsNotNone(appt)
+
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {'id': 1, 'username': 'admin', 'vai_tro': 'ADMIN', 'ho_ten': 'Admin'}
+
+        res = self.client.post('/api/appointment/cancel', json={
+            'id': appt['id'],
+            'ly_do': 'Bệnh nhân bận việc đột xuất'
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data['success'])
+
+        # Xác minh trong CSDL
+        fresh_appt = AppointmentModel.get_by_id(appt['id'])
+        self.assertEqual(fresh_appt['trang_thai'], 'Đã hủy')
+
+    def test_scenario_34_dashboard_queue_and_room_filtering_data(self):
+        """Kịch bản 34: Trang Dashboard trả về danh sách phòng khám và hàng đợi bệnh nhân có thuộc tính phòng khám"""
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {'id': 1, 'username': 'admin', 'vai_tro': 'ADMIN', 'ho_ten': 'Admin'}
+
+        res = self.client.get('/admin/dashboard')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+        self.assertIn('dashboard-room-filter', html)
+        self.assertIn('filterDashboardQueue', html)
+        self.assertIn('data-room-id', html)
 
 if __name__ == '__main__':
     unittest.main()

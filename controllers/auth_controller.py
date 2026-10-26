@@ -34,11 +34,11 @@ def login():
             return redirect(url_for('auth.force_change_password'))
 
         # Nếu là Bác sĩ mới tạo và chưa hoàn thiện hồ sơ lần đầu
-        if user['vai_tro'] == 'BACSI' and user.get('da_hoan_thien_ho_so') == 0:
+        if user['vai_tro'] == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('admin.doctor_complete_profile'))
 
         # Nếu là Bệnh nhân và chưa hoàn thiện hồ sơ lần đầu
-        if user['vai_tro'] == 'BENHNHAN' and user.get('da_hoan_thien_ho_so') == 0:
+        if user['vai_tro'] == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
 
         next_url = request.args.get('next')

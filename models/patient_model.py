@@ -1,5 +1,30 @@
-from datetime import datetime
+from datetime import datetime, date
 from core.database import get_db
+
+def calculate_patient_age(birth_date):
+    """Tính tuổi chính xác theo ngày tháng năm sinh, tương thích đa định dạng."""
+    if not birth_date:
+        return 30
+    try:
+        s = str(birth_date).strip()
+        dt = None
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+            try:
+                dt = datetime.strptime(s[:10], fmt).date()
+                break
+            except ValueError:
+                pass
+        if not dt:
+            import re
+            m = re.search(r'\b(19\d{2}|20\d{2})\b', s)
+            if m:
+                return max(0, datetime.now().year - int(m.group(1)))
+            return 30
+        today = date.today()
+        age = today.year - dt.year - ((today.month, today.day) < (dt.month, dt.day))
+        return max(0, age)
+    except Exception:
+        return 30
 
 class PatientModel:
     """Model quản lý hồ sơ bệnh nhân, sinh hiệu và lịch sử điều trị."""
@@ -25,8 +50,7 @@ class PatientModel:
         patients_list = []
         for r in rows:
             p = dict(r)
-            birth_year = int(str(p['ngay_sinh'])[:4]) if p.get('ngay_sinh') else 1990
-            p['tuoi'] = datetime.now().year - birth_year
+            p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
             p['vitals'] = {
                 'mach': p.get('mach') or '75 lần/phút',
                 'nhiet_do': p.get('nhiet_do') or '36.8 °C',
@@ -78,8 +102,7 @@ class PatientModel:
         patients_list = []
         for r in rows:
             p = dict(r)
-            birth_year = int(str(p['ngay_sinh'])[:4]) if p.get('ngay_sinh') else 1990
-            p['tuoi'] = datetime.now().year - birth_year
+            p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
             p['vitals'] = {
                 'mach': p.get('mach') or '75 lần/phút',
                 'nhiet_do': p.get('nhiet_do') or '36.8 °C',
@@ -122,8 +145,7 @@ class PatientModel:
             return None
 
         p = dict(row)
-        birth_year = int(str(p['ngay_sinh'])[:4]) if p.get('ngay_sinh') else 1990
-        p['tuoi'] = datetime.now().year - birth_year
+        p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
         p['vitals'] = {
             'mach': p.get('mach') or '75 lần/phút',
             'nhiet_do': p.get('nhiet_do') or '36.8 °C',
@@ -144,23 +166,42 @@ class PatientModel:
         conn = get_db()
         cursor = conn.cursor()
 
-        cursor.execute('''
-            SELECT 
-                pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
-                pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
-                pk.hinh_anh_kham, pk.trang_thai,
-                COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
-                COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
-            FROM phieu_kham pk
-            LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
-            LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-            LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
-            LEFT JOIN chuyen_khoa ck ON p.chuyen_khoa_id = ck.id
-            WHERE pk.benh_nhan_id = ?
-            ORDER BY pk.thoi_gian_kham DESC
-        ''', (patient_id,))
-        encounters = [dict(r) for r in cursor.fetchall()]
+        try:
+            cursor.execute('''
+                SELECT 
+                    pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
+                    pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
+                    pk.hinh_anh_kham, pk.trang_thai,
+                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                FROM phieu_kham pk
+                LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
+                LEFT JOIN chuyen_khoa ck ON p.chuyen_khoa_id = ck.id
+                WHERE pk.benh_nhan_id = ?
+                ORDER BY pk.thoi_gian_kham DESC
+            ''', (patient_id,))
+            encounters = [dict(r) for r in cursor.fetchall()]
+        except Exception:
+            cursor.execute('''
+                SELECT 
+                    pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
+                    pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
+                    NULL AS hinh_anh_kham, pk.trang_thai,
+                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                FROM phieu_kham pk
+                LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham p ON pk.phong_kham_id = p.id
+                LEFT JOIN chuyen_khoa ck ON p.chuyen_khoa_id = ck.id
+                WHERE pk.benh_nhan_id = ?
+                ORDER BY pk.thoi_gian_kham DESC
+            ''', (patient_id,))
+            encounters = [dict(r) for r in cursor.fetchall()]
 
         for enc in encounters:
             # Lấy cận lâm sàng
@@ -217,7 +258,18 @@ class PatientModel:
             enc['don_thuoc'] = dt_rows
 
             if enc.get('ngay_tai_kham'):
-                enc['lich_tai_kham'] = f"{enc['ngay_tai_kham']} (Sau 14 ngày)"
+                try:
+                    kham_d = datetime.strptime(str(enc.get('thoi_gian_kham'))[:10], '%Y-%m-%d').date()
+                    tai_d = datetime.strptime(str(enc.get('ngay_tai_kham'))[:10], '%Y-%m-%d').date()
+                    delta = (tai_d - kham_d).days
+                    if delta > 0:
+                        enc['lich_tai_kham'] = f"{enc['ngay_tai_kham']} (Sau {delta} ngày)"
+                    elif delta == 0:
+                        enc['lich_tai_kham'] = f"{enc['ngay_tai_kham']} (Trong ngày)"
+                    else:
+                        enc['lich_tai_kham'] = f"{enc['ngay_tai_kham']}"
+                except Exception:
+                    enc['lich_tai_kham'] = f"{enc['ngay_tai_kham']}"
             else:
                 enc['lich_tai_kham'] = None
 

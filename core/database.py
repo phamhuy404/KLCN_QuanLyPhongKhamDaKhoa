@@ -61,53 +61,90 @@ class UnifiedCursor:
         for r in self.fetchall():
             yield r
 
+    def close(self):
+        try:
+            return self._cur.close()
+        except Exception:
+            pass
+
 class UnifiedConnection:
-    """Kết nối cơ sở dữ liệu Microsoft SQL Server."""
+    """Kết nối cơ sở dữ liệu Microsoft SQL Server với cơ chế chịu lỗi tự động."""
     def __init__(self, raw_conn):
         self._conn = raw_conn
         self._engine = 'sqlserver'
+        self._closed = False
 
     def cursor(self):
         return UnifiedCursor(self._conn.cursor())
 
     def commit(self):
-        return self._conn.commit()
+        if self._closed:
+            return None
+        try:
+            return self._conn.commit()
+        except Exception:
+            return None
 
     def rollback(self):
-        return self._conn.rollback()
+        if self._closed:
+            return None
+        try:
+            return self._conn.rollback()
+        except Exception:
+            return None
 
     def close(self):
-        return self._conn.close()
+        if self._closed:
+            return None
+        self._closed = True
+        try:
+            return self._conn.close()
+        except Exception:
+            return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.rollback()
+        else:
+            self.commit()
+        self.close()
 
 _SCHEMA_INITIALIZED = False
 
 def get_db():
-    """Tạo kết nối trực tiếp tới Microsoft SQL Server qua pyodbc."""
+    """Tạo kết nối trực tiếp tới Microsoft SQL Server qua pyodbc kèm retry chống đứt kết nối."""
     global _SCHEMA_INITIALIZED
+    import time
     cfg = config.SQLSERVER_CONFIG
     servers_to_try = [cfg.get('server', 'localhost'), 'localhost', r'.\SQLEXPRESS', r'localhost\SQLEXPRESS', '.']
     seen = set()
     unique_servers = [s for s in servers_to_try if s and not (s in seen or seen.add(s))]
 
     last_err = None
-    for srv in unique_servers:
-        if cfg.get('trusted_connection', 'yes').lower() == 'yes':
-            conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};Trusted_Connection=yes;"
-        else:
-            conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};UID={cfg['uid']};PWD={cfg['pwd']};"
-        try:
-            raw_conn = pyodbc.connect(conn_str, timeout=4)
-            conn = UnifiedConnection(raw_conn)
-            if not _SCHEMA_INITIALIZED:
-                try:
-                    ensure_schema_updates(conn)
-                    _SCHEMA_INITIALIZED = True
-                except Exception as ex_init:
-                    print("[Database] Schema check exception:", ex_init)
-            return conn
-        except Exception as e:
-            last_err = e
-            continue
+    for attempt in range(2):
+        for srv in unique_servers:
+            if cfg.get('trusted_connection', 'yes').lower() == 'yes':
+                conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};Trusted_Connection=yes;"
+            else:
+                conn_str = f"DRIVER={cfg['driver']};SERVER={srv};DATABASE={cfg['database']};UID={cfg['uid']};PWD={cfg['pwd']};"
+            try:
+                raw_conn = pyodbc.connect(conn_str, timeout=4)
+                conn = UnifiedConnection(raw_conn)
+                if not _SCHEMA_INITIALIZED:
+                    try:
+                        ensure_schema_updates(conn)
+                        _SCHEMA_INITIALIZED = True
+                    except Exception as ex_init:
+                        print("[Database] Schema check exception:", ex_init)
+                return conn
+            except Exception as e:
+                last_err = e
+                continue
+        if attempt == 0:
+            time.sleep(0.3)
     raise last_err
 
 def ensure_schema_updates(conn):
@@ -217,8 +254,11 @@ def ensure_schema_updates(conn):
             """
         ]
         for s in stmts:
-            cursor.execute(s)
-        conn.commit()
+            try:
+                cursor.execute(s)
+                conn.commit()
+            except Exception:
+                pass
     except Exception as e:
         print("[Database] Luu y cap nhat schema SQL Server:", e)
 
