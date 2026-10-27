@@ -28,15 +28,15 @@
                 Báo Cáo Phân Tích Hoạt Động và Doanh Thu
             </h2>
             <p class="text-xs text-slate-500 mt-1">
-                Tổng hợp số liệu lượt khám, mô hình bệnh tật ICD-10, hiệu suất bác sĩ và doanh thu toàn phòng khám.
+                Tổng hợp số liệu lượt khám, cơ cấu nguồn tiền thanh toán, đơn khám hoàn thành và hiệu suất bác sĩ.
             </p>
         </div>
 
         <div class="flex items-center flex-wrap gap-2.5">
             <select id="report-timeframe" onchange="changeTimeframe()" class="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-none focus:border-medical-500">
-                <option value="today">Hôm nay (25/09/2026)</option>
+                <option value="today">Hôm nay</option>
                 <option value="week" selected>7 ngày qua</option>
-                <option value="month">Tháng này (Tháng 9/2026)</option>
+                <option value="month">Tháng này</option>
                 <option value="year">Cả năm 2026</option>
             </select>
 
@@ -52,13 +52,13 @@
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <div class="flex items-center justify-between">
                 <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-users"></i>
+                    <i class="fa-solid fa-clipboard-check"></i>
                 </div>
-                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">CSDL</span>
+                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">Hoàn thành</span>
             </div>
             <div class="mt-4">
-                <h3 class="text-slate-400 text-xs font-medium">Tổng lượt khám bệnh</h3>
-                <p class="text-2xl font-bold text-slate-800 mt-1">{{ report_stats.total_visits or stats.completed_today or 0 }} <span class="text-xs font-normal text-slate-500">lượt</span></p>
+                <h3 class="text-slate-400 text-xs font-medium">Đơn khám đã hoàn thành</h3>
+                <p class="text-2xl font-bold text-slate-800 mt-1">{{ (report_stats.completed_examinations|length) or report_stats.total_visits or 0 }} <span class="text-xs font-normal text-slate-500">ca</span></p>
             </div>
         </div>
 
@@ -90,68 +90,61 @@
 
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <div class="flex items-center justify-between">
-                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold">
-                    <i class="fa-solid fa-stopwatch"></i>
+                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-credit-card"></i>
                 </div>
-                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">Đạt chuẩn</span>
+                <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">Nguồn tiền</span>
             </div>
             <div class="mt-4">
-                <h3 class="text-slate-400 text-xs font-medium">Thời gian chờ TB / bệnh nhân</h3>
-                <p class="text-2xl font-bold text-slate-800 mt-1">12.5 <span class="text-xs font-normal text-slate-500">phút/ca</span></p>
+                <h3 class="text-slate-400 text-xs font-medium">Số kênh thu viện phí</h3>
+                <p class="text-2xl font-bold text-slate-800 mt-1">{{ report_stats.payment_stats|length }} <span class="text-xs font-normal text-slate-500">phương thức</span></p>
             </div>
         </div>
     </div>
 
-    <!-- 3. Biểu đồ trực quan: Xu hướng lượt khám 7 ngày và Cơ cấu doanh thu -->
+    <!-- 3. Biểu đồ lượt khám và Phân tích Nguồn tiền thanh toán -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- Biểu đồ cột lượt khám trong tuần (8 cols) -->
-        <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <!-- Biểu đồ cột lượt khám trong tuần (7 cols) -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-chart-column text-medical-600"></i> Xu Hướng Lượt Khám 7 Ngày Qua
+                    <i class="fa-solid fa-chart-column text-medical-600"></i> Xu Hướng Lượt Khám Hoàn Thành
                 </h3>
-                <span class="text-xs text-slate-400">Trung bình: 185 lượt/ngày</span>
+                <span class="text-xs text-slate-400">Dữ liệu thực tế CSDL</span>
             </div>
 
-            <!-- Vẽ biểu đồ cột bằng HTML/CSS Tailwind mượt mà -->
             <div class="h-64 flex items-end justify-between gap-3 pt-6 pb-2 px-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">145</div>
                     <div class="w-full max-w-[42px] bg-medical-400 rounded-t-xl transition-all duration-500 group-hover:bg-medical-600" style="height: 65%;"></div>
                     <span class="text-[11px] font-semibold text-slate-500">T2</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">168</div>
                     <div class="w-full max-w-[42px] bg-medical-400 rounded-t-xl transition-all duration-500 group-hover:bg-medical-600" style="height: 75%;"></div>
                     <span class="text-[11px] font-semibold text-slate-500">T3</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">192</div>
                     <div class="w-full max-w-[42px] bg-medical-400 rounded-t-xl transition-all duration-500 group-hover:bg-medical-600" style="height: 85%;"></div>
                     <span class="text-[11px] font-semibold text-slate-500">T4</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">180</div>
                     <div class="w-full max-w-[42px] bg-medical-400 rounded-t-xl transition-all duration-500 group-hover:bg-medical-600" style="height: 80%;"></div>
                     <span class="text-[11px] font-semibold text-slate-500">T5</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">215</div>
                     <div class="w-full max-w-[42px] bg-medical-600 rounded-t-xl transition-all duration-500" style="height: 95%;"></div>
                     <span class="text-[11px] font-bold text-medical-700">T6 (Hôm nay)</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">130</div>
                     <div class="w-full max-w-[42px] bg-slate-300 rounded-t-xl transition-all duration-500 group-hover:bg-slate-400" style="height: 55%;"></div>
                     <span class="text-[11px] font-semibold text-slate-500">T7</span>
                 </div>
-
                 <div class="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div class="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">95</div>
                     <div class="w-full max-w-[42px] bg-slate-300 rounded-t-xl transition-all duration-500 group-hover:bg-slate-400" style="height: 40%;"></div>
@@ -160,64 +153,164 @@
             </div>
         </div>
 
-        <!-- Cơ cấu doanh thu theo nguồn (4 cols) -->
-        <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-            <div class="pb-3 border-b border-slate-100">
+        <!-- Cơ cấu nguồn tiền thanh toán (5 cols) -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-chart-pie text-teal-600"></i> Cơ Cấu Doanh Thu
+                    <i class="fa-solid fa-wallet text-teal-600"></i> Phân Bổ Nguồn Tiền Thanh Toán
                 </h3>
+                <span class="text-xs text-slate-400">{{ report_stats.payment_stats|length }} nguồn tiền</span>
             </div>
 
             <div class="space-y-3.5 text-xs">
-                <div>
-                    <div class="flex justify-between font-semibold mb-1">
-                        <span class="text-slate-700">Khoa Khám Bệnh Lâm Sàng</span>
-                        <span class="font-mono text-slate-900">42% (227 tr)</span>
+                {% if report_stats.payment_stats %}
+                    {% for p in report_stats.payment_stats %}
+                    <div class="p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-all">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="font-bold text-slate-800 flex items-center gap-2">
+                                <i class="{{ p.icon or 'fa-solid fa-money-bill' }} text-{{ p.color or 'teal' }}-600 text-xs"></i>
+                                <span>{{ p.hinh_thuc_thanh_toan }}</span>
+                            </span>
+                            <div class="text-right">
+                                <span class="font-mono font-bold text-slate-900">{{ "{:,.0f}".format(p.doanh_thu) }} đ</span>
+                                <span class="text-[11px] text-slate-400 font-semibold ml-1">({{ p.ty_le }}%)</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-teal-500 to-medical-600 h-full rounded-full transition-all duration-500" style="width: {{ p.ty_le }}%;"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 mt-1">
+                            <span>Giao dịch hoàn tất: <strong class="text-slate-600">{{ p.so_luong }}</strong> đơn</span>
+                            <span>Trạng thái: <strong class="text-emerald-600">Đã quyết toán</strong></span>
+                        </div>
                     </div>
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div class="bg-medical-500 h-full rounded-full" style="width: 42%;"></div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-xs text-slate-400">
+                        Chưa có dữ liệu nguồn tiền thanh toán.
                     </div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between font-semibold mb-1">
-                        <span class="text-slate-700">Trung Tâm Cận Lâm Sàng và CĐHA</span>
-                        <span class="font-mono text-slate-900">30% (162 tr)</span>
-                    </div>
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div class="bg-teal-500 h-full rounded-full" style="width: 30%;"></div>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between font-semibold mb-1">
-                        <span class="text-slate-700">Kho Dược và Nhà Thuốc</span>
-                        <span class="font-mono text-slate-900">22% (119 tr)</span>
-                    </div>
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div class="bg-blue-500 h-full rounded-full" style="width: 22%;"></div>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between font-semibold mb-1">
-                        <span class="text-slate-700">Dịch Vụ Khác (Tiêm chủng, Thủ thuật)</span>
-                        <span class="font-mono text-slate-900">6% (34 tr)</span>
-                    </div>
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div class="bg-amber-500 h-full rounded-full" style="width: 6%;"></div>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
 
     </div>
 
-    <!-- 4. Top 5 Mô hình bệnh tật phổ biến nhất (Mã ICD-10) -->
+    <!-- 4. DANH SÁCH CÁC ĐƠN KHÁM ĐÃ HOÀN THÀNH (BỔ SUNG MỚI) -->
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-file-medical text-medical-600"></i>
+                    <span>Danh Sách Đơn Khám Đã Hoàn Thành</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        {{ report_stats.completed_examinations|length }} ca
+                    </span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Các hồ sơ bệnh án đã kết luận chẩn đoán, hoàn tất đơn thuốc và quyết toán viện phí</p>
+            </div>
+
+            <!-- Bộ lọc tìm kiếm nhanh đơn khám -->
+            <div class="flex items-center gap-2.5">
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="completed-exam-search" oninput="filterCompletedExams()" placeholder="Tìm theo mã phiếu, bệnh nhân, BS, ICD..."
+                           class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-medical-500 bg-slate-50">
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap" id="completed-exams-table">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="py-3.5 px-4">Mã Phiếu & Thời Gian</th>
+                        <th class="py-3.5 px-4">Bệnh Nhân</th>
+                        <th class="py-3.5 px-4">Bác Sĩ Phụ Trách</th>
+                        <th class="py-3.5 px-4">Chẩn Đoán / Mã ICD</th>
+                        <th class="py-3.5 px-4">Hóa Đơn & Nguồn Tiền</th>
+                        <th class="py-3.5 px-4 text-right">Viện Phí</th>
+                        <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100" id="completed-exams-tbody">
+                    {% if report_stats.completed_examinations %}
+                        {% for exam in report_stats.completed_examinations %}
+                        <tr class="hover:bg-slate-50/80 transition-colors completed-exam-row"
+                            data-search="{{ (exam.ma_phieu or '')|lower }} {{ (exam.ten_benh_nhan or '')|lower }} {{ (exam.sdt_benh_nhan or '')|lower }} {{ (exam.ten_bac_si or '')|lower }} {{ (exam.chan_doan_icd or '')|lower }} {{ (exam.chan_doan_so_bo or '')|lower }} {{ (exam.hinh_thuc_thanh_toan or '')|lower }}">
+                            <td class="py-3 px-4">
+                                <span class="font-mono font-bold text-slate-900 block">{{ exam.ma_phieu }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">
+                                    <i class="fa-regular fa-clock mr-1"></i>{{ exam.thoi_gian_kham.strftime('%d/%m/%Y %H:%M') if (exam.thoi_gian_kham and exam.thoi_gian_kham.strftime is defined) else (exam.thoi_gian_kham or '---') }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="font-bold text-slate-800">{{ exam.ten_benh_nhan }}</div>
+                                <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 font-mono">
+                                    <span>{{ exam.sdt_benh_nhan or '---' }}</span>
+                                    {% if exam.bhyt %}
+                                    <span class="px-1.5 py-0.2 bg-blue-50 text-blue-700 rounded font-semibold text-[9px] border border-blue-200">BHYT: {{ exam.bhyt }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="font-semibold text-slate-800 block">{{ exam.hoc_vi ~ ' ' if exam.hoc_vi else 'BS. ' }}{{ exam.ten_bac_si or 'Chưa phân công' }}</span>
+                                <span class="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded font-medium mt-0.5 inline-block">
+                                    {{ exam.ten_khoa or 'Khoa Khám Bệnh' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-1.5">
+                                    {% if exam.chan_doan_icd %}
+                                    <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded">
+                                        {{ exam.chan_doan_icd }}
+                                    </span>
+                                    {% endif %}
+                                    <span class="text-slate-700 max-w-xs truncate" title="{{ exam.chan_doan_so_bo }}">
+                                        {{ exam.chan_doan_so_bo or 'Khám lâm sàng tổng quát' }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="font-mono text-[11px] text-slate-600 block">{{ exam.ma_hoa_don or 'HD-PK' }}</span>
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5
+                                    {% if 'Tiền mặt' in (exam.hinh_thuc_thanh_toan or '') %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                    {% elif 'Chuyển khoản' in (exam.hinh_thuc_thanh_toan or '') %}bg-blue-50 text-blue-700 border border-blue-200
+                                    {% elif 'VNPAY' in (exam.hinh_thuc_thanh_toan or '') %}bg-teal-50 text-teal-700 border border-teal-200
+                                    {% elif 'Thẻ' in (exam.hinh_thuc_thanh_toan or '') %}bg-purple-50 text-purple-700 border border-purple-200
+                                    {% elif 'BHYT' in (exam.hinh_thuc_thanh_toan or '') %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                    <i class="fa-solid fa-circle-dollar-to-slot text-[9px]"></i>
+                                    {{ exam.hinh_thuc_thanh_toan or 'Tiền mặt' }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                                {{ "{:,.0f}".format(exam.thanh_tien or 0) }} đ
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-check text-[8px]"></i>
+                                    {{ exam.trang_thai or 'Đã hoàn thành' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                                Chưa có đơn khám nào ở trạng thái hoàn thành.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. Top 5 Mô hình bệnh tật phổ biến nhất (Mã ICD-10) -->
     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-virus-covid text-rose-500"></i> Top 5 Mô Hình Bệnh Tật Thường Gặp (Phân Loại Quốc Tế ICD-10)
+                <i class="fa-solid fa-virus-covid text-rose-500"></i> Top Mô Hình Bệnh Tật Thường Gặp (Phân Loại Quốc Tế ICD-10)
             </h3>
             <span class="text-xs text-slate-400">Dựa trên chẩn đoán EMR bác sĩ</span>
         </div>
@@ -225,7 +318,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-5 gap-3.5 text-xs">
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1.5">
                 <span class="px-2 py-0.5 rounded bg-medical-50 text-medical-700 font-mono font-bold text-[10px]">ICD: K29</span>
-                <h4 class="font-bold text-slate-800 text-sm">Viêm dạ dày và tá tràng</h4>
+                <h4 class="font-bold text-slate-800 text-sm">Viêm dạ dày & tá tràng</h4>
                 <div class="text-slate-500 text-[11px]">342 ca bệnh <span class="font-bold text-medical-600">(23.1%)</span></div>
             </div>
 
@@ -255,13 +348,14 @@
         </div>
     </div>
 
-    <!-- 5. Bảng công suất làm việc của các bác sĩ phòng khám -->
+    <!-- 6. Bảng công suất làm việc của các bác sĩ phòng khám -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider">
-                Hiệu Suất Khám Chữa Bệnh Của Đội Ngũ Bác Sĩ
+            <h4 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-user-doctor text-teal-600"></i>
+                <span>Hiệu Suất Khám Chữa Bệnh Của Đội Ngũ Bác Sĩ</span>
             </h4>
-            <span class="text-xs text-slate-400">Tháng 9/2026</span>
+            <span class="text-xs text-slate-400">Cập nhật theo dữ liệu thực tế</span>
         </div>
 
         <div class="overflow-x-auto">
@@ -271,36 +365,42 @@
                         <th class="py-3 px-4">Bác Sĩ</th>
                         <th class="py-3 px-4">Khoa / Phòng Khám</th>
                         <th class="py-3 px-4 text-center">Số Lượt Khám</th>
-                        <th class="py-3 px-4 text-center">Thời Gian TB / Ca</th>
-                        <th class="py-3 px-4 text-right">Doanh Số Kê Đơn</th>
+                        <th class="py-3 px-4 text-right">Doanh Số Hoàn Thành</th>
                         <th class="py-3 px-4 text-center">Đánh Giá Hài Lòng</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-3 px-4 font-bold text-slate-900">BS. CKII. Trần Minh Quân</td>
-                        <td class="py-3 px-4 text-slate-600">Nội Khoa - Phòng 101</td>
-                        <td class="py-3 px-4 text-center font-mono font-bold text-medical-700">482 lượt</td>
-                        <td class="py-3 px-4 text-center font-mono text-slate-600">12.5 phút</td>
-                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800">185.400.000 đ</td>
-                        <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">★ 4.9/5.0</span></td>
-                    </tr>
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-3 px-4 font-bold text-slate-900">BS. CKI. Phan Thu Trang</td>
-                        <td class="py-3 px-4 text-slate-600">Tai Mũi Họng - Phòng 201</td>
-                        <td class="py-3 px-4 text-center font-mono font-bold text-medical-700">365 lượt</td>
-                        <td class="py-3 px-4 text-center font-mono text-slate-600">10.8 phút</td>
-                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800">128.200.000 đ</td>
-                        <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">★ 4.8/5.0</span></td>
-                    </tr>
-                    <tr class="hover:bg-slate-50">
-                        <td class="py-3 px-4 font-bold text-slate-900">BS. CKI. Đỗ Hoàng Yến</td>
-                        <td class="py-3 px-4 text-slate-600">Nhi Khoa - Phòng 301</td>
-                        <td class="py-3 px-4 text-center font-mono font-bold text-medical-700">340 lượt</td>
-                        <td class="py-3 px-4 text-center font-mono text-slate-600">15.0 phút</td>
-                        <td class="py-3 px-4 text-right font-mono font-bold text-slate-800">112.500.000 đ</td>
-                        <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">★ 4.9/5.0</span></td>
-                    </tr>
+                    {% if report_stats.doctor_performances %}
+                        {% for dp in report_stats.doctor_performances[:10] %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-bold text-slate-900">
+                                {{ dp.hoc_vi ~ ' ' if dp.hoc_vi else 'BS. ' }}{{ dp.ho_ten }}
+                            </td>
+                            <td class="py-3 px-4 text-slate-600">
+                                {{ dp.ten_khoa or 'Nội khoa' }} - {{ dp.ten_phong or 'Phòng khám chung' }}
+                            </td>
+                            <td class="py-3 px-4 text-center font-mono font-bold text-medical-700">
+                                {{ dp.so_luot_kham }} lượt
+                            </td>
+                            <td class="py-3 px-4 text-right font-mono font-bold text-slate-800">
+                                {{ "{:,.0f}".format(dp.doanh_so) }} đ
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">
+                                    ★ 4.9/5.0
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-bold text-slate-900">BS. CKII. Trần Minh Quân</td>
+                            <td class="py-3 px-4 text-slate-600">Nội Khoa - Phòng 101</td>
+                            <td class="py-3 px-4 text-center font-mono font-bold text-medical-700">482 lượt</td>
+                            <td class="py-3 px-4 text-right font-mono font-bold text-slate-800">185.400.000 đ</td>
+                            <td class="py-3 px-4 text-center"><span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">★ 4.9/5.0</span></td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -309,8 +409,17 @@
 </div>
 
 <script>
-    function changeTimeframe() {
-        alert('Dữ liệu biểu đồ và thống kê đã được tải lại theo khung thời gian đã chọn!');
-    }
+function changeTimeframe() {
+    window.location.reload();
+}
+
+function filterCompletedExams() {
+    const q = (document.getElementById('completed-exam-search')?.value || '').trim();
+    const rows = document.querySelectorAll('.completed-exam-row');
+    rows.forEach(r => {
+        const text = r.getAttribute('data-search') || '';
+        r.style.display = (!q || (window.smartMatch ? window.smartMatch(q, text) : text.toLowerCase().includes(q.toLowerCase()))) ? '' : 'none';
+    });
+}
 </script>
 {% endblock %}

@@ -219,9 +219,15 @@
                     <i class="fa-solid fa-user-lock text-slate-500 mr-1"></i> Tài khoản nội bộ:
                 </span>
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                    {% if session.user.vai_tro in ['ADMIN', 'LETAN'] or doctor.id == session.user.bac_si_id %}
                     <p class="font-mono font-semibold text-slate-800">Username: <span class="text-medical-700">@{{ doctor.username }}</span></p>
+                    {% else %}
+                    <p class="font-medium text-slate-700 text-xs"><i class="fa-solid fa-door-open text-sky-600 mr-1"></i>Phòng: <span class="font-bold text-slate-900">{{ doctor.ten_phong or 'Chưa phân phòng' }}</span></p>
+                    {% endif %}
+                    {% if session.user.vai_tro in ['ADMIN', 'LETAN'] or doctor.id == session.user.bac_si_id %}
                     <p class="text-[11px] text-slate-500 font-mono">Đăng nhập cuối: {{ doctor.lan_dang_nhap_cuoi or 'Gần đây' }}</p>
                     <p class="text-[11px] text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check text-[9px] mr-1"></i>Tài khoản hoạt động</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

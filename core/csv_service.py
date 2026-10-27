@@ -7,6 +7,15 @@ class CSVService:
     """Dịch vụ nhập/xuất tệp CSV với mã hóa UTF-8-SIG (tương thích hoàn hảo với Microsoft Excel)."""
 
     MODULE_CONFIGS = {
+        'rooms': {
+            'name': 'Danh mục phòng khám và phòng làm việc',
+            'headers': ['Mã Phòng', 'Tên Phòng', 'Mã Chuyên Khoa', 'Tên Chuyên Khoa', 'Vị Trí / Khu Vực / Tầng', 'Trạng Thái'],
+            'sample_rows': [
+                ['PK101', 'Phòng Khám Nội 101', 'KHOA_NOI', 'Khoa Nội Tổng Quát', 'Tầng 1 - Khu A', 1],
+                ['PK102', 'Phòng Khám Tai Mũi Họng 1', 'KHOA_TMH', 'Khoa Tai Mũi Họng', 'Tầng 1 - Khu B', 1]
+            ]
+        },
+
         'medicines': {
             'name': 'Danh sách thuốc và vật tư y tế',
             'headers': ['Mã Thuốc', 'Tên Thuốc', 'Hoạt Chất', 'Hàm Lượng', 'Đơn Vị Tính', 'Đơn Giá', 'Số Lượng', 'Hãng Sản Xuất', 'Nước Sản Xuất', 'Hướng Dẫn Sử Dụng'],
@@ -225,6 +234,24 @@ class CSVService:
                     r.get('nhom_mau') or 'Chưa rõ',
                     r.get('di_ung') or 'Không có',
                     r.get('tien_su_benh') or 'Không có'
+                ])
+
+        elif module == 'rooms':
+            writer.writerow(cfg['headers'])
+            cursor.execute('''
+                SELECT pk.ma_phong, pk.ten_phong, ck.ma_khoa, ck.ten_khoa, pk.vi_tri_tang, pk.trang_thai
+                FROM phong_kham pk
+                LEFT JOIN chuyen_khoa ck ON pk.chuyen_khoa_id = ck.id
+                ORDER BY pk.id ASC
+            ''')
+            for r in cursor.fetchall():
+                writer.writerow([
+                    r.get('ma_phong') or '',
+                    r.get('ten_phong') or '',
+                    r.get('ma_khoa') or '',
+                    r.get('ten_khoa') or '',
+                    r.get('vi_tri_tang') or 'Tầng 1',
+                    1 if r.get('trang_thai') else 0
                 ])
 
         elif module == 'doctors':
@@ -575,6 +602,153 @@ class CSVService:
                             INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio_hen, ly_do_kham, trang_thai)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         ''', (ma, bn_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio_hen, ly_do, trang_thai))
+                        inserted_count += 1
+
+            elif module == 'rooms':
+                for r in data_rows:
+                    if not r or not any(field.strip() for field in r):
+                        continue
+                    ma_phong = r[0].strip() if len(r) > 0 else ''
+                    ten_phong = r[1].strip() if len(r) > 1 else ''
+                    ma_khoa = r[2].strip() if len(r) > 2 else ''
+                    ten_khoa = r[3].strip() if len(r) > 3 else ''
+                    vi_tri_tang = r[4].strip() if len(r) > 4 and r[4].strip() else 'Tầng 1'
+                    try:
+                        trang_thai = int(r[5].strip()) if len(r) > 5 and r[5].strip() != '' else 1
+                    except Exception:
+                        trang_thai = 1
+
+                    if not ten_phong:
+                        continue
+
+                    ck_id = None
+                    if ma_khoa or ten_khoa:
+                        cursor.execute("SELECT id FROM chuyen_khoa WHERE (ma_khoa = ? AND ma_khoa != '') OR LOWER(ten_khoa) = LOWER(?)", (ma_khoa, ten_khoa))
+                        ck_row = cursor.fetchone()
+                        if ck_row:
+                            ck_id = ck_row['id']
+
+                    cursor.execute("SELECT id FROM phong_kham WHERE (ma_phong = ? AND ma_phong != '') OR LOWER(ten_phong) = LOWER(?)", (ma_phong, ten_phong))
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute('''
+                            UPDATE phong_kham
+                            SET ten_phong = ?, chuyen_khoa_id = COALESCE(?, chuyen_khoa_id), vi_tri_tang = ?, trang_thai = ?
+                            WHERE id = ?
+                        ''', (ten_phong, ck_id, vi_tri_tang, trang_thai, existing['id']))
+                        updated_count += 1
+                    else:
+                        if not ma_phong:
+                            cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM phong_kham')
+                            next_id = cursor.fetchone()['next_id']
+                            ma_phong = f"PK{str(next_id).zfill(3)}"
+                        cursor.execute('''
+                            INSERT INTO phong_kham (chuyen_khoa_id, ma_phong, ten_phong, vi_tri_tang, trang_thai)
+                            VALUES (?, ?, ?, ?, ?)
+                        ''', (ck_id, ma_phong, ten_phong, vi_tri_tang, trang_thai))
+                        inserted_count += 1
+
+            elif module == 'patients':
+                for r in data_rows:
+                    if not r or not any(field.strip() for field in r):
+                        continue
+                    ma_bn = r[0].strip() if len(r) > 0 else ''
+                    ho_ten = r[1].strip() if len(r) > 1 else ''
+                    ngay_sinh = r[2].strip() if len(r) > 2 and r[2].strip() else '1995-01-01'
+                    gioi_tinh = r[3].strip() if len(r) > 3 and r[3].strip() else 'Nam'
+                    sdt = r[4].strip() if len(r) > 4 else ''
+                    email = r[5].strip() if len(r) > 5 else ''
+                    cccd = r[6].strip() if len(r) > 6 else ''
+                    bhyt = r[7].strip() if len(r) > 7 else ''
+                    dia_chi = r[8].strip() if len(r) > 8 else ''
+                    nhom_mau = r[9].strip() if len(r) > 9 and r[9].strip() else 'Chưa rõ'
+                    di_ung = r[10].strip() if len(r) > 10 and r[10].strip() else 'Không có'
+                    tien_su = r[11].strip() if len(r) > 11 and r[11].strip() else 'Không có'
+
+                    if not ho_ten:
+                        continue
+
+                    cursor.execute("SELECT id FROM benh_nhan WHERE (ma_benh_nhan = ? AND ma_benh_nhan != '') OR (sdt = ? AND sdt != '')", (ma_bn, sdt))
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute('''
+                            UPDATE benh_nhan
+                            SET ho_ten = ?, ngay_sinh = ?, gioi_tinh = ?, sdt = COALESCE(NULLIF(?, ''), sdt),
+                                email = COALESCE(NULLIF(?, ''), email), cccd = COALESCE(NULLIF(?, ''), cccd),
+                                bhyt = COALESCE(NULLIF(?, ''), bhyt), dia_chi = COALESCE(NULLIF(?, ''), dia_chi),
+                                nhom_mau = ?, di_ung = ?, tien_su_benh = ?
+                            WHERE id = ?
+                        ''', (ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su, existing['id']))
+                        updated_count += 1
+                    else:
+                        if not ma_bn:
+                            cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM benh_nhan')
+                            next_id = cursor.fetchone()['next_id']
+                            ma_bn = f"BN2609{str(next_id).zfill(3)}"
+                        cursor.execute('''
+                            INSERT INTO benh_nhan (ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su_benh, co_tai_khoan)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                        ''', (ma_bn, ho_ten, ngay_sinh, gioi_tinh, sdt, email, cccd, bhyt, dia_chi, nhom_mau, di_ung, tien_su))
+                        inserted_count += 1
+
+            elif module == 'doctors':
+                from werkzeug.security import generate_password_hash
+                for r in data_rows:
+                    if not r or not any(field.strip() for field in r):
+                        continue
+                    ho_ten = r[1].strip() if len(r) > 1 else ''
+                    try:
+                        ck_id = int(r[2].strip()) if len(r) > 2 and r[2].strip() else 1
+                    except Exception:
+                        ck_id = 1
+                    hoc_vi = r[3].strip() if len(r) > 3 and r[3].strip() else 'Bác sĩ'
+                    sdt = r[4].strip() if len(r) > 4 else ''
+                    email = r[5].strip() if len(r) > 5 else ''
+                    kinh_nghiem = r[6].strip() if len(r) > 6 else ''
+                    try:
+                        gia_kham = float(r[7].strip()) if len(r) > 7 and r[7].strip() else 150000.0
+                    except Exception:
+                        gia_kham = 150000.0
+                    trang_thai_lv = r[8].strip() if len(r) > 8 and r[8].strip() else 'Đang làm việc'
+
+                    if not ho_ten:
+                        continue
+
+                    cursor.execute('''
+                        SELECT bs.id, bs.nhan_vien_id FROM bac_si bs
+                        JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                        WHERE (nv.sdt = ? AND nv.sdt != '') OR LOWER(nv.ho_ten) = LOWER(?)
+                    ''', (sdt, ho_ten))
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute('''
+                            UPDATE nhan_vien
+                            SET ho_ten = ?, sdt = COALESCE(NULLIF(?, ''), sdt), email = COALESCE(NULLIF(?, ''), email)
+                            WHERE id = ?
+                        ''', (ho_ten, sdt, email, existing['nhan_vien_id']))
+                        cursor.execute('''
+                            UPDATE bac_si
+                            SET chuyen_khoa_id = ?, hoc_vi = ?, kinh_nghiem = ?, gia_kham = ?, trang_thai_lam_viec = ?
+                            WHERE id = ?
+                        ''', (ck_id, hoc_vi, kinh_nghiem, gia_kham, trang_thai_lv, existing['id']))
+                        updated_count += 1
+                    else:
+                        pwd_hash = generate_password_hash('123')
+                        uname = sdt if sdt else f"bs_{int(datetime.now().timestamp())}_{inserted_count}"
+                        cursor.execute('INSERT INTO tai_khoan (vai_tro_id, username, password, email, sdt, trang_thai) VALUES (3, ?, ?, ?, ?, 1)', (uname, pwd_hash, email, sdt))
+                        acc_id = cursor.lastrowid
+                        cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM nhan_vien')
+                        next_id = cursor.fetchone()['next_id']
+                        ma_nv = f"NV{str(next_id).zfill(4)}"
+                        cursor.execute('''
+                            INSERT INTO nhan_vien (tai_khoan_id, ma_nhan_vien, ho_ten, gioi_tinh, ngay_sinh, sdt, email, chuc_vu)
+                            VALUES (?, ?, ?, 1, '1988-01-01', ?, ?, 'Bác sĩ chuyên khoa')
+                        ''', (acc_id, ma_nv, ho_ten, sdt, email))
+                        nv_id = cursor.lastrowid
+                        cursor.execute('''
+                            INSERT INTO bac_si (nhan_vien_id, chuyen_khoa_id, hoc_vi, kinh_nghiem, gia_kham, trang_thai_lam_viec)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        ''', (nv_id, ck_id, hoc_vi, kinh_nghiem, gia_kham, trang_thai_lv))
                         inserted_count += 1
 
             conn.commit()

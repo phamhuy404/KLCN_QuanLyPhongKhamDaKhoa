@@ -1,7 +1,0 @@
-Item 0: TEXT="Kịch bản số 1 hiện không có chỗ để nhập tên đăng nhập thêm ràng buộc là không cho có khoảng cách  , và ràng buộc ở họ tên bác sĩ nên bỏkhi nhấn vào biểu tượng ở cuối thì nó hiển thị lỗi như trên khi nhấn vòa biểu tượng xem chi tiết thì nó báo lỗi như trên" | IMAGES=['media/image1.png', 'media/image2.png', 'media/image3.png', 'media/image4.png']
-Item 3: TEXT="Kịch bản 2tạo tài khoản thành công khi đăng nhập bằng tài khoản mới vào thì chưa đưa vào trang để nhập thông tin" | IMAGES=['media/image5.png']
-Item 4: TEXT="Kịch bản 3khi ấn vào nút ở dưới thì báo lỗi ở trên" | IMAGES=['media/image6.png', 'media/image7.png']
-Item 6: TEXT="có thể tiếp nhận bệnh nhân, nhưng khi hủy thì lại không đượcở danh sách bệnh nhân chờ,khi chọn phòng khám khác thì danh sachs ở dướinó không thay đổi" | IMAGES=['media/image8.png', 'media/image9.png', 'media/image10.png']
-Item 7: TEXT="khi tôi nhán vào tên bệnh nhân thì nó hiển thị lỗi ở trên" | IMAGES=['media/image11.png', 'media/image12.png']
-Item 8: TEXT="khi nhấn vào menu quản lý bệnh nhân thì nó hiển thị lỗi ở trên" | IMAGES=['media/image13.png']
-Item 9: TEXT="khi nhấn vào hồ sơ của tôi thì nó hiển thị lỗi như trên khi nhấn vào menu nhân sự và lịch trực thì nó hiển thị lỗi như trên" | IMAGES=['media/image14.png', 'media/image15.png', 'media/image16.png']

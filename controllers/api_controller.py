@@ -7,6 +7,8 @@ from models.medical_record_model import MedicalRecordModel
 from models.pharmacy_model import PharmacyModel
 from models.billing_model import BillingModel
 
+from core.database import get_db
+
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/appointment/book', methods=['POST'])
@@ -349,7 +351,6 @@ def save_emr_step():
     if not patient_id:
         return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
 
-    from core.database import get_db
     conn = get_db()
     cursor = conn.cursor()
 
@@ -805,8 +806,66 @@ def delete_department():
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
 
+@api_bp.route('/doctor/assign-room', methods=['POST'])
+@roles_required('ADMIN', 'LETAN')
+def assign_doctor_room():
+    """Phân công phòng làm việc cho bác sĩ (chỉ cho phép gán các phòng thuộc khoa của bác sĩ đó)."""
+    data = request.get_json() or {}
+    doctor_id = data.get('doctor_id') or data.get('bac_si_id')
+    room_id = data.get('phong_kham_id') or data.get('room_id')
+    
+    if not doctor_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID bác sĩ!'}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, chuyen_khoa_id, nhan_vien_id FROM bac_si WHERE id = ?', (doctor_id,))
+    doc = cursor.fetchone()
+    if not doc:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Không tìm thấy thông tin bác sĩ!'}), 404
+        
+    if room_id and int(room_id) > 0:
+        cursor.execute('SELECT id, chuyen_khoa_id, ten_phong FROM phong_kham WHERE id = ?', (room_id,))
+        room = cursor.fetchone()
+        if not room:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Phòng khám không tồn tại!'}), 404
+        if room['chuyen_khoa_id'] and doc['chuyen_khoa_id'] and room['chuyen_khoa_id'] != doc['chuyen_khoa_id']:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Chỉ được phân công phòng thuộc chuyên khoa của bác sĩ này!'}), 400
+        new_room_id = int(room_id)
+        room_name = room['ten_phong']
+    else:
+        new_room_id = None
+        room_name = 'Chưa phân phòng'
+        
+    cursor.execute('UPDATE bac_si SET phong_kham_chinh_id = ? WHERE id = ?', (new_room_id, doctor_id))
+    if new_room_id is not None:
+        cursor.execute('UPDATE lich_lam_viec SET phong_kham_id = ? WHERE bac_si_id = ? AND ngay_lam >= CAST(GETDATE() AS DATE)', (new_room_id, doctor_id))
+    conn.commit()
+    conn.close()
+    return jsonify({
+        'success': True,
+        'message': f'Đã phân công phòng làm việc: {room_name}',
+        'phong_kham_chinh_id': new_room_id,
+        'ten_phong': room_name
+    })
+
+@api_bp.route('/catalog/rooms', methods=['GET'])
+@roles_required('ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV')
+def get_catalog_rooms():
+    """Lấy danh sách các phòng khám."""
+    from models.clinic_model import ClinicModel
+    active_only = request.args.get('active_only', '0') == '1'
+    dept_id = request.args.get('department_id')
+    rooms = ClinicModel.get_all_rooms(active_only=active_only)
+    if dept_id:
+        rooms = [r for r in rooms if str(r.get('chuyen_khoa_id')) == str(dept_id)]
+    return jsonify({'success': True, 'rooms': rooms})
+
 @api_bp.route('/catalog/room/create', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def create_room():
     """API tạo phòng khám mới."""
     from models.clinic_model import ClinicModel
@@ -822,7 +881,7 @@ def create_room():
     return jsonify({'success': False, 'message': res}), 400
 
 @api_bp.route('/catalog/room/update', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def update_room():
     """API sửa thông tin phòng khám."""
     from models.clinic_model import ClinicModel
@@ -843,7 +902,7 @@ def update_room():
     return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/catalog/room/toggle', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def toggle_room():
     """API bật/tắt trạng thái phòng khám."""
     from models.clinic_model import ClinicModel
@@ -858,7 +917,7 @@ def toggle_room():
     return jsonify({'success': False, 'message': res}), 400
 
 @api_bp.route('/catalog/room/delete', methods=['POST'])
-@roles_required('ADMIN')
+@roles_required('ADMIN', 'LETAN')
 def delete_room():
     """API xóa phòng khám (có kiểm tra ràng buộc)."""
     from models.clinic_model import ClinicModel
@@ -1194,6 +1253,11 @@ def list_accounts():
     per_page = request.args.get('per_page', 20, type=int)
 
     data = UserModel.get_accounts(role=role, search=search, page=page, per_page=per_page)
+    curr_user = session.get('user', {})
+    if curr_user.get('vai_tro') not in ('ADMIN', 'LETAN'):
+        for acc in data.get('accounts', []):
+            if acc.get('id') != curr_user.get('id'):
+                acc['username'] = ''
     return jsonify({'success': True, **data})
 
 @api_bp.route('/admin/account/<int:account_id>', methods=['GET'])
@@ -1201,6 +1265,9 @@ def list_accounts():
 def get_account_detail_api(account_id):
     """API xem chi tiết một tài khoản và hồ sơ liên kết."""
     acc = UserModel.get_account_detail(account_id)
+    curr_user = session.get('user', {})
+    if acc and curr_user.get('vai_tro') not in ('ADMIN', 'LETAN') and acc.get('id') != curr_user.get('id'):
+        acc['username'] = ''
     if not acc:
         return jsonify({'success': False, 'message': 'Không tìm thấy tài khoản!'}), 404
     return jsonify({'success': True, 'account': acc})

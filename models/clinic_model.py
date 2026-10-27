@@ -507,7 +507,7 @@ class ClinicModel:
         cursor.execute('SELECT COUNT(*) as total_visits FROM phieu_kham')
         total_visits = cursor.fetchone()['total_visits']
 
-        cursor.execute("SELECT COALESCE(SUM(thanh_tien), 0) as total_revenue FROM hoa_don WHERE trang_thai = 'Đã thanh toán'")
+        cursor.execute("SELECT COALESCE(SUM(thanh_tien), 0) as total_revenue FROM hoa_don WHERE trang_thai = N'Đã thanh toán' OR trang_thai = 'Đã thanh toán'")
         total_revenue = cursor.fetchone()['total_revenue']
 
         cursor.execute('SELECT COUNT(*) as total_patients FROM benh_nhan')
@@ -520,10 +520,33 @@ class ClinicModel:
         cursor.execute('''
             SELECT hinh_thuc_thanh_toan, COUNT(*) as so_luong, COALESCE(SUM(thanh_tien), 0) as doanh_thu
             FROM hoa_don
-            WHERE trang_thai = 'Đã thanh toán'
+            WHERE trang_thai = N'Đã thanh toán' OR trang_thai = 'Đã thanh toán'
             GROUP BY hinh_thuc_thanh_toan
+            ORDER BY doanh_thu DESC
         ''')
         payment_stats = [dict(r) for r in cursor.fetchall()]
+        total_pay_rev = sum(p['doanh_thu'] for p in payment_stats) or total_revenue or 1
+        for p in payment_stats:
+            p['ty_le'] = round((p['doanh_thu'] / total_pay_rev * 100), 1) if total_pay_rev > 0 else 0
+            method = p.get('hinh_thuc_thanh_toan') or 'Khác'
+            if 'Tiền mặt' in method:
+                p['icon'] = 'fa-solid fa-money-bill-wave'
+                p['color'] = 'emerald'
+            elif 'Chuyển khoản' in method:
+                p['icon'] = 'fa-solid fa-building-columns'
+                p['color'] = 'blue'
+            elif 'VNPAY' in method:
+                p['icon'] = 'fa-solid fa-qrcode'
+                p['color'] = 'teal'
+            elif 'Thẻ' in method or 'POS' in method:
+                p['icon'] = 'fa-solid fa-credit-card'
+                p['color'] = 'purple'
+            elif 'BHYT' in method:
+                p['icon'] = 'fa-solid fa-id-card'
+                p['color'] = 'amber'
+            else:
+                p['icon'] = 'fa-solid fa-wallet'
+                p['color'] = 'slate'
 
         cursor.execute('''
             SELECT ck.ten_khoa, COUNT(pk.id) as so_luot_kham
@@ -535,6 +558,39 @@ class ClinicModel:
         ''')
         department_visits = [dict(r) for r in cursor.fetchall()]
 
+        cursor.execute('''
+            SELECT 
+                pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.chan_doan_so_bo, pk.chan_doan_icd, pk.trang_thai,
+                bn.ho_ten AS ten_benh_nhan, bn.sdt AS sdt_benh_nhan, bn.ma_benh_nhan, bn.bhyt,
+                nv.ho_ten AS ten_bac_si, bs.hoc_vi, ck.ten_khoa,
+                hd.ma_hoa_don, hd.thanh_tien, hd.hinh_thuc_thanh_toan, hd.trang_thai AS trang_thai_hd
+            FROM phieu_kham pk
+            JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+            LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+            LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN hoa_don hd ON hd.phieu_kham_id = pk.id
+            WHERE pk.trang_thai IN (N'Đã hoàn thành', N'Hoàn thành', N'Đã khám')
+            ORDER BY pk.thoi_gian_kham DESC
+        ''')
+        completed_examinations = [dict(r) for r in cursor.fetchall()]
+
+        cursor.execute('''
+            SELECT 
+                nv.ho_ten, bs.hoc_vi, ck.ten_khoa, pk_room.ten_phong,
+                COUNT(pk.id) AS so_luot_kham,
+                COALESCE(SUM(hd.thanh_tien), 0) AS doanh_so
+            FROM bac_si bs
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            LEFT JOIN phong_kham pk_room ON bs.phong_kham_chinh_id = pk_room.id
+            LEFT JOIN phieu_kham pk ON pk.bac_si_id = bs.id
+            LEFT JOIN hoa_don hd ON hd.phieu_kham_id = pk.id AND (hd.trang_thai = N'Đã thanh toán' OR hd.trang_thai = 'Đã thanh toán')
+            GROUP BY bs.id, nv.ho_ten, bs.hoc_vi, ck.ten_khoa, pk_room.ten_phong
+            ORDER BY so_luot_kham DESC
+        ''')
+        doctor_performances = [dict(r) for r in cursor.fetchall()]
+
         conn.close()
         return {
             'total_visits': total_visits,
@@ -543,5 +599,7 @@ class ClinicModel:
             'bhyt_patients': bhyt_patients,
             'bhyt_ratio': bhyt_ratio,
             'payment_stats': payment_stats,
-            'department_visits': department_visits
+            'department_visits': department_visits,
+            'completed_examinations': completed_examinations,
+            'doctor_performances': doctor_performances
         }

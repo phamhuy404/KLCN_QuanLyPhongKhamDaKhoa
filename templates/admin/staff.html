@@ -66,17 +66,30 @@
         </div>
     </div>
 
-    <!-- Thanh Tabs chuyển đổi phân hệ -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-1.5 flex flex-wrap gap-1">
-        <button id="tab-staff-btn" onclick="switchTab('staff')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 bg-blue-50 text-blue-700">
-            <i class="fa-solid fa-users"></i>
-            <span>Đội ngũ Nhân sự và Tài khoản</span>
-            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-200/70 text-blue-800">{{ staff_list|length }}</span>
+    <!-- Nhắc nhở đăng ký lịch tuần tới nếu chưa có lịch -->
+    {% if no_next_week_schedule %}
+    <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-bell text-base animate-bounce"></i>
+            </div>
+            <div>
+                <div class="font-bold text-xs">Nhắc nhở đăng ký lịch trực</div>
+                <div class="text-[11px] opacity-90">Hệ thống phát hiện tuần tới (<strong>{{ next_week_label }}</strong>) bạn chưa có ca trực nào. Vui lòng đăng ký sớm để được phê duyệt.</div>
+            </div>
+        </div>
+        <button type="button" onclick="switchTab('register')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-calendar-plus"></i> Đăng ký lịch ngay
         </button>
-        <button id="tab-schedules-btn" onclick="switchTab('schedules')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+    </div>
+    {% endif %}
+
+    <!-- Thanh Tabs chuyển đổi phân hệ (Lịch trực hiển thị đầu tiên, Đội ngũ nhân sự để cuối cùng) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-1.5 flex flex-wrap gap-1">
+        <button id="tab-schedules-btn" onclick="switchTab('schedules')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 bg-blue-50 text-blue-700 shadow-sm border border-blue-100">
             <i class="fa-solid fa-calendar-days"></i>
             <span>Lịch trực toàn viện</span>
-            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ schedules|length }}</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-200/70 text-blue-800">{{ schedules|length }}</span>
         </button>
         <button id="tab-register-btn" onclick="switchTab('register')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
             <i class="fa-solid fa-clock"></i>
@@ -93,11 +106,116 @@
             <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-600">0</span>
             {% endif %}
         </button>
+        <button id="tab-rooms-btn" onclick="switchTab('rooms')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+            <i class="fa-solid fa-hospital-user"></i>
+            <span>Quản lý Phòng khám</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ all_rooms|length if all_rooms else rooms|length }}</span>
+        </button>
         {% endif %}
+        <button id="tab-staff-btn" onclick="switchTab('staff')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+            <i class="fa-solid fa-users"></i>
+            <span>Đội ngũ Nhân sự và Tài khoản</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ staff_list|length }}</span>
+        </button>
     </div>
 
     <!-- TAB 1: ĐỘI NGŨ NHÂN SỰ VÀ TÀI KHOẢN -->
-    <div id="tab-staff" class="tab-pane space-y-4">
+    
+    <!-- TAB 4: QUẢN LÝ PHÒNG KHÁM (ADMIN & LỄ TÂN) -->
+    {% if user_role in ['ADMIN', 'LETAN'] %}
+    <div id="tab-rooms" class="tab-pane hidden space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 justify-between items-center bg-slate-50/50">
+                <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                    <div class="relative w-full md:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="room-search" oninput="filterRoomsTable()" placeholder="Tìm theo tên phòng, mã phòng, khoa..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <select id="room-dept-filter" onchange="filterRoomsTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
+                        <option value="">Tất cả chuyên khoa</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.ten_khoa }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="room-status-filter" onchange="filterRoomsTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="1">Đang hoạt động</option>
+                        <option value="0">Tạm dừng</option>
+                    </select>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="openRoomModal()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-plus"></i> Thêm phòng khám
+                    </button>
+                    <a href="{{ url_for('admin.download_sample_csv', module='rooms') }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5" title="Tải mẫu CSV phòng khám">
+                        <i class="fa-solid fa-file-arrow-down text-blue-600"></i> Mẫu CSV
+                    </a>
+                    <button type="button" onclick="openImportRoomCsvModal()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-import text-amber-600"></i> Nhập CSV
+                    </button>
+                    <a href="{{ url_for('admin.export_csv', module='rooms') }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-export text-emerald-600"></i> Xuất CSV
+                    </a>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs" id="table-rooms">
+                    <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase text-[10px] tracking-wider">
+                        <tr>
+                            <th class="px-5 py-3">Mã phòng</th>
+                            <th class="px-5 py-3">Tên phòng khám</th>
+                            <th class="px-5 py-3">Chuyên khoa</th>
+                            <th class="px-5 py-3">Vị trí / Tầng</th>
+                            <th class="px-5 py-3 text-center">Trạng thái</th>
+                            <th class="px-5 py-3 text-right">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100" id="rooms-tbody">
+                        {% for r in (all_rooms or rooms) %}
+                        <tr class="hover:bg-slate-50 transition room-row" data-search="{{ (r.ten_phong or '')|lower }} {{ (r.ma_phong or '')|lower }} {{ (r.ten_khoa or '')|lower }}" data-dept="{{ r.chuyen_khoa_id or '' }}" data-status="{{ r.trang_thai }}">
+                            <td class="px-5 py-3.5 font-mono font-bold text-slate-800">{{ r.ma_phong }}</td>
+                            <td class="px-5 py-3.5 font-bold text-slate-900">{{ r.ten_phong }}</td>
+                            <td class="px-5 py-3.5">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                                    {{ r.ten_khoa or 'Chung' }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-slate-600">{{ r.vi_tri_tang or 'Tầng 1' }}</td>
+                            <td class="px-5 py-3.5 text-center">
+                                {% if r.trang_thai == 1 %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Hoạt động
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 inline-flex items-center gap-1">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Tạm ngưng
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-5 py-3.5 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button type="button" onclick="editRoom({{ r.id }}, '{{ r.ma_phong }}', '{{ r.ten_phong }}', {{ r.chuyen_khoa_id or 'null' }}, '{{ r.vi_tri_tang or '' }}', {{ r.trang_thai }})" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="Chỉnh sửa phòng">
+                                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                    </button>
+                                    <button type="button" onclick="toggleRoomStatus({{ r.id }})" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Bật/Tắt trạng thái">
+                                        <i class="fa-solid fa-power-off text-xs"></i>
+                                    </button>
+                                    <button type="button" onclick="deleteRoom({{ r.id }}, '{{ r.ten_phong }}')" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Xóa phòng khám">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="tab-staff" class="tab-pane hidden space-y-4">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <!-- Bộ lọc danh sách nhân sự -->
             <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-3 justify-between items-center bg-slate-50/50">
@@ -106,19 +224,25 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                         <input type="text" id="staff-search" oninput="filterStaffTable()" placeholder="Tìm theo tên, mã NV, username, SĐT..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
-                    {% if user_role == 'ADMIN' %}
                     <select id="staff-role-filter" onchange="filterStaffTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
                         <option value="">Tất cả vai trò</option>
                         {% for r in roles %}
                         <option value="{{ r.ma_vai_tro }}">{{ r.ten_vai_tro }} ({{ r.ma_vai_tro }})</option>
                         {% endfor %}
                     </select>
-                    {% endif %}
+                    <select id="staff-dept-filter" onchange="filterStaffTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
+                        <option value="">Tất cả chuyên khoa</option>
+                        {% for ck in departments %}
+                        <option value="{{ ck.id }}">{{ ck.ten_khoa }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if user_role in ['ADMIN', 'LETAN'] %}
                     <select id="staff-status-filter" onchange="filterStaffTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
                         <option value="">Tất cả trạng thái</option>
                         <option value="1">Đang hoạt động</option>
                         <option value="0">Đã khóa</option>
                     </select>
+                    {% endif %}
                 </div>
                 <div class="text-xs text-slate-500">
                     Hiển thị: <span id="staff-visible-count" class="font-bold text-slate-700">{{ staff_list|length }}</span> / {{ staff_list|length }} nhân viên
@@ -132,17 +256,20 @@
                         <tr>
                             <th class="px-5 py-3">Nhân sự</th>
                             <th class="px-5 py-3">Chức vụ và Vai trò</th>
-                            <th class="px-5 py-3">Chuyên khoa / Bộ phận</th>
+                            <th class="px-5 py-3">Chuyên khoa & Phòng phân công</th>
                             <th class="px-5 py-3">Liên hệ</th>
+                            {% if user_role in ['ADMIN', 'LETAN'] %}
                             <th class="px-5 py-3">Trạng thái tài khoản</th>
+                            {% endif %}
                             <th class="px-5 py-3 text-right">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="staff-tbody">
                         {% for st in staff_list %}
                         <tr class="hover:bg-slate-50/70 transition staff-row" 
-                            data-search="{{ (st.ho_ten or '')|lower }} {{ (st.ma_nhan_vien or '')|lower }} {{ (st.username or '')|lower }} {{ (st.sdt or '')|lower }} {{ (st.chuc_vu or '')|lower }}" 
+                            data-search="{{ (st.ho_ten or '')|lower }} {{ (st.ma_nhan_vien or '')|lower }} {% if user_role in ['ADMIN', 'LETAN'] or st.tai_khoan_id == curr_user.get('id') %}{{ (st.username or '')|lower }}{% endif %} {{ (st.sdt or '')|lower }} {{ (st.chuc_vu or '')|lower }} {{ (st.ten_khoa or '')|lower }} {{ (st.ten_phong or '')|lower }}" 
                             data-role="{{ st.ma_vai_tro or '' }}"
+                            data-dept="{{ st.chuyen_khoa_id or '' }}"
                             data-status="{{ st.account_active if st.account_active is not none else st.trang_thai }}">
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-3">
@@ -162,7 +289,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="text-[11px] text-slate-400 font-mono">
-                                            Mã: {{ st.ma_nhan_vien or 'N/A' }} • User: <span class="text-slate-600 font-semibold">{{ st.username or 'N/A' }}</span>
+                                            Mã: {{ st.ma_nhan_vien or 'N/A' }}{% if user_role in ['ADMIN', 'LETAN'] or st.tai_khoan_id == curr_user.get('id') %} • User: <span class="text-slate-600 font-semibold">{{ st.username or 'N/A' }}</span>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -180,15 +307,21 @@
                                 </span>
                             </td>
                             <td class="px-5 py-3.5">
-                                <div class="text-slate-700 font-medium">{{ st.ten_khoa or ('Ban Quản trị Hệ thống' if st.ma_vai_tro == 'ADMIN' else 'Hành chính / Khoa phòng') }}</div>
+                                <div class="text-slate-700 font-semibold">{{ st.ten_khoa or ('Ban Quản trị Hệ thống' if st.ma_vai_tro == 'ADMIN' else 'Hành chính / Khoa phòng') }}</div>
                                 {% if st.ten_phong %}
-                                <div class="text-[11px] text-slate-400"><i class="fa-solid fa-door-open mr-1"></i>{{ st.ten_phong }}</div>
+                                <div class="text-[11px] text-sky-700 font-semibold mt-0.5 flex items-center gap-1">
+                                    <i class="fa-solid fa-door-open text-sky-500"></i>
+                                    <span>{{ st.ten_phong }}</span>
+                                </div>
+                                {% elif st.ma_vai_tro == 'BACSI' or st.bac_si_id %}
+                                <div class="text-[10px] text-slate-400 italic mt-0.5">Chưa phân phòng cố định</div>
                                 {% endif %}
                             </td>
                             <td class="px-5 py-3.5 text-[11px] text-slate-500">
                                 <div><i class="fa-solid fa-phone mr-1 text-slate-400"></i>{{ st.sdt or 'Chưa cập nhật' }}</div>
                                 <div><i class="fa-solid fa-envelope mr-1 text-slate-400"></i>{{ st.email or 'Chưa cập nhật' }}</div>
                             </td>
+                            {% if user_role in ['ADMIN', 'LETAN'] %}
                             <td class="px-5 py-3.5">
                                 {% if (st.account_active == 1 or st.account_active == '1' or st.trang_thai == 1) %}
                                 <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-fit">
@@ -200,8 +333,14 @@
                                 </span>
                                 {% endif %}
                             </td>
+                            {% endif %}
                             <td class="px-5 py-3.5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    {% if user_role in ['ADMIN', 'LETAN'] and (st.ma_vai_tro == 'BACSI' or st.bac_si_id) %}
+                                    <button type="button" onclick="openAssignRoomModal({{ st.bac_si_id }}, '{{ st.ho_ten }}', {{ st.chuyen_khoa_id or 'null' }}, '{{ st.ten_khoa or '' }}', {{ st.phong_kham_chinh_id or 'null' }})" class="px-2 py-1 text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition text-[10px] font-bold flex items-center gap-1 cursor-pointer" title="Phân công phòng làm việc trong khoa">
+                                        <i class="fa-solid fa-door-open text-[10px]"></i> Phân phòng
+                                    </button>
+                                    {% endif %}
                                     <!-- Xem chi tiết thông tin cá nhân -->
                                     <button onclick="viewStaffDetail('{{ st.id }}')" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Xem thông tin cá nhân chi tiết">
                                         <i class="fa-solid fa-eye text-xs"></i>
@@ -263,7 +402,7 @@
     </div>
 
     <!-- TAB 2: LỊCH TRỰC TOÀN VIỆN (DẠNG THỜI KHÓA BIỂU VÀ DẠNG BẢNG) -->
-    <div id="tab-schedules" class="tab-pane hidden space-y-4">
+    <div id="tab-schedules" class="tab-pane space-y-4">
         <!-- Chế độ 1: Thời khóa biểu dạng lưới (Grid View - Mặc định) -->
         <div id="schedule-grid-container" class="space-y-4">
             <!-- Thanh điều hướng tuần và chuyển chế độ xem -->
@@ -450,6 +589,11 @@
                                     </button>
                                     {% endif %}
 
+                                    {% if user_role in ['ADMIN', 'LETAN'] and sc.bac_si_id %}
+                                    <button type="button" onclick="openAssignRoomModal({{ sc.bac_si_id }}, '{{ sc.ten_bac_si }}', {{ sc.chuyen_khoa_id or 'null' }}, '{{ sc.ten_khoa or '' }}', {{ sc.phong_kham_id or 'null' }})" class="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer" title="Phân phòng làm việc cho bác sĩ">
+                                        <i class="fa-solid fa-door-open text-[10px]"></i> Phân phòng
+                                    </button>
+                                    {% endif %}
                                     {% if user_role == 'ADMIN' %}
                                     <button onclick="editScheduleById('{{ sc.id }}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa ca trực">
                                         <i class="fa-solid fa-pen text-xs"></i>
@@ -733,6 +877,90 @@
     {% endif %}
 </div>
 
+
+<!-- MODAL PHÂN CÔNG PHÒNG LÀM VIỆC (ADMIN & LỄ TÂN) -->
+<div id="assignRoomModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in text-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2 text-sky-700 font-bold text-sm">
+                <i class="fa-solid fa-door-open text-base"></i>
+                <span>Phân công Phòng làm việc</span>
+            </div>
+            <button type="button" onclick="closeAssignRoomModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div class="p-3 bg-sky-50/70 rounded-xl border border-sky-200 text-sky-900">
+                <div class="font-bold text-xs" id="assign_doctor_name">BS. Nguyễn Văn A</div>
+                <div class="text-[11px] opacity-80 mt-0.5" id="assign_doctor_dept">Chuyên khoa: Khoa Nội</div>
+            </div>
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Chọn phòng khám phụ trách chính:</label>
+                <select id="assign_room_select" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-sky-500 outline-none bg-white">
+                    <option value="">-- Chưa phân phòng (để trống) --</option>
+                </select>
+                <p class="text-[10px] text-slate-400 mt-1 italic">* Chỉ hiển thị các phòng khám thuộc đúng chuyên khoa của bác sĩ.</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button type="button" onclick="closeAssignRoomModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">
+                Hủy
+            </button>
+            <button type="button" onclick="submitAssignRoom()" id="btnSubmitAssignRoom" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-check"></i>
+                <span>Lưu Phân Công</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL THÊM / SỬA PHÒNG KHÁM -->
+<div id="roomModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in text-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-slate-800 text-sm" id="roomModalTitle">Thêm phòng khám mới</h3>
+            <button type="button" onclick="closeRoomModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-sm"></i></button>
+        </div>
+        <form id="roomForm" onsubmit="handleRoomSubmit(event)" class="space-y-3">
+            <input type="hidden" id="room_id" value="">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Mã phòng *</label>
+                <input type="text" id="room_code" required class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500" placeholder="P101">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Tên phòng khám *</label>
+                <input type="text" id="room_name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500" placeholder="Phòng Khám Nội 1">
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Chuyên khoa *</label>
+                <select id="room_dept_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+                    <option value="">-- Chọn chuyên khoa --</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}">{{ d.ten_khoa }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Vị trí tầng</label>
+                <input type="text" id="room_floor" class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500" placeholder="Tầng 1 - Khu A">
+            </div>
+            <div id="room_status_group" class="hidden">
+                <label class="block font-semibold text-slate-700 mb-1">Trạng thái</label>
+                <select id="room_status" class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+                    <option value="1">Đang hoạt động</option>
+                    <option value="0">Tạm ngưng</option>
+                </select>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeRoomModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition">Đóng</button>
+                <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition shadow-sm">Lưu phòng khám</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <!-- MODAL 1: XEM CHI TIẾT THÔNG TIN CÁ NHÂN NHÂN SỰ -->
 <div id="viewStaffModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in text-xs">
@@ -759,7 +987,11 @@
                     <span class="text-slate-400 block text-[10px] uppercase font-semibold">Mã nhân viên</span>
                     <strong id="modal_view_code" class="text-slate-800 font-mono"></strong>
                 </div>
-                <div class="p-3 bg-slate-50 rounded-xl">
+                <div class="p-3 bg-slate-50 rounded-xl" id="box_modal_view_room">
+                    <span class="text-slate-400 block text-[10px] uppercase font-semibold">Phòng phân công</span>
+                    <strong id="modal_view_room" class="text-slate-800"></strong>
+                </div>
+                <div class="p-3 bg-slate-50 rounded-xl" id="box_modal_view_username">
                     <span class="text-slate-400 block text-[10px] uppercase font-semibold">Tên đăng nhập</span>
                     <strong id="modal_view_username" class="text-slate-800 font-mono"></strong>
                 </div>
@@ -775,7 +1007,7 @@
                     <span class="text-slate-400 block text-[10px] uppercase font-semibold">Chuyên khoa</span>
                     <strong id="modal_view_dept" class="text-slate-800"></strong>
                 </div>
-                <div class="p-3 bg-slate-50 rounded-xl">
+                <div class="p-3 bg-slate-50 rounded-xl" id="box_modal_view_status">
                     <span class="text-slate-400 block text-[10px] uppercase font-semibold">Trạng thái</span>
                     <strong id="modal_view_status" class="text-slate-800"></strong>
                 </div>
@@ -994,6 +1226,35 @@
     </div>
 </div>
 
+<div id="importRoomCsvModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in text-xs">
+        <div class="px-5 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-door-open text-sky-600"></i> Nhập danh mục phòng khám bằng CSV
+            </h3>
+            <button type="button" onclick="closeImportRoomCsvModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-times text-sm"></i></button>
+        </div>
+        <form action="{{ url_for('admin.import_csv', module='rooms') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            <div class="p-3 bg-sky-50 rounded-xl border border-sky-200 text-sky-800">
+                Chọn tệp CSV chứa danh sách phòng khám (Mã phòng, Tên phòng, Chuyên khoa, Khu vực/Tầng, Trạng thái). Hệ thống tự động cập nhật nếu trùng mã phòng.
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Chọn tệp CSV chuẩn UTF-8 *</label>
+                <input type="file" name="csv_file" accept=".csv" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white">
+            </div>
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                <a href="{{ url_for('admin.download_sample_csv', module='rooms') }}" class="text-sky-600 hover:underline flex items-center gap-1 font-semibold">
+                    <i class="fa-solid fa-download"></i> Tải file mẫu CSV
+                </a>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeImportRoomCsvModal()" class="px-4 py-2 border border-slate-300 rounded-xl hover:bg-slate-50 transition">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow-sm transition">Bắt đầu nhập</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- MODAL 7: XÁC NHẬN ĐĂNG KÝ NHIỀU CA LÀM VIỆC CÙNG LÚC -->
 <div id="confirmBulkRegisterModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl animate-fade-in text-xs">
@@ -1039,13 +1300,32 @@
                     </select>
                 </div>
                 <div class="space-y-1.5">
-                    <label class="block font-semibold text-slate-700">Phòng khám / Vị trí làm việc</label>
-                    <select id="confirm_modal_room" class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none bg-white">
-                        <option value="">-- Mặc định theo chuyên khoa / bộ phận --</option>
-                        {% for room in rooms %}
-                        <option value="{{ room.id }}" {% if curr_user.get('phong_kham_chinh_id') == room.id %}selected{% endif %}>{{ room.ten_phong }} ({{ room.vi_tri_tang }})</option>
+                    <label class="block font-semibold text-slate-700">
+                        Phòng khám / Vị trí làm việc
+                        {% if curr_user.get('phong_kham_chinh_id') %}
+                        <span class="text-[10px] text-sky-700 font-bold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 ml-1">Đã phân phòng cố định</span>
+                        {% endif %}
+                    </label>
+                    {% if curr_user.get('phong_kham_chinh_id') %}
+                    <select id="confirm_modal_room" disabled class="w-full px-3 py-2 border border-slate-200 bg-slate-100 rounded-xl outline-none text-slate-700 font-bold cursor-not-allowed">
+                        {% for room in (all_rooms or rooms) %}
+                        {% if curr_user.get('phong_kham_chinh_id') == room.id %}
+                        <option value="{{ room.id }}" selected>{{ room.ten_phong }} ({{ room.vi_tri_tang }}) - Phòng cố định</option>
+                        {% endif %}
                         {% endfor %}
                     </select>
+                    <p class="text-[10px] text-sky-600 mt-1 italic"><i class="fa-solid fa-lock text-[9px] mr-1"></i>Bạn đã được Admin/Tiếp tân phân công phòng cố định.</p>
+                    {% else %}
+                    <select id="confirm_modal_room" class="w-full px-3 py-2 border border-slate-300 rounded-xl outline-none bg-white">
+                        <option value="">-- Tùy chọn phòng trong chuyên khoa --</option>
+                        {% for room in rooms %}
+                        {% if not curr_user.get('chuyen_khoa_id') or room.chuyen_khoa_id == curr_user.get('chuyen_khoa_id') %}
+                        <option value="{{ room.id }}">{{ room.ten_phong }} ({{ room.vi_tri_tang }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1 italic">* Bạn chưa được phân phòng cố định nên có thể tùy ý chọn phòng trong khoa.</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -1121,9 +1401,7 @@
                             <th class="px-4 py-3">Vai trò và Chức vụ</th>
                             <th class="px-4 py-3">Chuyên khoa và Vị trí</th>
                             <th class="px-4 py-3">Trạng thái</th>
-                            {% if user_role in ['ADMIN', 'LETAN'] %}
                             <th class="px-4 py-3 text-right">Thao tác</th>
-                            {% endif %}
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="shift-modal-tbody">
@@ -1141,7 +1419,232 @@
     </div>
 </div>
 
+<script>
+// Quản lý phòng khám & phân phòng (Admin & Lễ tân)
+let currentAssignDoctorId = null;
+
+function openAssignRoomModal(doctorId, doctorName, deptId, deptName, currentRoomId) {
+    currentAssignDoctorId = doctorId;
+    document.getElementById('assign_doctor_name').innerText = (doctorName.startsWith('BS') ? '' : 'BS. ') + doctorName;
+    document.getElementById('assign_doctor_dept').innerText = 'Chuyên khoa: ' + (deptName || 'Chưa rõ');
+
+    const selectEl = document.getElementById('assign_room_select');
+    selectEl.innerHTML = '<option value="">-- Chưa phân phòng (để trống) --</option>';
+
+    // Lọc chỉ lấy các phòng thuộc chuyên khoa của bác sĩ đó
+    const allRooms = window.allRoomsData || [];
+    const deptRooms = allRooms.filter(r => !deptId || Number(r.chuyen_khoa_id) === Number(deptId));
+
+    deptRooms.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.innerText = `${r.ten_phong} (${r.ma_phong || 'P.' + r.id}) - ${r.vi_tri_tang || 'Tầng 1'}`;
+        if (currentRoomId && Number(r.id) === Number(currentRoomId)) {
+            opt.selected = true;
+        }
+        selectEl.appendChild(opt);
+    });
+
+    document.getElementById('assignRoomModal').classList.remove('hidden');
+}
+
+function closeAssignRoomModal() {
+    document.getElementById('assignRoomModal').classList.add('hidden');
+}
+
+async function submitAssignRoom() {
+    if (!currentAssignDoctorId) return;
+    const selectEl = document.getElementById('assign_room_select');
+    const roomId = selectEl.value ? parseInt(selectEl.value) : null;
+    const btn = document.getElementById('btnSubmitAssignRoom');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang lưu...';
+
+    try {
+        const res = await fetch('/api/doctor/assign-room', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                doctor_id: currentAssignDoctorId,
+                phong_kham_id: roomId
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Phân công phòng khám thành công!');
+            closeAssignRoomModal();
+            window.location.reload();
+        } else {
+            alert(data.message || 'Có lỗi xảy ra khi phân công phòng!');
+        }
+    } catch (e) {
+        alert('Lỗi kết nối máy chủ!');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Lưu Phân Công';
+    }
+}
+
+// Bộ lọc bảng phòng khám
+function openImportRoomCsvModal() {
+    document.getElementById('importRoomCsvModal')?.classList.remove('hidden');
+}
+
+function closeImportRoomCsvModal() {
+    document.getElementById('importRoomCsvModal')?.classList.add('hidden');
+}
+
+async function deleteRoom(id, name) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa phòng khám "${name || '#' + id}"?`)) return;
+    try {
+        const res = await fetch('/api/catalog/room/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Đã xóa phòng khám!');
+            window.location.reload();
+        } else {
+            alert('Không thể xóa: ' + (data.message || 'Phòng đang được sử dụng'));
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ!');
+    }
+}
+
+function filterRoomsTable() {
+    const search = (document.getElementById('room-search')?.value || '').toLowerCase().trim();
+    const dept = document.getElementById('room-dept-filter')?.value || '';
+    const status = document.getElementById('room-status-filter')?.value || '';
+
+    document.querySelectorAll('.room-row').forEach(row => {
+        const rSearch = row.getAttribute('data-search') || '';
+        const rDept = row.getAttribute('data-dept') || '';
+        const rStatus = row.getAttribute('data-status') || '';
+
+        const matchSearch = !search || (window.smartMatch ? window.smartMatch(search, rSearch) : rSearch.includes(search));
+        const matchDept = !dept || rDept === dept;
+        const matchStatus = !status || rStatus === status;
+
+        if (matchSearch && matchDept && matchStatus) {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+}
+
+function openRoomModal() {
+    document.getElementById('roomForm').reset();
+    document.getElementById('room_id').value = '';
+    document.getElementById('roomModalTitle').innerText = 'Thêm phòng khám mới';
+    document.getElementById('room_status_group').classList.add('hidden');
+    document.getElementById('roomModal').classList.remove('hidden');
+}
+
+function closeRoomModal() {
+    document.getElementById('roomModal').classList.add('hidden');
+}
+
+function editRoom(id, code, name, deptId, floor, status) {
+    document.getElementById('room_id').value = id;
+    document.getElementById('room_code').value = code || '';
+    document.getElementById('room_name').value = name || '';
+    document.getElementById('room_dept_id').value = deptId || '';
+    document.getElementById('room_floor').value = floor || '';
+    document.getElementById('room_status').value = status;
+    document.getElementById('roomModalTitle').innerText = 'Chỉnh sửa phòng khám';
+    document.getElementById('room_status_group').classList.remove('hidden');
+    document.getElementById('roomModal').classList.remove('hidden');
+}
+
+async function handleRoomSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('room_id').value;
+    const isEdit = !!id;
+    const url = isEdit ? '/api/catalog/room/update' : '/api/catalog/room/create';
+
+    const payload = {
+        ma_phong: document.getElementById('room_code').value.trim(),
+        ten_phong: document.getElementById('room_name').value.trim(),
+        chuyen_khoa_id: parseInt(document.getElementById('room_dept_id').value) || null,
+        vi_tri_tang: document.getElementById('room_floor').value.trim()
+    };
+    if (isEdit) {
+        payload.id = parseInt(id);
+        payload.trang_thai = parseInt(document.getElementById('room_status').value);
+    }
+
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Thành công!');
+            closeRoomModal();
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ!');
+    }
+}
+
+async function toggleRoomStatus(id) {
+    if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái hoạt động của phòng này?')) return;
+    try {
+        const res = await fetch('/api/catalog/room/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: id })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message || 'Đã cập nhật trạng thái phòng!');
+            window.location.reload();
+        } else {
+            alert('Lỗi: ' + data.message);
+        }
+    } catch (err) {
+        alert('Lỗi kết nối máy chủ!');
+    }
+}
+
+
+// Xử lý hủy ca trực đã đăng ký trên lưới Đăng ký (Tab 2)
+async function handleCancelRegisteredShift(id, dateStr, status) {
+    if (status === 'CHO_DUYET') {
+        if (!confirm(`Bạn có chắc chắn muốn hủy đăng ký ca ngày ${dateStr}?`)) return;
+        try {
+            const res = await fetch('/api/schedule/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Đã hủy đăng ký ca làm việc thành công!');
+                window.location.reload();
+            } else {
+                alert('Lỗi: ' + (data.message || 'Không thể hủy ca'));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối máy chủ!');
+        }
+    } else {
+        openCancelRequestModal(id, dateStr, 'Ca trực đã duyệt');
+    }
+}
+
+</script>
 <script id="staff-data-json" type="application/json">{{ staff_list|tojson|safe }}</script>
+<script id="all-rooms-data-json" type="application/json">{{ (all_rooms or rooms)|tojson|safe }}</script>
 <script id="schedules-data-json" type="application/json">{{ schedules|tojson|safe }}</script>
 <script id="current-week-days-json" type="application/json">{{ current_week_days|tojson|safe }}</script>
 <script id="next-week-1-days-json" type="application/json">{{ next_week_1_days|tojson|safe }}</script>
@@ -1151,6 +1654,7 @@
 
 <script>
 window.staffData = JSON.parse(document.getElementById('staff-data-json')?.textContent || '[]');
+window.allRoomsData = JSON.parse(document.getElementById('all-rooms-data-json')?.textContent || '[]');
 window.schedulesData = JSON.parse(document.getElementById('schedules-data-json')?.textContent || '[]');
 window.currentWeekDays = JSON.parse(document.getElementById('current-week-days-json')?.textContent || '[]');
 window.nextWeek1Days = JSON.parse(document.getElementById('next-week-1-days-json')?.textContent || '[]');
@@ -1188,8 +1692,9 @@ function switchTab(tab) {
     const schBtn = document.getElementById('tab-schedules-btn');
     const regBtn = document.getElementById('tab-register-btn');
     const appBtn = document.getElementById('tab-approvals-btn');
+    const roomBtn = document.getElementById('tab-rooms-btn');
 
-    [staffBtn, schBtn, regBtn, appBtn].forEach(b => {
+    [staffBtn, schBtn, regBtn, appBtn, roomBtn].forEach(b => {
         if (b) {
             b.className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50";
         }
@@ -1199,7 +1704,8 @@ function switchTab(tab) {
         'staff': staffBtn,
         'schedules': schBtn,
         'register': regBtn,
-        'approvals': appBtn
+        'approvals': appBtn,
+        'rooms': roomBtn
     };
 
     if (activeMap[tab]) {
@@ -1275,7 +1781,7 @@ function renderTimetableGrid(weekType) {
                 </th>`;
 
     days.forEach(d => {
-        const todayBadge = d.is_today ? `<span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] bg-amber-400 text-amber-950 font-bold uppercase">Hôm nay</span>` : '';
+        const todayBadge = d.is_today ? `<span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] bg-amber-400 text-amber-950 font-bold uppercase shadow-xs">Hôm nay</span>` : '';
         html += `
                 <th class="py-3 px-2 border-r border-sky-500 last:border-r-0 text-center">
                     <div class="text-xs uppercase font-extrabold">${d.day_name}</div>
@@ -1297,12 +1803,12 @@ function renderTimetableGrid(weekType) {
 
         html += `
             <tr class="hover:bg-slate-50/30 transition">
-                <td class="schedule-col-shift py-4 px-3 w-36 border-r border-amber-200 bg-amber-100/80 text-center">
-                    <div class="font-extrabold text-amber-950 text-sm tracking-wide flex items-center justify-center gap-1.5">
-                        <i class="${shiftIcon} ${shiftIconColor}"></i>
+                <td class="schedule-col-shift py-4 px-3 w-36 border-r border-amber-200/90 dark:border-slate-700 bg-amber-50/90 dark:bg-slate-800 text-center">
+                    <div class="font-extrabold text-amber-900 dark:text-amber-300 text-sm tracking-wide flex items-center justify-center gap-1.5">
+                        <i class="${shiftIcon} ${shiftIconColor} dark:text-amber-400"></i>
                         <span>${shiftName}</span>
                     </div>
-                    <div class="text-[11px] text-amber-900/90 font-bold mt-1 bg-amber-200/70 px-2.5 py-0.5 rounded-md inline-block shadow-xs border border-amber-300/50">
+                    <div class="text-[11px] text-amber-900 dark:text-amber-200 font-bold mt-1.5 bg-amber-200/60 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-md inline-block shadow-xs border border-amber-300/60 dark:border-slate-600">
                         ${shiftHours}
                     </div>
                 </td>`;
@@ -1315,100 +1821,128 @@ function renderTimetableGrid(weekType) {
                 s.trang_thai_duyet !== 'TU_CHOI'
             );
 
-            const myShift = cellSchedules.find(s => s.is_my_shift || s.nhan_vien_id === currUser.id || (currUser.staff_id && s.nhan_vien_id === currUser.staff_id));
-            const isPrivileged = (currUser.vai_tro === 'ADMIN' || currUser.vai_tro === 'LETAN');
-
-            // Thiết lập vị trí hiển thị ngang sang bên (phải hoặc trái tùy vị trí cột)
-            const isRightSide = (dIdx >= 3);
-            const popoverSideClass = isRightSide ? 'right-full mr-3' : 'left-full ml-3';
-
-            html += `<td class="p-2.5 border-r border-slate-200 last:border-r-0 align-top relative group min-w-[160px] h-[185px]">`;
+            // Chiều cao ô td cố định h-[235px] đảm bảo tất cả ô thẳng hàng tuyệt đối
+            html += `<td class="p-2 border-r border-slate-200 dark:border-slate-700/60 last:border-r-0 align-top relative min-w-[165px] max-w-[165px] h-[235px]">`;
 
             if (cellSchedules.length > 0) {
+                // Kiểm tra ca trực của chính tài khoản đăng nhập hiện tại
+                const myShift = cellSchedules.find(s => 
+                    s.is_my_shift || 
+                    (currUser.id && (s.nhan_vien_id === currUser.id || s.user_id === currUser.id)) || 
+                    (currUser.staff_id && s.nhan_vien_id === currUser.staff_id) || 
+                    (currUser.bac_si_id && s.bac_si_id === currUser.bac_si_id) ||
+                    (currUser.ho_ten && s.ho_ten && s.ho_ten.trim().toLowerCase() === currUser.ho_ten.trim().toLowerCase())
+                );
                 const isRegistered = !!myShift;
-                const cardClass = isRegistered ? 'schedule-card-registered' : 'schedule-card-unregistered';
-                const firstItem = myShift || cellSchedules[0];
-                const deptName = firstItem.ten_khoa || currUser.ten_khoa || 'Khoa Đa Khoa';
-                const doctorCount = cellSchedules.filter(s => s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ'))).length;
-                const doctorsInShift = cellSchedules.filter(s => s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ')));
 
-                // Thẻ ca trực định dạng hình trụ dọc nhỏ gọn (dạng capsule/trụ đứng)
+                const doctorsInShift = cellSchedules.filter(s => s.ma_vai_tro === 'BACSI' || s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ')));
+                const otherStaffInShift = cellSchedules.filter(s => !(s.ma_vai_tro === 'BACSI' || s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ'))));
+                
+                const docCount = doctorsInShift.length;
+                const staffCount = otherStaffInShift.length;
+                const totalCount = cellSchedules.length;
+
+                // Thẻ đầy đủ màu: Xanh lá nếu có ca của bạn, Xanh dương nếu ca đồng nghiệp
+                const cardBgClass = isRegistered 
+                    ? 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white shadow-md border border-emerald-400/50' 
+                    : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-700 dark:hover:bg-sky-600 text-white shadow-md border border-sky-400/50';
+
+                // Subheader đồng bộ chiều cao h-7 shrink-0 cho cả 2 loại thẻ
+                let subheaderHtml = '';
+                if (isRegistered && myShift) {
+                    const isDoc = myShift.ma_vai_tro === 'BACSI' || myShift.bac_si_id || (myShift.chuc_vu && myShift.chuc_vu.includes('Bác sĩ'));
+                    const myPrefix = isDoc ? 'BS.' : 'NV.';
+                    const rawName = (myShift.ho_ten || myShift.ten_nhan_vien || currUser.ho_ten || 'Bạn');
+                    const cleanName = isDoc ? rawName.replace(/^(BS|ThS|TS|CKI|CKII)\.?\s*/gi, '') : rawName.replace(/^NV\.?\s*/gi, '');
+                    
+                    subheaderHtml = `
+                        <div class="bg-emerald-800/90 dark:bg-emerald-950/80 border border-emerald-300/40 rounded-xl px-2 py-1 flex items-center justify-between text-white shadow-xs h-7 shrink-0">
+                            <div class="flex items-center gap-1 min-w-0 overflow-hidden">
+                                <i class="fa-solid fa-star text-amber-300 text-[10px] shrink-0"></i>
+                                <span class="font-extrabold text-[11px] truncate text-white" title="${myPrefix} ${cleanName}">${myPrefix} ${cleanName}</span>
+                            </div>
+                            <span class="text-[8px] bg-white text-emerald-800 font-black px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 shadow-xs ml-1">Bạn trực</span>
+                        </div>
+                    `;
+                } else {
+                    subheaderHtml = `
+                        <div class="bg-sky-800/80 dark:bg-sky-950/80 border border-sky-400/30 rounded-xl px-2 py-1 flex items-center justify-between text-white text-[10px] h-7 shrink-0">
+                            <span class="font-bold truncate text-sky-100 flex items-center gap-1 min-w-0">
+                                <i class="fa-solid fa-users text-sky-300 text-[10px] shrink-0"></i>
+                                <span class="truncate">Đồng nghiệp</span>
+                            </span>
+                            <span class="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded font-semibold shrink-0 ml-1">${docCount} BS / ${staffCount} NV</span>
+                        </div>
+                    `;
+                }
+
+                // Danh sách đồng nghiệp hiển thị thu gọn trên thẻ
+                const otherDocs = isRegistered ? doctorsInShift.filter(s => s !== myShift) : doctorsInShift;
+                const otherStaff = isRegistered ? otherStaffInShift.filter(s => s !== myShift) : otherStaffInShift;
+
                 html += `
                     <div onclick="openShiftDetailsModal('${d.date_str}', ${caId})"
-                         class="${cardClass} cursor-pointer hover:shadow-xl hover:scale-[1.03] p-2.5 w-24 sm:w-28 mx-auto min-h-[145px] rounded-3xl flex flex-col justify-between items-center text-center transition-all select-none shadow-md border border-white/25">
-                        <div class="space-y-1 w-full">
-                            <div class="w-8 h-8 mx-auto rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold mb-1 shadow-xs">
-                                ${isRegistered ? `<i class="fa-solid fa-user-check text-emerald-200"></i>` : `<i class="fa-solid fa-user-doctor text-sky-200"></i>`}
+                         class="cursor-pointer ${cardBgClass} p-2.5 w-full h-[215px] rounded-2xl flex flex-col justify-between text-left transition-all select-none overflow-hidden relative z-10 hover:shadow-lg hover:-translate-y-0.5"
+                         title="Bấm để xem mở rộng toàn bộ ca này">
+                        
+                        <div class="space-y-1.5 w-full">
+                            <!-- Tiêu đề khung giờ & Tổng số người -->
+                            <div class="flex items-center justify-between gap-1 pb-1 border-b border-white/20 text-white/90">
+                                <span class="text-[10px] font-bold font-mono opacity-90">${shiftHours}</span>
+                                <span class="text-[10px] font-bold text-white">${totalCount} người trực</span>
                             </div>
-                            <div class="font-bold text-[11px] leading-tight text-white truncate w-full" title="${doctorCount > 0 ? doctorCount + ' Bác sĩ' : cellSchedules.length + ' Nhân sự'}">
-                                ${doctorCount > 0 ? `${doctorCount} Bác sĩ` : `${cellSchedules.length} Nhân sự`}
-                            </div>
-                            <div class="text-[9px] font-semibold opacity-90 text-white/90 bg-black/15 px-1.5 py-0.5 rounded-full mx-auto w-fit">
-                                ${shiftHours}
-                            </div>
-                        </div>
 
-                        <div class="pt-1.5 w-full border-t border-white/20 text-[9px]">
-                            ${isRegistered ? `
-                                <span class="font-bold bg-white/30 px-2 py-0.5 rounded-full text-[9px] text-white block truncate">
-                                    Bạn trực
-                                </span>` : `
-                                <span class="font-medium bg-black/20 px-1.5 py-0.5 rounded-full text-[9px] text-white/90 block truncate">
-                                    ${cellSchedules.length} người
-                                </span>`}
-                        </div>
-                    </div>
+                            <!-- Subheader chuẩn h-7: Hiển thị tên bạn trực hoặc ca đồng nghiệp -->
+                            ${subheaderHtml}
 
-                    <!-- HOVER POPOVER TOOLTIP: CHỈ HIỂN THỊ TÊN CÁC BÁC SĨ CHUNG KHOA GỌN GÀNG -->
-                    <div class="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 absolute z-50 top-0 ${popoverSideClass} w-72 bg-slate-900/95 backdrop-blur text-white p-3.5 rounded-2xl shadow-2xl pointer-events-auto border border-slate-700/80">
-                        <div class="flex items-center justify-between border-b border-slate-700/80 pb-2 mb-2">
-                            <div class="truncate">
-                                <div class="font-bold text-xs text-amber-300">${d.day_name}, ${d.display_date}</div>
-                                <div class="text-[11px] text-slate-300 font-medium">${shiftName} (${shiftHours})</div>
-                            </div>
-                            <span class="px-2 py-0.5 bg-blue-500/30 text-blue-300 border border-blue-400/30 rounded-lg text-[10px] font-bold shrink-0">
-                                ${cellSchedules.length} người
-                            </span>
-                        </div>
-
-                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                            <i class="fa-solid fa-user-doctor text-sky-400"></i> Bác sĩ chung khoa trực ca này:
-                        </div>
-
-                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">`;
-
-                const listToShow = doctorsInShift.length > 0 ? doctorsInShift : cellSchedules;
-                listToShow.forEach(person => {
-                    const isSelf = person.is_my_shift || person.nhan_vien_id === currUser.id;
-                    const avatarLetter = (person.ho_ten || 'BS').substring(0, 2).toUpperCase();
-                    html += `
-                            <div class="flex items-center justify-between gap-2 p-1.5 rounded-xl ${isSelf ? 'bg-emerald-950/70 border border-emerald-500/40 text-emerald-100' : 'bg-slate-800/80 text-slate-200'}">
-                                <div class="flex items-center gap-2 overflow-hidden">
-                                    <div class="w-6 h-6 rounded-full ${isSelf ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'} flex items-center justify-center text-[10px] font-bold shrink-0">
-                                        ${avatarLetter}
-                                    </div>
-                                    <div class="truncate font-bold text-[11px] ${isSelf ? 'text-emerald-300' : 'text-slate-100'}">
-                                        ${person.hoc_vi ? person.hoc_vi + '. ' : ''}${person.ho_ten || 'Bác sĩ'}
-                                        ${isSelf ? '<span class="text-[9px] bg-emerald-500 text-white px-1 py-0.2 rounded font-extrabold ml-1">Bạn</span>' : ''}
-                                    </div>
-                                </div>
-                                <span class="text-[9px] px-1.5 py-0.5 rounded shrink-0 font-medium ${person.trang_thai_duyet === 'DA_DUYET' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
-                                    ${person.trang_thai_duyet === 'DA_DUYET' ? 'Đã duyệt' : 'Chờ duyệt'}
+                            <!-- Đếm Bác sĩ và Nhân viên -->
+                            <div class="flex items-center gap-1.5">
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
+                                    <i class="fa-solid fa-user-doctor text-[9px]"></i> ${docCount} BS
                                 </span>
-                            </div>`;
-                });
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white border border-white/25">
+                                    <i class="fa-solid fa-users text-[9px]"></i> ${staffCount} NV
+                                </span>
+                            </div>
 
-                html += `
+                            <!-- Danh sách bác sĩ đồng nghiệp -->
+                            <div class="space-y-1 pt-0.5">
+                                ${otherDocs.slice(0, 1).map(doc => `
+                                    <div class="text-[11px] font-bold text-white truncate leading-tight flex items-center gap-1">
+                                        <span class="text-white/80 shrink-0 font-extrabold text-[10px]">BS.</span>
+                                        <span class="truncate min-w-0">${(doc.ho_ten || doc.ten_nhan_vien || 'Bác sĩ').replace(/^(BS|ThS|TS|CKI|CKII)\.?\s*/gi, '')}</span>
+                                        <span class="text-[9px] text-white/90 bg-black/25 px-1 rounded shrink-0 max-w-[65px] truncate">${doc.ten_khoa || 'Khoa'}</span>
+                                    </div>
+                                `).join('')}
+                                ${otherDocs.length > 1 ? `<div class="text-[9px] text-white/80 font-medium">+${otherDocs.length - 1} bác sĩ khác...</div>` : ''}
+
+                                <!-- Danh sách nhân viên đồng nghiệp -->
+                                ${otherStaff.slice(0, 1).map(st => `
+                                    <div class="text-[11px] font-medium text-white/90 truncate leading-tight flex items-center gap-1">
+                                        <span class="text-white/80 shrink-0 font-extrabold text-[10px]">NV.</span>
+                                        <span class="truncate min-w-0">${(st.ho_ten || st.ten_nhan_vien || 'Nhân sự').replace(/^NV\.?\s*/gi, '')}</span>
+                                        <span class="text-[9px] text-white/90 bg-black/25 px-1 rounded shrink-0 max-w-[65px] truncate">${st.ten_vai_tro || st.chuc_vu || 'Nhân viên'}</span>
+                                    </div>
+                                `).join('')}
+                                ${otherStaff.length > 1 ? `<div class="text-[9px] text-white/80 font-medium">+${otherStaff.length - 1} nhân viên khác...</div>` : ''}
+                            </div>
                         </div>
-                        <div class="mt-2.5 pt-2 border-t border-slate-700/80 text-[10px] text-sky-300 text-center font-semibold cursor-pointer">
-                            <i class="fa-solid fa-arrow-pointer mr-1"></i>Bấm vào ô để xem toàn bộ nhân viên ca này
+
+                        <!-- Footer: Nút Xem mở rộng -->
+                        <div class="pt-1.5 border-t border-white/20 w-full mt-auto">
+                            <button type="button"
+                                    onclick="event.stopPropagation(); openShiftDetailsModal('${d.date_str}', ${caId})"
+                                    class="w-full py-1 px-2 bg-white/20 hover:bg-white/30 active:bg-white/40 text-white font-bold text-[10px] rounded-xl border border-white/30 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                                <i class="fa-solid fa-up-right-and-down-left-from-center text-[9px]"></i>
+                                <span>Xem mở rộng (${totalCount})</span>
+                            </button>
                         </div>
                     </div>`;
             } else {
                 html += `
-                    <div class="h-full border border-dashed border-slate-200 rounded-2xl p-3 flex flex-col justify-center items-center text-slate-300 bg-slate-50/40 select-none">
-                        <div class="text-[11px] font-medium text-slate-400">${shiftHours}</div>
-                        <div class="text-[10px] text-slate-300 mt-1">Chưa có lịch</div>
+                    <div class="w-full h-[215px] border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-3 flex flex-col justify-center items-center text-slate-400 dark:text-slate-500 bg-slate-50/40 dark:bg-slate-800/30 select-none">
+                        <div class="text-[11px] font-medium text-slate-400 dark:text-slate-400">${shiftHours}</div>
+                        <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Chưa có lịch</div>
                     </div>`;
             }
 
@@ -1533,23 +2067,57 @@ function renderRegisterGrid(weekType) {
             html += `<td class="p-2.5 border-r border-slate-200 last:border-r-0 align-top min-w-[155px] h-[145px]">`;
 
             if (myShift) {
+                const isPendingApproval = myShift.trang_thai_duyet === 'CHO_DUYET';
+                const isApproved = myShift.trang_thai_duyet === 'DA_DUYET' || !myShift.trang_thai_duyet;
+                const isPendingCancel = myShift.trang_thai_duyet === 'CHO_HUY';
+
+                let statusBadge = '';
+                let actionBtn = '';
+
+                if (isPendingCancel) {
+                    statusBadge = `<span class="font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-lg text-[9px] uppercase shadow-xs">Chờ duyệt hủy</span>`;
+                    actionBtn = `<div class="w-full mt-1.5 py-1 px-2 bg-amber-500/20 text-amber-200 border border-amber-400/30 font-bold text-[10px] rounded-lg text-center"><i class="fa-solid fa-hourglass-half text-[9px] mr-1"></i>Đang chờ duyệt hủy</div>`;
+                } else if (isPendingApproval) {
+                    statusBadge = `<span class="font-bold bg-sky-200 text-sky-900 px-2 py-0.5 rounded-lg text-[9px] uppercase shadow-xs">Chờ duyệt</span>`;
+                    actionBtn = `
+                        <button type="button" 
+                                onclick="event.stopPropagation(); handleCancelRegisteredShift(${myShift.id}, '${d.date_str}', 'CHO_DUYET')"
+                                class="w-full mt-1.5 py-1 px-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-trash-can text-[9px]"></i>
+                            <span>Hủy đăng ký ca</span>
+                        </button>
+                    `;
+                } else {
+                    statusBadge = `<span class="font-bold bg-white/20 text-white px-2 py-0.5 rounded-lg text-[9px] uppercase shadow-xs">Đã duyệt</span>`;
+                    actionBtn = `
+                        <button type="button" 
+                                onclick="event.stopPropagation(); handleCancelRegisteredShift(${myShift.id}, '${d.date_str}', 'DA_DUYET')"
+                                class="w-full mt-1.5 py-1 px-2 bg-rose-600/90 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer">
+                            <i class="fa-solid fa-calendar-xmark text-[9px]"></i>
+                            <span>Xin hủy ca này</span>
+                        </button>
+                    `;
+                }
+
                 html += `
-                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-3 h-full flex flex-col justify-between shadow-sm border border-emerald-600 select-none">
+                    <div class="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl p-2.5 h-full flex flex-col justify-between shadow-sm border border-emerald-500/60 select-none">
                         <div>
                             <div class="flex items-start justify-between gap-1 mb-1">
                                 <span class="font-extrabold text-[12px] leading-tight line-clamp-1">${deptName}</span>
-                                <i class="fa-solid fa-circle-check text-white text-sm shrink-0"></i>
+                                <i class="fa-solid fa-circle-check text-emerald-200 text-sm shrink-0"></i>
                             </div>
-                            <div class="text-[10px] font-semibold flex items-center gap-1 opacity-95 text-white/95 mt-1">
+                            <div class="text-[10px] font-semibold flex items-center gap-1 opacity-95 text-white/95 mt-0.5">
                                 <i class="fa-regular fa-clock text-[9px]"></i>
                                 <span>${shiftHours}</span>
                             </div>
+                            ${myShift.ten_phong ? `<div class="text-[10px] text-teal-100 flex items-center gap-1 mt-0.5 font-medium"><i class="fa-solid fa-door-open text-[9px]"></i><span class="truncate">${myShift.ten_phong}</span></div>` : ''}
                         </div>
-                        <div class="pt-2 border-t border-white/20 mt-2 flex items-center justify-between text-[10px]">
-                            <span class="font-bold bg-white/20 px-2 py-0.5 rounded-lg text-[9px] uppercase">
-                                Đã đăng ký
-                            </span>
-                            <span class="text-[10px] opacity-85 font-semibold">${isDoctor ? `Khoa: ${sameDeptDoctorsCount}/3` : `Vai trò: ${sameRoleCount}/5`}</span>
+                        <div class="pt-1.5 border-t border-white/20 mt-1.5">
+                            <div class="flex items-center justify-between text-[10px] mb-1">
+                                ${statusBadge}
+                                <span class="text-[10px] opacity-85 font-semibold">${isDoctor ? `Khoa: ${sameDeptDoctorsCount}/3` : `Vai trò: ${sameRoleCount}/5`}</span>
+                            </div>
+                            ${actionBtn}
                         </div>
                     </div>`;
             } else if (isBlocked) {
@@ -1744,7 +2312,14 @@ async function submitBulkRegistration() {
     const deptSelect = document.getElementById('confirm_modal_department');
     const deptId = deptSelect && deptSelect.value ? parseInt(deptSelect.value) : null;
     const roomSelect = document.getElementById('confirm_modal_room');
-    const roomId = roomSelect && roomSelect.value ? parseInt(roomSelect.value) : null;
+    let roomId = null;
+    if (roomSelect) {
+        if (roomSelect.disabled) {
+            roomId = window.currentUser?.phong_kham_chinh_id || (roomSelect.options[roomSelect.selectedIndex] ? parseInt(roomSelect.options[roomSelect.selectedIndex].value) : null);
+        } else if (roomSelect.value) {
+            roomId = parseInt(roomSelect.value);
+        }
+    }
     const note = document.getElementById('confirm_modal_note')?.value.trim() || '';
 
     const payload = {
@@ -1806,6 +2381,7 @@ function closeImportCsvModal() {
 function filterStaffTable() {
     const q = (document.getElementById('staff-search')?.value || '').toLowerCase().trim();
     const role = document.getElementById('staff-role-filter')?.value || '';
+    const dept = document.getElementById('staff-dept-filter')?.value || '';
     const status = document.getElementById('staff-status-filter')?.value || '';
     const rows = document.querySelectorAll('.staff-row');
     let visible = 0;
@@ -1813,12 +2389,14 @@ function filterStaffTable() {
     rows.forEach(r => {
         const text = r.getAttribute('data-search') || '';
         const rRole = r.getAttribute('data-role') || '';
+        const rDept = r.getAttribute('data-dept') || '';
         const rStatus = r.getAttribute('data-status') || '';
-        const matchText = !q || text.includes(q);
+        const matchText = !q || (window.smartMatch ? window.smartMatch(q, text) : text.includes(q));
         const matchRole = !role || rRole === role;
+        const matchDept = !dept || String(rDept) === String(dept);
         const matchStatus = !status || String(rStatus) === String(status);
 
-        if (matchText && matchRole && matchStatus) {
+        if (matchText && matchRole && matchDept && matchStatus) {
             r.classList.remove('hidden');
             visible++;
         } else {
@@ -1839,13 +2417,42 @@ function viewStaffDetail(id) {
     document.getElementById('modal_view_name').innerText = st.ho_ten || 'N/A';
     document.getElementById('modal_view_position').innerText = st.chuc_vu || st.ten_vai_tro || 'Nhân sự y tế';
     document.getElementById('modal_view_code').innerText = st.ma_nhan_vien || 'N/A';
-    document.getElementById('modal_view_username').innerText = st.username || 'Chưa gắn';
     document.getElementById('modal_view_phone').innerText = st.sdt || 'Chưa có';
+    document.getElementById('modal_view_email').innerText = st.email || 'Chưa có';
+
     const isSysAdmin = st.ma_vai_tro === 'ADMIN';
     document.getElementById('modal_view_dept').innerText = st.ten_khoa || (isSysAdmin ? 'Ban Quản trị Hệ thống' : 'Hành chính / Khoa phòng');
 
-    const isActive = (st.account_active == 1 || st.account_active == '1' || st.trang_thai == 1);
-    document.getElementById('modal_view_status').innerText = isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa';
+    // Phòng làm việc phân công
+    const roomEl = document.getElementById('modal_view_room');
+    if (roomEl) {
+        roomEl.innerText = st.ten_phong || 'Chưa phân phòng';
+    }
+
+    // Bảo mật: Chỉ ADMIN, LETAN hoặc chính tài khoản đó mới xem được Username và Trạng thái
+    const isPrivileged = (window.currentUser?.vai_tro === 'ADMIN' || window.currentUser?.vai_tro === 'LETAN' || st.tai_khoan_id === window.currentUser?.id);
+
+    const usernameBox = document.getElementById('box_modal_view_username');
+    if (usernameBox) {
+        if (isPrivileged) {
+            usernameBox.classList.remove('hidden');
+            document.getElementById('modal_view_username').innerText = st.username || 'Chưa gắn';
+        } else {
+            usernameBox.classList.add('hidden');
+        }
+    }
+
+    const statusBox = document.getElementById('box_modal_view_status');
+    if (statusBox) {
+        if (isPrivileged) {
+            statusBox.classList.remove('hidden');
+            const isActive = (st.account_active == 1 || st.account_active == '1' || st.trang_thai == 1);
+            document.getElementById('modal_view_status').innerText = isActive ? 'Đang hoạt động' : 'Đã vô hiệu hóa';
+        } else {
+            statusBox.classList.add('hidden');
+        }
+    }
+
     document.getElementById('modal_view_avatar').innerText = (st.ho_ten || 'NV').substring(0, 2).toUpperCase();
 
     const badge = document.getElementById('modal_view_role_badge');
@@ -2168,41 +2775,6 @@ async function deleteSchedule(id) {
     }
 }
 
-// Đăng ký ca làm việc trong 2 tuần tiếp theo
-async function handleRegisterScheduleSubmit(e) {
-    e.preventDefault();
-    const alertBox = document.getElementById('regAlertBox');
-    alertBox.className = "hidden p-3 rounded-xl border text-xs";
-
-    const payload = {
-        ngay_lam: document.getElementById('reg_date').value,
-        ca_lam: parseInt(document.getElementById('reg_shift').value) || 1,
-        phong_kham_id: document.getElementById('reg_room').value ? parseInt(document.getElementById('reg_room').value) : null,
-        ghi_chu: document.getElementById('reg_note').value.trim()
-    };
-
-    try {
-        const res = await fetch('/api/schedule/register', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert(data.message || 'Đăng ký ca làm thành công!');
-            window.location.reload();
-        } else {
-            alertBox.className = "p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs";
-            alertBox.innerText = data.message || 'Không thể đăng ký ca trực.';
-            alertBox.classList.remove('hidden');
-        }
-    } catch (err) {
-        alertBox.className = "p-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs";
-        alertBox.innerText = 'Lỗi kết nối: ' + err.message;
-        alertBox.classList.remove('hidden');
-    }
-}
-
 // Gửi đơn xin hủy lịch tuần hiện tại
 function openCancelRequestModal(id, date, shiftName) {
     document.getElementById('cancel_request_id').value = id;
@@ -2378,57 +2950,74 @@ function openShiftDetailsModal(dateStr, caId) {
     const shiftHours = shiftInfo.gio || shiftInfo.gio_lam_viec || (Number(caId) === 1 ? '07:00 - 11:30' : Number(caId) === 2 ? '13:30 - 17:00' : '17:30 - 20:30');
 
     // Cập nhật tiêu đề modal
-    document.getElementById('shift-modal-subheading').innerText = `Ngày ${dateStr} • ${shiftName} (${shiftHours})`;
+    const headingEl = document.getElementById('shift-modal-subheading');
+    if (headingEl) headingEl.innerText = `Ngày ${dateStr} • ${shiftName} (${shiftHours})`;
 
-    // Thống kê
+    // Thống kê phân loại Bác sĩ và các nhân viên
     const totalStaff = cellSchedules.length;
-    const docCount = cellSchedules.filter(s => s.ma_vai_tro === 'BACSI' || s.bac_si_id).length;
+    const doctors = cellSchedules.filter(s => s.ma_vai_tro === 'BACSI' || s.bac_si_id || (s.chuc_vu && s.chuc_vu.includes('Bác sĩ')));
+    const letans = cellSchedules.filter(s => s.ma_vai_tro === 'LETAN' || (s.chuc_vu && s.chuc_vu.toLowerCase().includes('lễ tân')));
+    const others = cellSchedules.filter(s => !doctors.includes(s) && !letans.includes(s));
+
+    const docCount = doctors.length;
     const approvedCount = cellSchedules.filter(s => s.trang_thai_duyet === 'DA_DUYET').length;
     const pendingCount = cellSchedules.filter(s => s.trang_thai_duyet === 'CHO_DUYET' || s.trang_thai_duyet === 'CHO_HUY').length;
 
-    document.getElementById('shift-modal-total-staff').innerText = totalStaff;
-    document.getElementById('shift-modal-doctors-count').innerText = docCount;
-    document.getElementById('shift-modal-approved-count').innerText = approvedCount;
-    document.getElementById('shift-modal-pending-count').innerText = pendingCount;
+    if (document.getElementById('shift-modal-total-staff')) document.getElementById('shift-modal-total-staff').innerText = totalStaff;
+    if (document.getElementById('shift-modal-doctors-count')) document.getElementById('shift-modal-doctors-count').innerText = docCount;
+    if (document.getElementById('shift-modal-approved-count')) document.getElementById('shift-modal-approved-count').innerText = approvedCount;
+    if (document.getElementById('shift-modal-pending-count')) document.getElementById('shift-modal-pending-count').innerText = pendingCount;
 
-    // Đổ danh sách vào bảng phân chia theo từng Khoa / Khu vực
+    // Đổ danh sách vào bảng phân chia theo từng nhóm Vị trí rõ ràng: Bác sĩ, Tiếp tân, KTV & Dược sĩ
     const tbody = document.getElementById('shift-modal-tbody');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
     if (cellSchedules.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-slate-400">Chưa có nhân viên nào đăng ký hoặc được phân công vào ca này.</td></tr>`;
     } else {
-        // Nhóm theo chuyên khoa hoặc khu vực
-        const grouped = {};
-        cellSchedules.forEach(item => {
-            const dept = item.ten_khoa || 'Khu vực Tiếp đón và Hành chính';
-            if (!grouped[dept]) grouped[dept] = [];
-            grouped[dept].push(item);
-        });
+        const sections = [
+            { title: 'Bác Sĩ Chuyên Khoa Khám Bệnh', icon: 'fa-solid fa-stethoscope', color: 'purple', items: doctors },
+            { title: 'Nhân Viên Tiếp Tân & Đón Tiếp Người Bệnh', icon: 'fa-solid fa-headset', color: 'blue', items: letans },
+            { title: 'Kỹ Thuật Viên Cận Lâm Sàng & Dược Sĩ', icon: 'fa-solid fa-flask-vial', color: 'teal', items: others }
+        ];
 
-        Object.keys(grouped).forEach(deptName => {
-            // Hàng tiêu đề Khoa / Khu vực
-            const deptHeaderRow = document.createElement('tr');
-            deptHeaderRow.className = "bg-slate-100 border-y border-slate-200";
-            deptHeaderRow.innerHTML = `
-                <td colspan="5" class="px-4 py-2 font-bold text-xs text-slate-800">
+        sections.forEach(sec => {
+            if (sec.items.length === 0) return;
+
+            // Hàng tiêu đề nhóm vị trí
+            const secRow = document.createElement('tr');
+            secRow.className = `bg-${sec.color}-50/60 border-y border-${sec.color}-200/80`;
+            secRow.innerHTML = `
+                <td colspan="5" class="px-4 py-2 font-bold text-xs text-${sec.color}-900">
                     <div class="flex items-center justify-between">
-                        <span class="flex items-center gap-1.5 text-medical-800">
-                            <i class="fa-solid fa-hospital text-medical-600"></i> ${deptName}
+                        <span class="flex items-center gap-1.5">
+                            <i class="${sec.icon} text-${sec.color}-600"></i> ${sec.title}
                         </span>
-                        <span class="px-2 py-0.5 bg-white rounded-md text-[10px] text-slate-600 border border-slate-200">
-                            ${grouped[deptName].length} nhân sự
+                        <span class="px-2 py-0.5 bg-white rounded-md text-[10px] text-${sec.color}-700 font-bold border border-${sec.color}-200">
+                            ${sec.items.length} người
                         </span>
                     </div>
                 </td>
             `;
-            tbody.appendChild(deptHeaderRow);
+            tbody.appendChild(secRow);
 
-            grouped[deptName].forEach(item => {
+            sec.items.forEach(item => {
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 transition border-b border-slate-100";
-                const isDoctor = item.ma_vai_tro === 'BACSI' || item.bac_si_id;
+                const isDoctor = item.ma_vai_tro === 'BACSI' || item.bac_si_id || (item.chuc_vu && item.chuc_vu.includes('Bác sĩ'));
                 const avatarLetter = (item.ho_ten || 'NV').substring(0, 2).toUpperCase();
+                
+                // Tên hiển thị chuẩn: BS + Tên đối với Bác sĩ; Nhân viên + Tên đối với vai trò khác
+                const rawName = (item.ho_ten || item.ten_nhan_vien || 'Nhân sự');
+                const cleanName = isDoctor ? rawName.replace(/^(BS|ThS|TS|CKI|CKII)\.?\s*/gi, '') : rawName.replace(/^NV\.?\s*/gi, '');
+                const currUser = window.currentUser || {};
+                const isMe = item.is_my_shift || (currUser.id && (item.nhan_vien_id === currUser.id || item.user_id === currUser.id)) || (currUser.staff_id && item.nhan_vien_id === currUser.staff_id) || (currUser.ho_ten && item.ho_ten && item.ho_ten.trim().toLowerCase() === currUser.ho_ten.trim().toLowerCase());
+                if (isMe) {
+                    row.className = "bg-emerald-50/90 dark:bg-emerald-950/40 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/50 border-b border-emerald-300 dark:border-emerald-700/60 transition";
+                } else {
+                    row.className = "hover:bg-slate-50 dark:hover:bg-slate-800/60 transition border-b border-slate-100 dark:border-slate-800";
+                }
+                const formattedName = isDoctor ? (isMe ? `⭐ BS. ${cleanName} (Bạn)` : `BS. ${cleanName}`) : (isMe ? `⭐ Nhân viên ${cleanName} (Bạn)` : `Nhân viên ${cleanName}`);
 
                 let statusBadge = '';
                 if (item.trang_thai_duyet === 'DA_DUYET') {
@@ -2442,27 +3031,53 @@ function openShiftDetailsModal(dateStr, caId) {
                 }
 
                 let actionsHtml = '';
+                const assignBtnHtml = (isPrivileged && isDoctor && item.bac_si_id)
+                    ? `<button type="button" onclick="closeShiftDetailsModal(); openAssignRoomModal(${item.bac_si_id}, '${cleanName.replace(/'/g, "\'")}', ${item.chuyen_khoa_id || 'null'}, '${(item.ten_khoa || '').replace(/'/g, "\'")}', ${item.phong_kham_id || 'null'})" class="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-lg text-[10px] font-bold cursor-pointer" title="Phân phòng làm việc"><i class="fa-solid fa-door-open mr-0.5"></i>Phân phòng</button>`
+                    : '';
                 if (isPrivileged) {
                     if (item.trang_thai_duyet === 'CHO_DUYET') {
                         actionsHtml = `
                             <div class="flex items-center justify-end gap-1.5">
-                                <button onclick="approveRegistration('${item.id}', true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold">Duyệt</button>
-                                <button onclick="approveRegistration('${item.id}', false)" class="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[10px] font-bold border border-rose-200">Từ chối</button>
+                                ${assignBtnHtml}
+                                <button onclick="approveRegistration('${item.id}', true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer">Duyệt</button>
+                                <button onclick="approveRegistration('${item.id}', false)" class="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-[10px] font-bold border border-rose-200 cursor-pointer">Từ chối</button>
                             </div>`;
                     } else if (item.trang_thai_duyet === 'CHO_HUY') {
                         actionsHtml = `
                             <div class="flex items-center justify-end gap-1.5">
-                                <button onclick="approveCancellation('${item.id}', true)" class="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-bold">Chấp thuận hủy</button>
+                                ${assignBtnHtml}
+                                <button onclick="approveCancellation('${item.id}', true)" class="px-2 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-bold cursor-pointer">Chấp thuận hủy</button>
+                                <button onclick="approveCancellation('${item.id}', false)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer">Từ chối hủy</button>
                             </div>`;
                     } else {
                         actionsHtml = `
                             <div class="flex items-center justify-end gap-1.5">
-                                <button onclick="deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded" title="Xóa ca này"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                                ${assignBtnHtml}
+                                <button onclick="deleteSchedule('${item.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded cursor-pointer" title="Xóa ca này"><i class="fa-solid fa-trash-can text-xs"></i></button>
                             </div>`;
+                    }
+                } else if (isMe) {
+                    if (item.trang_thai_duyet === 'CHO_DUYET') {
+                        actionsHtml = `
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="closeShiftDetailsModal(); handleCancelRegisteredShift(${item.id}, '${dateStr}', 'CHO_DUYET')" class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-trash-can mr-1"></i>Hủy đăng ký</button>
+                            </div>`;
+                    } else if (item.trang_thai_duyet === 'DA_DUYET') {
+                        actionsHtml = `
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="closeShiftDetailsModal(); handleCancelRegisteredShift(${item.id}, '${dateStr}', 'DA_DUYET')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-paper-plane mr-1"></i>Xin hủy ca</button>
+                            </div>`;
+                    } else {
+                        actionsHtml = `<span class="text-[11px] text-amber-600 font-semibold">Đang chờ duyệt hủy</span>`;
                     }
                 } else {
                     actionsHtml = `<span class="text-[11px] text-slate-400 italic">Xem</span>`;
                 }
+
+                // Bảo mật: Không bao giờ để lộ username cho các tài khoản bác sĩ/nhân viên khác
+                const userPrivacyLine = (isPrivileged || isMe) 
+                    ? `User: ${item.username || '-'} • SĐT: ${item.sdt || '-'}`
+                    : `SĐT: ${item.sdt || '-'} • Phòng: ${item.ten_phong || 'Chưa phân'}`;
 
                 row.innerHTML = `
                     <td class="px-4 py-3">
@@ -2471,18 +3086,18 @@ function openShiftDetailsModal(dateStr, caId) {
                                 ${avatarLetter}
                             </div>
                             <div>
-                                <div class="font-bold text-slate-800">${item.hoc_vi ? item.hoc_vi + '. ' : ''}${item.ho_ten || 'Nhân sự'}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">User: ${item.username || '-'} • SĐT: ${item.sdt || '-'}</div>
+                                <div class="font-bold text-slate-800">${formattedName}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${userPrivacyLine}</div>
                             </div>
                         </div>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="font-semibold text-slate-700 block">${item.chuc_vu || item.ten_vai_tro || 'Nhân sự'}</span>
-                        <span class="text-[10px] text-slate-400">${deptName}</span>
+                        <span class="font-semibold text-slate-700 block">${item.chuc_vu || item.ten_vai_tro || (isDoctor ? 'Bác sĩ' : 'Nhân sự')}</span>
+                        <span class="text-[10px] text-slate-400">${item.ten_vai_tro || ''}</span>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="font-medium text-slate-700 block">${item.ten_phong || 'Chưa gán'}</span>
-                        <span class="text-[10px] text-slate-400">${item.vi_tri_tang || 'Khu khám bệnh'}</span>
+                        <span class="font-medium text-slate-700 block">${item.ten_khoa || item.ten_phong || (isDoctor ? 'Khoa Đa Khoa' : 'Quầy tiếp đón')}</span>
+                        <span class="text-[10px] text-slate-400">${item.vi_tri_tang || item.ten_phong || 'Khu khám bệnh'}</span>
                     </td>
                     <td class="px-4 py-3">${statusBadge}</td>
                     <td class="px-4 py-3 text-right">${actionsHtml}</td>
@@ -2492,7 +3107,10 @@ function openShiftDetailsModal(dateStr, caId) {
         });
     }
 
-    document.getElementById('shiftDetailsModal').classList.remove('hidden');
+    const modal = document.getElementById('shiftDetailsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
 }
 
 function closeShiftDetailsModal() {

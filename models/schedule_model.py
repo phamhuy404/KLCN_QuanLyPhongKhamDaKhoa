@@ -160,6 +160,8 @@ class ScheduleModel:
             info = ScheduleModel.CA_LAM_INFO.get(ca, ScheduleModel.CA_LAM_INFO[1])
             r['ten_ca'] = info['ten']
             r['ten_bac_si'] = r.get('ten_nhan_vien') or 'Chưa phân công'
+            r['ho_ten'] = r.get('ten_nhan_vien') or ''
+            r['sdt'] = r.get('sdt_nhan_vien') or ''
 
             # Xác định ca này có phải của bản thân người dùng đăng nhập không
             is_mine = False
@@ -180,7 +182,7 @@ class ScheduleModel:
             # Quyền sửa trực tiếp: Admin hoặc chính mình trong 2 tuần tiếp theo
             r['can_modify'] = bool(is_admin or (is_mine and r['is_next_2_weeks']))
             # Quyền gửi đơn hủy: Chính mình trong tuần hiện tại khi ca đã duyệt
-            r['can_request_cancel'] = bool(is_mine and r['is_current_week'] and r.get('trang_thai_duyet') == 'DA_DUYET')
+            r['can_request_cancel'] = bool(is_mine and r.get('trang_thai_duyet') == 'DA_DUYET')
 
         # Ưu tiên đưa ca trực của bản thân lên đầu danh sách nếu không phải admin
         if current_user and not is_admin:
@@ -307,7 +309,22 @@ class ScheduleModel:
 
         ca_info = ScheduleModel.CA_LAM_INFO.get(ca_lam, ScheduleModel.CA_LAM_INFO[1])
         bs_id = staff_row.get('bac_si_id')
-        pk_id = phong_kham_id or staff_row.get('phong_kham_chinh_id') or 1
+        if staff_row.get('phong_kham_chinh_id'):
+            pk_id = int(staff_row['phong_kham_chinh_id'])
+        elif phong_kham_id:
+            pk_id = int(phong_kham_id)
+            if effective_dept_id:
+                cursor.execute('SELECT chuyen_khoa_id FROM phong_kham WHERE id = ?', (pk_id,))
+                rm_row = cursor.fetchone()
+                if rm_row and rm_row.get('chuyen_khoa_id') and int(rm_row['chuyen_khoa_id']) != int(effective_dept_id):
+                    conn.close()
+                    return False, "Phòng làm việc đã chọn không thuộc chuyên khoa của bạn!"
+        elif effective_dept_id:
+            cursor.execute('SELECT TOP 1 id FROM phong_kham WHERE chuyen_khoa_id = ? AND trang_thai = 1 ORDER BY id ASC', (effective_dept_id,))
+            rm_row = cursor.fetchone()
+            pk_id = rm_row['id'] if rm_row else 1
+        else:
+            pk_id = 1
 
         # Lễ tân tự động phê duyệt ngay khi đăng ký
         is_letan = staff_row.get('ma_vai_tro') == 'LETAN'

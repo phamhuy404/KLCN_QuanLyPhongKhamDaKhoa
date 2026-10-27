@@ -138,11 +138,11 @@
         {% if role == 'ADMIN' %}
         <a href="{{ url_for('admin_doctors') }}"
             class="nav-item {% if active_page == 'admin_doctors' and not request.path.startswith('/admin/doctors/') %}nav-item-active{% else %}nav-item-dark-inactive{% endif %} flex items-center h-11 rounded-xl transition-all group overflow-hidden"
-            title="Đội ngũ Bác sĩ">
+            title="Đội ngũ Nhân viên">
             <div class="sidebar-icon-box">
-                <i class="fa-solid fa-user-doctor nav-icon text-base"></i>
+                <i class="fa-solid fa-users-gear nav-icon text-base"></i>
             </div>
-            <span class="sidebar-text-fade text-sm font-medium">Đội ngũ Bác sĩ</span>
+            <span class="sidebar-text-fade text-sm font-medium">Đội ngũ Nhân viên</span>
         </a>
         {% endif %}
 
