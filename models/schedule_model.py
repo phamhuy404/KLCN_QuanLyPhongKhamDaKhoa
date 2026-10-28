@@ -1,5 +1,6 @@
 from datetime import datetime, date, timedelta
-from core.database import get_db
+from core.scheduling import (scheduling_db as get_db, serialized, validate_schedule,
+                             appointments, in_schedule, sync_count, CalendarError)
 
 class ScheduleModel:
     """Model quản lý lịch làm việc, phân ca trực, duyệt đăng ký và hủy ca trực."""
@@ -57,7 +58,7 @@ class ScheduleModel:
             WHERE llv.ngay_lam = ? 
               AND llv.ca_lam = ? 
               AND t.vai_tro_id = ?
-              AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+              AND llv.trang_thai_duyet = 'DA_DUYET'
               AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
         '''
         params = [str(ngay_lam)[:10], int(ca_lam), int(vai_tro_id)]
@@ -86,7 +87,7 @@ class ScheduleModel:
             WHERE llv.ngay_lam = ? 
               AND llv.ca_lam = ? 
               AND bs.chuyen_khoa_id = ?
-              AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+              AND llv.trang_thai_duyet = 'DA_DUYET'
               AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
         '''
         params = [str(ngay_lam)[:10], int(ca_lam), int(chuyen_khoa_id)]
@@ -219,6 +220,7 @@ class ScheduleModel:
         return dict(row) if row else None
 
     @staticmethod
+    @serialized
     def register_schedule(user, ngay_lam, ca_lam, phong_kham_id=None, ghi_chu=None, chuyen_khoa_id=None):
         """Nhân sự tự đăng ký ca làm trong 2 tuần tiếp theo với giới hạn tối đa 5 người/ca/role và 3 bác sĩ/khoa/ca."""
         if not user or not user.get('id'):
@@ -244,11 +246,11 @@ class ScheduleModel:
         try:
             if isinstance(ca_lam, str):
                 ca_map = {'sáng': 1, 'sang': 1, 'chiều': 2, 'chieu': 2, 'tối': 3, 'toi': 3, '1': 1, '2': 2, '3': 3}
-                ca_lam = ca_map.get(ca_lam.strip().lower(), 1)
+                ca_lam = ca_map.get(ca_lam.strip().lower(), 0)
             else:
                 ca_lam = int(ca_lam)
             if ca_lam not in [1, 2, 3]:
-                ca_lam = 1
+                raise ValueError("Invalid shift")
             work_date = None
             if isinstance(ngay_lam, (datetime, date)):
                 work_date = ngay_lam.date() if isinstance(ngay_lam, datetime) else ngay_lam
@@ -322,9 +324,13 @@ class ScheduleModel:
         elif effective_dept_id:
             cursor.execute('SELECT TOP 1 id FROM phong_kham WHERE chuyen_khoa_id = ? AND trang_thai = 1 ORDER BY id ASC', (effective_dept_id,))
             rm_row = cursor.fetchone()
-            pk_id = rm_row['id'] if rm_row else 1
+            pk_id = rm_row['id'] if rm_row else None
         else:
-            pk_id = 1
+            pk_id = None
+
+        if chuyen_khoa_id and str(chuyen_khoa_id) != str(staff_row.get('chuyen_khoa_id')):
+            raise CalendarError('Chuyên khoa không khớp hồ sơ nhân viên.')
+        validate_schedule(cursor, staff_row['staff_id'], bs_id, pk_id, work_date, ca_lam)
 
         # Lễ tân tự động phê duyệt ngay khi đăng ký
         is_letan = staff_row.get('ma_vai_tro') == 'LETAN'
@@ -344,6 +350,7 @@ class ScheduleModel:
         return True, "Đăng ký ca làm việc thành công, đang chờ Quản trị / Tiếp tân duyệt!"
 
     @staticmethod
+    @serialized
     def request_cancellation(schedule_id, user, reason):
         """Gửi đơn xin hủy ca trực trong tuần hiện tại chờ Lễ tân hoặc Admin duyệt."""
         if not reason or not reason.strip():
@@ -377,6 +384,7 @@ class ScheduleModel:
         return True, "Đã gửi đơn xin hủy ca trực! Vui lòng chờ Tiếp tân hoặc Admin duyệt."
 
     @staticmethod
+    @serialized
     def approve_cancellation(schedule_id, reviewer_user, approved=True):
         """Duyệt hoặc từ chối đơn xin hủy ca trực (dành cho Admin và Tiếp tân)."""
         reviewer_role = reviewer_user.get('vai_tro') if reviewer_user else ''
@@ -391,40 +399,23 @@ class ScheduleModel:
             conn.close()
             return False, "Không tìm thấy ca trực!"
 
-        new_status = 'DA_HUY' if approved else 'DA_DUYET'
-        active_status = 0 if approved else 1
-
-        cursor.execute('''
-            UPDATE lich_lam_viec
-            SET trang_thai_duyet = ?, trang_thai = ?, nguoi_duyet_id = ?, ngay_duyet = GETDATE()
-            WHERE id = ?
-        ''', (new_status, active_status, reviewer_user.get('id'), schedule_id))
-
-        if approved:
-            cursor.execute('SELECT bac_si_id, ngay_lam, ca_lam FROM lich_lam_viec WHERE id = ?', (schedule_id,))
-            sch_info = cursor.fetchone()
-            if sch_info and sch_info.get('bac_si_id'):
-                # Chuyển các lịch hẹn chưa khám đã gán cho bác sĩ này về Chờ tiếp nhận để Lễ tân điều phối lại
-                cursor.execute('''
-                    UPDATE lich_hen
-                    SET bac_si_id = NULL, trang_thai = N'Chờ tiếp nhận'
-                    WHERE bac_si_id = ? AND ngay_hen = ? AND trang_thai IN (N'Chờ tiếp nhận', N'Đã tiếp nhận', N'Chờ xác nhận')
-                ''', (sch_info['bac_si_id'], sch_info['ngay_lam']))
-
-                from models.notification_model import NotificationModel
-                NotificationModel.notify_admins_and_receptionists(
-                    tieu_de="Điều phối lịch khám (Bác sĩ hủy ca)",
-                    noi_dung=f"Bác sĩ đã được duyệt hủy ca trực ngày {sch_info['ngay_lam']}. Vui lòng kiểm tra và phân công bác sĩ thay thế cho các lịch hẹn.",
-                    loai_thong_bao="Lịch khám",
-                    lien_ket="/admin/reception"
-                )
-
+        cursor.execute('SELECT * FROM lich_lam_viec WHERE id = ?', (schedule_id,))
+        schedule = cursor.fetchone()
+        if schedule.get('bac_si_id') and any(in_schedule(item, schedule) for item in appointments(cursor,str(schedule['ngay_lam'])[:10])):
+            raise CalendarError('Ca còn lịch hẹn. Vui lòng đổi/hủy từng lịch hẹn trước.')
+        if not approved:
+            validate_schedule(cursor,schedule['nhan_vien_id'],schedule.get('bac_si_id'),schedule.get('phong_kham_id'),
+                              schedule['ngay_lam'],schedule['ca_lam'],schedule['gio_bat_dau'],schedule['gio_ket_thuc'],
+                              schedule['so_luong_kham_toi_da'],exclude=schedule['id'])
+        cursor.execute("UPDATE lich_lam_viec SET trang_thai_duyet=?,trang_thai=?,nguoi_duyet_id=?,ngay_duyet=GETDATE() WHERE id=?",
+                       ('DA_HUY' if approved else 'DA_DUYET',0 if approved else 1,reviewer_user.get('id'),schedule_id))
         conn.commit()
         conn.close()
         msg = "Đã duyệt hủy ca trực thành công!" if approved else "Đã từ chối đơn xin hủy, ca trực vẫn được duy trì."
         return True, msg
 
     @staticmethod
+    @serialized
     def approve_schedule(schedule_id, reviewer_user, approved=True):
         """Duyệt yêu cầu đăng ký ca làm mới kèm kiểm tra hạn mức 5 người/ca/role và 3 bác sĩ/khoa/ca."""
         reviewer_role = reviewer_user.get('vai_tro') if reviewer_user else ''
@@ -451,7 +442,12 @@ class ScheduleModel:
             conn.close()
             return False, "Không tìm thấy ca trực cần duyệt!"
 
+        if not approved and row.get('bac_si_id') and any(in_schedule(item,row) for item in appointments(cursor,str(row['ngay_lam'])[:10])):
+            raise CalendarError('Ca còn lịch hẹn; cần điều phối trước.')
         if approved:
+            validate_schedule(cursor, row['nhan_vien_id'], row.get('bac_si_id'), row.get('phong_kham_id'),
+                              row['ngay_lam'], row['ca_lam'], row['gio_bat_dau'], row['gio_ket_thuc'],
+                              row['so_luong_kham_toi_da'], exclude=row['id'])
             # 1. Kiểm tra hạn mức 5 người/role
             cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(row['ngay_lam'], row['ca_lam'], row['vai_tro_id'], exclude_schedule_id=schedule_id)
             if is_full:
@@ -506,6 +502,7 @@ class ScheduleModel:
         return True, msg
 
     @staticmethod
+    @serialized
     def bulk_approve_schedules(schedule_ids, reviewer_user, approved=True):
         """Duyệt hoặc từ chối hàng loạt ca làm việc và gom nhóm thông báo (1 thông báo duy nhất/nhân sự)."""
         reviewer_role = reviewer_user.get('vai_tro') if reviewer_user else ''
@@ -539,7 +536,12 @@ class ScheduleModel:
                 if not row:
                     continue
 
+                if not approved and row.get('bac_si_id') and any(in_schedule(item,row) for item in appointments(cursor,str(row['ngay_lam'])[:10])):
+                    raise CalendarError('Ca còn lịch hẹn; cần điều phối trước.')
                 if approved:
+                    validate_schedule(cursor, row['nhan_vien_id'], row.get('bac_si_id'), row.get('phong_kham_id'),
+                                      row['ngay_lam'], row['ca_lam'], row['gio_bat_dau'], row['gio_ket_thuc'],
+                                      row['so_luong_kham_toi_da'], exclude=row['id'])
                     cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(row['ngay_lam'], row['ca_lam'], row['vai_tro_id'], exclude_schedule_id=s_id)
                     if is_full:
                         continue
@@ -565,7 +567,7 @@ class ScheduleModel:
                 success_count += 1
                 if row.get('tai_khoan_id'):
                     notified_accounts.add(row['tai_khoan_id'])
-            except Exception:
+            except CalendarError:
                 continue
 
         conn.commit()
@@ -591,7 +593,7 @@ class ScheduleModel:
                 )
 
         action_msg = "phê duyệt" if approved else "từ chối"
-        return True, f"Đã {action_msg} thành công {success_count} ca làm việc!", success_count
+        return success_count > 0, f"Đã {action_msg} thành công {success_count} ca làm việc!", success_count
 
     @staticmethod
     def get_pending_approvals(filter_role=None, filter_ca=None):
@@ -632,135 +634,102 @@ class ScheduleModel:
         return rows
 
     @staticmethod
+    @serialized
+    def assign_doctor_room(doctor_id, room_id):
+        cursor = get_db().cursor()
+        cursor.execute('SELECT chuyen_khoa_id FROM bac_si WHERE id = ?', (doctor_id,))
+        doctor = cursor.fetchone()
+        if not doctor:
+            raise CalendarError('Không tìm thấy bác sĩ.')
+        room_id = int(room_id) if room_id is not None else None
+        if room_id == 0:
+            room_id = None
+        name = 'Chưa phân phòng'
+        if room_id:
+            cursor.execute('SELECT ten_phong,chuyen_khoa_id,trang_thai FROM phong_kham WHERE id = ?', (room_id,))
+            room = cursor.fetchone()
+            if not room or room['trang_thai'] != 1 or room['chuyen_khoa_id'] != doctor['chuyen_khoa_id']:
+                raise CalendarError('Phòng không hoạt động hoặc không đúng chuyên khoa.')
+            name = room['ten_phong']
+            cursor.execute('SELECT * FROM lich_lam_viec WHERE bac_si_id = ? AND ngay_lam >= ?', (doctor_id,date.today().isoformat()))
+            rows = cursor.fetchall()
+            for row in rows:
+                if row.get('trang_thai_duyet') in ('DA_HUY','TU_CHOI') or str(row.get('phong_kham_id')) == str(room_id):
+                    continue
+                ok, message = ScheduleModel.update_schedule(row['id'],doctor_id,room_id,row['ngay_lam'],row['ca_lam'],
+                    row['gio_bat_dau'],row['gio_ket_thuc'],row['so_luong_kham_toi_da'],row['trang_thai'])
+                if not ok:
+                    return False, message
+        cursor.execute('UPDATE bac_si SET phong_kham_chinh_id = ? WHERE id = ?', (room_id,doctor_id))
+        return True, {'message':'Đã phân công phòng: '+name,'phong_kham_chinh_id':room_id,'ten_phong':name}
+
+    @staticmethod
+    @serialized
     def create_schedule(bac_si_id, phong_kham_id, ngay_lam, ca_lam=1, gio_bat_dau=None, gio_ket_thuc=None, so_luong_kham_toi_da=20, nhan_vien_id=None):
-        """Admin sắp xếp phân ca trực cho bất kỳ nhân viên nào."""
         conn = get_db()
         cursor = conn.cursor()
-
-        # Nếu chưa có nhan_vien_id nhưng có bac_si_id, tra cứu từ bac_si
-        if not nhan_vien_id and bac_si_id:
-            cursor.execute('SELECT nhan_vien_id FROM bac_si WHERE id = ?', (bac_si_id,))
-            bs_row = cursor.fetchone()
-            if bs_row:
-                nhan_vien_id = bs_row['nhan_vien_id']
-
-        # Nếu có nhan_vien_id nhưng chưa có bac_si_id, tra cứu nếu là bác sĩ
         if nhan_vien_id and not bac_si_id:
             cursor.execute('SELECT id FROM bac_si WHERE nhan_vien_id = ?', (nhan_vien_id,))
-            bs_row = cursor.fetchone()
-            if bs_row:
-                bac_si_id = bs_row['id']
-
-        if not nhan_vien_id and not bac_si_id:
-            conn.close()
-            return False, "Vui lòng chọn nhân viên hoặc bác sĩ để xếp lịch!"
-
-        try:
-            ca_lam = int(ca_lam)
-            if ca_lam not in [1, 2, 3]:
-                ca_lam = 1
-            so_luong_kham_toi_da = int(so_luong_kham_toi_da) if so_luong_kham_toi_da else 20
-            work_date = datetime.strptime(str(ngay_lam)[:10], '%Y-%m-%d').date()
-        except Exception:
-            conn.close()
-            return False, "Thông tin ngày hoặc ca làm việc không hợp lệ!"
-
-        ca_info = ScheduleModel.CA_LAM_INFO.get(ca_lam, ScheduleModel.CA_LAM_INFO[1])
-        gio_bat_dau = gio_bat_dau or ca_info['bat_dau']
-        gio_ket_thuc = gio_ket_thuc or ca_info['ket_thuc']
-
-        if work_date < date.today():
-            conn.close()
-            return False, "Không thể phân ca trực cho ngày trong quá khứ!"
-
-        # Lấy vai trò của nhân sự để kiểm tra giới hạn 5 người
-        cursor.execute('''
-            SELECT t.vai_tro_id, v.ten_vai_tro
-            FROM nhan_vien nv
-            JOIN tai_khoan t ON nv.tai_khoan_id = t.id
-            JOIN vai_tro v ON t.vai_tro_id = v.id
-            WHERE nv.id = ?
-        ''', (nhan_vien_id,))
-        role_row = cursor.fetchone()
-        if role_row:
-            cnt, max_cap, is_full = ScheduleModel.check_role_shift_capacity(work_date, ca_lam, role_row['vai_tro_id'])
-            if is_full:
-                conn.close()
-                return False, f"{ca_info['ten']} ngày {work_date} đã đủ tối đa {max_cap} người thuộc bộ phận {role_row['ten_vai_tro']}!"
-
-        # Kiểm tra trùng ca cùng ngày
-        cursor.execute('''
-            SELECT id FROM lich_lam_viec
-            WHERE nhan_vien_id = ? AND ngay_lam = ? AND ca_lam = ? AND (trang_thai_duyet != 'DA_HUY' OR trang_thai_duyet IS NULL)
-        ''', (nhan_vien_id, str(work_date), ca_lam))
-        if cursor.fetchone():
-            conn.close()
-            return False, f"Xung đột lịch trực: Nhân sự này đã có lịch trực vào {ca_info['ten']} ngày {work_date}!"
-
-        # Nếu là bác sĩ và có phòng khám, kiểm tra xung đột phòng
-        if bac_si_id and phong_kham_id:
-            cursor.execute('''
-                SELECT llv.id, nv.ho_ten
-                FROM lich_lam_viec llv
-                JOIN bac_si bs ON llv.bac_si_id = bs.id
-                JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
-                WHERE llv.phong_kham_id = ? AND llv.ngay_lam = ? AND llv.ca_lam = ? AND (llv.trang_thai_duyet != 'DA_HUY' OR llv.trang_thai_duyet IS NULL)
-            ''', (phong_kham_id, str(work_date), ca_lam))
-            conflict_pk = cursor.fetchone()
-            if conflict_pk:
-                conn.close()
-                return False, f"Xung đột phòng khám: Phòng khám này đã có bác sĩ '{conflict_pk['ho_ten']}' trực vào {ca_info['ten']} ngày {work_date}!"
-
-        pk_id = phong_kham_id if phong_kham_id else (1 if bac_si_id else None)
-
-        cursor.execute('''
-            INSERT INTO lich_lam_viec (nhan_vien_id, bac_si_id, phong_kham_id, ngay_lam, ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky, trang_thai, trang_thai_duyet)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 'DA_DUYET')
-        ''', (nhan_vien_id, bac_si_id, pk_id, str(work_date), ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da))
-
-        conn.commit()
-        sc_id = cursor.lastrowid
-        conn.close()
-        return True, sc_id
+            doctor = cursor.fetchone()
+            bac_si_id = doctor['id'] if doctor else None
+        staff, day, shift, start, end, capacity = validate_schedule(
+            cursor, nhan_vien_id, bac_si_id, phong_kham_id, ngay_lam, ca_lam,
+            gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da)
+        cursor.execute("""INSERT INTO lich_lam_viec
+            (nhan_vien_id,bac_si_id,phong_kham_id,ngay_lam,ca_lam,gio_bat_dau,gio_ket_thuc,
+             so_luong_kham_toi_da,so_luong_da_dang_ky,trang_thai,trang_thai_duyet)
+            VALUES (?,?,?,?,?,?,?,?,0,1,'DA_DUYET')""",
+            (staff,bac_si_id,phong_kham_id,day,shift,start,end,capacity))
+        return True, cursor.lastrowid
 
     @staticmethod
+    @serialized
     def update_schedule(schedule_id, bac_si_id, phong_kham_id, ngay_lam, ca_lam=1, gio_bat_dau=None, gio_ket_thuc=None, so_luong_kham_toi_da=20, trang_thai=1):
-        """Cập nhật lịch làm việc kèm kiểm tra xung đột ngoại trừ chính lịch đang sửa."""
-        try:
-            ca_lam = int(ca_lam)
-            so_luong_kham_toi_da = int(so_luong_kham_toi_da)
-            trang_thai = int(trang_thai)
-            work_date = datetime.strptime(str(ngay_lam)[:10], '%Y-%m-%d').date()
-        except Exception:
-            return False, "Thông tin cập nhật không hợp lệ!"
-
-        ca_info = ScheduleModel.CA_LAM_INFO.get(ca_lam, ScheduleModel.CA_LAM_INFO[1])
-        gio_bat_dau = gio_bat_dau or ca_info['bat_dau']
-        gio_ket_thuc = gio_ket_thuc or ca_info['ket_thuc']
-
         conn = get_db()
         cursor = conn.cursor()
-        try:
-            cursor.execute('''
-                UPDATE lich_lam_viec
-                SET bac_si_id = ?, phong_kham_id = ?, ngay_lam = ?, ca_lam = ?, gio_bat_dau = ?, gio_ket_thuc = ?, so_luong_kham_toi_da = ?, trang_thai = ?
-                WHERE id = ?
-            ''', (bac_si_id, phong_kham_id, str(work_date), ca_lam, gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, trang_thai, schedule_id))
-
-            conn.commit()
-            conn.close()
-            return True, "Cập nhật lịch làm việc thành công!"
-        except Exception as e:
-            conn.rollback()
-            conn.close()
-            return False, f"Lỗi cập nhật lịch: {str(e)}"
+        cursor.execute('SELECT * FROM lich_lam_viec WHERE id = ?', (schedule_id,))
+        old = cursor.fetchone()
+        if not old:
+            return False, 'Không tìm thấy ca.'
+        staff = old.get('nhan_vien_id') if not bac_si_id else None
+        if staff and not bac_si_id:
+            cursor.execute('SELECT id FROM bac_si WHERE nhan_vien_id = ?', (staff,))
+            doctor = cursor.fetchone()
+            bac_si_id = doctor['id'] if doctor else None
+        staff, day, shift, start, end, capacity = validate_schedule(
+            cursor, staff, bac_si_id, phong_kham_id, ngay_lam, ca_lam,
+            gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, exclude=old['id'])
+        status = int(trang_thai)
+        if status not in (0,1):
+            raise CalendarError('Trạng thái ca không hợp lệ.')
+        booked = [row for row in appointments(cursor,str(old['ngay_lam'])[:10]) if in_schedule(row,old)] if old.get('bac_si_id') else []
+        if capacity < len(booked):
+            raise CalendarError('Sức chứa nhỏ hơn số lịch hẹn hiện có.')
+        changed = (str(old.get('bac_si_id')) != str(bac_si_id) or str(old.get('phong_kham_id')) != str(phong_kham_id)
+                   or str(old['ngay_lam'])[:10] != day or old['ca_lam'] != shift
+                   or str(old['gio_bat_dau'])[:8] != start or str(old['gio_ket_thuc'])[:8] != end or status != 1)
+        if booked and changed:
+            raise CalendarError('Ca có lịch hẹn; phải điều phối lịch hẹn trước khi thay đổi ca.')
+        cursor.execute("""UPDATE lich_lam_viec SET nhan_vien_id=?,bac_si_id=?,phong_kham_id=?,ngay_lam=?,
+            ca_lam=?,gio_bat_dau=?,gio_ket_thuc=?,so_luong_kham_toi_da=?,trang_thai=?,so_luong_da_dang_ky=? WHERE id=?""",
+            (staff,bac_si_id,phong_kham_id,day,shift,start,end,capacity,status,len(booked),old['id']))
+        return True, 'Cập nhật ca thành công.'
 
     @staticmethod
+    @serialized
     def toggle_status(schedule_id):
         """Bật hoặc tắt trạng thái kích hoạt của ca làm việc."""
         conn = get_db()
         cursor = conn.cursor()
         try:
+            cursor.execute('SELECT * FROM lich_lam_viec WHERE id = ?', (schedule_id,))
+            existing = cursor.fetchone()
+            if existing and existing.get('bac_si_id') and any(in_schedule(item,existing) for item in appointments(cursor,str(existing['ngay_lam'])[:10])):
+                raise CalendarError('Ca còn lịch hẹn; cần điều phối trước.')
+            if existing and not existing['trang_thai']:
+                validate_schedule(cursor,existing['nhan_vien_id'],existing.get('bac_si_id'),existing.get('phong_kham_id'),
+                                  existing['ngay_lam'],existing['ca_lam'],existing['gio_bat_dau'],existing['gio_ket_thuc'],
+                                  existing['so_luong_kham_toi_da'],exclude=existing['id'])
             cursor.execute('SELECT trang_thai FROM lich_lam_viec WHERE id = ?', (schedule_id,))
             row = cursor.fetchone()
             if not row:
@@ -777,11 +746,16 @@ class ScheduleModel:
             return False, str(e)
 
     @staticmethod
+    @serialized
     def delete_schedule(schedule_id, current_user=None):
         """Xóa ca trực (Nhân viên chỉ xóa được ca trong 2 tuần tiếp theo, Admin xóa mọi ca chưa có bệnh nhân)."""
         conn = get_db()
         cursor = conn.cursor()
         try:
+            cursor.execute('SELECT * FROM lich_lam_viec WHERE id = ?', (schedule_id,))
+            existing = cursor.fetchone()
+            if existing and existing.get('bac_si_id') and any(in_schedule(item,existing) for item in appointments(cursor,str(existing['ngay_lam'])[:10])):
+                raise CalendarError('Ca còn lịch hẹn; cần điều phối trước.')
             cursor.execute('''
                 SELECT llv.*, nv.tai_khoan_id
                 FROM lich_lam_viec llv
@@ -846,7 +820,7 @@ class ScheduleModel:
             WHERE llv.ngay_lam = ?
               AND bs.chuyen_khoa_id = ?
               AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
-              AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+              AND llv.trang_thai_duyet = 'DA_DUYET'
               AND bs.trang_thai_lam_viec = 'Đang làm việc'
               AND llv.so_luong_da_dang_ky < llv.so_luong_kham_toi_da
             ORDER BY llv.ca_lam ASC, bs.id ASC
@@ -883,12 +857,13 @@ class ScheduleModel:
         return days
 
     @staticmethod
+    @serialized
     def register_multiple_schedules(user, shifts, phong_kham_id=None, ghi_chu=None, chuyen_khoa_id=None):
         """Nhân viên đăng ký nhiều ca làm việc cùng lúc trong 2 tuần tiếp theo."""
         if not user or not user.get('id'):
-            return False, "Vui lòng đăng nhập để đăng ký ca trực!", []
+            return False, "Vui lòng đăng nhập để đăng ký ca trực!", 0, []
         if not shifts or not isinstance(shifts, list):
-            return False, "Vui lòng chọn ít nhất một ca làm việc!", []
+            return False, "Vui lòng chọn ít nhất một ca làm việc!", 0, []
 
         success_count = 0
         errors = []

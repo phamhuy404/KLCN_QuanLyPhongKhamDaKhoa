@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // 4. Khởi tạo bộ chọn thẻ (tag selector) chuẩn hóa từ danh mục y tế
-    window.initCatalogTagSelector = function({ containerId, hiddenInputId, catalog = [], placeholder = '', badgeClass = '', emptyLabel = 'Không có', maxSuggestions = 5 }) {
+    window.initCatalogTagSelector = function({ containerId, hiddenInputId, catalog = [], placeholder = '', badgeClass = '', emptyLabel = 'Chưa có dữ liệu', emptyValue = '', maxSuggestions = 5 }) {
         const container = document.getElementById(containerId);
         const hiddenInput = document.getElementById(hiddenInputId);
         if (!container || !hiddenInput) return null;
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function syncHiddenInput() {
-            hiddenInput.value = selectedTags.length > 0 ? selectedTags.join(', ') : (emptyLabel || 'Không có');
+            hiddenInput.value = selectedTags.length > 0 ? selectedTags.join(', ') : emptyValue;
         }
 
         container.innerHTML = `

@@ -2,6 +2,7 @@ import csv
 import io
 from datetime import datetime
 from core.database import get_db
+from core.scheduling import serialized, CalendarError
 
 class CSVService:
     """Dịch vụ nhập/xuất tệp CSV với mã hóa UTF-8-SIG (tương thích hoàn hảo với Microsoft Excel)."""
@@ -279,6 +280,62 @@ class CSVService:
         return '\ufeff' + output.getvalue(), filename
 
     @staticmethod
+    @serialized
+    def import_appointments(rows, current_user=None):
+        """Use the same transaction, validation and counters as the scheduling API."""
+        from models.appointment_model import AppointmentModel
+        cursor = get_db().cursor()
+        inserted = updated = 0
+        for row in rows:
+            if not row or not any(value.strip() for value in row):
+                continue
+            if len(row) < 7 or not row[1].strip() or not row[3].strip():
+                raise CalendarError('CSV lịch hẹn thiếu số điện thoại/chuyên khoa/ngày giờ.')
+            code, phone = row[0].strip(), row[1].strip()
+            department = int(row[3].strip())
+            doctor = int(row[4].strip()) if row[4].strip() else None
+            day, value = row[5].strip(), row[6].strip()
+            reason = row[7].strip() if len(row)>7 else ''
+            status = row[8].strip() if len(row)>8 and row[8].strip() else 'Chờ tiếp nhận'
+            if status not in ('Chờ tiếp nhận','Chờ xác nhận','Đã tiếp nhận','Đã xác nhận','Đã hủy'):
+                raise CalendarError('Trạng thái CSV không hợp lệ.')
+            cursor.execute('SELECT id FROM benh_nhan WHERE sdt = ?', (phone,))
+            patients = cursor.fetchall()
+            if len(patients) != 1:
+                raise CalendarError('CSV phải khớp duy nhất hồ sơ bệnh nhân có sẵn.')
+            patient = patients[0]['id']
+            cursor.execute('SELECT * FROM lich_hen WHERE ma_lich_hen = ? OR (benh_nhan_id = ? AND ngay_hen = ? AND gio_hen LIKE ?)',
+                           (code,patient,day,value[:5]+'%'))
+            matches = cursor.fetchall()
+            if len(matches)>1:
+                raise CalendarError('CSV khớp nhiều lịch hẹn.')
+            if matches:
+                old = matches[0]
+                if old['benh_nhan_id'] != patient or old['chuyen_khoa_id'] != department:
+                    raise CalendarError('Không được đổi bệnh nhân/chuyên khoa qua CSV.')
+                if status == 'Đã hủy':
+                    ok,message = AppointmentModel.cancel(old['id'],user_info=current_user)
+                else:
+                    ok,message = AppointmentModel.reschedule(old['id'],day,value,reason,doctor,user_info=current_user)
+                    if ok:
+                        ok,message = AppointmentModel.update_status(old['id'],status,user_info=current_user)
+                updated += 1
+            else:
+                if status == 'Đã hủy':
+                    raise CalendarError('Không nhập lịch mới đã hủy.')
+                ok,message = AppointmentModel.create(patient,department,doctor,day,value,reason,audit_user=current_user)
+                if ok:
+                    cursor.execute('SELECT id FROM lich_hen WHERE ma_lich_hen = ?', (message,))
+                    identifier = cursor.fetchone()['id']
+                    if code:
+                        cursor.execute('UPDATE lich_hen SET ma_lich_hen = ? WHERE id = ?', (code,identifier))
+                    ok,message = AppointmentModel.update_status(identifier,status,user_info=current_user)
+                inserted += 1
+            if not ok:
+                raise CalendarError(message)
+        return True, 'Nhập lịch hẹn thành công.', inserted, updated
+
+    @staticmethod
     def import_csv(module, file_stream, current_user=None):
         """
         Nhập dữ liệu từ CSV. 
@@ -308,6 +365,9 @@ class CSVService:
 
         # Bỏ qua dòng tiêu đề
         data_rows = rows[1:]
+
+        if module == 'appointments':
+            return CSVService.import_appointments(data_rows,current_user)
 
         conn = get_db()
         cursor = conn.cursor()
@@ -539,69 +599,6 @@ class CSVService:
                                     INSERT INTO bac_si (nhan_vien_id, chuyen_khoa_id, hoc_vi, trang_thai_lam_viec)
                                     VALUES (?, 1, 'Bác sĩ', 'Đang làm việc')
                                 ''', (nv_id,))
-                        inserted_count += 1
-
-            elif module == 'appointments':
-                for r in data_rows:
-                    if not r or not any(field.strip() for field in r):
-                        continue
-                    ma = r[0].strip() if len(r) > 0 else ''
-                    sdt = r[1].strip() if len(r) > 1 else ''
-                    ho_ten = r[2].strip() if len(r) > 2 else ''
-                    try:
-                        chuyen_khoa_id = int(r[3].strip()) if len(r) > 3 and r[3].strip() else 1
-                    except Exception:
-                        chuyen_khoa_id = 1
-                    try:
-                        bac_si_id = int(r[4].strip()) if len(r) > 4 and r[4].strip() else None
-                    except Exception:
-                        bac_si_id = None
-                    ngay_hen = r[5].strip() if len(r) > 5 else ''
-                    gio_hen = r[6].strip() if len(r) > 6 else '08:30'
-                    ly_do = r[7].strip() if len(r) > 7 else 'Khám theo yêu cầu'
-                    trang_thai = r[8].strip() if len(r) > 8 and r[8].strip() else 'Chờ xác nhận'
-
-                    if not ngay_hen:
-                        continue
-
-                    # Tìm hoặc tạo bệnh nhân theo sdt/tên
-                    cursor.execute("SELECT id FROM benh_nhan WHERE sdt = ? AND sdt != ''", (sdt,))
-                    bn = cursor.fetchone()
-                    if bn:
-                        bn_id = bn['id']
-                    else:
-                        cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM benh_nhan')
-                        next_id = cursor.fetchone()['next_id']
-                        ma_bn = f"BN2609{str(next_id).zfill(3)}"
-                        cursor.execute('''
-                            INSERT INTO benh_nhan (ma_benh_nhan, ho_ten, ngay_sinh, gioi_tinh, sdt, dia_chi, co_tai_khoan)
-                            VALUES (?, ?, '1995-01-01', 'Nam', ?, 'TP.HCM', 0)
-                        ''', (ma_bn, ho_ten or 'Bệnh nhân', sdt or '0900000000'))
-                        bn_id = cursor.lastrowid
-
-                    # Kiểm tra trùng lịch hẹn theo mã hoặc theo bệnh nhân + ngày + giờ
-                    cursor.execute('''
-                        SELECT id FROM lich_hen
-                        WHERE (ma_lich_hen = ? AND ma_lich_hen != '') OR (benh_nhan_id = ? AND ngay_hen = ? AND gio_hen LIKE ?)
-                    ''', (ma, bn_id, ngay_hen, f"{gio_hen[:5]}%"))
-                    existing = cursor.fetchone()
-
-                    if existing:
-                        cursor.execute('''
-                            UPDATE lich_hen
-                            SET chuyen_khoa_id = ?, bac_si_id = ?, ly_do_kham = ?, trang_thai = ?
-                            WHERE id = ?
-                        ''', (chuyen_khoa_id, bac_si_id, ly_do, trang_thai, existing['id']))
-                        updated_count += 1
-                    else:
-                        if not ma:
-                            cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM lich_hen')
-                            next_id = cursor.fetchone()['next_id']
-                            ma = f"LH2609{str(next_id).zfill(3)}"
-                        cursor.execute('''
-                            INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio_hen, ly_do_kham, trang_thai)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        ''', (ma, bn_id, bac_si_id, chuyen_khoa_id, ngay_hen, gio_hen, ly_do, trang_thai))
                         inserted_count += 1
 
             elif module == 'rooms':

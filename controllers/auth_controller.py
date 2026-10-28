@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from models.user_model import UserModel
+from core.security import login_required, refresh_session_user, safe_next_url
 from core.validators import VIETNAMESE_NAME_PATTERN, VN_PHONE_PATTERN, FORBIDDEN_CHARS_PATTERN, sanitize_text
 
 auth_bp = Blueprint('auth', __name__)
@@ -7,7 +8,7 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Xử lý đăng nhập tự động nhận diện vai trò người dùng và trạng thái hồ sơ."""
-    if session.get('logged_in') and session.get('user'):
+    if refresh_session_user():
         user = session['user']
         if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('admin.doctor_complete_profile'))
@@ -25,6 +26,7 @@ def login():
         if not user:
             return render_template('auth/login.html', error='Tên đăng nhập hoặc mật khẩu không chính xác!')
 
+        session.clear()
         session['logged_in'] = True
         session['user'] = user
 
@@ -41,7 +43,7 @@ def login():
         if user['vai_tro'] == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
 
-        next_url = request.args.get('next')
+        next_url = safe_next_url(request.args.get('next'))
         if next_url:
             if next_url.startswith('/admin') and user['vai_tro'] == 'BENHNHAN':
                 return redirect(url_for('patient.dashboard'))
@@ -57,7 +59,7 @@ def login():
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """Đăng ký tài khoản bệnh nhân mới trực tuyến với kiểm tra ràng buộc an toàn."""
-    if session.get('logged_in') and session.get('user'):
+    if refresh_session_user():
         user = session['user']
         if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('admin.doctor_complete_profile'))
@@ -110,6 +112,7 @@ def logout():
 
 
 @auth_bp.route('/force-change-password', methods=['GET', 'POST'])
+@login_required
 def force_change_password():
     """Bắt buộc người dùng nhập và lưu mật khẩu mới sau khi được cấp lại mật khẩu 123."""
     if not session.get('logged_in') or not session.get('user'):

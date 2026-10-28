@@ -1,5 +1,8 @@
 from datetime import datetime
-from core.database import get_db
+from core.scheduling import scheduling_db as get_db, serialized, CalendarError, integer
+from core.emr_workflow import resolve, ensure_results_ready, validated_medicines as validate_medicines
+from core.clinical_data import clinical_value, published_results
+from core.medical_media import protected_image_value
 from core.audit import AuditLogger
 
 def normalize_reexam_date(reexam_date):
@@ -18,6 +21,42 @@ def normalize_reexam_date(reexam_date):
 
 class MedicalRecordModel:
     """Model quản lý hồ sơ bệnh án điện tử EMR, phiếu khám, chỉ định CLS và đơn thuốc."""
+
+    @staticmethod
+    @serialized
+    def save_step(patient_id, doctor_id=None, room_id=None, symptoms=None, icd=None, step=1,
+                  di_ung=None, tien_su_benh=None, appointment_id=None, record_id=None,
+                  walk_in=False, encounter_key=None, audit_user=None):
+        cursor = get_db().cursor()
+        step = integer(step)
+        if step not in (1, 2, 3, 4):
+            raise CalendarError('Bước khám không hợp lệ.')
+        record, appointment, patient_id, doctor_id, room_id, code = resolve(
+            cursor, patient_id, doctor_id, room_id, appointment_id, record_id, walk_in, encounter_key, audit_user)
+        if record and step == 4:
+            ensure_results_ready(cursor, record['id'])
+        state = (record['trang_thai'] if record and record['trang_thai'] in ('Chờ kết quả CLS', 'Chờ kết luận')
+                 else ('Đang kê đơn' if step == 4 else 'Đang khám'))
+        if not record:
+            if not code:
+                cursor.execute('SELECT COALESCE(MAX(id),0)+1 AS next_id FROM phieu_kham')
+                code = 'PK2609' + str(cursor.fetchone()['next_id']).zfill(3)
+            cursor.execute('''INSERT INTO phieu_kham(ma_phieu,benh_nhan_id,bac_si_id,phong_kham_id,lich_hen_id,
+                trieu_chung,chan_doan_so_bo,chan_doan_icd,trang_thai) VALUES(?,?,?,?,?,?,?,?,?)''',
+                (code, patient_id, doctor_id, room_id, appointment['id'] if appointment else None, symptoms, icd, icd, state))
+            identifier = cursor.lastrowid
+        else:
+            identifier, code = record['id'], record['ma_phieu']
+            cursor.execute('''UPDATE phieu_kham SET trieu_chung=COALESCE(?,trieu_chung),
+                chan_doan_so_bo=COALESCE(?,chan_doan_so_bo),chan_doan_icd=COALESCE(?,chan_doan_icd),trang_thai=? WHERE id=?''',
+                (symptoms, icd, icd, state, identifier))
+        if di_ung is not None or tien_su_benh is not None:
+            cursor.execute('UPDATE benh_nhan SET di_ung=COALESCE(?,di_ung),tien_su_benh=COALESCE(?,tien_su_benh) WHERE id=?',
+                           (di_ung, tien_su_benh, patient_id))
+        if appointment:
+            cursor.execute('UPDATE lich_hen SET trang_thai=? WHERE id=?',
+                           ('Chờ kết quả CLS' if state == 'Chờ kết quả CLS' else 'Đang khám', appointment['id']))
+        return True, {'record_id': identifier, 'ma_phieu': code, 'step': step}
 
     @staticmethod
     def get_all_lab_orders():
@@ -51,6 +90,9 @@ class MedicalRecordModel:
         ''')
         orders = [dict(r) for r in cursor.fetchall()]
         conn.close()
+        for item in orders:
+            item['ket_qua'] = clinical_value(item.get('ket_qua'))
+            item['file_ket_qua'] = protected_image_value(item.get('file_ket_qua'))
         return orders
 
     @staticmethod
@@ -60,7 +102,7 @@ class MedicalRecordModel:
         patient_orders = [o for o in all_orders if o.get('patient_id') == patient_id]
         if approved_only:
             # Bệnh nhân chỉ xem các dịch vụ đã duyệt
-            return [o for o in patient_orders if o.get('trang_thai') == 'Đã duyệt']
+            return published_results(patient_orders)
         return patient_orders
 
     @staticmethod
@@ -81,9 +123,15 @@ class MedicalRecordModel:
         ''', (chi_tiet_id,))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        if row:
+            item = dict(row)
+            item['ket_qua'] = clinical_value(item.get('ket_qua'))
+            item['file_ket_qua'] = protected_image_value(item.get('file_ket_qua'))
+            return item
+        return None
 
     @staticmethod
+    @serialized
     def update_lab_result(chi_tiet_id, ket_qua, file_ket_qua=None, ktv_name=None, audit_user=None):
         """KTV cập nhật kết quả xét nghiệm. Không cho phép sửa nếu kết quả đã được bác sĩ duyệt."""
         item = MedicalRecordModel.get_lab_item_by_id(chi_tiet_id)
@@ -134,6 +182,7 @@ class MedicalRecordModel:
             return False, f"Lỗi lưu kết quả: {str(e)}"
 
     @staticmethod
+    @serialized
     def approve_lab_result(chi_tiet_id, doctor_name=None, approval_note=None, audit_user=None):
         """Bác sĩ duyệt kết quả cận lâm sàng (xác nhận duyệt nội bộ)."""
         item = MedicalRecordModel.get_lab_item_by_id(chi_tiet_id)
@@ -283,9 +332,14 @@ class MedicalRecordModel:
             ''', (str(record_id),))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        if row:
+            record = dict(row)
+            record['hinh_anh_kham'] = protected_image_value(record.get('hinh_anh_kham'))
+            return record
+        return None
 
     @staticmethod
+    @serialized
     def update_examination(record_id, doctor_id, diagnosis, icd, treatment, advice, reexam_date=None, reason=None, audit_user=None):
         """Bác sĩ chỉnh sửa hồ sơ bệnh án EMR: Lưu thay đổi và ghi nhận lịch sử trước/sau có vết kiểm toán."""
         old_rec = MedicalRecordModel.get_examination_by_id(record_id)
@@ -336,16 +390,33 @@ class MedicalRecordModel:
             return False, f"Lỗi cập nhật bệnh án: {str(e)}"
 
     @staticmethod
+    @serialized
     def finish_examination(record_id, diagnosis, icd, treatment, advice, reexam_date=None, medicines=None, images=None, audit_user=None):
         """Bác sĩ kết luận chẩn đoán xác định, kê đơn thuốc và hoàn tất phiên khám sau khi có kết quả CLS."""
-        old_rec = MedicalRecordModel.get_examination_by_id(record_id)
-        if not old_rec:
-            return False, "Không tìm thấy hồ sơ bệnh án!"
-
         conn = get_db()
         cursor = conn.cursor()
-
         try:
+            old_rec = MedicalRecordModel.get_examination_by_id(record_id)
+            if not old_rec:
+                return False, 'Không tìm thấy phiếu khám.'
+            record, appointment, patient, doctor, room, code = resolve(cursor,old_rec['benh_nhan_id'],
+                record_id=old_rec['id'],audit_user=audit_user)
+            record_id = record['id']
+            if not str(diagnosis or '').strip():
+                raise CalendarError('Vui lòng ghi nhận chẩn đoán.')
+            ensure_results_ready(cursor,record_id)
+            medicines = validate_medicines(cursor,[] if medicines is None else medicines)
+            cursor.execute("SELECT id FROM hoa_don WHERE phieu_kham_id=? AND trang_thai != ? AND ma_hoa_don NOT LIKE 'HDT%'",(record_id,'Đã hủy'))
+            bills = cursor.fetchall()
+            if not bills:
+                return MedicalRecordModel.save_examination(patient,doctor,room,record.get('ly_do_kham'),
+                    record.get('trieu_chung'),diagnosis,icd,treatment,advice,reexam_date,
+                    medicines=medicines,images=images,audit_user=audit_user,record_id=record_id)
+            if len(bills) != 1:
+                raise CalendarError('Hóa đơn phiếu khám không duy nhất; cần kiểm tra dữ liệu.')
+            cursor.execute('SELECT id FROM don_thuoc WHERE phieu_kham_id=?',(record_id,))
+            if cursor.fetchone() and medicines:
+                raise CalendarError('Phiếu đã có đơn thuốc; không tạo thêm đơn khi hoàn tất.')
             # 1. Cập nhật phiếu khám sang Hoàn thành
             import json
             images_json = json.dumps(images, ensure_ascii=False) if isinstance(images, list) else (str(images) if images else None)
@@ -357,11 +428,8 @@ class MedicalRecordModel:
             ''', (diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), images_json, record_id))
 
             # 2. Cập nhật lịch hẹn sang Đã khám
-            cursor.execute('''
-                UPDATE TOP (1) lich_hen
-                SET trang_thai = N'Đã khám'
-                WHERE benh_nhan_id = ? AND trang_thai IN (N'Chờ kết quả CLS', N'Đang khám', N'Đã tiếp nhận')
-            ''', (old_rec['benh_nhan_id'],))
+            if appointment:
+                cursor.execute('UPDATE lich_hen SET trang_thai=? WHERE id=?',('Đã khám',appointment['id']))
 
             # 3. Kê đơn thuốc nếu có
             if medicines and len(medicines) > 0:
@@ -421,67 +489,51 @@ class MedicalRecordModel:
             return False, f"Lỗi hoàn tất phiên khám: {str(e)}"
 
     @staticmethod
-    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, images=None, audit_user=None):
+    @serialized
+    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, images=None, audit_user=None, appointment_id=None, record_id=None, walk_in=False, encounter_key=None):
         """Lưu toàn bộ phiên khám EMR (Phiếu khám, chỉ định CLS, đơn thuốc và hóa đơn viện phí)."""
         conn = get_db()
         cursor = conn.cursor()
 
         try:
-            # Kiểm tra doctor_id có tồn tại trong bảng bac_si không
-            valid_doctor_id = None
-            if doctor_id:
-                cursor.execute('SELECT id FROM bac_si WHERE id = ?', (doctor_id,))
+            ok, draft = MedicalRecordModel.save_step(patient_id,doctor_id,room_id,symptoms,icd,
+                appointment_id=appointment_id,record_id=record_id,walk_in=walk_in,
+                encounter_key=encounter_key,audit_user=audit_user)
+            if not ok:
+                return False, draft
+            phieu_kham_id, ma_phieu = draft['record_id'], draft['ma_phieu']
+            cursor.execute('SELECT * FROM phieu_kham WHERE id=?',(phieu_kham_id,))
+            record = cursor.fetchone()
+            valid_doctor_id,room_id,patient_id = record['bac_si_id'],record['phong_kham_id'],record['benh_nhan_id']
+            for table in ('hoa_don','don_thuoc','phieu_chi_dinh'):
+                cursor.execute('SELECT id FROM '+table+' WHERE phieu_kham_id=?',(phieu_kham_id,))
                 if cursor.fetchone():
-                    valid_doctor_id = doctor_id
-
-            # 0. Kiểm tra tồn kho trước khi kê đơn thuốc
-            validated_medicines = []
-            if medicines and len(medicines) > 0:
-                for m in medicines:
-                    thuoc_id = m.get('thuoc_id')
-                    so_luong = int(m.get('so_luong', 1))
-                    cursor.execute('SELECT id, ten_thuoc, so_luong_ton, don_vi_tinh, don_gia, ton_kho_toi_thieu FROM thuoc WHERE id = ?', (thuoc_id,))
-                    th_row = cursor.fetchone()
-                    if not th_row:
-                        conn.close()
-                        return False, f"Thuốc ID {thuoc_id} không tồn tại trong kho dược!"
-                    if so_luong > th_row['so_luong_ton']:
-                        conn.close()
-                        return False, f"Thuốc '{th_row['ten_thuoc']}' chỉ còn tồn {th_row['so_luong_ton']} {th_row['don_vi_tinh']}, không đủ số lượng kê ({so_luong})!"
-                    validated_medicines.append({
-                        'thuoc_id': thuoc_id,
-                        'ten_thuoc': th_row['ten_thuoc'],
-                        'so_luong': so_luong,
-                        'don_gia': float(th_row['don_gia']),
-                        'don_vi_tinh': th_row['don_vi_tinh'],
-                        'lieu_dung': m.get('lieu_dung', 'Uống 1 viên/lần, ngày 2 lần'),
-                        'cach_dung': m.get('cach_dung', 'Uống sau bữa ăn no 30 phút')
-                    })
+                    raise CalendarError('Phiếu đã lưu chỉ định/đơn/hóa đơn; dùng hoàn tất sau CLS, không lưu lại.')
+            if not str(diagnosis or '').strip():
+                raise CalendarError('Vui lòng ghi nhận chẩn đoán.')
+            validated_medicines = validate_medicines(cursor, [] if medicines is None else medicines)
+            if lab_service_ids is not None and not isinstance(lab_service_ids, list):
+                raise CalendarError('Danh sách chỉ định CLS không hợp lệ.')
+            lab_service_ids = [integer(value) for value in (lab_service_ids or [])]
+            if len(set(lab_service_ids)) != len(lab_service_ids):
+                raise CalendarError('Chỉ định CLS bị trùng.')
+            for identifier in lab_service_ids:
+                cursor.execute('SELECT id FROM dich_vu WHERE id=?',(identifier,))
+                if not cursor.fetchone():
+                    raise CalendarError('Dịch vụ CLS không tồn tại.')
 
             # 1. Tạo phiếu khám bệnh (Nếu có CLS thì để 'Chờ kết quả CLS', không có thì 'Hoàn thành')
             has_cls = bool(lab_service_ids and len(lab_service_ids) > 0)
             initial_pk_status = 'Chờ kết quả CLS' if has_cls else 'Hoàn thành'
             appt_status = 'Chờ kết quả CLS' if has_cls else 'Đã khám'
 
-            cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM phieu_kham')
-            pk_id = cursor.fetchone()['next_id']
-            ma_phieu = f"PK2609{str(pk_id).zfill(3)}"
-
             import json
-            images_json = json.dumps(images, ensure_ascii=False) if isinstance(images, list) else (str(images) if images else None)
-            cursor.execute('''
-                INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, huong_dieu_tri, loi_dan, ngay_tai_kham, hinh_anh_kham, trang_thai)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ma_phieu, patient_id, valid_doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), images_json, initial_pk_status))
-            phieu_kham_id = cursor.lastrowid
-
-            # Cập nhật lịch hẹn tương ứng
-            cursor.execute('''
-                UPDATE TOP (1) lich_hen
-                SET trang_thai = ?
-                WHERE benh_nhan_id = ? 
-                  AND trang_thai IN (N'Đã tiếp nhận', N'Đang khám', N'Chờ tiếp nhận', N'Chờ kết quả CLS')
-            ''', (appt_status, patient_id))
+            images_json = json.dumps(images,ensure_ascii=False) if images else None
+            cursor.execute("""UPDATE phieu_kham SET ly_do_kham=?,trieu_chung=?,chan_doan_so_bo=?,chan_doan_icd=?,
+                huong_dieu_tri=?,loi_dan=?,ngay_tai_kham=?,hinh_anh_kham=COALESCE(?,hinh_anh_kham),trang_thai=? WHERE id=?""",
+                (reason,symptoms,diagnosis,icd,treatment,advice,normalize_reexam_date(reexam_date),images_json,initial_pk_status,phieu_kham_id))
+            if record.get('lich_hen_id'):
+                cursor.execute('UPDATE lich_hen SET trang_thai=? WHERE id=?',(appt_status,record['lich_hen_id']))
 
             cursor.execute('SELECT bhyt FROM benh_nhan WHERE id = ?', (patient_id,))
             p_check = cursor.fetchone()

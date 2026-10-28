@@ -43,6 +43,25 @@
         </div>
     </div>
 
+    <div class="bg-white p-4 rounded-xl border space-y-2">
+        <label for="emr-encounter-select" class="font-semibold text-sm">Lần khám đang thực hiện</label>
+        <select id="emr-encounter-select" onchange="selectEmrEncounter(this.value)" class="w-full p-2 border rounded-lg">
+            <option value="">Chọn lịch hẹn, phiếu đang mở hoặc khám trực tiếp mới</option>
+        </select>
+        <div id="emr-walk-in-fields" class="hidden flex gap-2">
+            <select id="emr-attending-doctor" class="p-2 border rounded-lg" aria-label="Bác sĩ khám trực tiếp">
+                <option value="">Chọn bác sĩ khám</option>
+                {% for d in doctors %}{% if session.get('user', {}).get('vai_tro') == 'ADMIN' or d.id == session.get('user', {}).get('bac_si_id') %}
+                <option value="{{ d.id }}">{{ d.ho_ten }}</option>
+                {% endif %}{% endfor %}
+            </select>
+            <select id="emr-walk-in-room" class="p-2 border rounded-lg" aria-label="Phòng khám trực tiếp">
+                <option value="">Chọn phòng khám</option>
+                {% for room in emr_rooms|default([]) %}<option value="{{ room.id }}">{{ room.ten_phong }}</option>{% endfor %}
+            </select>
+        </div>
+        <p class="text-xs text-slate-500">Khám trực tiếp tạo lần khám riêng, không ghép với lịch hẹn hoặc hồ sơ cũ.</p>
+    </div>
     <!-- 2. Giao diện 2 cột: Cột trái (Hàng đợi phòng khám) và Cột phải (Không gian làm việc EMR) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -111,7 +130,7 @@
             <div id="allergy-warning-box" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between text-emerald-800">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-shield-halved text-emerald-600"></i>
-                    <span>Tiền sử dị ứng: <strong id="current-patient-allergy">{{ patients[0].di_ung if patients and patients[0].di_ung else 'Không ghi nhận dị ứng thuốc' }}</strong></span>
+                    <span>Tiền sử dị ứng: <strong id="current-patient-allergy">{{ patients[0].di_ung if patients and patients[0].di_ung else 'Chưa có dữ liệu về dị ứng' }}</strong></span>
                 </div>
                 <span class="text-[10px] text-emerald-600 font-semibold">An toàn kê đơn</span>
             </div>
@@ -177,19 +196,19 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Huyết áp (mmHg)</span>
-                            <input type="text" id="emr-ha" value="120/80" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-ha" value="" placeholder="Chưa có dữ liệu" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Mạch (lần/phút)</span>
-                            <input type="text" id="emr-mach" value="76" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-mach" value="" placeholder="Chưa có dữ liệu" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">Thân nhiệt (°C)</span>
-                            <input type="text" id="emr-t" value="36.8" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-t" value="" placeholder="Chưa có dữ liệu" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                         <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                             <span class="text-slate-400 block text-[11px]">SpO2 (%)</span>
-                            <input type="text" id="emr-spo2" value="99" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
+                            <input type="text" id="emr-spo2" value="" placeholder="Chưa có dữ liệu" class="w-full bg-transparent font-bold font-mono text-slate-800 mt-1 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -197,7 +216,7 @@
                 <div class="space-y-3 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Lý do khám và Triệu chứng lâm sàng <span class="text-rose-500">*</span></label>
-                        <textarea id="emr-symptoms" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">Bệnh nhân đau âm ỉ thượng vị, ợ hơi, chướng bụng sau ăn. Không sốt, tim phổi bình thường.</textarea>
+                        <textarea id="emr-symptoms" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500"></textarea>
                     </div>
 
                     <!-- BỘ CHỌN DỊ ỨNG VÀ TIỀN SỬ BỆNH CHUẨN TỪ FILE TXT (CHỌN NHIỀU) -->
@@ -227,18 +246,18 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Chẩn đoán xác định kèm mã ICD-10 <span class="text-rose-500">*</span></label>
-                        <input type="text" id="emr-icd" value="K29.5 - Viêm dạ dày mạn tính, không đặc hiệu" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
+                        <input type="text" id="emr-icd" value="" placeholder="Chưa có dữ liệu" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Hướng điều trị</label>
-                        <input type="text" id="emr-treatment" value="Chỉ định CLS (Xét nghiệm máu, X-quang), điều trị nội khoa kết hợp chế độ ăn uống" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        <input type="text" id="emr-treatment" value="" placeholder="Chưa có dữ liệu" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Lời dặn của bác sĩ điều trị</label>
-                            <input type="text" id="emr-advice" value="Ăn uống đúng giờ, kiêng đồ cay nóng chua cay, tái khám đúng hẹn." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                            <input type="text" id="emr-advice" value="" placeholder="Chưa có dữ liệu" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                         </div>
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Ngày hẹn tái khám (Nếu có)</label>
@@ -331,14 +350,7 @@
                     </label>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <select id="emr-cls-doctor" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-medical-500">
-                                <option value="{{ session.get('user', {}).get('bac_si_id') or 1 }}">★ Chính tôi ({{ session.get('user', {}).get('ho_ten', 'Bác sĩ') }}) phụ trách</option>
-                                {% for d in doctors %}
-                                {% if d.id != (session.get('user', {}).get('bac_si_id') or 1) %}
-                                <option value="{{ d.id }}">{{ d.hoc_vi or 'BS' }}. {{ d.ho_ten }} - {{ d.ten_khoa or 'Chuyên khoa' }}</option>
-                                {% endif %}
-                                {% endfor %}
-                            </select>
+                            <p class="text-xs">Bác sĩ phụ trách lần khám giữ nguyên khi chỉ định CLS.</p>
                         </div>
                         <div class="text-[11px] text-slate-500 flex items-center">
                             Khi chuyển phiên, toàn bộ dữ liệu khám lâm sàng ở Bước 1 sẽ khóa cứng để đảm bảo tính pháp lý.
@@ -556,8 +568,85 @@
 
 <script>
     let rawPatients = JSON.parse(document.getElementById('emr-patients-data').textContent || '[]');
-    let currentSelectedPatientId = rawPatients.length > 0 ? rawPatients[0].id : 1;
+    let currentSelectedPatientId = rawPatients.length > 0 ? rawPatients[0].id : null;
     let currentActiveEncounterId = null;
+    const emrAppointments = {{ emr_appointments|default([])|tojson }};
+    let currentEmrContext = null;
+    function configureEncounterChoices(patient) {
+        const select = document.getElementById('emr-encounter-select');
+        select.replaceChildren(new Option('Chọn lần khám', ''));
+        const actorDoctor = {{ session.get('user', {}).get('bac_si_id')|tojson }};
+        const isAdmin = {{ (session.get('user', {}).get('vai_tro') == 'ADMIN')|tojson }};
+        emrAppointments.filter(a => a.benh_nhan_id === patient.id && (isAdmin || a.bac_si_id === actorDoctor)
+            && ['Đã tiếp nhận','Đang khám','Chờ kết quả CLS','Chờ kết luận'].includes(a.trang_thai))
+            .forEach(a => select.add(new Option(`${a.ma_lich_hen} - ${a.ngay_hen} ${a.gio_hen} - ${a.bac_si || ''}`, 'appointment:'+a.id)));
+        (patient.lich_su_kham || []).filter(r => (isAdmin || r.bac_si_id === actorDoctor)
+            && ['Đang khám','Đang kê đơn','Chờ kết quả CLS','Chờ kết luận'].includes(r.trang_thai))
+            .forEach(r => select.add(new Option(`Phiếu ${r.ma_phieu} - ${r.thoi_gian_kham || ''}`, 'record:'+r.id)));
+        select.add(new Option('Khám trực tiếp mới', 'walk-in'));
+        document.getElementById('emr-walk-in-fields').classList.add('hidden');
+    }
+    function selectEmrEncounter(value) {
+        resetEncounterEditor();
+        currentEmrContext = null;
+        currentActiveEncounterId = null;
+        prescriptionItems = [];
+        emrSelectedImages = [];
+        renderEmrThumbnails();
+        renderPrescriptionTable();
+        document.querySelectorAll('input[name="cls_service_id"]').forEach(el => el.checked = false);
+        const patient = rawPatients.find(p => p.id === currentSelectedPatientId);
+        let record = null;
+        if (value.startsWith('appointment:')) {
+            const appointment = emrAppointments.find(a => a.id === Number(value.split(':')[1]) && a.benh_nhan_id === patient.id);
+            if (!appointment) return;
+            const linked = (patient.lich_su_kham || []).filter(r => r.lich_hen_id === appointment.id);
+            if (linked.length > 1) { alert('Liên kết phiếu không duy nhất.'); return; }
+            record = linked[0] || null;
+            currentEmrContext = {appointment_id:appointment.id,doctor_id:appointment.bac_si_id,room_id:appointment.phong_kham_id};
+        } else if (value.startsWith('record:')) {
+            record = (patient.lich_su_kham || []).find(r => r.id === Number(value.split(':')[1]));
+            if (!record) return;
+            currentEmrContext = {appointment_id:record.lich_hen_id,doctor_id:record.bac_si_id,room_id:record.phong_kham_id};
+        } else if (value === 'walk-in') {
+            currentEmrContext = {walk_in:true,encounter_key:crypto.randomUUID()};
+        }
+        document.getElementById('emr-walk-in-fields').classList.toggle('hidden', value !== 'walk-in');
+        currentActiveEncounterId = record?.id || null;
+        if (currentEmrContext) currentEmrContext.record_id = currentActiveEncounterId;
+        document.getElementById('btn-finish-cls')?.classList.toggle('hidden', !record);
+        document.getElementById('emr-pending-finish-banner')?.classList.toggle('hidden', !record);
+        if (record) document.getElementById('pending-finish-code').textContent = record.ma_phieu;
+        for (const [id,key] of [['emr-symptoms','trieu_chung'],['emr-icd','chan_doan_icd'],['emr-treatment','huong_dieu_tri'],['emr-advice','loi_dan']]) {
+            document.getElementById(id).value = record?.[key] || '';
+        }
+        renderPatientClsResults(patient);
+        if (record && record.trang_thai === 'Chờ kết quả CLS') lockEmrClinicalStep();
+    }
+    function resetEncounterEditor() {
+        isSessionTransferred = false;
+        document.getElementById('emr-step1-lock-notice')?.classList.add('hidden');
+        ['emr-ha','emr-mach','emr-t','emr-spo2','emr-symptoms','emr-dropzone'].forEach(id => {
+            const element = document.getElementById(id);
+            if (!element) return;
+            element.readOnly = false;
+            element.style.pointerEvents = '';
+            element.classList.remove('bg-slate-100','cursor-not-allowed','opacity-85','opacity-50');
+        });
+        document.getElementById('emr-reexam').value = '';
+        switchEmrStep(1);
+    }
+    function emrContextPayload() {
+        if (!currentEmrContext) { alert('Vui lòng chọn lần khám cụ thể.'); return null; }
+        const context = {...currentEmrContext,patient_id:currentSelectedPatientId,record_id:currentActiveEncounterId};
+        if (context.walk_in) {
+            context.doctor_id = Number(document.getElementById('emr-attending-doctor').value) || null;
+            context.room_id = Number(document.getElementById('emr-walk-in-room').value) || null;
+            if (!context.doctor_id || !context.room_id) { alert('Chọn bác sĩ và phòng khám trực tiếp.'); return null; }
+        }
+        return context;
+    }
+
     let prescriptionItems = [];
     let emrSelectedImages = [];
 
@@ -575,27 +664,7 @@
         return [str];
     }
 
-    // Khởi tạo một số thuốc mẫu ban đầu để bác sĩ tiện chỉnh sửa
-    prescriptionItems.push({
-        thuoc_id: 6,
-        ten_thuoc: 'Paracetamol 500mg Hậu Giang',
-        so_luong: 20,
-        don_vi_tinh: 'Viên',
-        so_luong_ton: 5000,
-        don_gia: 2000,
-        lieu_dung: 'Uống 1-2 viên khi sốt trên 38.5°C',
-        cach_dung: 'Uống sau ăn no, cách 4-6h/lần'
-    });
-    prescriptionItems.push({
-        thuoc_id: 11,
-        ten_thuoc: 'Esomeprazole 20mg Stada',
-        so_luong: 28,
-        don_vi_tinh: 'Viên',
-        so_luong_ton: 2800,
-        don_gia: 8000,
-        lieu_dung: 'Uống 1 viên/lần, ngày 2 lần',
-        cach_dung: 'Uống trước ăn sáng và ăn tối 30 phút'
-    });
+    // Chỉ thuốc do bác sĩ chủ động chọn cho lần khám hiện tại.
     renderPrescriptionTable();
 
     // Quản lý kéo thả và xem trước nhiều ảnh EMR (Tối đa 10 ảnh, lưới 2x2 cuộn được)
@@ -699,6 +768,8 @@
 
     // Chọn bệnh nhân và đồng bộ trạng thái EMR
     function selectEmrPatient(id) {
+        currentEmrContext = null;
+        currentActiveEncounterId = null;
         currentSelectedPatientId = parseInt(id);
         const p = rawPatients.find(x => x.id === currentSelectedPatientId);
         if (!p) return;
@@ -725,7 +796,7 @@
         if (emrHistoryTagSelector) emrHistoryTagSelector.setTags(p.tien_su_benh || '');
         const hasAllergy = allergyVal && allergyVal !== 'Không có' && allergyVal !== 'Không ghi nhận dị ứng thuốc' && allergyVal !== 'Không ghi nhận dị ứng';
         
-        if (allergyEl) allergyEl.innerText = allergyVal || 'Không ghi nhận dị ứng thuốc';
+        if (allergyEl) allergyEl.innerText = allergyVal || 'Chưa có dữ liệu về dị ứng';
         if (allergyBox) {
             if (hasAllergy) {
                 allergyBox.className = "p-3 bg-rose-50 border border-rose-300 rounded-xl text-xs flex items-center justify-between text-rose-800 animate-pulse";
@@ -737,27 +808,19 @@
         document.getElementById('current-patient-dossier-btn').href = `/admin/patients/${id}`;
 
         // Kiểm tra phiên khám đang chờ kết quả CLS (để kích hoạt nút Kết Luận và Hoàn Tất sau CLS)
-        let activeEncounter = null;
-        if (p && p.lich_su_kham && Array.isArray(p.lich_su_kham)) {
-            activeEncounter = p.lich_su_kham.find(e => e.trang_thai === 'Chờ kết quả CLS' || e.trang_thai === 'Đang khám');
-        }
-        const btnFinishCls = document.getElementById('btn-finish-cls');
-        const bannerPending = document.getElementById('emr-pending-finish-banner');
-        if (activeEncounter) {
-            currentActiveEncounterId = activeEncounter.id;
-            if (btnFinishCls) btnFinishCls.classList.remove('hidden');
-            if (bannerPending) {
-                bannerPending.classList.remove('hidden');
-                document.getElementById('pending-finish-code').innerText = activeEncounter.ma_phieu;
-            }
-            if (activeEncounter.chan_doan_icd) document.getElementById('emr-icd').value = activeEncounter.chan_doan_icd;
-            if (activeEncounter.huong_dieu_tri) document.getElementById('emr-treatment').value = activeEncounter.huong_dieu_tri;
-            if (activeEncounter.loi_dan) document.getElementById('emr-advice').value = activeEncounter.loi_dan;
-        } else {
-            currentActiveEncounterId = null;
-            if (btnFinishCls) btnFinishCls.classList.add('hidden');
-            if (bannerPending) bannerPending.classList.add('hidden');
-        }
+        const vitalFields = { 'emr-ha': 'huyet_ap', 'emr-mach': 'mach', 'emr-t': 'nhiet_do', 'emr-spo2': 'spo2' };
+        Object.entries(vitalFields).forEach(([id, key]) => {
+            const element = document.getElementById(id);
+            if (element) element.value = p.vitals?.[key] ?? '';
+        });
+        ['emr-icd', 'emr-symptoms', 'emr-treatment', 'emr-advice'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        configureEncounterChoices(p);
+        document.getElementById('btn-finish-cls')?.classList.add('hidden');
+        document.getElementById('emr-pending-finish-banner')?.classList.add('hidden');
+        resetEncounterEditor();
 
         // Render danh sách kết quả cận lâm sàng của bệnh nhân
         renderPatientClsResults(p);
@@ -775,9 +838,7 @@
         });
     }
 
-    if (rawPatients.length > 0) {
-        selectEmrPatient(rawPatients[0].id);
-    }
+
 
     
     
@@ -796,7 +857,7 @@
                 catalog: ALLERGIES,
                 placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Aspirin, Hải sản...)...',
                 badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-                emptyLabel: 'Không có'
+                emptyLabel: 'Chưa có dữ liệu'
             });
 
             emrHistoryTagSelector = window.initCatalogTagSelector({
@@ -805,18 +866,35 @@
                 catalog: HISTORIES,
                 placeholder: 'Gõ tìm kiếm bệnh lý nền (Tăng huyết áp, Đái tháo đường...)...',
                 badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
-                emptyLabel: 'Không có'
+                emptyLabel: 'Chưa có dữ liệu'
             });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!rawPatients.length) return;
+        const params = new URLSearchParams(location.search);
+        const patient = rawPatients.find(p => String(p.id) === params.get('patient_id')) || rawPatients[0];
+        selectEmrPatient(patient.id);
+        const requested = params.get('record_id') ? 'record:'+params.get('record_id') :
+                          (params.get('appointment_id') ? 'appointment:'+params.get('appointment_id') : '');
+        const chooser = document.getElementById('emr-encounter-select');
+        if (requested && Array.from(chooser.options).some(o => o.value === requested)) {
+            chooser.value = requested;
+            selectEmrEncounter(requested);
         }
     });
 
     // Chuyển bước khám có tự động lưu tiến trình và cập nhật thời gian thực sang Cổng Bệnh nhân
     function advanceEmrStep(fromStep, toStep) {
+        const context = emrContextPayload();
+        if (!context) return;
         const payload = {
+            ...context,
             patient_id: currentSelectedPatientId,
-            doctor_id: {{ session.get('user', {}).get('bac_si_id') or 1 }},
-            symptoms: document.getElementById('emr-symptoms')?.value || 'Khám lâm sàng',
-            icd: document.getElementById('emr-icd')?.value || 'Z00.0 - Khám sức khỏe',
+            doctor_id: context.doctor_id,
+            symptoms: document.getElementById('emr-symptoms')?.value || '',
+            icd: document.getElementById('emr-icd')?.value || '',
             di_ung: document.getElementById('emr-allergy-input')?.value || '',
             tien_su_benh: document.getElementById('emr-history-input')?.value || '',
             step: toStep
@@ -830,17 +908,18 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
+                if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
                 if (window.showAdminToast) {
                     window.showAdminToast(`Đã lưu tiến trình Bước ${fromStep} và cập nhật trực tiếp sang Cổng Bệnh nhân!`);
                 }
                 switchEmrStep(toStep);
             } else {
                 alert('Lỗi lưu bước khám: ' + data.message);
-                switchEmrStep(toStep);
             }
         })
         .catch(err => {
-            switchEmrStep(toStep);
+            alert('Không lưu được bước khám: '+err);
         });
     }
 
@@ -908,15 +987,15 @@
 
     // Chuyển phiên khám cận lâm sàng
     function transferEmrSession() {
+        const context = emrContextPayload();
+        if (!context) return;
         const checkedCls = Array.from(document.querySelectorAll('input[name="cls_service_id"]:checked')).map(el => parseInt(el.value));
         if (checkedCls.length === 0) {
             alert('Vui lòng tick chọn ít nhất một kỹ thuật Cận Lâm Sàng trước khi chuyển phiên!');
             return;
         }
 
-        const targetDoctorSelect = document.getElementById('emr-cls-doctor');
-        const targetDoctorId = targetDoctorSelect ? parseInt(targetDoctorSelect.value) : null;
-        const targetDoctorText = targetDoctorSelect ? targetDoctorSelect.options[targetDoctorSelect.selectedIndex].text : 'Bác sĩ phụ trách';
+        const targetDoctorText = 'Bác sĩ phụ trách lần khám';
 
         if (!confirm(`XÁC NHẬN CHUYỂN PHIÊN KHÁM:
 - Chuyển phiên thực hiện CLS cho: "${targetDoctorText}"
@@ -927,12 +1006,13 @@ Bạn có chắc chắn muốn chuyển phiên?`)) {
             return;
         }
 
-        const symptoms = document.getElementById('emr-symptoms')?.value || 'Đau thượng vị';
-        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày';
+        const symptoms = document.getElementById('emr-symptoms')?.value || '';
+        const diagnosis = document.getElementById('emr-icd')?.value || '';
 
         const payload = {
+            ...context,
             patient_id: currentSelectedPatientId,
-            doctor_id: targetDoctorId,
+            doctor_id: context.doctor_id,
             reason: 'Chỉ định cận lâm sàng',
             symptoms: symptoms,
             diagnosis: diagnosis,
@@ -952,6 +1032,8 @@ Bạn có chắc chắn muốn chuyển phiên?`)) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
+                if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
                 alert(`✅ ĐÃ CHUYỂN PHIÊN THÀNH CÔNG!
 - Mã phiếu: ${data.ma_phieu}
 - Chỉ định đã chuyển sang: ${targetDoctorText}
@@ -991,7 +1073,7 @@ Bạn có chắc chắn muốn chuyển phiên?`)) {
 
         let allCls = [];
         if (p && p.lich_su_kham && Array.isArray(p.lich_su_kham)) {
-            p.lich_su_kham.forEach(enc => {
+            p.lich_su_kham.filter(enc => enc.id === currentActiveEncounterId).forEach(enc => {
                 if (enc.can_lam_sang && Array.isArray(enc.can_lam_sang)) {
                     enc.can_lam_sang.forEach(item => {
                         allCls.push({
@@ -1264,10 +1346,12 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
 
     // Hoàn tất phiên khám
     function completeExamination() {
-        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày mạn tính';
-        const symptoms = document.getElementById('emr-symptoms')?.value || 'Đau thượng vị';
-        const treatment = document.getElementById('emr-treatment')?.value || 'Chỉ định CLS và kê đơn điều trị nội khoa';
-        const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám đúng hẹn';
+        const context = emrContextPayload();
+        if (!context) return;
+        const diagnosis = document.getElementById('emr-icd')?.value || '';
+        const symptoms = document.getElementById('emr-symptoms')?.value || '';
+        const treatment = document.getElementById('emr-treatment')?.value || '';
+        const advice = document.getElementById('emr-advice')?.value || '';
         const reexam = document.getElementById('emr-reexam')?.value || null;
 
         // Lấy danh sách ID các kỹ thuật CLS đã chọn
@@ -1280,6 +1364,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
         }
 
         const payload = {
+            ...context,
             patient_id: currentSelectedPatientId,
             reason: 'Khám chuyên khoa',
             symptoms: symptoms,
@@ -1306,6 +1391,8 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
+                if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
                 alert(`✅ THÀNH CÔNG!\n- Đã lưu phiếu khám: ${data.ma_phieu}\n- Chỉ định cận lâm sàng đã chuyển sang Khoa CLS cho Kỹ thuật viên.\n- Toa thuốc đã chuyển sang Kho Dược cho Dược sĩ.\n- Hóa đơn viện phí ban đầu đã được tự động sinh.`);
                 window.location.reload();
             } else {
@@ -1319,14 +1406,16 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
 
     // Bác sĩ chốt kết luận và hoàn tất ca khám sau khi có kết quả CLS
     function finishExaminationRecord() {
+        const context = emrContextPayload();
+        if (!context) return;
         if (!currentActiveEncounterId) {
             alert('Không tìm thấy phiếu khám đang chờ kết quả CLS cho bệnh nhân này!');
             return;
         }
 
-        const diagnosis = document.getElementById('emr-icd')?.value || 'K29.5 - Viêm dạ dày mạn tính';
-        const treatment = document.getElementById('emr-treatment')?.value || 'Điều trị nội khoa sau khi có kết quả cận lâm sàng';
-        const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám đúng hẹn';
+        const diagnosis = document.getElementById('emr-icd')?.value || '';
+        const treatment = document.getElementById('emr-treatment')?.value || '';
+        const advice = document.getElementById('emr-advice')?.value || '';
         const reexam = document.getElementById('emr-reexam')?.value || null;
 
         if (!confirm('Xác nhận hoàn tất phiên khám EMR sau khi đã xem xét đầy đủ kết quả cận lâm sàng?\nHệ thống sẽ chốt bệnh án, chuyển đơn thuốc sang Dược sĩ và cập nhật trạng thái đã khám.')) {
@@ -1357,6 +1446,8 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
+                if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
                 alert(`✅ KẾT THÚC PHIÊN KHÁM THÀNH CÔNG!\n${data.message || 'Đã chốt kết luận và hoàn tất ca khám.'}`);
                 window.location.reload();
             } else {
@@ -1370,6 +1461,8 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
 
     // Kết thúc phiên khám lâm sàng bình thường một chạm (Xử lý toàn bộ biến số nghiệp vụ tại BackEnd)
     function completeNormalExamination() {
+        const context = emrContextPayload();
+        if (!context) return;
         if (!confirm('Xác nhận: Bệnh nhân có kết quả khám lâm sàng bình thường (sức khỏe tốt)?\nHệ thống sẽ kết thúc phiên khám và tự động xuất hóa đơn viện phí tiền khám ngay lập tức.')) {
             return;
         }
@@ -1377,11 +1470,13 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
         fetch('/api/emr/save-normal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ patient_id: currentSelectedPatientId })
+            body: JSON.stringify(context)
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
+                if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
                 alert(`✅ KẾT THÚC PHIÊN KHÁM THÀNH CÔNG!\n- Đã lưu phiếu khám: ${data.ma_phieu}\n- Chẩn đoán: Khám sức khỏe bình thường\n- Hóa đơn viện phí tiền khám đã được xuất thành công.`);
                 window.location.reload();
             } else {

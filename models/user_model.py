@@ -6,103 +6,101 @@ from core.audit import AuditLogger
 class UserModel:
     """Model quản lý tài khoản người dùng, phân quyền và nhân sự."""
 
+
     @staticmethod
     def authenticate(username, password):
-        """Xác thực đăng nhập tài khoản theo tên đăng nhập hoặc số điện thoại."""
+        """Verify credentials and resolve a current, active linked identity."""
         conn = get_db()
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT TOP 1 t.*, v.ma_vai_tro, v.ten_vai_tro
-            FROM tai_khoan t
-            JOIN vai_tro v ON t.vai_tro_id = v.id
-            LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
-            LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
-            WHERE t.username = ? OR t.sdt = ? OR t.email = ? OR nv.sdt = ? OR nv.email = ? OR bn.sdt = ? OR bn.email = ?
-        ''', (username, username, username, username, username, username, username))
-        user_row = cursor.fetchone()
-
-        if not user_row or not verify_password(user_row['password'], password):
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT TOP 1 t.id, t.password
+                FROM tai_khoan t
+                LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
+                LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
+                WHERE t.username = ? OR t.sdt = ? OR t.email = ?
+                   OR nv.sdt = ? OR nv.email = ? OR bn.sdt = ? OR bn.email = ?
+            """, (username,) * 7)
+            row = cursor.fetchone()
+            if not row or not verify_password(row['password'], password):
+                return None
+            identity = UserModel.get_session_user(row['id'])
+            if identity is None:
+                return None
+            cursor.execute('UPDATE tai_khoan SET lan_dang_nhap_cuoi = ? WHERE id = ?',
+                           (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), row['id']))
+            conn.commit()
+            return identity
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
             conn.close()
+
+    @staticmethod
+    def get_session_user(account_id):
+        """Never trust roles or profile identifiers cached in a session."""
+        from core.security import positive_id, STAFF_ROLES
+        if positive_id(account_id) is None:
             return None
-
-        # Kiểm tra tài khoản có bị vô hiệu hóa không
-        if user_row.get('trang_thai') == 0 or user_row.get('trang_thai') is False:
-            conn.close()
-            return None
-
-        # Cập nhật thời gian đăng nhập cuối
-        cursor.execute('''
-            UPDATE tai_khoan SET lan_dang_nhap_cuoi = ? WHERE id = ?
-        ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_row['id']))
-        conn.commit()
-
-        user_info = {
-            'id': user_row['id'],
-            'username': user_row['username'],
-            'vai_tro': user_row['ma_vai_tro'],
-            'ten_vai_tro': user_row['ten_vai_tro'],
-            'sdt': user_row['sdt'],
-            'da_hoan_thien_ho_so': 1 if user_row.get('da_hoan_thien_ho_so') in (1, True, '1') else 0,
-            'yeu_cau_doi_mat_khau': 1 if user_row.get('yeu_cau_doi_mat_khau') in (1, True, '1') else 0
-        }
-
-        # Nếu là Bác sĩ hoặc Nhân viên nội bộ
-        if user_row['ma_vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            cursor.execute('''
-                SELECT nv.id AS staff_id, nv.ma_nhan_vien, nv.ho_ten, nv.chuc_vu, nv.email, nv.trang_thai AS staff_status,
-                       bs.id AS bac_si_id, bs.hoc_vi
-                FROM nhan_vien nv
+        conn = get_db()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT t.id, t.username, COALESCE(nv.sdt, bn.sdt, t.sdt) AS sdt,
+                       COALESCE(nv.email, bn.email, t.email) AS email, t.trang_thai,
+                       t.da_hoan_thien_ho_so, t.yeu_cau_doi_mat_khau,
+                       v.ma_vai_tro AS vai_tro, v.ten_vai_tro,
+                       bn.id AS patient_id, bn.ma_benh_nhan,
+                       bn.ho_ten AS patient_name,
+                       nv.id AS staff_id, nv.ho_ten AS staff_name,
+                       nv.trang_thai AS staff_status, nv.chuc_vu, nv.ma_nhan_vien,
+                       bs.id AS bac_si_id, bs.chuyen_khoa_id, bs.hoc_vi
+                FROM tai_khoan t
+                JOIN vai_tro v ON t.vai_tro_id = v.id
+                LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
+                LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
                 LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
-                WHERE nv.tai_khoan_id = ?
-            ''', (user_row['id'],))
-            staff_row = cursor.fetchone()
-            if staff_row:
-                # Nếu nhân viên bị vô hiệu hóa
-                if staff_row.get('staff_status') == 0 or staff_row.get('staff_status') is False:
-                    conn.close()
+                WHERE t.id = ?
+            """, (account_id,))
+            row = cursor.fetchone()
+            if not row or row.get('trang_thai') not in (1, True, '1'):
+                return None
+            user = dict(row)
+            role = user.get('vai_tro')
+            if role == 'BENHNHAN':
+                if positive_id(user.get('patient_id')) is None:
                     return None
-                user_info['staff_id'] = staff_row.get('staff_id')
-                user_info['ho_ten'] = staff_row['ho_ten']
-                user_info['chuc_vu'] = staff_row['chuc_vu']
-                user_info['ma_nhan_vien'] = staff_row.get('ma_nhan_vien')
-                user_info['email'] = staff_row.get('email') or user_row.get('email')
-                user_info['bac_si_id'] = staff_row.get('bac_si_id')
-                user_info['hoc_vi'] = staff_row.get('hoc_vi')
+                user['ho_ten'] = user.get('patient_name')
+                user['bac_si_id'] = None
+                user['chuyen_khoa_id'] = None
+            elif role in STAFF_ROLES:
+                if not user.get('staff_id') or user.get('staff_status') not in (1, True, '1'):
+                    return None
+                if role == 'BACSI' and not user.get('bac_si_id'):
+                    return None
+                user['patient_id'] = None
+                user['ho_ten'] = user.get('staff_name')
             else:
-                user_info['ho_ten'] = user_row['username']
-
-        # Nếu là Bệnh nhân
-        elif user_row['ma_vai_tro'] == 'BENHNHAN':
-            cursor.execute('''
-                SELECT id, ma_benh_nhan, ho_ten, sdt, email, cccd, bhyt, nhom_mau
-                FROM benh_nhan WHERE tai_khoan_id = ?
-            ''', (user_row['id'],))
-            patient_row = cursor.fetchone()
-            if patient_row:
-                user_info['ho_ten'] = patient_row['ho_ten']
-                user_info['patient_id'] = patient_row['id']
-                user_info['ma_benh_nhan'] = patient_row['ma_benh_nhan']
-            else:
-                user_info['ho_ten'] = user_row['username']
-
-        conn.close()
-        return user_info
+                return None
+            for flag in ('da_hoan_thien_ho_so', 'yeu_cau_doi_mat_khau'):
+                user[flag] = int(user.get(flag) in (1, True, '1'))
+            return user
+        finally:
+            conn.close()
 
     @staticmethod
     def check_account_active(account_id):
-        """Kiểm tra tài khoản còn đang hoạt động hay đã bị vô hiệu hóa."""
         if not account_id:
-            return True
+            return False
         conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute('SELECT trang_thai FROM tai_khoan WHERE id = ?', (account_id,))
-        row = cursor.fetchone()
-        conn.close()
-        if not row:
-            return True
-        return bool(row['trang_thai'])
-
+        try:
+            cursor = conn.cursor()
+            cursor.execute('SELECT trang_thai FROM tai_khoan WHERE id = ?', (account_id,))
+            row = cursor.fetchone()
+            return bool(row and row.get('trang_thai') in (1, True, '1'))
+        finally:
+            conn.close()
 
     @staticmethod
     def register_patient(ho_ten, sdt, password, email=None, **kwargs):
@@ -142,7 +140,9 @@ class UserModel:
             benh_nhan_id = cursor.lastrowid
 
             cursor.execute('''
-                INSERT INTO chi_so_sinh_ton (benh_nhan_id) VALUES (?)
+                INSERT INTO chi_so_sinh_ton
+                    (benh_nhan_id, mach, nhiet_do, huyet_ap, spo2, nhip_tho, chieu_cao, can_nang, bmi)
+                VALUES (?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
             ''', (benh_nhan_id,))
 
             conn.commit()
@@ -297,18 +297,10 @@ class UserModel:
                        SELECT 1 FROM lich_lam_viec llv WITH (NOLOCK)
                        WHERE (llv.bac_si_id = bs.id OR llv.nhan_vien_id = bs.nhan_vien_id)
                          AND llv.ngay_lam = CAST(GETDATE() AS DATE)
-                         AND (llv.trang_thai_duyet = 'DA_DUYET' OR llv.trang_thai_duyet IS NULL)
+                         AND llv.trang_thai_duyet = 'DA_DUYET'
                          AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
-                         AND (
-                             (llv.gio_bat_dau IS NOT NULL AND llv.gio_ket_thuc IS NOT NULL 
-                              AND CAST(GETDATE() AS TIME) BETWEEN llv.gio_bat_dau AND llv.gio_ket_thuc)
-                             OR
-                             (llv.ca_lam = 1 AND CAST(GETDATE() AS TIME) BETWEEN '07:30:00' AND '11:30:00')
-                             OR
-                             (llv.ca_lam = 2 AND CAST(GETDATE() AS TIME) BETWEEN '13:30:00' AND '17:30:00')
-                             OR
-                             (llv.ca_lam = 3 AND CAST(GETDATE() AS TIME) BETWEEN '17:30:00' AND '20:30:00')
-                         )
+                         AND CAST(GETDATE() AS TIME) >= llv.gio_bat_dau
+                         AND CAST(GETDATE() AS TIME) < llv.gio_ket_thuc
                    ) THEN 1 ELSE 0 END AS is_active_now
             FROM bac_si bs
             JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
@@ -897,7 +889,7 @@ class UserModel:
             return False, f'Lỗi xóa nhân sự: {str(e)}'
 
     @staticmethod
-    def get_accounts(role=None, status=None, search=None, page=1, per_page=20, allowed_roles=None, doctor_dept_id=None):
+    def get_accounts(role=None, status=None, search=None, page=1, per_page=20, allowed_roles=None, doctor_dept_id=None, allowed_patient_ids=None):
         """Xem danh sách tài khoản bệnh nhân và nhân viên, tìm kiếm và phân trang."""
         conn = get_db()
         cursor = conn.cursor()
@@ -958,6 +950,12 @@ class UserModel:
         cursor.execute(sql, tuple(params))
         all_rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
+
+        if allowed_patient_ids is not None:
+            from core.security import positive_id
+            all_rows = [row for row in all_rows if (
+                row.get('ma_vai_tro') != 'BENHNHAN' and row.get('patient_id') is None
+            ) or positive_id(row.get('patient_id')) in allowed_patient_ids]
 
         total = len(all_rows)
         page = max(1, int(page))

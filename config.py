@@ -1,8 +1,12 @@
 import os
 
 # Cấu hình ứng dụng Flask
-SECRET_KEY = os.environ.get('SECRET_KEY', 'h2t_healthcare_clinic_secret_key_2026')
+SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
+
+# Optional, exact HTTPS host allowlist for server-side image imports. Empty disables remote imports.
+IMAGE_DOWNLOAD_ALLOWED_HOSTS = tuple(host.strip().lower() for host in
+                                    os.environ.get('IMAGE_DOWNLOAD_ALLOWED_HOSTS', '').split(',') if host.strip())
 
 # Cấu hình hệ quản trị CSDL duy nhất: Microsoft SQL Server
 DB_ENGINE = 'sqlserver'

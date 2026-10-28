@@ -1,5 +1,14 @@
 # Hệ Thống Quản Lý Phòng Khám Đa Khoa H2T Healthcare
 
+> Khởi tạo app, chạy Website và kiểm thử cô lập: xem [hướng dẫn startup an toàn](docs/startup_safety.md).
+> Import/tạo app không còn tự cập nhật schema hoặc chạy worker; `python app.py` vẫn là lệnh chạy Website.
+> Chỉ chạy test mới bằng `python -B -m unittest discover -s tests -p test_startup_safety.py -v`.
+> Không chạy toàn bộ test cũ bên dưới trên database vận hành.
+> Xác thực, quyền sở hữu hồ sơ, cấu hình `SECRET_KEY` và quyền nhân viên còn cần xác nhận:
+> xem [hướng dẫn kiểm tra bảo mật](docs/security_access.md).
+> Dữ liệu chưa đo, công bố kết quả và bảo vệ ảnh mới/cũ: [hướng dẫn dữ liệu và ảnh bệnh án](docs/clinical_media.md).
+> Validation ca, đặt/đổi/hủy và kiểm thử cạnh tranh: [hướng dẫn lịch an toàn](docs/scheduling_safety.md).
+
 [![Python Version](https://img.shields.io/badge/Python-3.9%20%7C%203.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![Framework](https://img.shields.io/badge/Framework-Flask%203.0+-green.svg)](https://flask.palletsprojects.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-MVC%20Pattern-orange.svg)]()

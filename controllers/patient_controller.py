@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from core.security import login_required
-from core.database import get_db
+from core.security import login_required, roles_required, current_patient_id
 from core.validators import validate_patient_profile
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
@@ -11,6 +10,7 @@ from models.user_model import UserModel
 patient_bp = Blueprint('patient', __name__, url_prefix='/patient')
 
 @patient_bp.before_request
+@roles_required('BENHNHAN')
 def check_patient_profile_completion():
     """Kiểm tra bệnh nhân đã hoàn thiện thông tin cá nhân chưa trước khi truy cập các tính năng."""
     user = session.get('user')
@@ -22,23 +22,7 @@ def check_patient_profile_completion():
 
 def _get_current_patient_id():
     """Lấy ID bệnh nhân từ phiên đăng nhập hiện tại theo tai_khoan_id."""
-    user = session.get('user')
-    if not user:
-        return None
-    if user.get('patient_id'):
-        return user['patient_id']
-    
-    # Tra cứu trực tiếp từ SQL Server theo tai_khoan_id
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM benh_nhan WHERE tai_khoan_id = ?", (user['id'],))
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        user['patient_id'] = row['id']
-        session['user'] = user
-        return row['id']
-    return 1
+    return current_patient_id()
 
 @patient_bp.route('/complete-profile', methods=['GET', 'POST'])
 @login_required

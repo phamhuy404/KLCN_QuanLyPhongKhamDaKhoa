@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, abort, jsonify, redirect, url_for, session, flash
 
-from core.security import roles_required
+from core.security import (roles_required, require_patient_access, visible_patients,
+                           filter_patient_records)
 
 from models.patient_model import PatientModel
 
@@ -51,8 +52,8 @@ def dashboard():
     from models.schedule_model import ScheduleModel
     curr_user = session.get('user', {})
     stats = ClinicModel.get_dashboard_stats()
-    patients = PatientModel.get_all()
-    appointments = AppointmentModel.get_all()
+    patients = visible_patients()
+    appointments = filter_patient_records(AppointmentModel.get_all())
     rooms = ClinicModel.get_all_rooms(active_only=True)
 
     week_bounds = ScheduleModel.get_week_bounds()
@@ -78,33 +79,8 @@ def dashboard():
 @admin_bp.route('/patients')
 
 def patients():
-
-    """Quản lý danh sách hồ sơ bệnh nhân theo phân quyền."""
-
-    curr_user = session.get('user', {})
-
-    user_role = curr_user.get('vai_tro')
-
-    if user_role == 'BACSI':
-
-        dept_id = curr_user.get('chuyen_khoa_id')
-
-        if not dept_id and curr_user.get('bac_si_id'):
-
-            doc_info = UserModel.get_doctor_by_id(curr_user.get('bac_si_id'))
-
-            if doc_info:
-
-                dept_id = doc_info.get('chuyen_khoa_id')
-
-        patients_list = PatientModel.get_by_department(dept_id) if dept_id else PatientModel.get_all()
-
-    else:
-
-        patients_list = PatientModel.get_all()
-
+    patients_list = visible_patients()
     return render_template('admin/patients.html', active_page='admin_patients', patients=patients_list)
-
 
 
 @admin_bp.route('/patients/<int:patient_id>')
@@ -119,6 +95,7 @@ def patient_detail(patient_id):
 
     """Xem hồ sơ bệnh án 360 độ của một bệnh nhân."""
 
+    patient_id = require_patient_access(patient_id)
     patient = PatientModel.get_by_id(patient_id)
 
     if not patient:
@@ -134,29 +111,15 @@ def patient_detail(patient_id):
 @admin_bp.route('/patient-details')
 
 def patient_details_default():
-
-    """Xem hồ sơ bệnh nhân đầu tiên hoặc theo id từ query string."""
-
-    patient_id = request.args.get('id', type=int)
-
-    if patient_id:
-
-        patient = PatientModel.get_by_id(patient_id)
-
+    patient_id = request.args.get('id')
+    if patient_id is not None:
+        patient_id = require_patient_access(patient_id)
     else:
-
-        patients_list = PatientModel.get_all()
-
-        patient = patients_list[0] if patients_list else None
-
-
-
-    if not patient:
-
-        abort(404)
-
-    return render_template('admin/patient_detail.html', active_page='admin_patients', patient=patient)
-
+        patients_list = visible_patients()
+        if not patients_list:
+            abort(404)
+        patient_id = patients_list[0]['id']
+    return patient_detail(patient_id)
 
 
 @admin_bp.route('/appointments')
@@ -167,9 +130,9 @@ def appointments():
 
     curr_user = session.get('user', {})
 
-    appointments_list = AppointmentModel.get_all()
+    appointments_list = filter_patient_records(AppointmentModel.get_all())
 
-    patients_list = PatientModel.get_all()
+    patients_list = visible_patients()
 
     doctors = UserModel.get_all_doctors()
 
@@ -185,9 +148,9 @@ def reception():
 
     """Phân hệ tiếp đón lễ tân, check-in và đăng ký người bệnh mới."""
 
-    patients_list = PatientModel.get_all()
+    patients_list = visible_patients()
 
-    appointments_list = AppointmentModel.get_all()
+    appointments_list = filter_patient_records(AppointmentModel.get_all())
 
     departments = ClinicModel.get_all_departments()
 
@@ -225,7 +188,7 @@ def emr():
 
 
 
-    all_patients = PatientModel.get_all(include_history=True)
+    all_patients = visible_patients(include_history=True)
 
 
 
@@ -281,7 +244,7 @@ def emr():
 
     catalogs = get_all_catalogs()
 
-    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, doctors=doctors, catalogs=catalogs)
+    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, doctors=doctors, catalogs=catalogs, emr_appointments=filter_patient_records(AppointmentModel.get_all()), emr_rooms=ClinicModel.get_all_rooms(active_only=True))
 
 
 
@@ -291,11 +254,11 @@ def lab():
 
     """Phân hệ kỹ thuật viên: Thực hiện xét nghiệm và chẩn đoán hình ảnh."""
 
-    patients_list = PatientModel.get_all()
+    patients_list = visible_patients()
 
     services = ClinicModel.get_all_services()
 
-    lab_orders = MedicalRecordModel.get_all_lab_orders()
+    lab_orders = filter_patient_records(MedicalRecordModel.get_all_lab_orders(), key='patient_id')
 
 
 
@@ -325,7 +288,7 @@ def pharmacy():
 
     medicines = PharmacyModel.get_all_medicines()
 
-    prescriptions = MedicalRecordModel.get_all_prescriptions()
+    prescriptions = filter_patient_records(MedicalRecordModel.get_all_prescriptions(), key='patient_id')
 
 
 
@@ -353,7 +316,7 @@ def billing():
 
     """Phân hệ thu ngân: Viện phí, chi trả BHYT và xuất hóa đơn điện tử."""
 
-    invoices = BillingModel.get_all()
+    invoices = filter_patient_records(BillingModel.get_all())
 
     
 
@@ -375,7 +338,7 @@ def billing():
 
             
 
-    patients_list = PatientModel.get_all()
+    patients_list = visible_patients()
 
     return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, stats=stats, patients=patients_list)
 
@@ -391,7 +354,7 @@ def reports():
 
     report_stats = ClinicModel.get_report_stats()
 
-    invoices = BillingModel.get_all()
+    invoices = filter_patient_records(BillingModel.get_all())
 
     return render_template('admin/reports.html', active_page='admin_reports', stats=stats, report_stats=report_stats, invoices=invoices)
 
