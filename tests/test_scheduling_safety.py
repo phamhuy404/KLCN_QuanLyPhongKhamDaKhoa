@@ -1,12 +1,8 @@
-"""Sequential model/API integration on verified SQLite RAM only.
-
-The adapter MOCKS SQL Server applock and translates a few T-SQL constructs.
-These tests do NOT establish SQL Server locking/concurrency correctness.
-Run explicitly; never discover the legacy database tests.
+"""MSSQL integration only; requires separately confirmed disposable test database.
+No SQLite, SQL translation or mocked application lock in integration paths.
 """
 from datetime import date, timedelta
 import re
-import sqlite3
 import unittest
 from unittest.mock import patch
 import json
@@ -17,34 +13,6 @@ from urllib.parse import urlencode
 from urllib.error import HTTPError
 
 from tests import test_security_access as support
-
-
-class CalendarCursor(sqlite3.Cursor):
-    def execute(self, sql, parameters=()):
-        if 'sys.sp_getapplock' in sql:
-            self.connection.lock_calls += 1
-            assert "@LockOwner = 'Transaction'" in sql
-            assert "@LockMode = 'Exclusive'" in sql
-            sql, parameters = 'SELECT 0 AS calendar_lock_result', ()
-        elif sql.strip() == 'SELECT @@IDENTITY':
-            sql = 'SELECT last_insert_rowid()'
-        sql = re.sub(r"\bN'", "'", sql)
-        sql = re.sub(r'TRY_CAST\(\? AS INT\)', 'CAST(? AS INTEGER)', sql, flags=re.I)
-        sql = sql.replace('GETDATE()', 'CURRENT_TIMESTAMP')
-        sql = re.sub(r'WITH\s*\(NOLOCK\)', '', sql, flags=re.I)
-        sql = sql.replace('CAST(CURRENT_TIMESTAMP AS DATE)', "date('now')")
-        sql = sql.replace('CAST(CURRENT_TIMESTAMP AS TIME)', "time('now')")
-        if re.match(r'\s*SELECT\s+TOP\s+1\b', sql, flags=re.I):
-            sql = re.sub(r'\bSELECT\s+TOP\s+1\b', 'SELECT', sql, count=1, flags=re.I)
-            sql = sql.rstrip().rstrip(';') + ' LIMIT 1'
-        return super().execute(sql, parameters)
-
-
-class CalendarConnection(sqlite3.Connection):
-    lock_calls = 0
-
-    def cursor(self):
-        return super().cursor(factory=CalendarCursor)
 
 
 class SchedulingTests(unittest.TestCase):
@@ -58,13 +26,7 @@ class SchedulingTests(unittest.TestCase):
     login = support.SecurityAccessTests.login
     tearDown = support.SecurityAccessTests.tearDown
 
-    def connection(self):
-        conn = sqlite3.connect(self.uri, uri=True, factory=CalendarConnection)
-        conn.row_factory = sqlite3.Row
-        assert all(row[2] == '' for row in conn.execute('PRAGMA database_list'))
-        conn.set_trace_callback(self.statements.append)
-        self.connections.append(conn)
-        return self.db_module.UnifiedConnection(conn)
+    connection = support.SecurityAccessTests.connection
 
     def setUp(self):
         self.connections = []
@@ -72,36 +34,36 @@ class SchedulingTests(unittest.TestCase):
         self.keeper.executescript('''
             DROP TABLE lich_hen;
             DROP TABLE phong_kham;
-            CREATE TABLE phong_kham(id INTEGER PRIMARY KEY,chuyen_khoa_id INTEGER,ten_phong TEXT,trang_thai INTEGER);
+            CREATE TABLE phong_kham(id INT PRIMARY KEY,chuyen_khoa_id INT,ten_phong NVARCHAR(MAX),trang_thai INT);
             INSERT INTO phong_kham VALUES(1,10,'Morning',1),(2,10,'Afternoon',1),(3,20,'Other department',1);
-            CREATE TABLE chuyen_khoa(id INTEGER PRIMARY KEY,ten_khoa TEXT,trang_thai INTEGER);
+            CREATE TABLE chuyen_khoa(id INT PRIMARY KEY,ten_khoa NVARCHAR(MAX),trang_thai INT);
             INSERT INTO chuyen_khoa VALUES(10,'Department',1),(20,'Other',1);
-            ALTER TABLE bac_si ADD COLUMN trang_thai_lam_viec TEXT DEFAULT 'Đang làm việc';
-            ALTER TABLE bac_si ADD COLUMN phong_kham_chinh_id INTEGER DEFAULT 3;
-            ALTER TABLE bac_si ADD COLUMN kinh_nghiem INTEGER;
-            ALTER TABLE bac_si ADD COLUMN avatar TEXT;
-            ALTER TABLE bac_si ADD COLUMN gia_kham REAL;
-            CREATE TABLE lich_lam_viec(id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nhan_vien_id INTEGER,bac_si_id INTEGER,phong_kham_id INTEGER,ngay_lam TEXT,ca_lam INTEGER,
-                gio_bat_dau TEXT,gio_ket_thuc TEXT,so_luong_kham_toi_da INTEGER,so_luong_da_dang_ky INTEGER,
-                trang_thai INTEGER,trang_thai_duyet TEXT,nguoi_duyet_id INTEGER,ngay_duyet TEXT,ghi_chu TEXT);
-            CREATE TABLE lich_hen(id INTEGER PRIMARY KEY AUTOINCREMENT,ma_lich_hen TEXT UNIQUE,
-                benh_nhan_id INTEGER,bac_si_id INTEGER,chuyen_khoa_id INTEGER,phong_kham_id INTEGER,
-                ngay_hen TEXT,gio_hen TEXT,ly_do_kham TEXT,trang_thai TEXT,ngay_dat TEXT);
-            CREATE TABLE thong_bao(id INTEGER PRIMARY KEY,tai_khoan_id INTEGER,tieu_de TEXT,noi_dung TEXT,
-                loai_thong_bao TEXT,lien_ket TEXT,da_doc INTEGER,thoi_gian_tao TEXT);
-            CREATE TABLE audit_log(id INTEGER PRIMARY KEY,table_name TEXT,row_id INTEGER,action TEXT,
-                performed_by INTEGER,performed_by_name TEXT,performed_at TEXT,reason TEXT,before_json TEXT,after_json TEXT);
-            CREATE TABLE hoa_don(id INTEGER,benh_nhan_id INTEGER,trang_thai TEXT,phieu_kham_id INTEGER);
-            ALTER TABLE phieu_kham ADD COLUMN lich_hen_id INTEGER;
-            CREATE TABLE chi_tiet_hoa_don(hoa_don_id INTEGER,loai_khoan_thu TEXT,tham_chieu_id INTEGER);
+            ALTER TABLE bac_si ADD trang_thai_lam_viec NVARCHAR(MAX) DEFAULT N'Đang làm việc' WITH VALUES;
+            ALTER TABLE bac_si ADD phong_kham_chinh_id INT DEFAULT 3 WITH VALUES;
+            ALTER TABLE bac_si ADD kinh_nghiem INT;
+            ALTER TABLE bac_si ADD avatar NVARCHAR(MAX);
+            ALTER TABLE bac_si ADD gia_kham DECIMAL(18,2);
+            CREATE TABLE lich_lam_viec(id INT IDENTITY(1,1) PRIMARY KEY,
+                nhan_vien_id INT,bac_si_id INT,phong_kham_id INT,ngay_lam DATE,ca_lam INT,
+                gio_bat_dau TIME(0),gio_ket_thuc TIME(0),so_luong_kham_toi_da INT,so_luong_da_dang_ky INT,
+                trang_thai INT,trang_thai_duyet NVARCHAR(MAX),nguoi_duyet_id INT,ngay_duyet DATETIME2(0),ghi_chu NVARCHAR(MAX));
+            CREATE TABLE lich_hen(id INT IDENTITY(1,1) PRIMARY KEY,ma_lich_hen NVARCHAR(100) UNIQUE,
+                benh_nhan_id INT,bac_si_id INT,chuyen_khoa_id INT,phong_kham_id INT,
+                ngay_hen DATE,gio_hen TIME(0),ly_do_kham NVARCHAR(MAX),trang_thai NVARCHAR(MAX),ngay_dat NVARCHAR(MAX));
+            CREATE TABLE thong_bao(id INT IDENTITY(1,1) PRIMARY KEY,tai_khoan_id INT,tieu_de NVARCHAR(MAX),noi_dung NVARCHAR(MAX),
+                loai_thong_bao NVARCHAR(MAX),lien_ket NVARCHAR(MAX),da_doc INT,thoi_gian_tao DATETIME2(0));
+            CREATE TABLE audit_log(id INT IDENTITY(1,1) PRIMARY KEY,table_name NVARCHAR(MAX),row_id INT,action NVARCHAR(MAX),
+                performed_by INT,performed_by_name NVARCHAR(MAX),performed_at NVARCHAR(MAX),reason NVARCHAR(MAX),before_json NVARCHAR(MAX),after_json NVARCHAR(MAX));
+            CREATE TABLE hoa_don(id INT,benh_nhan_id INT,trang_thai NVARCHAR(MAX),phieu_kham_id INT);
+            ALTER TABLE phieu_kham ADD lich_hen_id INT;
+            CREATE TABLE chi_tiet_hoa_don(hoa_don_id INT,loai_khoan_thu NVARCHAR(MAX),tham_chieu_id INT);
         ''')
         self.day = (date.today()+timedelta(days=14)).isoformat()
         self.staff = {'id':7,'vai_tro':'ADMIN'}
         self.patient = {'id':1,'vai_tro':'BENHNHAN','patient_id':101}
         for column in ('ma_phieu','thoi_gian_kham','ly_do_kham','trieu_chung','chan_doan_so_bo',
                        'chan_doan_icd','huong_dieu_tri','loi_dan','ngay_tai_kham','hinh_anh_kham','trang_thai'):
-            self.keeper.execute('ALTER TABLE phieu_kham ADD COLUMN '+column+' TEXT')
+            self.keeper.execute('ALTER TABLE phieu_kham ADD '+column+' NVARCHAR(MAX)')
         self.keeper.commit()
 
     def schedule(self, shift=1, room=1, capacity=2):
@@ -115,7 +77,7 @@ class SchedulingTests(unittest.TestCase):
             return self.appointments.create(patient,department,doctor,self.day,when,'Test appointment',self.patient)
 
     def row(self):
-        return dict(self.keeper.execute('SELECT * FROM lich_hen ORDER BY id LIMIT 1').fetchone())
+        return dict(self.keeper.execute('SELECT TOP (1) * FROM lich_hen ORDER BY id').fetchone())
 
     def counts(self):
         return [row[0] for row in self.keeper.execute('SELECT so_luong_da_dang_ky FROM lich_lam_viec ORDER BY id')]
@@ -137,7 +99,9 @@ class SchedulingTests(unittest.TestCase):
             self.assertFalse(self.schedules.update_schedule(identifier,203,3,self.day,1)[0])
             self.assertFalse(self.schedules.update_schedule(identifier,203,1,self.day,1,'06:00','12:00')[0])
             self.assertFalse(self.schedules.create_schedule(203,2,self.day,2,nhan_vien_id=306)[0])
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan ON')
         self.keeper.execute('INSERT INTO tai_khoan(id,vai_tro_id,trang_thai) VALUES(99,3,1)')
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan OFF')
         self.keeper.execute('INSERT INTO nhan_vien(id,tai_khoan_id,trang_thai) VALUES(999,99,1)')
         self.keeper.execute("INSERT INTO bac_si(id,nhan_vien_id,chuyen_khoa_id) VALUES(299,999,10)")
         self.keeper.commit()
@@ -199,7 +163,7 @@ class SchedulingTests(unittest.TestCase):
             self.assertFalse(self.schedules.toggle_status(first)[0])
             self.assertFalse(self.schedules.delete_schedule(first,self.staff)[0])
             self.assertEqual(self.counts(),[1,1])
-            self.assertEqual(self.row()['gio_hen'],'08:00')
+            self.assertEqual(str(self.row()['gio_hen'])[:5],'08:00')
 
     def test_commit_failure_rolls_back_booking_counter_notifications_and_audit(self):
         self.schedule()
@@ -227,7 +191,7 @@ class SchedulingTests(unittest.TestCase):
         self.keeper.commit()
         self.assertFalse(self.book()[0])
 
-    def test_api_real_model_book_move_cancel_and_memory_database(self):
+    def test_api_real_model_book_move_cancel_and_mssql_database(self):
         self.schedule()
         self.schedule(2,2)
         self.login()
@@ -241,7 +205,7 @@ class SchedulingTests(unittest.TestCase):
         response = self.client.post('/api/appointment/cancel',json={'id':identifier})
         self.assertEqual(response.status_code,200,response.json)
         self.assertEqual(self.counts(),[0,0])
-        self.assertTrue(any(connection.lock_calls for connection in self.connections))
+        self.assertTrue(any('sp_getapplock' in sql for sql in self.statements))
 
     def test_availability_no_shift_pending_custom_hours_and_full(self):
         with self.app.app_context():
@@ -308,7 +272,8 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual(self.row()['phong_kham_id'],1)
 
     def test_quota_three_doctors_and_five_role_staff(self):
-        # Artificial rows exist only in this verified RAM fixture, never application data.
+        # Artificial rows exist only in this verified MSSQL fixture, never application data.
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan ON')
         for number in range(5):
             self.keeper.execute('INSERT INTO tai_khoan(id,vai_tro_id,trang_thai) VALUES(?,?,1)',(90+number,3 if number<3 else 2))
             self.keeper.execute('INSERT INTO nhan_vien(id,tai_khoan_id,trang_thai) VALUES(?,?,1)',(900+number,90+number))
@@ -317,6 +282,7 @@ class SchedulingTests(unittest.TestCase):
             self.keeper.execute('''INSERT INTO lich_lam_viec(nhan_vien_id,bac_si_id,ngay_lam,ca_lam,gio_bat_dau,gio_ket_thuc,
                 so_luong_kham_toi_da,trang_thai,trang_thai_duyet) VALUES(?,?,?,1,'07:00:00','11:30:00',2,1,'DA_DUYET')''',
                 (900+number,290+number if number<3 else None,self.day))
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan OFF')
         self.keeper.commit()
         with self.app.app_context():
             self.assertFalse(self.schedules.create_schedule(203,1,self.day,1)[0])
@@ -347,7 +313,7 @@ class SchedulingTests(unittest.TestCase):
             self.assertEqual(self.counts(),[1])
             rows[0][6] = '12:00'
             self.assertFalse(CSVService.import_appointments(rows,self.staff)[0])
-            self.assertEqual(self.row()['gio_hen'],'08:00')
+            self.assertEqual(str(self.row()['gio_hen'])[:5],'08:00')
 
     def test_api_commit_failure_is_http_error_and_no_booking(self):
         self.schedule()
@@ -409,7 +375,7 @@ class SchedulingTests(unittest.TestCase):
             self.assertEqual(self.counts(),[0,1])
             self.assertEqual(self.row()['phong_kham_id'],2)
 
-    def test_real_http_login_booking_page_api_move_cancel_and_ram_observation(self):
+    def test_real_http_login_booking_page_api_move_cancel_and_mssql_observation(self):
         from werkzeug.serving import make_server
         self.schedule()
         self.schedule(2,2)

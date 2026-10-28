@@ -1,5 +1,9 @@
 # Validation và giao dịch lịch
 
+> Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
+> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+
+
 ## Lỗi đã xác minh và hành vi sau sửa
 
 - `update_schedule` trước đây ghi thẳng, thiếu kiểm tra ngày quá khứ, nhân viên/phòng trùng, chuyên khoa và hạn mức. Tạo, sửa, đăng ký, duyệt/bật lại ca dùng chung validation: ca 1/2/3 hợp lệ, ngày/giờ tương lai, thời gian trong khung ca và ít nhất 30 phút, sức chứa nguyên dương, nhân viên/tài khoản hoạt động, phòng hoạt động đúng chuyên khoa, không trùng nhân viên/bác sĩ/phòng. Giữ hạn mức 5 người/vai trò và 3 bác sĩ/chuyên khoa/ca; ca đang chờ duyệt cũng giữ chỗ để tránh duyệt vượt hạn mức.

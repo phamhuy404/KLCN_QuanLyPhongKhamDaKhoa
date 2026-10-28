@@ -55,7 +55,7 @@ with patch.object(pyodbc, 'connect') as db, patch.object(threading.Thread, 'star
         test_app = app.create_test_app()
         mkdir.assert_not_called()
         makedirs.assert_not_called()
-    assert {'home', 'auth', 'patient', 'admin', 'api'} == set(test_app.blueprints)
+    assert {'home', 'auth', 'patient', 'admin', 'api', 'mobile_auth'} == set(test_app.blueprints)
     db.assert_not_called()
     worker.assert_not_called()
     smtp.assert_not_called()
@@ -109,6 +109,7 @@ with patch.object(pyodbc, 'connect', side_effect=AssertionError('Real DB forbidd
                     'yeu_cau_doi_mat_khau': 0,
                 }
                 raw = Mock()
+                raw.cursor.return_value.description = [('__clinic_insert_id',)]
                 raw.cursor.return_value.fetchone.return_value = (123,)
                 if fails:
                     raw.commit.side_effect = RuntimeError('commit failed')
@@ -135,7 +136,7 @@ with patch.object(pyodbc, 'connect', side_effect=AssertionError('Real DB forbidd
                     raw.rollback.assert_not_called()
 
     def test_all_routes_and_aliases_registered_without_runtime(self):
-        self.assertEqual(set(self.app.blueprints), {'home', 'auth', 'patient', 'admin', 'api'})
+        self.assertEqual(set(self.app.blueprints), {'home', 'auth', 'patient', 'admin', 'api', 'mobile_auth'})
         self.assertEqual(
             {(r.rule, r.endpoint, frozenset(r.methods)) for r in self.module.app.url_map.iter_rules()},
             {(r.rule, r.endpoint, frozenset(r.methods)) for r in self.app.url_map.iter_rules()})
@@ -270,6 +271,7 @@ with patch.object(pyodbc, 'connect', side_effect=AssertionError('Real DB forbidd
     def test_business_cannot_report_success_after_failed_commit(self):
         from models.feedback_model import FeedbackModel
         raw = Mock()
+        raw.cursor.return_value.description = [('__clinic_insert_id',)]
         raw.cursor.return_value.fetchone.return_value = (1,)
         raw.commit.side_effect = RuntimeError('commit failed')
         self.app.config['DATABASE_CONNECTION_FACTORY'] = lambda: self.db.UnifiedConnection(raw)

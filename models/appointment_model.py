@@ -392,7 +392,7 @@ class AppointmentModel:
             if bn_row and bn_row.get('tai_khoan_id'):
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Đặt lịch hẹn', '/patient/dashboard', 0, ?)
+                    VALUES (?, ?, ?, N'Đặt lịch hẹn', '/patient/dashboard', 0, ?)
                 ''', (
                     bn_row['tai_khoan_id'],
                     f"Đăng ký khám thành công: {ma_lich_hen}",
@@ -411,7 +411,7 @@ class AppointmentModel:
             for adm in admin_letan_accs:
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Lịch khám mới', '/admin/reception', 0, ?)
+                    VALUES (?, ?, ?, N'Lịch khám mới', '/admin/reception', 0, ?)
                 ''', (
                     adm['id'],
                     f"Lịch hẹn khám mới: {ma_lich_hen}",
@@ -574,7 +574,7 @@ class AppointmentModel:
                     ly_do_text = f" Lý do: {reason}." if reason else ""
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Hủy lịch hẹn', '/patient/dashboard', 0, ?)
+                        VALUES (?, ?, ?, N'Hủy lịch hẹn', '/patient/dashboard', 0, ?)
                     ''', (
                         bn_row['tai_khoan_id'],
                         f"Lịch hẹn {appt['ma_lich_hen']} đã bị hủy",

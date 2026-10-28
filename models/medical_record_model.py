@@ -4,6 +4,8 @@ from core.emr_workflow import resolve, ensure_results_ready, validated_medicines
 from core.clinical_data import clinical_value, published_results
 from core.medical_media import protected_image_value
 from core.audit import AuditLogger
+from core.billing_policy import consultation_price, exam_insurance_percent, money
+from decimal import Decimal, ROUND_HALF_UP
 
 def normalize_reexam_date(reexam_date):
     """Chuẩn hóa ngày tái khám sang chuỗi YYYY-MM-DD hoặc None nếu rỗng/không hợp lệ."""
@@ -68,7 +70,7 @@ class MedicalRecordModel:
             SELECT 
                 cd.id, cd.ma_chi_dinh, cd.thoi_gian_chi_dinh, cd.trang_thai AS trang_thai_phieu, cd.ghi_chu,
                 bn.id AS patient_id, bn.ma_benh_nhan, bn.ma_benh_nhan AS ma_bn, bn.ho_ten AS benh_nhan, bn.sdt AS sdt_benh_nhan,
-                COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
+                COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
                 dv.id AS dich_vu_id, dv.ten_dich_vu AS dich_vu, dv.loai_dich_vu AS loai, dv.don_gia,
                 ct.id AS chi_tiet_id, ct.ket_qua, ct.file_ket_qua, ct.ktv_thuc_hien, ct.thoi_gian_thuc_hien,
                 ct.trang_thai, ct.bac_si_duyet, ct.thoi_gian_duyet, ct.ghi_chu_duyet,
@@ -224,7 +226,7 @@ class MedicalRecordModel:
                 if bn_row and bn_row.get('tai_khoan_id'):
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Kết quả xét nghiệm', '/patient/dashboard', 0, ?)
+                        VALUES (?, ?, ?, N'Kết quả xét nghiệm', '/patient/dashboard', 0, ?)
                     ''', (
                         bn_row['tai_khoan_id'],
                         f"Đã có kết quả Cận lâm sàng: {item['ten_dich_vu']}",
@@ -265,7 +267,7 @@ class MedicalRecordModel:
                 dt.hinh_thuc_mua, dt.nguoi_duyet, dt.ngay_duyet,
                 dt.ly_do_huy, dt.nguoi_huy, dt.thoi_gian_huy,
                 bn.id AS patient_id, bn.ma_benh_nhan AS ma_bn, bn.ho_ten AS benh_nhan,
-                COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
+                COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
                 t.id AS thuoc_id, t.ten_thuoc, t.don_vi_tinh,
                 ct.id AS chi_tiet_id, ct.so_luong, ct.lieu_dung, ct.cach_dung,
                 (SELECT TOP 1 hd.trang_thai FROM hoa_don hd WHERE hd.phieu_kham_id = pk.id AND hd.ma_hoa_don LIKE 'HDT%' AND hd.trang_thai != N'Đã hủy' ORDER BY hd.id DESC) AS trang_thai_hoa_don,
@@ -461,7 +463,7 @@ class MedicalRecordModel:
                     now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Khám bệnh', '/patient/records', 0, ?)
+                        VALUES (?, ?, ?, N'Khám bệnh', '/patient/records', 0, ?)
                     ''', (
                         bn_fin['tai_khoan_id'],
                         f"Hoàn thành khám bệnh: {old_rec.get('ma_phieu')}",
@@ -540,10 +542,10 @@ class MedicalRecordModel:
             has_bhyt = bool(p_check and p_check.get('bhyt') and str(p_check.get('bhyt')).strip())
 
             # Khoản thu ban đầu: Tiền khám bệnh chuyên khoa (BHYT chi trả 80% nếu có BHYT)
-            tong_tien_kham = 150000.0
-            tien_bhyt = 120000.0 if has_bhyt else 0.0
+            tong_tien_kham = consultation_price(cursor, valid_doctor_id)
+            tien_bhyt = (tong_tien_kham * exam_insurance_percent()).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) if has_bhyt else Decimal(0)
             invoice_items = [
-                ('Khám bệnh', 'Khám Chuyên Khoa Ngoại Trú', phieu_kham_id, 1, 150000.0, 150000.0)
+                ('Khám bệnh', 'Khám Chuyên Khoa Ngoại Trú', phieu_kham_id, 1, tong_tien_kham, tong_tien_kham)
             ]
 
             # 2. Tạo chỉ định cận lâm sàng nếu có (Trạng thái: 'Chờ thực hiện' để KTV thực hiện)
@@ -564,10 +566,13 @@ class MedicalRecordModel:
                     dv_row = cursor.fetchone()
                     if dv_row:
                         assigned_lab_names.append(dv_row['ten_dich_vu'])
-                        dg = float(dv_row['don_gia'])
-                        bh_pt = (float(dv_row['bhyt_chi_tra_pt']) / 100.0) if has_bhyt else 0.0
+                        dg = money(dv_row['don_gia'])
+                        bh_percent = money(dv_row['bhyt_chi_tra_pt'])
+                        if bh_percent > 100:
+                            raise CalendarError('Ty le BHYT dich vu khong hop le.')
+                        bh_pt = bh_percent / Decimal(100) if has_bhyt else Decimal(0)
                         tong_tien_kham += dg
-                        tien_bhyt += dg * bh_pt
+                        tien_bhyt += (dg * bh_pt).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                         invoice_items.append((dv_row['loai_dich_vu'] or 'Cận lâm sàng', dv_row['ten_dich_vu'], s_id, 1, dg, dg))
 
                     cursor.execute('''
@@ -614,7 +619,7 @@ class MedicalRecordModel:
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM hoa_don')
             hd_next = cursor.fetchone()['next_id']
             ma_hd = f"HD2609{str(hd_next).zfill(3)}"
-            thanh_tien = max(0.0, tong_tien_kham - tien_bhyt)
+            thanh_tien = tong_tien_kham - tien_bhyt
 
             cursor.execute('''
                 INSERT INTO hoa_don (ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, thanh_tien, trang_thai)
@@ -640,7 +645,7 @@ class MedicalRecordModel:
                 if not has_cls:
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Khám bệnh', '/patient/records', 0, ?)
+                        VALUES (?, ?, ?, N'Khám bệnh', '/patient/records', 0, ?)
                     ''', (
                         p_uid,
                         f"Hoàn thành khám bệnh: {ma_phieu}",
@@ -652,7 +657,7 @@ class MedicalRecordModel:
                 if validated_medicines:
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Đơn thuốc', '/patient/prescriptions', 0, ?)
+                        VALUES (?, ?, ?, N'Đơn thuốc', '/patient/prescriptions', 0, ?)
                     ''', (
                         p_uid,
                         f"Bác sĩ đã kê đơn thuốc mới: {ma_dt}",
@@ -663,7 +668,7 @@ class MedicalRecordModel:
                 # Thông báo thanh toán viện phí
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Thanh toán', '/patient/invoices', 0, ?)
+                    VALUES (?, ?, ?, N'Thanh toán', '/patient/invoices', 0, ?)
                 ''', (
                     p_uid,
                     f"Thông báo thanh toán viện phí: {ma_hd}",

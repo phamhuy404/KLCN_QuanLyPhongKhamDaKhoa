@@ -147,8 +147,8 @@ def billing():
     tong_tien = sum(float(inv.get('tong_tien') or 0) for inv in invoices)
     tien_bhyt = sum(float(inv.get('tien_bhyt_chi_tra') or inv.get('tien_bhyt') or 0) for inv in invoices)
     da_thanh_toan = sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') == 'Đã thanh toán')
-    chua_thanh_toan = sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán')
-    unpaid_list = [inv for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán']
+    chua_thanh_toan = sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') == 'Chưa thanh toán')
+    unpaid_list = [inv for inv in invoices if inv.get('trang_thai') == 'Chưa thanh toán']
     first_unpaid = unpaid_list[0] if unpaid_list else None
 
     billing_stats = {

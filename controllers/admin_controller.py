@@ -324,13 +324,13 @@ def billing():
 
     stats = {
 
-        'tong_doanh_thu': sum(float(inv.get('tong_tien') or 0) for inv in invoices),
+        'tong_doanh_thu': sum(float(inv.get('tong_tien') or 0) for inv in invoices if inv.get('trang_thai') == 'Đã thanh toán'),
 
-        'tong_bhyt': sum(float(inv.get('tien_bhyt_chi_tra') or inv.get('tien_bhyt') or 0) for inv in invoices),
+        'tong_bhyt': sum(float(inv.get('tien_bhyt_chi_tra') or inv.get('tien_bhyt') or 0) for inv in invoices if inv.get('trang_thai') == 'Đã thanh toán'),
 
-        'thuc_thu': sum(float(inv.get('thanh_tien') or 0) for inv in invoices),
+        'thuc_thu': sum(float(inv.get('thanh_tien') or 0) for inv in invoices if inv.get('trang_thai') == 'Đã thanh toán'),
 
-        'so_hoa_don_cho': len([inv for inv in invoices if inv.get('trang_thai') != 'Đã thanh toán']),
+        'so_hoa_don_cho': len([inv for inv in invoices if inv.get('trang_thai') == 'Chưa thanh toán']),
 
         'tong_hoa_don': len(invoices)
 

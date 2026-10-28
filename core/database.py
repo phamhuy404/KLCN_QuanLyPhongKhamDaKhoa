@@ -12,21 +12,24 @@ class UnifiedCursor:
         self.lastrowid = None
 
     def execute(self, sql, params=()):
+        self.lastrowid = None
+        is_insert = sql.lstrip().upper().startswith('INSERT')
+        if is_insert:
+            # Same SQL Server batch/scope, unlike @@IDENTITY (which includes triggers).
+            sql = sql.rstrip().rstrip(';') + '; SELECT CAST(SCOPE_IDENTITY() AS bigint) AS __clinic_insert_id;'
         if params:
             self._cur.execute(sql, params)
         else:
             self._cur.execute(sql)
-
-        # Trích xuất SCOPE_IDENTITY() hoặc @@IDENTITY khi chạy INSERT
-        if sql.strip().upper().startswith('INSERT'):
-            try:
-                self._cur.execute('SELECT @@IDENTITY')
-                row = self._cur.fetchone()
-                self.lastrowid = int(row[0]) if row and row[0] is not None else None
-            except Exception:
-                self.lastrowid = None
-        else:
-            self.lastrowid = None
+        if is_insert:
+            while True:
+                description = self._cur.description
+                if description and len(description) == 1 and description[0][0] == '__clinic_insert_id':
+                    row = self._cur.fetchone()
+                    self.lastrowid = int(row[0]) if row and row[0] is not None else None
+                    break
+                if not self._cur.nextset():
+                    raise RuntimeError('SQL Server INSERT identity result is missing')
         return self
 
     def executemany(self, sql, seq_of_params):

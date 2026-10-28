@@ -8,6 +8,7 @@ from models.appointment_model import AppointmentModel
 from models.medical_record_model import MedicalRecordModel
 from models.pharmacy_model import PharmacyModel
 from models.billing_model import BillingModel
+from core.security import current_patient_id
 
 from core.database import get_db
 from core.clinical_data import result_is_published, clinical_value
@@ -365,7 +366,12 @@ def save_emr_examination():
         encounter_key=payload.get('encounter_key')
     )
     if success:
-        return jsonify({'success': True, 'ma_phieu': result, 'record_id': (MedicalRecordModel.get_examination_by_id(result) or {}).get('id'), 'images': saved_images, 'message': 'Lưu phiếu khám và chuyển toa thành công!'})
+        saved_record = MedicalRecordModel.get_examination_by_id(result)
+        if not saved_record:
+            return jsonify(success=False, message='Không đọc được phiếu khám vừa lưu!'), 400
+        return jsonify(success=True, ma_phieu=result, record_id=saved_record['id'],
+                       trang_thai=saved_record['trang_thai'], images=saved_images,
+                       message='Đã lưu phiếu khám.')
     return jsonify({'success': False, 'message': result}), 400
 
 @api_bp.route('/emr/save-step', methods=['POST'])
@@ -541,18 +547,36 @@ def add_medicine():
     ten = data.get('ten_thuoc')
     hoat_chat = data.get('hoat_chat', '')
     dvt = data.get('don_vi_tinh', 'Viên')
-    so_luong = int(data.get('so_luong_ton', 0))
-    don_gia = float(data.get('don_gia', 0.0))
+    from core.scheduling import integer
+    try:
+        so_luong = integer(data.get('so_luong_ton', 0))
+        don_gia = float(data.get('don_gia', 0.0))
+    except (ValueError, TypeError):
+        return jsonify(success=False, message='Số lượng/đơn giá không hợp lệ.'), 400
     ham_luong = data.get('ham_luong', '')
     hang_sx = data.get('hang_san_xuat', 'Việt Nam')
 
     if not ten:
         return jsonify({'success': False, 'message': 'Tên thuốc là bắt buộc!'}), 400
 
-    success, result = PharmacyModel.add_medicine(ten, hoat_chat, dvt, so_luong, don_gia, ham_luong, hang_sx)
+    success, result = PharmacyModel.add_medicine(ten, hoat_chat, dvt, so_luong, don_gia, ham_luong, hang_sx, audit_user=session['user'])
     if success:
         return jsonify({'success': True, 'ma_thuoc': result, 'message': 'Thêm thuốc thành công!'})
     return jsonify({'success': False, 'message': result}), 400
+
+@api_bp.route('/pharmacy/receive-stock', methods=['POST'])
+@roles_required('ADMIN', 'DUOCSI')
+def receive_pharmacy_stock():
+    data = request.get_json() or {}
+    ok, message = PharmacyModel.receive_stock(data.get('medicine_id'), data.get('quantity'),
+        data.get('reason'), data.get('receipt_id'), audit_user=session['user'])
+    return jsonify(success=ok, message=message), 200 if ok else 400
+
+
+@api_bp.route('/pharmacy/stock-history/<int:medicine_id>')
+@roles_required('ADMIN', 'DUOCSI')
+def pharmacy_stock_history(medicine_id):
+    return jsonify(success=True, items=PharmacyModel.stock_history(medicine_id))
 
 @api_bp.route('/prescription/reject', methods=['POST'])
 @roles_required('ADMIN', 'LETAN')
@@ -569,24 +593,53 @@ def reject_prescription_api():
     return jsonify({'success': success, 'message': msg})
 
 @api_bp.route('/billing/pay', methods=['POST'])
-@roles_required('ADMIN', 'LETAN', 'BENHNHAN')
+@roles_required('ADMIN', 'LETAN')
 def pay_invoice():
-    """API thu ngân hoặc bệnh nhân xác nhận thanh toán viện phí."""
+    """Manual collection only. No payment gateway or patient confirmation."""
     data = request.get_json() or {}
-    ma_hd = data.get('ma_hd') or data.get('invoice_id')
-    pttt = data.get('hinh_thuc_thanh_toan', 'Tiền mặt')
-    user = session.get('user', {})
-    if user.get('vai_tro') == 'BENHNHAN' or user.get('role') == 'BENHNHAN':
-        cashier = 'Cổng VietQR Trực Tuyến'
-        pttt = 'Chuyển khoản VietQR'
-    else:
-        cashier = user.get('ho_ten', 'Thu ngân')
+    if not isinstance(data, dict) or data.get('confirm_received') is not True:
+        return jsonify(success=False, message='Cần xác nhận đã thực sự nhận tiền.'), 400
+    identifier = data.get('ma_hd') or data.get('invoice_id')
+    if not identifier:
+        return jsonify(success=False, message='Thieu ma hoa don.'), 400
+    if data.get('expected_amount') is None:
+        return jsonify(success=False, message='Thiếu số tiền đã đối soát.'), 400
+    success, message = BillingModel.pay_invoice(identifier,
+        data.get('hinh_thuc_thanh_toan', 'Tiền mặt'), audit_user=session['user'],
+        expected_amount=data['expected_amount'])
+    return jsonify(success=success, message=message), 200 if success else 409
 
-    if not ma_hd:
-        return jsonify({'success': False, 'message': 'Thiếu mã hóa đơn!'}), 400
 
-    success, msg = BillingModel.pay_invoice(ma_hd, pttt, cashier)
-    return jsonify({'success': success, 'message': msg})
+@api_bp.route('/billing/invoice/<identifier>', methods=['GET'])
+@login_required
+def billing_invoice_detail(identifier):
+    bill = BillingModel.get_invoice(identifier)
+    if not bill:
+        return jsonify(success=False, message='Khong tim thay hoa don.'), 404
+    require_patient_access(bill['benh_nhan_id'])
+    return jsonify(success=True, invoice=bill)
+
+
+@api_bp.route('/billing/request', methods=['POST'])
+@roles_required('BENHNHAN', 'ADMIN', 'LETAN')
+def request_payment_instructions():
+    data = request.get_json() or {}
+    if not isinstance(data, dict):
+        return jsonify(success=False, message='Du lieu khong hop le.'), 400
+    identifier = data.get('ma_hd') or data.get('invoice_id')
+    if not identifier:
+        return jsonify(success=False, message='Thieu ma hoa don.'), 400
+    bill = BillingModel.get_invoice(identifier)
+    if not bill:
+        return jsonify(success=False, message='Khong tim thay hoa don.'), 404
+    require_patient_access(bill['benh_nhan_id'])
+    owner = current_patient_id() if session['user']['vai_tro'] == 'BENHNHAN' else None
+    success, result = BillingModel.payment_instructions(identifier, patient_id=owner)
+    if not success:
+        return jsonify(success=False, message=result), 409
+    return jsonify(success=True, payment_confirmed=False, payment=result,
+        message='Chưa ghi nhận thanh toán. Vui lòng liên hệ quầy thu ngân; chưa tích hợp cổng thanh toán trực tuyến.')
+
 
 # 1. API SAO LƯU VÀ PHỤC HỒI DỮ LIỆU
 @api_bp.route('/backup/create', methods=['POST'])

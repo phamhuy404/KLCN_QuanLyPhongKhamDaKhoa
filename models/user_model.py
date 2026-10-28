@@ -2,6 +2,7 @@ from datetime import datetime
 from core.database import get_db
 from core.security import hash_password, verify_password
 from core.audit import AuditLogger
+from core.scheduling import serialized
 
 class UserModel:
     """Model quản lý tài khoản người dùng, phân quyền và nhân sự."""
@@ -103,6 +104,7 @@ class UserModel:
             conn.close()
 
     @staticmethod
+    @serialized
     def register_patient(ho_ten, sdt, password, email=None, **kwargs):
         """Đăng ký tài khoản bệnh nhân mới trực tuyến (chưa hoặc đã hoàn thiện thông tin)."""
         conn = get_db()
@@ -701,7 +703,7 @@ class UserModel:
                 ck_id = chuyen_khoa_id or 1
                 cursor.execute('''
                     INSERT INTO bac_si (nhan_vien_id, chuyen_khoa_id, phong_kham_chinh_id, hoc_vi, trang_thai_lam_viec)
-                    VALUES (?, ?, ?, ?, 'Đang làm việc')
+                    VALUES (?, ?, ?, ?, N'Đang làm việc')
                 ''', (nv_id, ck_id, phong_kham_id, hoc_vi))
 
             conn.commit()

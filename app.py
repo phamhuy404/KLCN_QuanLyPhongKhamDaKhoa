@@ -7,6 +7,7 @@ from controllers.auth_controller import auth_bp
 from controllers.patient_controller import patient_bp
 from controllers.admin_controller import admin_bp
 from controllers.api_controller import api_bp
+from controllers.mobile_auth_controller import mobile_auth_bp
 
 _DEVELOPMENT_SECRET_KEY = secrets.token_hex(32)
 
@@ -38,6 +39,7 @@ def create_app(test_config=None):
     app.register_blueprint(patient_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(mobile_auth_bp)
     from core.medical_media import register_medical_media
     register_medical_media(app)
     from core.clinical_data import display_clinical

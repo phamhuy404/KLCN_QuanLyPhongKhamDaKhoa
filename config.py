@@ -4,6 +4,12 @@ import os
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
 
+MOBILE_TOKEN_TTL_SECONDS = 3600
+MOBILE_TOKEN_SECRET = os.environ.get('MOBILE_TOKEN_SECRET')
+
+# Existing clinic insurance policy, explicit configuration; not a gateway setting.
+EXAM_INSURANCE_PERCENT = os.environ.get('EXAM_INSURANCE_PERCENT', '80')
+
 # Optional, exact HTTPS host allowlist for server-side image imports. Empty disables remote imports.
 IMAGE_DOWNLOAD_ALLOWED_HOSTS = tuple(host.strip().lower() for host in
                                     os.environ.get('IMAGE_DOWNLOAD_ALLOWED_HOSTS', '').split(',') if host.strip())

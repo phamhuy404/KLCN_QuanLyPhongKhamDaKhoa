@@ -117,7 +117,9 @@ def resolve(cursor, patient_id, doctor_id=None, room_id=None, appointment_id=Non
             token = UUID(str(encounter_key))
         except (ValueError, TypeError, AttributeError):
             raise CalendarError('Khám trực tiếp cần encounter_key UUID riêng cho lần khám.')
-        code = 'PKW' + base64.urlsafe_b64encode(token.bytes).decode('ascii').rstrip('=')
+        # Uppercase base32 keeps all 128 UUID bits distinct even under SQL Server's
+        # common case-insensitive collation, within ma_phieu NVARCHAR(30).
+        code = 'PKW' + base64.b32encode(token.bytes).decode('ascii').rstrip('=')
         cursor.execute('SELECT * FROM phieu_kham WHERE ma_phieu = ?', (code,))
         record = cursor.fetchone()
         if record and (record['benh_nhan_id'] != patient_id or str(record['bac_si_id']) != str(doctor_id)
@@ -167,6 +169,9 @@ def ensure_results_ready(cursor, record_id):
 def validated_medicines(cursor, medicines):
     if not isinstance(medicines, list):
         raise CalendarError('Danh sách thuốc không hợp lệ.')
+    if medicines:
+        from core.pharmacy_safety import validate_items
+        validate_items(cursor, medicines, stock=True)
     checked, seen = [], set()
     for medicine in medicines:
         drug, quantity = integer(medicine.get('thuoc_id')), integer(medicine.get('so_luong'))

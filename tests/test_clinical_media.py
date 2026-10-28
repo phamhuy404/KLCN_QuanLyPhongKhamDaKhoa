@@ -1,4 +1,6 @@
-"""Clinical release/media tests: verified RAM-only DB and temporary image files."""
+"""MSSQL integration only; requires separately confirmed disposable test database.
+No SQLite, SQL translation or mocked application lock in integration paths.
+"""
 import io
 import json
 import re
@@ -35,24 +37,24 @@ class ClinicalMediaTests(unittest.TestCase):
         self.app.static_folder = str(Path(self.temp.name) / 'static')
         self.app.config['MEDICAL_UPLOAD_DIR'] = str(Path(self.temp.name) / 'private')
         self.app.config['IMAGE_DOWNLOAD_ALLOWED_HOSTS'] = ('images.example.invalid',)
-        columns = {'lich_hen_id': 'INTEGER', 'ma_phieu': 'TEXT', 'thoi_gian_kham': 'TEXT', 'ly_do_kham': 'TEXT',
-                   'trieu_chung': 'TEXT', 'chan_doan_so_bo': 'TEXT', 'chan_doan_icd': 'TEXT',
-                   'huong_dieu_tri': 'TEXT', 'loi_dan': 'TEXT', 'ngay_tai_kham': 'TEXT',
-                   'hinh_anh_kham': 'TEXT', 'trang_thai': 'TEXT'}
+        columns = {'lich_hen_id': 'INT', 'ma_phieu': 'NVARCHAR(MAX)', 'thoi_gian_kham': 'DATETIME2(0)', 'ly_do_kham': 'NVARCHAR(MAX)',
+                   'trieu_chung': 'NVARCHAR(MAX)', 'chan_doan_so_bo': 'NVARCHAR(MAX)', 'chan_doan_icd': 'NVARCHAR(MAX)',
+                   'huong_dieu_tri': 'NVARCHAR(MAX)', 'loi_dan': 'NVARCHAR(MAX)', 'ngay_tai_kham': 'DATE',
+                   'hinh_anh_kham': 'NVARCHAR(MAX)', 'trang_thai': 'NVARCHAR(MAX)'}
         for column, kind in columns.items():
-            self.keeper.execute('ALTER TABLE phieu_kham ADD COLUMN ' + column + ' ' + kind)
+            self.keeper.execute('ALTER TABLE phieu_kham ADD ' + column + ' ' + kind)
         self.keeper.executescript('''
-            ALTER TABLE phong_kham ADD COLUMN ten_phong TEXT;
-            CREATE TABLE chuyen_khoa(id INTEGER, ten_khoa TEXT);
-            CREATE TABLE phieu_chi_dinh(id INTEGER, phieu_kham_id INTEGER, bac_si_id INTEGER, ma_chi_dinh TEXT);
-            CREATE TABLE dich_vu(id INTEGER, ten_dich_vu TEXT, loai_dich_vu TEXT);
-            CREATE TABLE chi_tiet_chi_dinh(id INTEGER, phieu_chi_dinh_id INTEGER,
-                dich_vu_id INTEGER, ket_qua TEXT, file_ket_qua TEXT, ktv_thuc_hien TEXT, trang_thai TEXT);
-            CREATE TABLE don_thuoc(id INTEGER, phieu_kham_id INTEGER, ma_don_thuoc TEXT,
-                trang_thai TEXT, hinh_thuc_mua TEXT);
-            CREATE TABLE chi_tiet_don_thuoc(don_thuoc_id INTEGER, thuoc_id INTEGER,
-                so_luong INTEGER, cach_dung TEXT);
-            CREATE TABLE thuoc(id INTEGER, ten_thuoc TEXT, hoat_chat TEXT, don_vi_tinh TEXT);
+            ALTER TABLE phong_kham ADD ten_phong NVARCHAR(MAX);
+            CREATE TABLE chuyen_khoa(id INT, ten_khoa NVARCHAR(MAX));
+            CREATE TABLE phieu_chi_dinh(id INT, phieu_kham_id INT, bac_si_id INT, ma_chi_dinh NVARCHAR(MAX));
+            CREATE TABLE dich_vu(id INT, ten_dich_vu NVARCHAR(MAX), loai_dich_vu NVARCHAR(MAX));
+            CREATE TABLE chi_tiet_chi_dinh(id INT, phieu_chi_dinh_id INT,
+                dich_vu_id INT, ket_qua NVARCHAR(MAX), file_ket_qua NVARCHAR(MAX), ktv_thuc_hien NVARCHAR(MAX), trang_thai NVARCHAR(MAX));
+            CREATE TABLE don_thuoc(id INT, phieu_kham_id INT, ma_don_thuoc NVARCHAR(MAX),
+                trang_thai NVARCHAR(MAX), hinh_thuc_mua NVARCHAR(MAX));
+            CREATE TABLE chi_tiet_don_thuoc(don_thuoc_id INT, thuoc_id INT,
+                so_luong INT, cach_dung NVARCHAR(MAX));
+            CREATE TABLE thuoc(id INT, ten_thuoc NVARCHAR(MAX), hoat_chat NVARCHAR(MAX), don_vi_tinh NVARCHAR(MAX));
             INSERT INTO chuyen_khoa VALUES(10,'Test department');
             INSERT INTO phong_kham VALUES(1,10,'Test room');
             INSERT INTO dich_vu VALUES(1,'Approved blank fixture','Test');

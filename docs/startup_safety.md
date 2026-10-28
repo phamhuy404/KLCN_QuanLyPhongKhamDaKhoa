@@ -1,5 +1,7 @@
 # Khởi tạo ứng dụng và kiểm thử an toàn
 
+> Factory tích hợp chỉ dùng MSSQL đã xác minh: [cấu hình hiện tại](mssql_test_environment.md). Unit test vẫn có thể tiêm mock.
+
 ## Chạy Website hiện tại
 
 Từ thư mục gốc Website, dùng môi trường Python đã có các dependency trong

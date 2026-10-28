@@ -2,7 +2,8 @@ import csv
 import io
 from datetime import datetime
 from core.database import get_db
-from core.scheduling import serialized, CalendarError
+from core.scheduling import serialized, CalendarError, integer
+from core.pharmacy_safety import journal, stock_import
 
 class CSVService:
     """Dịch vụ nhập/xuất tệp CSV với mã hóa UTF-8-SIG (tương thích hoàn hảo với Microsoft Excel)."""
@@ -336,6 +337,7 @@ class CSVService:
         return True, 'Nhập lịch hẹn thành công.', inserted, updated
 
     @staticmethod
+    @stock_import
     def import_csv(module, file_stream, current_user=None):
         """
         Nhập dữ liệu từ CSV. 
@@ -388,10 +390,9 @@ class CSVService:
                         don_gia = float(r[5].strip()) if len(r) > 5 and r[5].strip() else 0.0
                     except Exception:
                         don_gia = 0.0
-                    try:
-                        qty = int(float(r[6].strip())) if len(r) > 6 and r[6].strip() else 0
-                    except Exception:
-                        qty = 0
+                    qty = integer(r[6].strip()) if len(r) > 6 and r[6].strip() else 0
+                    if qty <= 0:
+                        raise CalendarError('So luong nhap CSV phai la so nguyen duong.')
                     hang = r[7].strip() if len(r) > 7 else ''
                     nuoc = r[8].strip() if len(r) > 8 else ''
                     hdsd = r[9].strip() if len(r) > 9 else ''
@@ -400,12 +401,14 @@ class CSVService:
                         continue
 
                     # Kiểm tra trùng theo mã thuốc hoặc tên thuốc (case-insensitive)
-                    cursor.execute("SELECT id, so_luong_ton, don_gia FROM thuoc WHERE (ma_thuoc = ? AND ma_thuoc != '') OR LOWER(ten_thuoc) = LOWER(?)", (ma, ten))
+                    cursor.execute("SELECT id, so_luong_ton, don_gia, trang_thai FROM thuoc WITH (UPDLOCK, HOLDLOCK) WHERE (ma_thuoc = ? AND ma_thuoc != '') OR LOWER(ten_thuoc) = LOWER(?)", (ma, ten))
                     existing = cursor.fetchone()
 
                     if existing:
                         # Cộng dồn số lượng tồn thay vì thêm bản ghi mới
-                        new_ton = int(existing['so_luong_ton'] or 0) + qty
+                        if existing['trang_thai'] != 1 or existing['so_luong_ton'] is None or existing['so_luong_ton'] < 0:
+                            raise CalendarError('Thuoc hoac ton kho khong hop le.')
+                        new_ton = int(existing['so_luong_ton']) + qty
                         final_price = don_gia if don_gia > 0 else float(existing['don_gia'] or 0.0)
                         cursor.execute('''
                             UPDATE thuoc
@@ -415,6 +418,7 @@ class CSVService:
                                 huong_dan_su_dung = COALESCE(NULLIF(?, ''), huong_dan_su_dung)
                             WHERE id = ?
                         ''', (new_ton, final_price, hoat_chat, ham_luong, dvt, hang, nuoc, hdsd, existing['id']))
+                        journal(cursor, existing['id'], qty, existing['so_luong_ton'], new_ton, current_user, 'CSV receipt')
                         updated_count += 1
                     else:
                         # Tạo mã thuốc nếu chưa có
@@ -427,6 +431,7 @@ class CSVService:
                             INSERT INTO thuoc (ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung, trang_thai)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
                         ''', (ma, ten, hoat_chat, ham_luong, dvt, don_gia, qty, hang, nuoc, hdsd))
+                        journal(cursor, cursor.lastrowid, qty, 0, qty, current_user, 'CSV initial stock')
                         inserted_count += 1
 
             elif module == 'services':

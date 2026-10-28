@@ -1393,7 +1393,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
             if (data.success) {
                 if (context.patient_id !== currentSelectedPatientId || context.appointment_id !== currentEmrContext?.appointment_id || context.encounter_key !== currentEmrContext?.encounter_key) return;
                 if (data.record_id) { currentActiveEncounterId = data.record_id; currentEmrContext.record_id = data.record_id; }
-                alert(`✅ THÀNH CÔNG!\n- Đã lưu phiếu khám: ${data.ma_phieu}\n- Chỉ định cận lâm sàng đã chuyển sang Khoa CLS cho Kỹ thuật viên.\n- Toa thuốc đã chuyển sang Kho Dược cho Dược sĩ.\n- Hóa đơn viện phí ban đầu đã được tự động sinh.`);
+                alert(`Đã lưu phiếu khám: ${data.ma_phieu}\nTrạng thái: ${data.trang_thai || ''}`);
                 window.location.reload();
             } else {
                 alert('❌ KHÔNG THỂ LƯU PHIÊN KHÁM:\n' + data.message);

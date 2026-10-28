@@ -821,7 +821,7 @@ class ScheduleModel:
               AND bs.chuyen_khoa_id = ?
               AND (llv.trang_thai = 1 OR llv.trang_thai IS NULL)
               AND llv.trang_thai_duyet = 'DA_DUYET'
-              AND bs.trang_thai_lam_viec = 'Đang làm việc'
+              AND bs.trang_thai_lam_viec = N'Đang làm việc'
               AND llv.so_luong_da_dang_ky < llv.so_luong_kham_toi_da
             ORDER BY llv.ca_lam ASC, bs.id ASC
         ''', (str(ngay_hen)[:10], chuyen_khoa_id))

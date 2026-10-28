@@ -1,13 +1,11 @@
-"""Only isolated fixtures: SQLite memory for real identity/policy/profile SQL.
-
-Booking/purchase business methods are mocked; SQL Server integration is separate.
-Do not discover the legacy test suite against an operational database.
+"""MSSQL integration only; requires separately confirmed disposable test database.
+No SQLite, SQL translation or mocked application lock in integration paths.
 """
 import importlib
 import json
+import os
 import re
 import smtplib
-import sqlite3
 import threading
 import unittest
 import uuid
@@ -19,26 +17,21 @@ from http.cookiejar import CookieJar
 import pyodbc
 
 
-class SQLiteTestCursor(sqlite3.Cursor):
-    def execute(self, sql, parameters=()):
-        # This single SQL Server construct is translated only in the test adapter.
-        if re.match(r'\s*SELECT\s+TOP\s+1\b', sql, flags=re.I):
-            sql = re.sub(r'\bSELECT\s+TOP\s+1\b', 'SELECT', sql, count=1, flags=re.I)
-            sql = sql.rstrip().rstrip(';') + ' LIMIT 1'
-        return super().execute(sql, parameters)
-
-
-class SQLiteTestConnection(sqlite3.Connection):
-    def cursor(self):
-        return super().cursor(factory=SQLiteTestCursor)
+from core.mssql_test_database import MssqlTestSettings, TestDatabaseNotConfigured
+from tests.mssql_support import fixture_connection, reset_fixture_tables, traced_connection
 
 
 class SecurityAccessTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        try:
+            cls.mssql_settings = MssqlTestSettings.from_environment()
+        except TestDatabaseNotConfigured as exc:
+            raise unittest.SkipTest(str(exc))
+        if os.environ.get('CLINIC_MSSQL_TEST_ALLOW_FIXTURES') != 'rebuild-only-disposable-fixtures':
+            raise unittest.SkipTest('MSSQL fixture DDL/DML has not been explicitly authorized')
         cls.start_test_thread = staticmethod(threading.Thread.start)
         cls.guards = [
-            patch.object(pyodbc, 'connect', side_effect=AssertionError('Real DB forbidden')),
             patch.object(smtplib, 'SMTP', side_effect=AssertionError('SMTP forbidden')),
             patch.object(smtplib, 'SMTP_SSL', side_effect=AssertionError('SMTP forbidden')),
             patch.object(threading.Thread, 'start', side_effect=AssertionError('Worker forbidden')),
@@ -56,49 +49,51 @@ class SecurityAccessTests(unittest.TestCase):
     def setUp(self):
         for mock in self.io_mocks:
             mock.reset_mock()
-        self.uri = 'file:security_' + uuid.uuid4().hex + '?mode=memory&cache=shared'
-        self.keeper = sqlite3.connect(self.uri, uri=True)
-        self.keeper.row_factory = sqlite3.Row
+        self.keeper = fixture_connection(self.mssql_settings)
         self.addCleanup(self.keeper.close)
-        self.assertTrue(all(row[2] == '' for row in self.keeper.execute('PRAGMA database_list')))
+        reset_fixture_tables(self.keeper)
         self.keeper.executescript('''
-            CREATE TABLE vai_tro(id INTEGER PRIMARY KEY, ma_vai_tro TEXT, ten_vai_tro TEXT);
-            CREATE TABLE tai_khoan(id INTEGER PRIMARY KEY, username TEXT, password TEXT,
-                sdt TEXT, email TEXT, vai_tro_id INTEGER, trang_thai INTEGER DEFAULT 1,
-                da_hoan_thien_ho_so INTEGER DEFAULT 1, yeu_cau_doi_mat_khau INTEGER DEFAULT 0,
-                lan_dang_nhap_cuoi TEXT, ngay_tao TEXT);
-            CREATE TABLE benh_nhan(id INTEGER PRIMARY KEY, tai_khoan_id INTEGER,
-                ma_benh_nhan TEXT, ho_ten TEXT, ngay_sinh TEXT, gioi_tinh TEXT, sdt TEXT,
-                email TEXT, cccd TEXT, bhyt TEXT, dia_chi TEXT, nhom_mau TEXT,
-                ghi_chu_nhom_mau TEXT, di_ung TEXT, tien_su_benh TEXT,
-                nguoi_than_ho_ten TEXT, nguoi_than_sdt TEXT, nguoi_than_quan_he TEXT);
-            CREATE TABLE nhan_vien(id INTEGER PRIMARY KEY, tai_khoan_id INTEGER,
-                ho_ten TEXT, trang_thai INTEGER DEFAULT 1, chuc_vu TEXT,
-                ma_nhan_vien TEXT, sdt TEXT, email TEXT);
-            CREATE TABLE bac_si(id INTEGER PRIMARY KEY, nhan_vien_id INTEGER,
-                chuyen_khoa_id INTEGER, hoc_vi TEXT);
-            CREATE TABLE chi_so_sinh_ton(benh_nhan_id INTEGER, mach TEXT, nhiet_do TEXT,
-                huyet_ap TEXT, spo2 TEXT, nhip_tho TEXT, chieu_cao TEXT, can_nang TEXT, bmi TEXT);
-            CREATE TABLE lich_hen(id INTEGER, benh_nhan_id INTEGER, chuyen_khoa_id INTEGER);
-            CREATE TABLE phieu_kham(id INTEGER, benh_nhan_id INTEGER,
-                bac_si_id INTEGER, phong_kham_id INTEGER);
-            CREATE TABLE phong_kham(id INTEGER, chuyen_khoa_id INTEGER);
+            CREATE TABLE vai_tro(id INT PRIMARY KEY, ma_vai_tro NVARCHAR(MAX), ten_vai_tro NVARCHAR(MAX));
+            CREATE TABLE tai_khoan(id INT IDENTITY(1,1) PRIMARY KEY, username NVARCHAR(MAX), password NVARCHAR(MAX),
+                sdt NVARCHAR(MAX), email NVARCHAR(MAX), vai_tro_id INT, trang_thai INT DEFAULT 1,
+                da_hoan_thien_ho_so INT DEFAULT 1, yeu_cau_doi_mat_khau INT DEFAULT 0,
+                lan_dang_nhap_cuoi DATETIME2(0), ngay_tao DATETIME2(0));
+            CREATE TABLE benh_nhan(id INT IDENTITY(1,1) PRIMARY KEY, tai_khoan_id INT,
+                ma_benh_nhan NVARCHAR(MAX), ho_ten NVARCHAR(MAX), ngay_sinh DATE, gioi_tinh NVARCHAR(MAX), sdt NVARCHAR(MAX),
+                email NVARCHAR(MAX), cccd NVARCHAR(MAX), bhyt NVARCHAR(MAX), dia_chi NVARCHAR(MAX), nhom_mau NVARCHAR(MAX),
+                ghi_chu_nhom_mau NVARCHAR(MAX), di_ung NVARCHAR(MAX), tien_su_benh NVARCHAR(MAX),
+                nguoi_than_ho_ten NVARCHAR(MAX), nguoi_than_sdt NVARCHAR(MAX), nguoi_than_quan_he NVARCHAR(MAX));
+            CREATE TABLE nhan_vien(id INT PRIMARY KEY, tai_khoan_id INT,
+                ho_ten NVARCHAR(MAX), trang_thai INT DEFAULT 1, chuc_vu NVARCHAR(MAX),
+                ma_nhan_vien NVARCHAR(MAX), sdt NVARCHAR(MAX), email NVARCHAR(MAX));
+            CREATE TABLE bac_si(id INT PRIMARY KEY, nhan_vien_id INT,
+                chuyen_khoa_id INT, hoc_vi NVARCHAR(MAX));
+            CREATE TABLE chi_so_sinh_ton(benh_nhan_id INT, mach NVARCHAR(MAX), nhiet_do NVARCHAR(MAX),
+                huyet_ap NVARCHAR(MAX), spo2 NVARCHAR(MAX), nhip_tho NVARCHAR(MAX), chieu_cao NVARCHAR(MAX), can_nang NVARCHAR(MAX), bmi NVARCHAR(MAX));
+            CREATE TABLE lich_hen(id INT, benh_nhan_id INT, chuyen_khoa_id INT);
+            CREATE TABLE phieu_kham(id INT, benh_nhan_id INT,
+                bac_si_id INT, phong_kham_id INT);
+            CREATE TABLE phong_kham(id INT, chuyen_khoa_id INT);
         ''')
         roles = ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV', 'BENHNHAN', 'UNKNOWN']
         self.keeper.executemany('INSERT INTO vai_tro VALUES (?, ?, ?)',
                                 [(i, role, role) for i, role in enumerate(roles, 1)])
         account_roles = {1: 6, 2: 6, 3: 3, 4: 4, 5: 5, 6: 2, 7: 1,
                          8: 6, 9: 6, 10: 3, 11: 4, 12: 7, 13: 5, 14: 6}
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan ON')
         self.keeper.executemany(
             'INSERT INTO tai_khoan(id,username,vai_tro_id) VALUES (?,?,?)',
             [(key, 'fixture_' + str(key), role) for key, role in account_roles.items()])
+        self.keeper.execute('SET IDENTITY_INSERT tai_khoan OFF')
         self.keeper.execute('UPDATE tai_khoan SET trang_thai=0 WHERE id=8')
         self.keeper.execute('UPDATE tai_khoan SET password=?', (self.password_hash,))
         self.keeper.execute('UPDATE tai_khoan SET yeu_cau_doi_mat_khau=1 WHERE id=14')
+        self.keeper.execute('SET IDENTITY_INSERT benh_nhan ON')
         self.keeper.executemany(
             'INSERT INTO benh_nhan(id,tai_khoan_id,ma_benh_nhan,ho_ten) VALUES (?,?,?,?)',
             [(101, 1, 'TEST101', 'Owner'), (102, 2, 'TEST102', 'Other'),
              (108, 8, 'TEST108', 'Locked'), (114, 14, 'TEST114', 'Reset')])
+        self.keeper.execute('SET IDENTITY_INSERT benh_nhan OFF')
         self.keeper.executemany(
             'INSERT INTO nhan_vien(id,tai_khoan_id,ho_ten) VALUES (?,?,?)',
             [(303, 3, 'Doctor'), (304, 4, 'Pharmacy'), (305, 5, 'Lab'),
@@ -114,12 +109,7 @@ class SecurityAccessTests(unittest.TestCase):
         self.client = self.app.test_client()
 
     def connection(self):
-        conn = sqlite3.connect(self.uri, uri=True, factory=SQLiteTestConnection)
-        conn.row_factory = sqlite3.Row
-        # All application connections are independently verified memory-only.
-        assert all(row[2] == '' for row in conn.execute('PRAGMA database_list'))
-        conn.set_trace_callback(self.statements.append)
-        return self.db_module.UnifiedConnection(conn)
+        return traced_connection(self.mssql_settings,self.statements)
 
     def login(self, account_id=1, **stale):
         with self.client.session_transaction() as session:

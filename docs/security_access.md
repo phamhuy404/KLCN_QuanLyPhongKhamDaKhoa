@@ -1,5 +1,9 @@
 # Xác thực và quyền sở hữu hồ sơ
 
+> Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
+> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+
+
 ## Thay đổi đã áp dụng
 
 - `login_required` và `roles_required` cùng đọc lại định danh bằng

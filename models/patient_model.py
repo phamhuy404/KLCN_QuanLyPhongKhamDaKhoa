@@ -163,9 +163,9 @@ class PatientModel:
                     pk.id, pk.lich_hen_id, pk.bac_si_id, pk.phong_kham_id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
                     pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
                     pk.hinh_anh_kham, pk.trang_thai,
-                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
-                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                    COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, N'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, N'Phòng Khám Nội 1') AS phong
                 FROM phieu_kham pk
                 LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
                 LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
@@ -181,9 +181,9 @@ class PatientModel:
                     pk.id, pk.lich_hen_id, pk.bac_si_id, pk.phong_kham_id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
                     pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
                     NULL AS hinh_anh_kham, pk.trang_thai,
-                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
-                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                    COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, N'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, N'Phòng Khám Nội 1') AS phong
                 FROM phieu_kham pk
                 LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
                 LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
