@@ -214,7 +214,7 @@
                                 <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa danh mục dị ứng
                             </button>
                         </div>
-                        <input type="hidden" id="profile-allergy" name="di_ung" value="{{ patient.di_ung or 'Không có' }}">
+                        <input type="hidden" id="profile-allergy" name="di_ung" value="{{ patient.di_ung or '' }}">
                         <div id="allergy-display-box" class="flex flex-wrap items-center gap-1.5 min-h-[50px] p-3 bg-slate-50 border border-slate-200 rounded-xl">
                             <!-- Cac the di ung se duoc render boi JS -->
                         </div>
@@ -232,7 +232,7 @@
                                 <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa bệnh lý nền
                             </button>
                         </div>
-                        <input type="hidden" id="profile-history" name="tien_su_benh" value="{{ patient.tien_su_benh or 'Không có' }}">
+                        <input type="hidden" id="profile-history" name="tien_su_benh" value="{{ patient.tien_su_benh or '' }}">
                         <div id="history-display-box" class="flex flex-wrap items-center gap-1.5 min-h-[50px] p-3 bg-slate-50 border border-slate-200 rounded-xl">
                             <!-- Cac the benh ly nen se duoc render boi JS -->
                         </div>
@@ -407,7 +407,7 @@
             container.innerHTML = '';
 
             if (items.length === 0) {
-                const label = type === 'allergy' ? 'Chưa ghi nhận tiền sử dị ứng (Không có)' : 'Chưa ghi nhận bệnh lý nền (Không có)';
+                const label = type === 'allergy' ? 'Chưa có dữ liệu về dị ứng' : 'Chưa có dữ liệu về bệnh lý nền';
                 container.innerHTML = `
                     <div class="flex items-center gap-2 text-xs text-slate-500 italic py-1">
                         <i class="fa-solid fa-circle-check text-emerald-500"></i>
@@ -441,7 +441,7 @@
             let items = getSelectedFromInput(type);
             items.splice(index, 1);
             const inputId = type === 'allergy' ? 'profile-allergy' : 'profile-history';
-            document.getElementById(inputId).value = items.length > 0 ? items.join(', ') : 'Không có';
+            document.getElementById(inputId).value = items.length > 0 ? items.join(', ') : '';
             renderDisplayBadges(type);
         }
 

@@ -1,23 +1,37 @@
 from flask import Flask, session, url_for as flask_url_for, redirect
 import config
-from core.database import init_db
+import secrets
+
 from controllers.home_controller import home_bp
 from controllers.auth_controller import auth_bp
 from controllers.patient_controller import patient_bp
 from controllers.admin_controller import admin_bp
 from controllers.api_controller import api_bp
+from controllers.mobile_auth_controller import mobile_auth_bp
 
-def create_app():
+_DEVELOPMENT_SECRET_KEY = secrets.token_hex(32)
+
+def create_app(test_config=None):
     """Khởi tạo ứng dụng Flask theo mô hình kiến trúc MVC."""
     app = Flask(__name__)
     app.config.from_object(config)
-
-    # 1. Khởi tạo và kiểm tra kết nối cơ sở dữ liệu
-    init_db()
-
-    # 1.1 Khởi động tiến trình chạy ngầm quét nhắc lịch khám và tái khám
-    from core.notification_service import NotificationService
-    NotificationService.start_background_scheduler(interval_hours=2)
+    if test_config is not None:
+        app.config.update(test_config)
+    if not app.config.get('SECRET_KEY'):
+        if not app.debug and not app.testing:
+            raise RuntimeError('SECRET_KEY is required outside debug/test mode')
+        app.config['SECRET_KEY'] = _DEVELOPMENT_SECRET_KEY
+    elif app.config['SECRET_KEY'] == 'h2t_healthcare_clinic_secret_key_2026':
+        raise RuntimeError('The former public default SECRET_KEY must be replaced')
+    if not app.testing and (not isinstance(app.secret_key, (str, bytes)) or len(app.secret_key) < 32):
+        raise RuntimeError('SECRET_KEY must contain at least 32 characters')
+    # Testing must never fall back to the configured production connection.
+    if app.testing:
+        app.config['DATABASE_ACCESS_ENABLED'] = False
+        app.config['NOTIFICATIONS_ENABLED'] = False
+    else:
+        app.config.setdefault('DATABASE_ACCESS_ENABLED', True)
+        app.config.setdefault('NOTIFICATIONS_ENABLED', True)
 
     # 2. Đăng ký các Controller (Blueprints)
     app.register_blueprint(home_bp)
@@ -25,6 +39,13 @@ def create_app():
     app.register_blueprint(patient_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(mobile_auth_bp)
+    from core.medical_media import register_medical_media
+    register_medical_media(app)
+    from core.clinical_data import display_clinical
+    app.jinja_env.filters['clinical'] = display_clinical
+    if app.config.get('MAX_CONTENT_LENGTH') is None:
+        app.config['MAX_CONTENT_LENGTH'] = 96 * 1024 * 1024
 
     # 3. Bảng ánh xạ tương thích ngược cho url_for trong toàn bộ templates
     alias_map = {
@@ -120,7 +141,27 @@ def create_app():
 
     return app
 
+def create_test_app(test_config=None):
+    """CLI-friendly factory with real database access and notifications disabled."""
+    settings = dict(test_config or {})
+    settings['TESTING'] = True
+    return create_app(settings)
+
+
 app = create_app()
 
+def start_runtime_services(app):
+    """Explicit startup hook; never run schema updates or seed data here."""
+    if app.testing or not app.config.get('NOTIFICATIONS_ENABLED', True):
+        return
+    if app.extensions.get('reminder_scheduler_started'):
+        return
+    from core.notification_service import NotificationService
+    with app.app_context():
+        worker = NotificationService.start_background_scheduler(interval_hours=2)
+    if worker is not None:
+        app.extensions['reminder_scheduler_started'] = True
+
 if __name__ == '__main__':
+    start_runtime_services(app)
     app.run(debug=True, port=5000)

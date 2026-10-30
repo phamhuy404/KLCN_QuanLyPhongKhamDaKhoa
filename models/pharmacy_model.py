@@ -1,9 +1,51 @@
 from datetime import datetime
 from core.database import get_db
 from core.audit import AuditLogger
+from core.pharmacy_safety import guarded, journal, validate_items
+from core.scheduling import serialized, integer, CalendarError
+from decimal import Decimal
+from uuid import UUID
 
 class PharmacyModel:
     """Model quản lý kho dược, danh mục thuốc và nghiệp vụ xuất cấp thuốc."""
+
+    @staticmethod
+    @serialized
+    def receive_stock(medicine_id, quantity, reason, receipt_id, audit_user=None):
+        """Explicit inventory receipt; UUID makes retries idempotent."""
+        drug, qty = integer(medicine_id), integer(quantity)
+        if drug <= 0 or qty <= 0 or qty > 2147483647 or not str(reason or '').strip():
+            raise CalendarError('Thuốc, số lượng nhập dương và lý do là bắt buộc.')
+        receipt = str(UUID(str(receipt_id)))
+        cursor = get_db().cursor()
+        cursor.execute("SELECT row_id, after_json FROM audit_log WHERE table_name='thuoc' AND action='STOCK_IN' AND JSON_VALUE(after_json, '$.receipt')=?", (receipt,))
+        previous = cursor.fetchone()
+        if previous:
+            import json
+            data = json.loads(previous['after_json'])
+            if previous['row_id'] != drug or data['delta'] != qty:
+                raise CalendarError('Mã nhập kho đã dùng cho nội dung khác.')
+            return True, 'Phiếu nhập này đã được xử lý; không cộng kho lại.'
+        cursor.execute('''UPDATE thuoc SET so_luong_ton=so_luong_ton+?
+            OUTPUT deleted.so_luong_ton AS old_stock, inserted.so_luong_ton AS new_stock
+            WHERE id=? AND trang_thai=1 AND so_luong_ton>=0 AND so_luong_ton<=?''',
+            (qty, drug, 2147483647-qty))
+        movement = cursor.fetchone()
+        if not movement:
+            raise CalendarError('Thuốc không hoạt động hoặc tồn kho không hợp lệ.')
+        journal(cursor, drug, qty, movement['old_stock'], movement['new_stock'],
+                audit_user, str(reason).strip(), receipt)
+        return True, 'Đã nhập kho và ghi lịch sử.'
+
+    @staticmethod
+    def stock_history(medicine_id):
+        conn = get_db()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT TOP 100 * FROM audit_log WHERE table_name='thuoc' AND row_id=? AND action IN ('STOCK_IN','STOCK_OUT') ORDER BY id DESC", (integer(medicine_id),))
+            return [dict(row) for row in cursor.fetchall()]
+        finally:
+            conn.close()
 
     @staticmethod
     def get_all_medicines():
@@ -72,7 +114,7 @@ class PharmacyModel:
         cursor.execute('''
             SELECT ct.*, t.ma_thuoc, t.ten_thuoc, t.don_vi_tinh, t.don_gia, t.so_luong_ton, t.trang_thai AS thuoc_active
             FROM chi_tiet_don_thuoc ct
-            JOIN thuoc t ON ct.thuoc_id = t.id
+            LEFT JOIN thuoc t ON ct.thuoc_id = t.id
             WHERE ct.don_thuoc_id = ?
         ''', (result['id'],))
         result['items'] = [dict(r) for r in cursor.fetchall()]
@@ -99,7 +141,7 @@ class PharmacyModel:
             cursor.execute('''
                 SELECT ct.*, t.ten_thuoc, t.don_vi_tinh, t.don_gia
                 FROM chi_tiet_don_thuoc ct
-                JOIN thuoc t ON ct.thuoc_id = t.id
+                LEFT JOIN thuoc t ON ct.thuoc_id = t.id
                 WHERE ct.don_thuoc_id = ?
             ''', (r['id'],))
             r['items'] = [dict(it) for it in cursor.fetchall()]
@@ -108,8 +150,12 @@ class PharmacyModel:
         return rows
 
     @staticmethod
+    @serialized
     def add_medicine(ten_thuoc, hoat_chat, don_vi_tinh, so_luong_ton, don_gia, ham_luong='', hang_sx='Việt Nam', audit_user=None):
         """Thêm mới dược phẩm vào kho dược với kiểm tra ràng buộc chặt chẽ."""
+        so_luong_ton = integer(so_luong_ton)
+        if so_luong_ton < 0 or so_luong_ton > 2147483647 or not Decimal(str(don_gia)).is_finite() or Decimal(str(don_gia)) < 0:
+            raise CalendarError('So luong hoac don gia khong hop le.')
         from core.validators import validate_medicine_data
         ok_med, err_med = validate_medicine_data({
             'ten_thuoc': ten_thuoc,
@@ -132,8 +178,10 @@ class PharmacyModel:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
             ''', (ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_sx))
 
-            conn.commit()
             t_id = cursor.lastrowid
+            if so_luong_ton:
+                journal(cursor, t_id, so_luong_ton, 0, so_luong_ton, audit_user, 'Initial stock')
+            conn.commit()
             conn.close()
 
             AuditLogger.log(
@@ -153,6 +201,7 @@ class PharmacyModel:
             return False, str(e)
 
     @staticmethod
+    @guarded
     def update_prescription(prescription_id, medicines, advice=None, reason=None, audit_user=None):
         """Bác sĩ cập nhật đơn thuốc chưa cấp phát (kiểm tra thuốc hoạt động, tồn kho, liều dùng)."""
         dt = PharmacyModel.get_prescription_detail(prescription_id)
@@ -233,6 +282,7 @@ class PharmacyModel:
             return False, f'Lỗi cập nhật đơn thuốc: {str(e)}'
 
     @staticmethod
+    @guarded
     def cancel_or_adjust_prescription(prescription_id, reason, restore_stock=True, audit_user=None):
         """Hủy hoặc điều chỉnh đơn thuốc có lưu vết và xử lý tồn kho an toàn."""
         dt = PharmacyModel.get_prescription_detail(prescription_id)
@@ -252,15 +302,6 @@ class PharmacyModel:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             user_name = audit_user.get('ho_ten') if audit_user else 'Bác sĩ'
 
-            # Nếu đơn đã cấp thuốc và yêu cầu hoàn kho
-            if dt['trang_thai'] in ['Đã cấp thuốc', 'Đã cấp phát', 'Đã nhận thuốc'] and restore_stock:
-                for item in dt.get('items', []):
-                    cursor.execute('''
-                        UPDATE thuoc
-                        SET so_luong_ton = so_luong_ton + ?
-                        WHERE id = ?
-                    ''', (item['so_luong'], item['thuoc_id']))
-
             cursor.execute('''
                 UPDATE don_thuoc
                 SET trang_thai = ?, ly_do_huy = ?, nguoi_huy = ?, thoi_gian_huy = ?
@@ -278,7 +319,7 @@ class PharmacyModel:
                 performed_by_name=user_name,
                 reason=reason,
                 before_data={'trang_thai': dt['trang_thai']},
-                after_data={'trang_thai': 'Đã hủy', 'restore_stock': restore_stock}
+                after_data={'trang_thai': 'Đã hủy', 'restore_stock': False}
             )
 
             return True, f"Đã hủy đơn thuốc {dt['ma_don_thuoc']} và lưu vết kiểm toán thành công!"
@@ -289,6 +330,7 @@ class PharmacyModel:
             return False, f"Lỗi hủy đơn thuốc: {str(e)}"
 
     @staticmethod
+    @guarded
     def dispense_prescription(prescription_id_or_code, audit_user=None):
         """Dược sĩ / Quản lý kho cấp phát thuốc: Kiểm tra hóa đơn đã thanh toán, trừ số lượng tồn kho và cập nhật Đã nhận thuốc."""
         dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
@@ -337,11 +379,15 @@ class PharmacyModel:
 
             # 3. Trừ số lượng tồn kho từng loại thuốc tại kho viện
             for it in items:
-                cursor.execute('''
-                    UPDATE thuoc 
-                    SET so_luong_ton = so_luong_ton - ? 
-                    WHERE id = ?
-                ''', (it['so_luong'], it['thuoc_id']))
+                cursor.execute('''UPDATE thuoc SET so_luong_ton=so_luong_ton-?
+                    OUTPUT deleted.so_luong_ton AS old_stock, inserted.so_luong_ton AS new_stock
+                    WHERE id=? AND trang_thai=1 AND so_luong_ton>=?''',
+                    (it['so_luong'], it['thuoc_id'], it['so_luong']))
+                movement = cursor.fetchone()
+                if not movement:
+                    raise CalendarError('Khong du ton kho; giao dich bi huy.')
+                journal(cursor, it['thuoc_id'], -it['so_luong'], movement['old_stock'],
+                        movement['new_stock'], audit_user, 'Dispense', str(dt_id))
 
             # 4. Cập nhật trạng thái đơn thuốc thành 'Đã nhận thuốc'
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -395,6 +441,7 @@ class PharmacyModel:
 
 
     @staticmethod
+    @guarded
     def choose_medicine_purchase_option(prescription_id_or_code, option='Mua tại bệnh viện', audit_user=None):
         """Xử lý lựa chọn mua thuốc của bệnh nhân:
         - 'Tự mua ngoài': Chuyển trạng thái 'Mua ngoài', tự động hủy hóa đơn thuốc chưa thanh toán nếu có. Chặn đổi nếu đơn đã được duyệt.
@@ -474,7 +521,7 @@ class PharmacyModel:
                 existing_hd = cursor.fetchone()
 
                 if not existing_hd:
-                    tong_tien_thuoc = sum(float(it.get('don_gia', 0)) * int(it.get('so_luong', 1)) for it in items)
+                    tong_tien_thuoc = sum(Decimal(str(it['don_gia'])) * int(it['so_luong']) for it in items)
 
                     cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM hoa_don')
                     hd_next = cursor.fetchone()['next_id']
@@ -488,11 +535,11 @@ class PharmacyModel:
 
                     # Lưu chi tiết hóa đơn: ghi nhận các thuốc trong đơn
                     for it in items:
-                        tt = float(it.get('don_gia', 0)) * int(it.get('so_luong', 1))
+                        tt = Decimal(str(it['don_gia'])) * int(it['so_luong'])
                         cursor.execute('''
                             INSERT INTO chi_tiet_hoa_don (hoa_don_id, loai_khoan_thu, ten_khoan_thu, tham_chieu_id, so_luong, don_gia, thanh_tien)
                             VALUES (?, ?, ?, ?, ?, ?, ?)
-                        ''', (hoa_don_id, 'Thuốc', it['ten_thuoc'], it['thuoc_id'], it['so_luong'], 0.0, tt))
+                        ''', (hoa_don_id, 'Thuốc', it['ten_thuoc'], it['thuoc_id'], it['so_luong'], it['don_gia'], tt))
 
                 # 3. Gửi thông báo cho bệnh nhân
                 cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
@@ -536,6 +583,7 @@ class PharmacyModel:
             return False, f"Lỗi xử lý tùy chọn mua thuốc: {str(e)}"
 
     @staticmethod
+    @guarded
     def approve_prescription(prescription_id_or_code, reviewer_user=None):
         """Tiếp tân hoặc Admin duyệt đơn thuốc mua tại bệnh viện: Kiểm tra tồn kho, đổi trạng thái yêu cầu thanh toán (CHƯA trừ kho)."""
         dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)
@@ -620,6 +668,7 @@ class PharmacyModel:
             return False, f"Lỗi phê duyệt đơn thuốc: {str(e)}"
 
     @staticmethod
+    @guarded
     def reject_prescription(prescription_id_or_code, reason=None, reviewer_user=None):
         """Tiếp tân hoặc Admin từ chối duyệt đơn thuốc tại bệnh viện (ví dụ hết thuốc) và hủy hóa đơn thuốc chưa thanh toán."""
         dt = PharmacyModel.get_prescription_detail(prescription_id_or_code)

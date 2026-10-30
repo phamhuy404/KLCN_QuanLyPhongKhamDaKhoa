@@ -266,8 +266,35 @@
     {{ prescriptions | tojson | safe }}
 </script>
 <script>
+let pendingStockReceipt = null;
+async function receiveExistingStock(id) {
+    if (!pendingStockReceipt || pendingStockReceipt.medicine_id !== id) {
+        const quantity = prompt('So luong nhap (so nguyen duong):');
+        if (quantity === null) return;
+        const reason = prompt('Ly do / so chung tu nhap kho:');
+        if (!reason || !/^[1-9][0-9]*$/.test(quantity)) return alert('Du lieu nhap khong hop le.');
+        pendingStockReceipt = {medicine_id:id, quantity, reason, receipt_id:crypto.randomUUID()};
+    }
+    try {
+        const response = await fetch('/api/pharmacy/receive-stock', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(pendingStockReceipt)});
+        const data = await response.json();
+        alert(data.message);
+        if (data.success) { pendingStockReceipt = null; location.reload(); }
+        else pendingStockReceipt = null;
+    } catch (error) { alert('Chua xac dinh ket qua. Bam nhap lai de gui lai cung ma phieu.'); }
+}
+async function showStockHistory(id) {
+    try {
+        const response = await fetch('/api/pharmacy/stock-history/' + id);
+        const data = await response.json();
+        if (!response.ok || !data.success) return alert(data.message || 'Khong doc duoc lich su.');
+        alert(data.items.map(row => row.performed_at + ' | ' + row.action + ' | ' + row.after_json + ' | ' + (row.reason || '')).join('\n') || 'Chua co lich su ghi nhan.');
+    } catch (error) { alert('Khong doc duoc lich su.'); }
+}
+
     let rawMedicines = JSON.parse(document.getElementById('pharmacy-medicines-data').textContent || '[]');
     var medicines = rawMedicines.map(m => ({
+        id: m.id,
         ma: m.ma_thuoc || m.ma,
         ten: m.ten_thuoc || m.ten,
         hoat_chat: m.hoat_chat || 'Hoạt chất chuẩn',
@@ -314,7 +341,7 @@
                 <td class="py-3 px-4 font-mono font-bold ${m.ton < 25 ? 'text-rose-600' : 'text-slate-900'}">${m.ton}</td>
                 <td class="py-3 px-4 font-mono text-slate-700">${m.gia.toLocaleString()} đ</td>
                 <td class="py-3 px-4 text-slate-500 font-mono">${m.hsd}</td>
-                <td class="py-3 px-4 text-center">${statusBadge}</td>
+                <td class="py-3 px-4 text-center">${statusBadge}<button type="button" class="block text-medical-700 text-xs" onclick="receiveExistingStock(${m.id})">Nh&#7853;p t&#7891;n</button><button type="button" class="block text-medical-700 text-xs" onclick="showStockHistory(${m.id})">L&#7883;ch s&#7917; kho</button></td>
             `;
             tbody.appendChild(tr);
         });

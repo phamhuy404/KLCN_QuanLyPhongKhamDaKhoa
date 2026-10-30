@@ -47,7 +47,7 @@
             </div>
             <div>
                 <span class="text-xs text-slate-400">Dị ứng thuốc</span>
-                <h4 class="font-bold text-slate-800 text-sm">{{ patient.di_ung if patient else 'Không có' }}</h4>
+                <h4 class="font-bold text-slate-800 text-sm">{{ patient.di_ung|clinical if patient else 'Chưa có dữ liệu' }}</h4>
             </div>
         </div>
 
@@ -145,13 +145,13 @@
                 <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 rounded-xl bg-medical-500 text-white flex flex-col items-center justify-center font-bold text-center shrink-0 shadow-md shadow-medical-500/20">
-                            <span class="text-xs uppercase">Th {{ enc.thoi_gian_kham[5:7] if enc.thoi_gian_kham else '09' }}</span>
-                            <span class="text-base leading-none">{{ enc.thoi_gian_kham[8:10] if enc.thoi_gian_kham else '25' }}</span>
+                            <span class="text-xs uppercase">Th {{ enc.thoi_gian_kham[5:7] if enc.thoi_gian_kham else '--' }}</span>
+                            <span class="text-base leading-none">{{ enc.thoi_gian_kham[8:10] if enc.thoi_gian_kham else '--' }}</span>
                         </div>
                         <div>
                             <div class="flex items-center gap-2.5 flex-wrap">
                                 <h3 class="font-bold text-base text-slate-900">Đợt khám: {{ enc.chan_doan_so_bo or enc.ly_do_kham }}</h3>
-                                <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Đã hoàn thành</span>
+                                <span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ enc.trang_thai|clinical }}</span>
                                 <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Mã đợt: {{ enc.ma_phieu }}</span>
                             </div>
                             <p class="text-xs text-slate-500 mt-1">
@@ -180,7 +180,7 @@
                         </div>
                         <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-200 space-y-1.5">
                             <span class="text-xs font-bold text-medical-800 uppercase tracking-wider">Chẩn đoán xác định (ICD-10)</span>
-                            <p class="text-xs font-bold text-slate-900 leading-relaxed">{{ enc.chan_doan_icd or enc.chan_doan_so_bo or 'Theo dõi sức khỏe' }}</p>
+                            <p class="text-xs font-bold text-slate-900 leading-relaxed">{{ enc.chan_doan_icd or enc.chan_doan_so_bo or 'Chưa có dữ liệu' }}</p>
                         </div>
                     </div>
 

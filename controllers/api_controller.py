@@ -1,22 +1,39 @@
 from flask import Blueprint, request, jsonify, session
-from core.security import login_required, roles_required
+from core.security import (login_required, roles_required, require_own_patient,
+                           require_patient_access, positive_id, deny, filter_patient_records,
+                           patient_scope_ids)
 from models.user_model import UserModel
 from models.patient_model import PatientModel
 from models.appointment_model import AppointmentModel
 from models.medical_record_model import MedicalRecordModel
 from models.pharmacy_model import PharmacyModel
 from models.billing_model import BillingModel
+from core.security import current_patient_id
 
 from core.database import get_db
+from core.clinical_data import result_is_published, clinical_value
+from core.emr_workflow import atomic_emr_request
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 @api_bp.route('/appointment/book', methods=['POST'])
+@roles_required('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI')
 def book_appointment():
     """API đặt lịch hẹn khám bệnh."""
     data = request.get_json() or {}
     user = session.get('user')
-    patient_id = data.get('patient_id') or (user.get('patient_id') or user.get('benh_nhan_id') if user else None) or 1
+    if user['vai_tro'] == 'BENHNHAN':
+        patient_id = require_own_patient(data.get('patient_id'))
+        require_own_patient(data.get('benh_nhan_id'))
+    else:
+        patient_id = require_patient_access(data.get('patient_id') or data.get('benh_nhan_id'))
+    if user['vai_tro'] == 'BACSI':
+        if data.get('bac_si_id') is not None and positive_id(data['bac_si_id']) != user['bac_si_id']:
+            deny()
+        if data.get('chuyen_khoa_id') is not None and positive_id(data['chuyen_khoa_id']) != user['chuyen_khoa_id']:
+            deny()
+        data['bac_si_id'] = user['bac_si_id']
+        data['chuyen_khoa_id'] = user['chuyen_khoa_id']
 
     chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
     bac_si_id = data.get('bac_si_id')
@@ -140,6 +157,14 @@ def reschedule_appointment():
     ly_do = data.get('ly_do') or data.get('reason')
     new_doc_id = data.get('bac_si_id') or data.get('doctor_id')
     user = session.get('user')
+    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI'):
+        deny()
+    appointment = AppointmentModel.get_by_id(appointment_id) if appointment_id else None
+    if appointment_id and not appointment:
+        deny(404, 'Appointment not found')
+    if appointment:
+        require_patient_access(appointment.get('benh_nhan_id'))
+
 
     if not appointment_id or not new_date or not new_time:
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID lịch hẹn, ngày hẹn mới và giờ hẹn mới!'}), 400
@@ -157,6 +182,14 @@ def cancel_appointment():
     appointment_id = data.get('appointment_id') or data.get('id') or data.get('ma_lich_hen')
     reason = data.get('reason') or data.get('ly_do') or data.get('ly_do_huy')
     user = session.get('user')
+    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI'):
+        deny()
+    appointment = AppointmentModel.get_by_id(appointment_id) if appointment_id else None
+    if appointment_id and not appointment:
+        deny(404, 'Appointment not found')
+    if appointment:
+        require_patient_access(appointment.get('benh_nhan_id'))
+
 
     if not appointment_id:
         return jsonify({'success': False, 'message': 'Thiếu ID lịch hẹn cần hủy!'}), 400
@@ -176,9 +209,8 @@ def get_appointment_detail(appointment_id):
         return jsonify({'success': False, 'message': 'Không tìm thấy lịch hẹn!'}), 404
 
     # Bệnh nhân chỉ xem được lịch của chính mình
-    if user.get('vai_tro') == 'BENHNHAN' and appt['benh_nhan_id'] != user.get('patient_id'):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền xem lịch hẹn này!'}), 403
 
+    require_patient_access(appt.get('benh_nhan_id'))
     return jsonify({'success': True, 'appointment': appt})
 
 @api_bp.route('/admin/reset-password', methods=['POST'])
@@ -217,19 +249,8 @@ def update_patient_profile():
     """API bệnh nhân cập nhật thông tin cá nhân và hồ sơ sức khỏe."""
     data = request.get_json() or {}
     user = session.get('user', {})
-    patient_id = user.get('patient_id') or user.get('benh_nhan_id')
-    if not patient_id and user.get('id'):
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id FROM benh_nhan WHERE tai_khoan_id = ?", (user['id'],))
-        row = cursor.fetchone()
-        conn.close()
-        if row:
-            patient_id = row['id']
-            if 'user' in session:
-                session['user']['patient_id'] = patient_id
-                session.modified = True
-    patient_id = patient_id or 1
+    patient_id = require_own_patient(data.get('patient_id'))
+    require_own_patient(data.get('benh_nhan_id'))
 
     success, msg = PatientModel.update_profile(patient_id, data)
     if success:
@@ -252,6 +273,7 @@ def update_patient_admin():
     if not patient_id:
         return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
 
+    patient_id = require_patient_access(patient_id)
     success, msg = PatientModel.update_profile(patient_id, data)
     if success:
         return jsonify({'success': True, 'message': 'Cập nhật thành công!'})
@@ -272,22 +294,27 @@ def create_patient():
 
 @api_bp.route('/emr/save', methods=['POST'])
 @roles_required('ADMIN', 'BACSI')
+@atomic_emr_request
 def save_emr_examination():
     """API bác sĩ lưu hồ sơ khám bệnh, ra chỉ định, tải ảnh lâm sàng và kê đơn thuốc vào CSDL."""
     import json
     from core.image_service import process_image_input
+    payload = (request.get_json() or {}) if request.is_json else request.form
+    image_patient_id = require_patient_access(payload.get('patient_id') or payload.get('benh_nhan_id'))
+    if clinical_value(payload.get('diagnosis') or payload.get('chan_doan_xac_dinh') or payload.get('chan_doan_so_bo')) is None:
+        return jsonify(success=False, message='Vui lòng ghi nhận chẩn đoán trước khi lưu hồ sơ!'), 400
 
     if request.is_json:
         data = request.get_json() or {}
         patient_id = data.get('patient_id') or data.get('benh_nhan_id')
-        doctor_id = data.get('doctor_id') or data.get('bac_si_id') or session.get('user', {}).get('bac_si_id') or 1
-        room_id = data.get('room_id') or data.get('phong_kham_id') or 1
+        doctor_id = data.get('doctor_id') or data.get('bac_si_id') or session.get('user', {}).get('bac_si_id')
+        room_id = data.get('room_id') or data.get('phong_kham_id')
         reason = data.get('reason') or data.get('ly_do_kham') or 'Khám theo yêu cầu'
-        symptoms = data.get('symptoms') or data.get('trieu_chung') or 'Triệu chứng bình thường'
-        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo') or 'Khám tổng quát'
-        icd = data.get('icd') or data.get('chan_doan_xac_dinh') or 'Z00.0 - Khám sức khỏe tổng quát'
-        treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
+        symptoms = data.get('symptoms') or data.get('trieu_chung')
+        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo')
+        icd = data.get('icd') or data.get('chan_doan_xac_dinh')
+        treatment = data.get('treatment')
+        advice = data.get('advice') or data.get('loi_dan')
         reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
         reexam_time = data.get('reexam_time') or data.get('gio_tai_kham') or '08:30'
         lab_service_ids = data.get('lab_services') or data.get('dich_vu_chi_dinh') or []
@@ -297,39 +324,43 @@ def save_emr_examination():
         if isinstance(raw_images, list):
             for img in raw_images[:10]:
                 if img:
-                    p, err = process_image_input(img, 'kham_benh')
+                    p, err = process_image_input(img, 'kham_benh', patient_id=image_patient_id)
+                    if err:
+                        return jsonify({'success': False, 'message': err}), 400
                     if p:
                         saved_images.append(p)
     else:
         patient_id = request.form.get('patient_id', type=int)
-        doctor_id = request.form.get('doctor_id', type=int) or session.get('user', {}).get('bac_si_id') or 1
-        room_id = request.form.get('room_id', 1, type=int)
+        doctor_id = request.form.get('doctor_id', type=int) or session.get('user', {}).get('bac_si_id')
+        room_id = request.form.get('room_id', type=int)
         reason = request.form.get('reason', 'Khám theo yêu cầu')
-        symptoms = request.form.get('symptoms', 'Triệu chứng bình thường')
-        diagnosis = request.form.get('diagnosis', 'Khám tổng quát')
-        icd = request.form.get('icd', 'Z00.0 - Khám sức khỏe tổng quát')
-        treatment = request.form.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = request.form.get('advice', 'Ăn uống nghỉ ngơi điều độ')
+        symptoms = request.form.get('symptoms')
+        diagnosis = request.form.get('diagnosis')
+        icd = request.form.get('icd')
+        treatment = request.form.get('treatment')
+        advice = request.form.get('advice')
         reexam_date = request.form.get('reexam_date')
         reexam_time = request.form.get('reexam_time') or request.form.get('gio_tai_kham') or '08:30'
         
         lab_raw = request.form.get('lab_services')
         try:
             lab_service_ids = json.loads(lab_raw) if lab_raw else []
-        except Exception:
-            lab_service_ids = []
+        except (ValueError,TypeError):
+            return jsonify(success=False,message='Invalid lab services JSON'),400
 
         med_raw = request.form.get('medicines')
         try:
             medicines = json.loads(med_raw) if med_raw else []
-        except Exception:
-            medicines = []
+        except (ValueError,TypeError):
+            return jsonify(success=False,message='Invalid medicines JSON'),400
 
         saved_images = []
         uploaded_files = request.files.getlist('images') or request.files.getlist('image_files')
         for f in uploaded_files[:10]:
             if f and getattr(f, 'filename', None):
-                p, err = process_image_input(f, 'kham_benh')
+                p, err = process_image_input(f, 'kham_benh', patient_id=image_patient_id)
+                if err:
+                    return jsonify({'success': False, 'message': err}), 400
                 if p:
                     saved_images.append(p)
 
@@ -351,97 +382,69 @@ def save_emr_examination():
         lab_service_ids=lab_service_ids,
         medicines=medicines,
         images=saved_images,
-        audit_user=session.get('user')
+        audit_user=session.get('user'),
+        appointment_id=payload.get('lich_hen_id') or payload.get('appointment_id'),
+        record_id=payload.get('record_id'),walk_in=payload.get('walk_in') is True or payload.get('walk_in') == 'true',
+        encounter_key=payload.get('encounter_key')
     )
     if success:
-        return jsonify({'success': True, 'ma_phieu': result, 'images': saved_images, 'message': 'Lưu phiếu khám và chuyển toa thành công!'})
+        saved_record = MedicalRecordModel.get_examination_by_id(result)
+        if not saved_record:
+            return jsonify(success=False, message='Không đọc được phiếu khám vừa lưu!'), 400
+        return jsonify(success=True, ma_phieu=result, record_id=saved_record['id'],
+                       trang_thai=saved_record['trang_thai'], images=saved_images,
+                       message='Đã lưu phiếu khám.')
     return jsonify({'success': False, 'message': result}), 400
 
 @api_bp.route('/emr/save-step', methods=['POST'])
 @roles_required('ADMIN', 'BACSI')
+@atomic_emr_request
 def save_emr_step():
     """API lưu tạm tiến trình từng bước khám EMR để đồng bộ thời gian thực sang phía Bệnh nhân."""
     data = request.get_json() or {}
-    patient_id = data.get('patient_id')
-    doctor_id = data.get('doctor_id') or session.get('user', {}).get('bac_si_id') or 1
-    symptoms = data.get('symptoms', 'Triệu chứng bình thường')
-    icd = data.get('icd', 'Z00.0 - Khám sức khỏe tổng quát')
-    di_ung = data.get('di_ung')
-    tien_su_benh = data.get('tien_su_benh')
-    step = data.get('step', 2)
-
-    if not patient_id:
-        return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
-
-    conn = get_db()
-    cursor = conn.cursor()
-
-    try:
-        # Cập nhật tiền sử dị ứng và bệnh vào hồ sơ bệnh nhân nếu có thay đổi
-        if di_ung is not None or tien_su_benh is not None:
-            cursor.execute('''
-                UPDATE benh_nhan
-                SET di_ung = COALESCE(?, di_ung),
-                    tien_su_benh = COALESCE(?, tien_su_benh)
-                WHERE id = ?
-            ''', (di_ung, tien_su_benh, patient_id))
-
-        status_map = {
-            1: 'Đang khám',
-            2: 'Chờ kết quả CLS',
-            3: 'Chờ kết quả CLS',
-            4: 'Đang kê đơn'
-        }
-        target_status = status_map.get(step, 'Đang khám')
-
-        # Kiểm tra phiếu khám đang mở của bệnh nhân này
-        cursor.execute('''
-            SELECT TOP 1 id, ma_phieu FROM phieu_kham
-            WHERE benh_nhan_id = ? AND trang_thai IN (N'Đang khám', N'Chờ kết quả CLS', N'Chờ kết luận', N'Đang kê đơn')
-            ORDER BY id DESC
-        ''', (patient_id,))
-        row = cursor.fetchone()
-
-        if row:
-            pk_id = row['id']
-            cursor.execute('''
-                UPDATE phieu_kham
-                SET trieu_chung = ?, chan_doan_so_bo = ?, chan_doan_icd = ?, trang_thai = ?
-                WHERE id = ?
-            ''', (symptoms, icd, icd, target_status, pk_id))
-            ma_phieu = row['ma_phieu']
-        else:
-            import random
-            from datetime import datetime
-            ma_phieu = f"PK{datetime.now().strftime('%y%m%d')}{random.randint(100, 999)}"
-            cursor.execute('''
-                INSERT INTO phieu_kham (ma_phieu, benh_nhan_id, bac_si_id, phong_kham_id, ly_do_kham, trieu_chung, chan_doan_so_bo, chan_doan_icd, trang_thai, thoi_gian_kham)
-                VALUES (?, ?, ?, 1, N'Khám bệnh chuyên khoa', ?, ?, ?, ?, GETDATE())
-            ''', (ma_phieu, patient_id, doctor_id, symptoms, icd, icd, target_status))
-
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True, 'message': 'Đã đồng bộ tiến trình khám sang bệnh nhân thành công!', 'step': step, 'ma_phieu': ma_phieu})
-    except Exception as e:
-        conn.rollback()
-        conn.close()
-        return jsonify({'success': False, 'message': str(e)}), 400
+    patient_id = require_patient_access(data.get('patient_id') or data.get('benh_nhan_id'))
+    user = session['user']
+    ok, result = MedicalRecordModel.save_step(patient_id,
+        doctor_id=data.get('doctor_id') or data.get('bac_si_id') or user.get('bac_si_id'),
+        room_id=data.get('room_id') or data.get('phong_kham_id'),
+        symptoms=data.get('symptoms'),icd=data.get('icd'),step=data.get('step',1),
+        di_ung=data.get('di_ung'),tien_su_benh=data.get('tien_su_benh'),
+        appointment_id=data.get('lich_hen_id') or data.get('appointment_id'),record_id=data.get('record_id'),
+        walk_in=data.get('walk_in') is True,encounter_key=data.get('encounter_key'),audit_user=user)
+    if ok:
+        return jsonify(success=True,**result)
+    return jsonify(success=False,message=result),400
 
 
 @api_bp.route('/emr/finish', methods=['POST'])
 @roles_required('ADMIN', 'BACSI')
+@atomic_emr_request
 def finish_emr_examination():
     """API bác sĩ kết luận chẩn đoán xác định, tải thêm ảnh và hoàn tất ca khám sau khi có kết quả CLS."""
     import json
     from core.image_service import process_image_input
+    payload = (request.get_json() or {}) if request.is_json else request.form
+    record = MedicalRecordModel.get_examination_by_id(payload.get('record_id'))
+    if not record:
+        deny(404, 'Medical record not found')
+    for aliases, column in ((('patient_id','benh_nhan_id'),'benh_nhan_id'),
+                            (('doctor_id','bac_si_id'),'bac_si_id'),
+                            (('appointment_id','lich_hen_id'),'lich_hen_id'),
+                            (('room_id','phong_kham_id'),'phong_kham_id')):
+        for key in aliases:
+            if payload.get(key) is not None and str(payload.get(key)) != str(record.get(column)):
+                return jsonify(success=False,message='Identity does not match the medical record'),400
+    image_patient_id = require_patient_access(record.get('benh_nhan_id'))
+    if clinical_value(payload.get('diagnosis') or payload.get('chan_doan_xac_dinh') or payload.get('chan_doan_so_bo')) is None:
+        return jsonify(success=False, message='Vui lòng ghi nhận chẩn đoán trước khi hoàn tất hồ sơ!'), 400
 
     if request.is_json:
         data = request.get_json() or {}
         record_id = data.get('record_id')
-        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo') or 'Khám tổng quát'
-        icd = data.get('icd', 'Z00.0 - Khám sức khỏe')
-        treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
+        diagnosis = data.get('diagnosis') or data.get('chan_doan_xac_dinh') or data.get('chan_doan_so_bo')
+        icd = data.get('icd')
+        treatment = data.get('treatment')
+        advice = data.get('advice') or data.get('loi_dan')
         reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
         reexam_time = data.get('reexam_time') or data.get('gio_tai_kham') or '08:30'
         medicines = data.get('medicines') or data.get('don_thuoc') or []
@@ -450,29 +453,33 @@ def finish_emr_examination():
         if isinstance(raw_images, list):
             for img in raw_images[:10]:
                 if img:
-                    p, err = process_image_input(img, 'kham_benh')
+                    p, err = process_image_input(img, 'kham_benh', patient_id=image_patient_id)
+                    if err:
+                        return jsonify({'success': False, 'message': err}), 400
                     if p:
                         saved_images.append(p)
     else:
         record_id = request.form.get('record_id', type=int)
-        diagnosis = request.form.get('diagnosis', 'Khám tổng quát')
-        icd = request.form.get('icd', 'Z00.0 - Khám sức khỏe')
-        treatment = request.form.get('treatment', 'Theo dõi và điều trị nội khoa')
-        advice = request.form.get('advice', 'Ăn uống nghỉ ngơi điều độ')
+        diagnosis = request.form.get('diagnosis')
+        icd = request.form.get('icd')
+        treatment = request.form.get('treatment')
+        advice = request.form.get('advice')
         reexam_date = request.form.get('reexam_date')
         reexam_time = request.form.get('reexam_time') or request.form.get('gio_tai_kham') or '08:30'
 
         med_raw = request.form.get('medicines')
         try:
             medicines = json.loads(med_raw) if med_raw else []
-        except Exception:
-            medicines = []
+        except (ValueError,TypeError):
+            return jsonify(success=False,message='Invalid medicines JSON'),400
 
         saved_images = []
         uploaded_files = request.files.getlist('images') or request.files.getlist('image_files')
         for f in uploaded_files[:10]:
             if f and getattr(f, 'filename', None):
-                p, err = process_image_input(f, 'kham_benh')
+                p, err = process_image_input(f, 'kham_benh', patient_id=image_patient_id)
+                if err:
+                    return jsonify({'success': False, 'message': err}), 400
                 if p:
                     saved_images.append(p)
 
@@ -498,15 +505,16 @@ def finish_emr_examination():
 
 @api_bp.route('/emr/save-normal', methods=['POST'])
 @roles_required('ADMIN', 'BACSI')
+@atomic_emr_request
 def save_emr_normal():
     """API bác sĩ hoàn tất phiên khám sức khỏe bình thường (Sức khỏe tốt) và xuất hóa đơn ngay từ BackEnd."""
     data = request.get_json() or {}
-    patient_id = data.get('patient_id')
+    patient_id = require_patient_access(data.get('patient_id'))
     if not patient_id:
         return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
 
-    doctor_id = session.get('user', {}).get('bac_si_id') or 1
-    room_id = data.get('room_id', 1)
+    doctor_id = data.get('doctor_id') or session.get('user', {}).get('bac_si_id')
+    room_id = data.get('room_id')
 
     # Toàn bộ biến số nghiệp vụ khám bình thường được xử lý và gán mặc định tại BackEnd
     reason = 'Khám sức khỏe tổng quát'
@@ -529,7 +537,9 @@ def save_emr_normal():
         reexam_date=None,
         lab_service_ids=[],
         medicines=[],
-        audit_user=session.get('user')
+        audit_user=session.get('user'),
+        appointment_id=data.get('lich_hen_id') or data.get('appointment_id'),record_id=data.get('record_id'),
+        walk_in=data.get('walk_in') is True,encounter_key=data.get('encounter_key')
     )
     if success:
         return jsonify({
@@ -562,18 +572,36 @@ def add_medicine():
     ten = data.get('ten_thuoc')
     hoat_chat = data.get('hoat_chat', '')
     dvt = data.get('don_vi_tinh', 'Viên')
-    so_luong = int(data.get('so_luong_ton', 0))
-    don_gia = float(data.get('don_gia', 0.0))
+    from core.scheduling import integer
+    try:
+        so_luong = integer(data.get('so_luong_ton', 0))
+        don_gia = float(data.get('don_gia', 0.0))
+    except (ValueError, TypeError):
+        return jsonify(success=False, message='Số lượng/đơn giá không hợp lệ.'), 400
     ham_luong = data.get('ham_luong', '')
     hang_sx = data.get('hang_san_xuat', 'Việt Nam')
 
     if not ten:
         return jsonify({'success': False, 'message': 'Tên thuốc là bắt buộc!'}), 400
 
-    success, result = PharmacyModel.add_medicine(ten, hoat_chat, dvt, so_luong, don_gia, ham_luong, hang_sx)
+    success, result = PharmacyModel.add_medicine(ten, hoat_chat, dvt, so_luong, don_gia, ham_luong, hang_sx, audit_user=session['user'])
     if success:
         return jsonify({'success': True, 'ma_thuoc': result, 'message': 'Thêm thuốc thành công!'})
     return jsonify({'success': False, 'message': result}), 400
+
+@api_bp.route('/pharmacy/receive-stock', methods=['POST'])
+@roles_required('ADMIN', 'DUOCSI')
+def receive_pharmacy_stock():
+    data = request.get_json() or {}
+    ok, message = PharmacyModel.receive_stock(data.get('medicine_id'), data.get('quantity'),
+        data.get('reason'), data.get('receipt_id'), audit_user=session['user'])
+    return jsonify(success=ok, message=message), 200 if ok else 400
+
+
+@api_bp.route('/pharmacy/stock-history/<int:medicine_id>')
+@roles_required('ADMIN', 'DUOCSI')
+def pharmacy_stock_history(medicine_id):
+    return jsonify(success=True, items=PharmacyModel.stock_history(medicine_id))
 
 @api_bp.route('/prescription/reject', methods=['POST'])
 @roles_required('ADMIN', 'LETAN')
@@ -590,24 +618,53 @@ def reject_prescription_api():
     return jsonify({'success': success, 'message': msg})
 
 @api_bp.route('/billing/pay', methods=['POST'])
-@roles_required('ADMIN', 'LETAN', 'BENHNHAN')
+@roles_required('ADMIN', 'LETAN')
 def pay_invoice():
-    """API thu ngân hoặc bệnh nhân xác nhận thanh toán viện phí."""
+    """Manual collection only. No payment gateway or patient confirmation."""
     data = request.get_json() or {}
-    ma_hd = data.get('ma_hd') or data.get('invoice_id')
-    pttt = data.get('hinh_thuc_thanh_toan', 'Tiền mặt')
-    user = session.get('user', {})
-    if user.get('vai_tro') == 'BENHNHAN' or user.get('role') == 'BENHNHAN':
-        cashier = 'Cổng VietQR Trực Tuyến'
-        pttt = 'Chuyển khoản VietQR'
-    else:
-        cashier = user.get('ho_ten', 'Thu ngân')
+    if not isinstance(data, dict) or data.get('confirm_received') is not True:
+        return jsonify(success=False, message='Cần xác nhận đã thực sự nhận tiền.'), 400
+    identifier = data.get('ma_hd') or data.get('invoice_id')
+    if not identifier:
+        return jsonify(success=False, message='Thieu ma hoa don.'), 400
+    if data.get('expected_amount') is None:
+        return jsonify(success=False, message='Thiếu số tiền đã đối soát.'), 400
+    success, message = BillingModel.pay_invoice(identifier,
+        data.get('hinh_thuc_thanh_toan', 'Tiền mặt'), audit_user=session['user'],
+        expected_amount=data['expected_amount'])
+    return jsonify(success=success, message=message), 200 if success else 409
 
-    if not ma_hd:
-        return jsonify({'success': False, 'message': 'Thiếu mã hóa đơn!'}), 400
 
-    success, msg = BillingModel.pay_invoice(ma_hd, pttt, cashier)
-    return jsonify({'success': success, 'message': msg})
+@api_bp.route('/billing/invoice/<identifier>', methods=['GET'])
+@login_required
+def billing_invoice_detail(identifier):
+    bill = BillingModel.get_invoice(identifier)
+    if not bill:
+        return jsonify(success=False, message='Khong tim thay hoa don.'), 404
+    require_patient_access(bill['benh_nhan_id'])
+    return jsonify(success=True, invoice=bill)
+
+
+@api_bp.route('/billing/request', methods=['POST'])
+@roles_required('BENHNHAN', 'ADMIN', 'LETAN')
+def request_payment_instructions():
+    data = request.get_json() or {}
+    if not isinstance(data, dict):
+        return jsonify(success=False, message='Du lieu khong hop le.'), 400
+    identifier = data.get('ma_hd') or data.get('invoice_id')
+    if not identifier:
+        return jsonify(success=False, message='Thieu ma hoa don.'), 400
+    bill = BillingModel.get_invoice(identifier)
+    if not bill:
+        return jsonify(success=False, message='Khong tim thay hoa don.'), 404
+    require_patient_access(bill['benh_nhan_id'])
+    owner = current_patient_id() if session['user']['vai_tro'] == 'BENHNHAN' else None
+    success, result = BillingModel.payment_instructions(identifier, patient_id=owner)
+    if not success:
+        return jsonify(success=False, message=result), 409
+    return jsonify(success=True, payment_confirmed=False, payment=result,
+        message='Chưa ghi nhận thanh toán. Vui lòng liên hệ quầy thu ngân; chưa tích hợp cổng thanh toán trực tuyến.')
+
 
 # 1. API SAO LƯU VÀ PHỤC HỒI DỮ LIỆU
 @api_bp.route('/backup/create', methods=['POST'])
@@ -720,10 +777,11 @@ def poll_notifications():
     user = session.get('user', {})
     tai_khoan_id = user.get('id')
     if not tai_khoan_id:
-        return jsonify({'success': True, 'unread_count': 0, 'new_notifications': [], 'recent_list': []})
+        return jsonify({'success': True, 'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0})
 
     last_id = request.args.get('last_id', 0, type=int)
-    data = NotificationModel.get_poll_updates(tai_khoan_id, last_id=last_id)
+    is_init = request.args.get('init', 0, type=int) == 1
+    data = NotificationModel.get_poll_updates(tai_khoan_id, last_id=last_id, is_init=is_init)
     return jsonify({'success': True, **data})
 
 @api_bp.route('/notifications/mark-read', methods=['POST'])
@@ -842,40 +900,11 @@ def assign_doctor_room():
     if not doctor_id:
         return jsonify({'success': False, 'message': 'Thiếu ID bác sĩ!'}), 400
         
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, chuyen_khoa_id, nhan_vien_id FROM bac_si WHERE id = ?', (doctor_id,))
-    doc = cursor.fetchone()
-    if not doc:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Không tìm thấy thông tin bác sĩ!'}), 404
-        
-    if room_id and int(room_id) > 0:
-        cursor.execute('SELECT id, chuyen_khoa_id, ten_phong FROM phong_kham WHERE id = ?', (room_id,))
-        room = cursor.fetchone()
-        if not room:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Phòng khám không tồn tại!'}), 404
-        if room['chuyen_khoa_id'] and doc['chuyen_khoa_id'] and room['chuyen_khoa_id'] != doc['chuyen_khoa_id']:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Chỉ được phân công phòng thuộc chuyên khoa của bác sĩ này!'}), 400
-        new_room_id = int(room_id)
-        room_name = room['ten_phong']
-    else:
-        new_room_id = None
-        room_name = 'Chưa phân phòng'
-        
-    cursor.execute('UPDATE bac_si SET phong_kham_chinh_id = ? WHERE id = ?', (new_room_id, doctor_id))
-    if new_room_id is not None:
-        cursor.execute('UPDATE lich_lam_viec SET phong_kham_id = ? WHERE bac_si_id = ? AND ngay_lam >= CAST(GETDATE() AS DATE)', (new_room_id, doctor_id))
-    conn.commit()
-    conn.close()
-    return jsonify({
-        'success': True,
-        'message': f'Đã phân công phòng làm việc: {room_name}',
-        'phong_kham_chinh_id': new_room_id,
-        'ten_phong': room_name
-    })
+    from models.schedule_model import ScheduleModel
+    ok, result = ScheduleModel.assign_doctor_room(doctor_id, room_id)
+    if not ok:
+        return jsonify({'success': False, 'message': result}), 400
+    return jsonify({'success': True, **result})
 
 @api_bp.route('/catalog/rooms', methods=['GET'])
 @roles_required('ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV')
@@ -1092,7 +1121,7 @@ def create_schedule():
     nhan_vien_id = data.get('nhan_vien_id')
     pk_id = data.get('phong_kham_id')
     ngay = data.get('ngay_lam') or data.get('ngay_lam_viec') or data.get('ngay')
-    ca = data.get('ca_lam') or data.get('ca_lam_viec') or data.get('ca', 1)
+    ca = data.get('ca_lam', data.get('ca_lam_viec', data.get('ca', 1)))
     bd = data.get('gio_bat_dau')
     kt = data.get('gio_ket_thuc')
     sl = data.get('so_luong_kham_toi_da', 20)
@@ -1158,7 +1187,9 @@ def approve_cancellation_schedule():
     data = request.get_json() or {}
     user = session.get('user')
     sc_id = data.get('id') or data.get('schedule_id')
-    approved = bool(data.get('approved', True))
+    approved = data.get('approved', True)
+    if not isinstance(approved, bool):
+        return jsonify({'success': False, 'message': 'approved must be boolean'}), 400
     if not sc_id:
         return jsonify({'success': False, 'message': 'Thiếu ID ca trực!'}), 400
     ok, msg = ScheduleModel.approve_cancellation(sc_id, user, approved)
@@ -1174,7 +1205,9 @@ def approve_registration_schedule():
     data = request.get_json() or {}
     user = session.get('user')
     sc_id = data.get('id') or data.get('schedule_id')
-    approved = bool(data.get('approved', True))
+    approved = data.get('approved', True)
+    if not isinstance(approved, bool):
+        return jsonify({'success': False, 'message': 'approved must be boolean'}), 400
     if not sc_id:
         return jsonify({'success': False, 'message': 'Thiếu ID ca trực!'}), 400
     ok, msg = ScheduleModel.approve_schedule(sc_id, user, approved)
@@ -1190,7 +1223,9 @@ def bulk_approve_registration_schedule():
     data = request.get_json() or {}
     user = session.get('user')
     schedule_ids = data.get('schedule_ids', [])
-    approved = bool(data.get('approved', True))
+    approved = data.get('approved', True)
+    if not isinstance(approved, bool):
+        return jsonify({'success': False, 'message': 'approved must be boolean'}), 400
     if not schedule_ids:
         return jsonify({'success': False, 'message': 'Vui lòng chọn ít nhất một ca làm việc để duyệt!'}), 400
     ok, msg, cnt = ScheduleModel.bulk_approve_schedules(schedule_ids, user, approved)
@@ -1277,7 +1312,8 @@ def list_accounts():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
 
-    data = UserModel.get_accounts(role=role, search=search, page=page, per_page=per_page)
+    data = UserModel.get_accounts(role=role, search=search, page=page, per_page=per_page,
+                                  allowed_patient_ids=patient_scope_ids())
     curr_user = session.get('user', {})
     if curr_user.get('vai_tro') not in ('ADMIN', 'LETAN'):
         for acc in data.get('accounts', []):
@@ -1295,6 +1331,8 @@ def get_account_detail_api(account_id):
         acc['username'] = ''
     if not acc:
         return jsonify({'success': False, 'message': 'Không tìm thấy tài khoản!'}), 404
+    if acc.get('benh_nhan'):
+        require_patient_access(acc['benh_nhan'].get('id'))
     return jsonify({'success': True, 'account': acc})
 
 @api_bp.route('/admin/account/toggle', methods=['POST'])
@@ -1380,66 +1418,43 @@ def get_lab_orders_api():
             return jsonify({'success': True, 'orders': []})
         orders = MedicalRecordModel.get_lab_orders_by_patient(patient_id, approved_only=True)
     else:
-        orders = MedicalRecordModel.get_all_lab_orders()
+        orders = filter_patient_records(MedicalRecordModel.get_all_lab_orders(), key='patient_id')
     return jsonify({'success': True, 'orders': orders})
 
 @api_bp.route('/lab/result/save', methods=['POST'])
 @roles_required('ADMIN', 'KTV', 'BACSI')
 def save_lab_result():
-    """API kỹ thuật viên nhập/cập nhật kết quả xét nghiệm và tải lên ảnh chụp siêu âm, X-quang."""
+    import json
     from core.image_service import process_image_input
+    from core.medical_media import image_paths
+    data = (request.get_json() or {}) if request.is_json else request.form
+    item_id = data.get('chi_tiet_id') or data.get('order_id')
+    result = clinical_value(data.get('ket_qua'))
+    if not item_id or result is None:
+        return jsonify(success=False, message='A lab item and recorded result are required'), 400
+    item = MedicalRecordModel.get_lab_item_by_id(item_id)
+    if not item:
+        deny(404, 'Lab item not found')
+    patient_id = require_patient_access(item.get('patient_id'))
+    images = data.get('images') or data.get('file_ket_qua') or []
+    if isinstance(images, str):
+        images = image_paths(images)
+    if not isinstance(images, list):
+        return jsonify(success=False, message='Invalid image list'), 400
+    if not request.is_json:
+        images += request.files.getlist('images') or request.files.getlist('image_files') or request.files.getlist('image_file')
+    if len(images) > 10:
+        return jsonify(success=False, message='At most 10 images are allowed'), 400
+    paths = []
+    for image in images:
+        path, error = process_image_input(image, 'can_lam_sang', patient_id=patient_id)
+        if error or not path:
+            return jsonify(success=False, message=error or 'Invalid image'), 400
+        paths.append(path)
+    stored = json.dumps(paths) if len(paths) > 1 else paths[0] if paths else None
+    ok, message = MedicalRecordModel.update_lab_result(item_id, result, file_ket_qua=stored, audit_user=session['user'])
+    return jsonify(success=ok, message=message, file_ket_qua=stored), 200 if ok else 400
 
-    file_ket_qua = None
-    if request.is_json:
-        data = request.get_json() or {}
-        chi_tiet_id = data.get('chi_tiet_id') or data.get('order_id')
-        ket_qua = data.get('ket_qua')
-        file_ket_qua = data.get('file_ket_qua')
-        raw_images = data.get('images') or []
-        if not raw_images and file_ket_qua and isinstance(file_ket_qua, list):
-            raw_images = file_ket_qua
-        if raw_images and isinstance(raw_images, list):
-            import json
-            saved_paths = []
-            for img in raw_images[:10]:
-                if img:
-                    p, err = process_image_input(img, 'can_lam_sang')
-                    if p:
-                        saved_paths.append(p)
-            if saved_paths:
-                file_ket_qua = json.dumps(saved_paths) if len(saved_paths) > 1 else saved_paths[0]
-    else:
-        chi_tiet_id = request.form.get('chi_tiet_id') or request.form.get('order_id')
-        ket_qua = request.form.get('ket_qua')
-        file_ket_qua = request.form.get('file_ket_qua')
-
-        import json
-        saved_paths = []
-        uploaded_files = request.files.getlist('images') or request.files.getlist('image_files') or request.files.getlist('image_file')
-        for img in uploaded_files[:10]:
-            if img and getattr(img, 'filename', None):
-                p, err = process_image_input(img, 'can_lam_sang')
-                if p:
-                    saved_paths.append(p)
-
-        if saved_paths:
-            file_ket_qua = json.dumps(saved_paths) if len(saved_paths) > 1 else saved_paths[0]
-        elif not file_ket_qua:
-            single_img = request.files.get('image_file')
-            if single_img and getattr(single_img, 'filename', None):
-                p, err = process_image_input(single_img, 'can_lam_sang')
-                if p:
-                    file_ket_qua = p
-
-    user = session.get('user')
-
-    if not chi_tiet_id or not ket_qua:
-        return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID chỉ định và nội dung kết quả xét nghiệm!'}), 400
-
-    ok, msg = MedicalRecordModel.update_lab_result(chi_tiet_id, ket_qua, file_ket_qua=file_ket_qua, audit_user=user)
-    if ok:
-        return jsonify({'success': True, 'message': msg, 'file_ket_qua': file_ket_qua})
-    return jsonify({'success': False, 'message': msg}), 400
 
 @api_bp.route('/lab/result/approve', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'KTV')
@@ -1469,10 +1484,11 @@ def view_lab_result(chi_tiet_id):
         return jsonify({'success': False, 'message': 'Không tìm thấy kết quả xét nghiệm!'}), 404
 
     # Bệnh nhân chỉ xem được kết quả của mình và đã duyệt
+    require_patient_access(item.get('patient_id'))
     if user.get('vai_tro') == 'BENHNHAN':
         if item.get('patient_id') != user.get('patient_id'):
             return jsonify({'success': False, 'message': 'Bạn không có quyền xem kết quả này!'}), 403
-        if item.get('trang_thai') != 'Đã duyệt':
+        if not result_is_published(item):
             return jsonify({'success': False, 'message': 'Kết quả xét nghiệm đang được xử lý và chưa được bác sĩ phê duyệt!'}), 403
 
     return jsonify({'success': True, 'item': item})
@@ -1493,9 +1509,8 @@ def get_emr_detail(record_id=None):
     if not rec:
         return jsonify({'success': False, 'message': 'Không tìm thấy hồ sơ bệnh án!'}), 404
 
-    if user.get('vai_tro') == 'BENHNHAN' and rec['benh_nhan_id'] != user.get('patient_id'):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền xem hồ sơ bệnh án này!'}), 403
 
+    require_patient_access(rec.get('benh_nhan_id'))
     return jsonify({'success': True, 'record': rec})
 
 @api_bp.route('/emr/update', methods=['POST'])
@@ -1543,6 +1558,7 @@ def get_emr_history(record_id=None):
     patient_id = request.args.get('patient_id') or request.args.get('benh_nhan_id')
     
     if patient_id:
+        patient_id = require_patient_access(patient_id)
         from models.patient_model import PatientModel
         history_records = PatientModel.get_patient_history(patient_id)
         return jsonify({'success': True, 'history': history_records, 'records': history_records})
@@ -1550,6 +1566,10 @@ def get_emr_history(record_id=None):
     if not target_rec:
         return jsonify({'success': False, 'message': 'Thiếu ID phiếu khám hoặc ID bệnh nhân!'}), 400
 
+    record = MedicalRecordModel.get_examination_by_id(target_rec)
+    if not record:
+        deny(404, 'Medical record not found')
+    require_patient_access(record.get('benh_nhan_id'))
     from core.audit import AuditLogger
     logs = AuditLogger.get_logs(table_name='phieu_kham', row_id=target_rec)
     return jsonify({'success': True, 'history': logs})
@@ -1566,9 +1586,8 @@ def get_prescription_detail_api(prescription_id):
     if not dt:
         return jsonify({'success': False, 'message': 'Không tìm thấy đơn thuốc!'}), 404
 
-    if user.get('vai_tro') == 'BENHNHAN' and dt.get('benh_nhan_id') != user.get('patient_id'):
-        return jsonify({'success': False, 'message': 'Bạn không có quyền xem đơn thuốc này!'}), 403
 
+    require_patient_access(dt.get('benh_nhan_id'))
     return jsonify({'success': True, 'prescription': dt})
 
 @api_bp.route('/prescription/update', methods=['POST'])
@@ -1612,6 +1631,10 @@ def cancel_prescription_api():
 @roles_required('ADMIN', 'BACSI', 'DUOCSI')
 def get_prescription_history(prescription_id):
     """API xem lịch sử chỉnh sửa / xuất dược đơn thuốc."""
+    prescription = PharmacyModel.get_prescription_detail(prescription_id)
+    if not prescription:
+        deny(404, 'Prescription not found')
+    require_patient_access(prescription.get('benh_nhan_id'))
     from core.audit import AuditLogger
     logs = AuditLogger.get_logs(table_name='don_thuoc', row_id=prescription_id)
     return jsonify({'success': True, 'history': logs})
@@ -1621,9 +1644,7 @@ def get_prescription_history(prescription_id):
 def get_patient_prescriptions():
     """API bệnh nhân xem các đơn thuốc của chính mình (chỉ xem, không sửa)."""
     user = session.get('user', {})
-    patient_id = user.get('patient_id')
-    if not patient_id:
-        return jsonify({'success': True, 'prescriptions': []})
+    patient_id = require_own_patient(request.args.get('patient_id'))
 
     prescriptions = PharmacyModel.get_prescriptions_by_patient(patient_id)
     return jsonify({'success': True, 'prescriptions': prescriptions})
@@ -1724,6 +1745,7 @@ def lab_result_save_alias():
 
 
 @api_bp.route('/prescription/choose-buying-option', methods=['POST'])
+@roles_required('BENHNHAN')
 def choose_prescription_buying_option():
     """API xử lý lựa chọn nơi mua thuốc của bệnh nhân (Tự mua ngoài hoặc Mua tại bệnh viện)."""
     data = request.get_json() or {}
@@ -1733,6 +1755,12 @@ def choose_prescription_buying_option():
 
     if not dt_id:
         return jsonify({'success': False, 'message': 'Thiếu mã đơn thuốc!'}), 400
+
+    require_own_patient()
+    prescription = PharmacyModel.get_prescription_detail(dt_id)
+    if not prescription:
+        deny(404, 'Prescription not found')
+    require_own_patient(prescription.get('benh_nhan_id'))
 
     success, msg = PharmacyModel.choose_medicine_purchase_option(dt_id, option, audit_user=user)
     if success:

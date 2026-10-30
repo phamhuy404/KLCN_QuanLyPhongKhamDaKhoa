@@ -1,253 +1,218 @@
-import os
-import uuid
-import re
-import io
+"""Bounded raster uploads; medical files never enter the public static tree."""
 import base64
-import urllib.request
+import http.client
+import io
+import ipaddress
+import os
+from pathlib import Path
+import re
+import socket
 import ssl
+import uuid
+import warnings
+from urllib.parse import urlsplit
+
+from flask import current_app, has_app_context, has_request_context
 from PIL import Image, ImageOps
 
-UPLOAD_BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
+UPLOAD_BASE_DIR = str(Path(__file__).resolve().parents[1] / 'static' / 'uploads')
+PRIVATE_UPLOAD_BASE_DIR = str(Path(__file__).resolve().parents[1] / 'private_uploads')
+CATEGORY_DIRS = {name: name for name in
+                 ('benh_nhan', 'bac_si', 'bai_viet', 'banners', 'can_lam_sang', 'kham_benh')}
+MEDICAL_CATEGORIES = frozenset({'kham_benh', 'can_lam_sang'})
+DIMENSION_LIMITS = {'benh_nhan': (400, 400), 'bac_si': (500, 500),
+                    'bai_viet': (1200, 800), 'banners': (1920, 800),
+                    'can_lam_sang': (1600, 1200), 'kham_benh': (1600, 1200)}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'jpe', 'jfif', 'webp', 'gif',
+                      'bmp', 'tiff', 'tif', 'ico', 'avif', 'heic', 'heif'}
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_PIXELS = 24_000_000
 
-CATEGORY_DIRS = {
-    'benh_nhan': 'benh_nhan',
-    'bac_si': 'bac_si',
-    'bai_viet': 'bai_viet',
-    'banners': 'banners',
-    'can_lam_sang': 'can_lam_sang'
-}
-
-DIMENSION_LIMITS = {
-    'benh_nhan': (400, 400),
-    'bac_si': (500, 500),
-    'bai_viet': (1200, 800),
-    'banners': (1920, 800),
-    'can_lam_sang': (1600, 1200)
-}
-
-ALLOWED_EXTENSIONS = {
-    'png', 'jpg', 'jpeg', 'jpe', 'jfif',
-    'webp', 'gif', 'bmp', 'tiff', 'tif',
-    'ico', 'svg', 'avif', 'heic', 'heif'
-}
 
 def ensure_upload_dirs():
-    """Tạo sẵn các thư mục con trong static/uploads nếu chưa tồn tại."""
-    for folder in CATEGORY_DIRS.values():
-        path = os.path.join(UPLOAD_BASE_DIR, folder)
-        os.makedirs(path, exist_ok=True)
+    # Kept for explicit callers; importing this module creates no directories.
+    for category in CATEGORY_DIRS:
+        base = PRIVATE_UPLOAD_BASE_DIR if category in MEDICAL_CATEGORIES else UPLOAD_BASE_DIR
+        Path(base, category).mkdir(parents=True, exist_ok=True)
+
 
 def is_allowed_image(filename):
-    """Kiểm tra phần mở rộng tệp có hợp lệ hay không."""
-    if not filename or '.' not in filename:
-        return False
-    ext = filename.rsplit('.', 1)[1].lower()
-    return ext in ALLOWED_EXTENSIONS
+    return bool(filename and '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS)
+
 
 def save_svg(raw_bytes_or_str, category='bai_viet'):
-    """Lưu tệp SVG vector an toàn vào thư mục upload."""
-    folder = CATEGORY_DIRS.get(category, 'bai_viet')
-    target_dir = os.path.join(UPLOAD_BASE_DIR, folder)
-    os.makedirs(target_dir, exist_ok=True)
+    return None, 'SVG uploads are not supported; use a raster image.'
 
-    unique_name = f"{uuid.uuid4().hex[:12]}.svg"
-    save_path = os.path.join(target_dir, unique_name)
-
-    if isinstance(raw_bytes_or_str, str):
-        content = raw_bytes_or_str.encode('utf-8')
-    else:
-        content = raw_bytes_or_str
-
-    text_content = content.decode('utf-8', errors='ignore')
-    if '<script' in text_content.lower():
-        return None, "Tệp SVG chứa mã lệnh không an toàn."
-
-    with open(save_path, 'wb') as f:
-        f.write(content)
-
-    return f"/static/uploads/{folder}/{unique_name}", None
 
 def save_and_compress_image(file_storage_or_bytes, category='bai_viet', quality=82, filename=None):
-    """
-    Nén và lưu hình ảnh đa định dạng (JPG, PNG, WEBP, GIF, BMP, TIFF, SVG) thành WebP siêu nhẹ.
-    Hỗ trợ đối tượng FileStorage từ Flask form hoặc chuỗi raw bytes.
-    """
-    if file_storage_or_bytes is None:
-        return None, "Không tìm thấy dữ liệu hình ảnh tải lên."
-
-    orig_name = filename or getattr(file_storage_or_bytes, 'filename', '') or 'image.jpg'
-    ext = orig_name.rsplit('.', 1)[-1].lower() if '.' in orig_name else ''
-
+    if category not in CATEGORY_DIRS:
+        return None, 'Unknown image category.'
+    original_name = filename or getattr(file_storage_or_bytes, 'filename', '') or 'image.jpg'
+    if original_name.lower().endswith(('.svg', '.svgz')):
+        return save_svg(None)
     if hasattr(file_storage_or_bytes, 'read'):
-        stream_data = file_storage_or_bytes.read()
+        data = file_storage_or_bytes.read(MAX_IMAGE_BYTES + 1)
     elif isinstance(file_storage_or_bytes, (bytes, bytearray)):
-        stream_data = file_storage_or_bytes
+        data = file_storage_or_bytes
     else:
-        return None, "Định dạng dữ liệu ảnh không hợp lệ."
-
-    if not stream_data:
-        return None, "Tệp hình ảnh rỗng."
-
-    # Xử lý tệp SVG riêng biệt
-    if ext == 'svg' or b'<svg' in stream_data[:500].lower():
-        return save_svg(stream_data, category=category)
-
-    folder = CATEGORY_DIRS.get(category, 'bai_viet')
-    target_dir = os.path.join(UPLOAD_BASE_DIR, folder)
-    os.makedirs(target_dir, exist_ok=True)
-
+        return None, 'Invalid image input.'
+    if not data or len(data) > MAX_IMAGE_BYTES:
+        return None, 'Image is empty or exceeds the 8 MiB limit.'
     try:
-        img = Image.open(io.BytesIO(stream_data))
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data)) as source:
+                if source.width * source.height > MAX_IMAGE_PIXELS:
+                    return None, 'Image exceeds the pixel limit.'
+                source.seek(0)
+                source.load()
+                image = ImageOps.exif_transpose(source)
+                image = image.convert('RGBA' if image.mode in ('RGBA', 'LA', 'P') else 'RGB')
+                image.thumbnail(DIMENSION_LIMITS[category], Image.Resampling.LANCZOS)
+                if category in MEDICAL_CATEGORIES:
+                    base = current_app.config['MEDICAL_UPLOAD_DIR'] if has_app_context() else PRIVATE_UPLOAD_BASE_DIR
+                    prefix = '/medical-images/'
+                else:
+                    base, prefix = UPLOAD_BASE_DIR, '/static/uploads/'
+                target_dir = Path(base) / category
+                target_dir.mkdir(parents=True, exist_ok=True)
+                name = uuid.uuid4().hex + '.webp'
+                # Exclusive creation never overwrites an existing medical/public file.
+                with (target_dir / name).open('xb') as output:
+                    from core.emr_workflow import track_new_image
+                    track_new_image(target_dir / name)
+                    image.save(output, format='WEBP', quality=quality, optimize=True)
+        return prefix + category + '/' + name, None
+    except (OSError, ValueError, TypeError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        return None, 'Invalid or unsafe raster image.'
 
-        # Tự động xoay ảnh đúng hướng theo thông tin EXIF của điện thoại/máy ảnh
+
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """Connect to a validated address while retaining hostname/SNI certificate checks."""
+    def __init__(self, host, address, context):
+        super().__init__(host, port=443, timeout=5, context=context)
+        self.address = address
+
+    def connect(self):
+        raw = socket.create_connection((self.address, 443), timeout=self.timeout)
         try:
-            img = ImageOps.exif_transpose(img)
+            self.sock = self._context.wrap_socket(raw, server_hostname=self.host)
         except Exception:
-            pass
+            raw.close()
+            raise
 
-        # Giữ khung hình đầu tiên nếu là ảnh động GIF
-        if getattr(img, 'is_animated', False):
-            img.seek(0)
 
-        # Xử lý hệ màu cho WebP
-        if img.mode in ('RGBA', 'LA'):
-            pass
-        elif img.mode == 'P':
-            img = img.convert('RGBA') if 'transparency' in img.info else img.convert('RGB')
-        elif img.mode != 'RGB':
-            img = img.convert('RGB')
+def download_image(url):
+    parts = urlsplit(url)
+    if (parts.scheme != 'https' or not parts.hostname or parts.username is not None or parts.password is not None
+            or parts.fragment or parts.port not in (None, 443)):
+        raise ValueError('Only allowlisted HTTPS image sources on port 443 are accepted.')
+    host = parts.hostname.encode('idna').decode('ascii').lower()
+    allowed = current_app.config.get('IMAGE_DOWNLOAD_ALLOWED_HOSTS', ()) if has_app_context() else ()
+    if isinstance(allowed, str):
+        allowed = [item.strip() for item in allowed.split(',') if item.strip()]
+    if host not in {item.lower() for item in allowed}:
+        raise ValueError('Image source host is not allowlisted.')
+    answers = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    addresses = {answer[4][0] for answer in answers}
+    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+        raise ValueError('Private, loopback, reserved and mixed DNS destinations are forbidden.')
+    # No proxy or second DNS lookup, and no automatic redirect following.
+    context = ssl.create_default_context()
+    connection = PinnedHTTPSConnection(host, sorted(addresses)[0], context)
+    try:
+        target = parts.path or '/'
+        if parts.query:
+            target += '?' + parts.query
+        connection.request('GET', target, headers={'Accept': 'image/*', 'User-Agent': 'ClinicImageImport/1.0'})
+        response = connection.getresponse()
+        if response.status != 200:
+            raise ValueError('Image source did not return 200; redirects are not followed.')
+        mime = response.getheader('Content-Type', '').split(';')[0].lower().strip()
+        if mime not in {'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                        'image/bmp', 'image/tiff', 'image/avif', 'image/x-icon'}:
+            raise ValueError('Unsupported image content type.')
+        length = response.getheader('Content-Length')
+        if length is not None and (int(length) < 0 or int(length) > MAX_IMAGE_BYTES):
+            raise ValueError('Image source exceeds the size limit.')
+        if response.getheader('Content-Encoding', 'identity').lower() not in ('', 'identity'):
+            raise ValueError('Encoded image response is not supported.')
+        data = response.read(MAX_IMAGE_BYTES + 1)
+        if not data or len(data) > MAX_IMAGE_BYTES:
+            raise ValueError('Image source is empty or too large.')
+        return data
+    finally:
+        connection.close()
 
-        # Resize ảnh nếu vượt quá kích thước khuyến nghị
-        max_w, max_h = DIMENSION_LIMITS.get(category, (1200, 800))
-        img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-
-        # Đặt tên tệp ngẫu nhiên chống trùng lặp
-        unique_name = f"{uuid.uuid4().hex[:12]}.webp"
-        save_path = os.path.join(target_dir, unique_name)
-
-        # Lưu ảnh dưới định dạng WebP với mức nén tối ưu
-        img.save(save_path, format='WEBP', quality=quality, optimize=True)
-
-        web_path = f"/static/uploads/{folder}/{unique_name}"
-        return web_path, None
-    except Exception as e:
-        return None, f"Lỗi xử lý hình ảnh ({orig_name}): {str(e)}"
 
 def save_image_from_url(url, category='bai_viet', quality=82):
-    """
-    Tải hình ảnh từ URL về máy chủ và nén sang định dạng WebP.
-    Nếu ngoại tuyến hoặc tải không thành công, trả về URL an toàn làm fallback.
-    """
-    if not url or not isinstance(url, str):
-        return None, "Đường dẫn URL ảnh không hợp lệ."
-
-    url = url.strip()
-    if url.startswith('/static/'):
-        return url, None
-
+    if not isinstance(url, str) or len(url) > 4096 or any(ord(c) < 32 for c in url):
+        return None, 'Invalid image URL.'
     try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        data = download_image(url.strip())
+        return save_and_compress_image(data, category, quality)
+    except (OSError, ValueError, http.client.HTTPException):
+        # Never persist or echo an unvalidated external URL as a fallback.
+        return None, 'Unable to import image from the permitted HTTPS source.'
 
-        req = urllib.request.Request(
-            url,
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) H2T-Healthcare/1.0'}
-        )
-        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
-            content_type = response.headers.get('Content-Type', '')
-            data = response.read()
-
-        if not data:
-            return url, None
-
-        ext = 'jpg'
-        if 'png' in content_type:
-            ext = 'png'
-        elif 'webp' in content_type:
-            ext = 'webp'
-        elif 'gif' in content_type:
-            ext = 'gif'
-        elif 'svg' in content_type or url.lower().endswith('.svg'):
-            ext = 'svg'
-
-        web_path, err = save_and_compress_image(data, category=category, quality=quality, filename=f"remote.{ext}")
-        if web_path:
-            return web_path, None
-        return url, None
-    except Exception:
-        # Fallback an toàn về URL gốc
-        return url, None
 
 def save_image_from_base64(data_uri, category='bai_viet', quality=82):
-    """
-    Nhận diện và giải mã chuỗi Base64 / Data URI (data:image/...) thành ảnh WebP.
-    """
-    if not data_uri or not isinstance(data_uri, str):
-        return None, "Chuỗi base64 không hợp lệ."
-
-    match = re.match(r'^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$', data_uri.strip())
-    if match:
-        image_type = match.group(1).lower()
-        b64_data = match.group(2)
-    else:
-        b64_data = data_uri.strip()
-        image_type = 'jpg'
-
+    if not isinstance(data_uri, str) or len(data_uri) > ((MAX_IMAGE_BYTES + 2) // 3) * 4 + 128:
+        return None, 'Image exceeds the encoded size limit.'
+    match = re.fullmatch(r'data:image/([a-zA-Z0-9+.-]+);base64,([A-Za-z0-9+/=]+)', data_uri.strip())
+    if not match or match.group(1).lower() in ('svg+xml', 'svg'):
+        return None, 'Invalid or unsupported image data URI.'
     try:
-        raw_bytes = base64.b64decode(b64_data)
-        if image_type == 'svg+xml' or b'<svg' in raw_bytes[:500].lower():
-            return save_svg(raw_bytes, category=category)
+        data = base64.b64decode(match.group(2), validate=True)
+    except ValueError:
+        return None, 'Invalid base64 image.'
+    return save_and_compress_image(data, category, quality)
 
-        return save_and_compress_image(raw_bytes, category=category, quality=quality, filename=f"image.{image_type}")
-    except Exception as e:
-        return None, f"Lỗi giải mã ảnh base64: {str(e)}"
 
-def process_image_input(image_input, category='bai_viet', quality=82):
-    """
-    Nhận diện và xử lý mọi nguồn hình ảnh (FileStorage, URL trực tuyến, Base64 Data URI, đường dẫn tĩnh).
-    """
-    if not image_input:
+def process_image_input(image_input, category='bai_viet', quality=82, patient_id=None):
+    if image_input is None or image_input == '':
         return None, None
-
-    # FileStorage tải lên từ form
+    if category in MEDICAL_CATEGORIES:
+        if not has_request_context() or patient_id is None:
+            return None, 'A verified patient context is required for medical images.'
+        from core.security import require_patient_access
+        require_patient_access(patient_id)
     if hasattr(image_input, 'filename'):
-        if image_input.filename:
-            return save_and_compress_image(image_input, category=category, quality=quality)
-        return None, None
-
-    # Chuỗi URL, Data URI hoặc đường dẫn
-    if isinstance(image_input, str):
-        val = image_input.strip()
-        if not val:
-            return None, None
-        if val.startswith(('http://', 'https://')):
-            return save_image_from_url(val, category=category, quality=quality)
-        if val.startswith('data:image/'):
-            return save_image_from_base64(val, category=category, quality=quality)
-        if val.startswith('/static/'):
-            return val, None
-        return val, None
-
-    # Dạng bytes
+        return save_and_compress_image(image_input, category, quality)
     if isinstance(image_input, (bytes, bytearray)):
-        return save_and_compress_image(image_input, category=category, quality=quality)
+        return save_and_compress_image(image_input, category, quality)
+    if not isinstance(image_input, str):
+        return None, 'Invalid image input.'
+    value = image_input.strip()
+    if value.startswith(('http://', 'https://')):
+        return save_image_from_url(value, category, quality)
+    if value.startswith('data:image/'):
+        return save_image_from_base64(value, category, quality)
+    if category in MEDICAL_CATEGORIES:
+        from core.medical_media import media_location, medical_references, can_use_reference, protected_image_value
+        if media_location(value) and any(can_use_reference(ref, patient_id) for ref in medical_references(value)):
+            return protected_image_value(value), None
+        return None, 'The existing medical image does not belong to this patient.'
+    # Local public image paths only; arbitrary strings and schemes are never image URLs.
+    if value.startswith('/static/') and '%' not in value and chr(92) not in value:
+        relative = value[len('/static/'):]
+        base = Path(current_app.static_folder) if has_app_context() else Path(UPLOAD_BASE_DIR).parent
+        target = (base / relative).resolve()
+        if target.is_relative_to(base.resolve()) and target.is_file() and is_allowed_image(target.name):
+            return value, None
+    return None, 'Invalid or untrusted image source.'
 
-    return None, "Nguồn ảnh không hợp lệ."
 
 def delete_uploaded_image(web_path):
-    """Xóa tệp ảnh vật lý trong static/uploads khi bản ghi bị xóa."""
-    if not web_path or not web_path.startswith('/static/uploads/'):
+    # No deletion occurs unless an existing caller explicitly requests it.
+    if not isinstance(web_path, str) or not web_path.startswith('/static/uploads/'):
         return False
     try:
-        rel_path = web_path.replace('/static/uploads/', '').replace('/', os.sep)
-        full_path = os.path.join(UPLOAD_BASE_DIR, rel_path)
-        if os.path.exists(full_path):
-            os.remove(full_path)
+        base = Path(UPLOAD_BASE_DIR).resolve()
+        target = (base / web_path[len('/static/uploads/'):]).resolve()
+        if target.is_relative_to(base) and target.is_file():
+            target.unlink()
             return True
-    except Exception:
+    except OSError:
         pass
     return False
-
-# Khởi tạo thư mục ngay khi nạp module
-ensure_upload_dirs()

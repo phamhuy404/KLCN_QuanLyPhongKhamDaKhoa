@@ -5,20 +5,10 @@
         <button id="mobile-menu-btn" class="md:hidden w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-all">
             <i class="fa-solid fa-bars"></i>
         </button>
-
-
     </div>
-
     <!-- Quick Actions và User Identity -->
     <div class="flex items-center gap-3">
-        <!-- NÚT BẤM THỬ POPUP THÔNG BÁO (THEO YÊU CẦU CỦA BẠN ĐỂ TEST / DEMO) -->
-        <button type="button" onclick="triggerTestNotification()" 
-                class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-3 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" 
-                title="Bấm để thử nghiệm nhảy Popup thông báo thời gian thực">
-            <i class="fa-solid fa-bell text-amber-600 animate-bounce"></i>
-            <span class="hidden sm:inline">Bấm thử thông báo</span>
-        </button>
-
+        
         <!-- Nút tiếp nhận bệnh nhân -->
         <a href="{{ url_for('admin.reception') }}" 
            class="bg-medical-600 hover:bg-medical-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 transition-all" 
@@ -26,7 +16,6 @@
             <i class="fa-solid fa-plus text-xs"></i>
             <span class="hidden sm:inline">Tiếp nhận mới</span>
         </a>
-
         <!-- Nút xem trang chủ -->
         <a href="{{ url_for('home') }}" 
            class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all flex items-center gap-1.5" 
@@ -34,14 +23,12 @@
             <i class="fa-solid fa-house text-xs"></i>
             <span class="hidden lg:inline">Trang chủ</span>
         </a>
-
         <!-- Nut chuyen doi Dark Mode -->
         <button type="button" onclick="toggleDarkMode()" 
                 class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
                 title="Chuyển chế độ Giao diện Sáng / Tối">
             <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
         </button>
-
         <!-- Dropdown Chuông thông báo -->
         <div class="relative inline-block text-left" id="notification-bell-container">
             <button type="button" onclick="toggleNotificationDropdown()" 
@@ -54,10 +41,13 @@
             <!-- Menu Dropdown Thông báo -->
             <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-100 py-3 z-50">
                 <div class="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
-                    <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                        <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Hệ Thống
-                    </h5>
-                    <button type="button" onclick="markAllNotificationsAsRead()" class="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-1">
+                    <div class="flex items-center gap-2">
+                        <h5 class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bell text-medical-600"></i> Thông Báo Gần Đây
+                        </h5>
+                        <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">10 mới nhất</span>
+                    </div>
+                    <button type="button" onclick="markAllNotificationsAsRead()" class="text-[11px] text-medical-600 hover:text-medical-700 hover:underline font-semibold flex items-center gap-1">
                         <i class="fa-solid fa-check-double text-[10px]"></i> Đã đọc tất cả
                     </button>
                 </div>
@@ -67,13 +57,15 @@
                         Đang đồng bộ thông báo...
                     </div>
                 </div>
-                <div class="px-4 pt-2.5 border-t border-slate-100 text-center flex items-center justify-between text-[11px]">
-                    <span class="text-slate-400 italic">Tự động cập nhật thời gian thực</span>
-                    <a href="{{ url_for('admin.dashboard') }}" class="text-medical-600 hover:underline font-semibold">Xem Dashboard</a>
+                <div class="p-2.5 border-t border-slate-100 bg-slate-50/70">
+                    <a href="{{ url_for('admin.notifications') }}" class="w-full py-2 px-3 bg-medical-50 hover:bg-medical-100 text-medical-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all border border-medical-200/60 shadow-2xs">
+                        <i class="fa-solid fa-clock-rotate-left text-xs text-medical-600"></i>
+                        <span>Xem toàn bộ lịch sử thông báo</span>
+                        <i class="fa-solid fa-arrow-right text-[10px] text-medical-600"></i>
+                    </a>
                 </div>
             </div>
         </div>
-
         <!-- Thông tin tài khoản nhân sự đăng nhập -->
         {% set curr_user = session.get('user', {}) %}
         <div class="flex items-center gap-2.5 pl-2.5 border-l border-slate-200">
@@ -99,12 +91,9 @@
         </div>
     </div>
 </header>
-
 <!-- KHUNG CONTAINER CHỨA CÁC POPUP TOAST THÔNG BÁO TỰ ĐỘNG -->
 <div id="popup-notification-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none w-80 sm:w-96"></div>
-
 <script>
-
     // ÂM THANH CHUÔNG THÔNG BÁO BẰNG WEB AUDIO API
     function playNotificationSound() {
         try {
@@ -140,21 +129,18 @@
             osc2.stop(now + 0.45);
         } catch (e) {}
     }
-
     // TỰ ĐỘNG NHẬN ĐỊNH CA TRỰC VÀ HẾT GIỜ ĐỂ HIỂN THỊ TRÊN HEADER
     function updateHeaderDutyStatus() {
         const badge = document.getElementById('header-user-status-badge');
         if (!badge) return;
         const now = new Date();
         const totalMin = now.getHours() * 60 + now.getMinutes();
-
         // Ca 1: 07:00 (420) - 11:30 (690)
         // Ca 2: 13:30 (810) - 17:00 (1020)
         // Ca 3: 17:30 (1050) - 20:30 (1230)
         const inShift1 = totalMin >= 420 && totalMin <= 690;
         const inShift2 = totalMin >= 810 && totalMin <= 1020;
         const inShift3 = totalMin >= 1050 && totalMin <= 1230;
-
         if (inShift1 || inShift2 || inShift3) {
             badge.className = "px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1";
             badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Đang làm việc';
@@ -165,13 +151,11 @@
     }
     updateHeaderDutyStatus();
     setInterval(updateHeaderDutyStatus, 30000);
-
     // Hàm bật/tắt menu dropdown thông báo
     function toggleNotificationDropdown() {
         const menu = document.getElementById('notification-dropdown');
         if (menu) menu.classList.toggle('hidden');
     }
-
     document.addEventListener('click', (e) => {
         const container = document.getElementById('notification-bell-container');
         if (container && !container.contains(e.target)) {
@@ -179,13 +163,11 @@
             if (menu) menu.classList.add('hidden');
         }
     });
-
     // HÀM TẠO VÀ BẬT POPUP THÔNG BÁO HIỆN ĐẠI (TOAST NOTIFICATION)
     function showAppNotification({ title = 'Thông báo hệ thống', message = '', type = 'info', duration = 4000 }) {
         playNotificationSound();
         const container = document.getElementById('popup-notification-container');
         if (!container) return;
-
         const config = {
             success: {
                 bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -212,10 +194,8 @@
             icon: 'fa-solid fa-bell text-teal-400',
             bar: 'bg-teal-400'
         };
-
         const toast = document.createElement('div');
         toast.className = `pointer-events-auto transform translate-x-full opacity-0 transition-all duration-300 ease-out p-4 rounded-2xl border shadow-xl ${config.bg} flex items-start gap-3 relative overflow-hidden`;
-
         toast.innerHTML = `
             <div class="text-xl shrink-0 mt-0.5">
                 <i class="${config.icon}"></i>
@@ -230,71 +210,32 @@
             </button>
             <div class="absolute bottom-0 left-0 h-1 ${config.bar} transition-all duration-[${duration}ms]" style="width: 100%; transition: width ${duration}ms linear;" id="progress-bar"></div>
         `;
-
         container.appendChild(toast);
-
         // Hiệu ứng trượt vào
         setTimeout(() => {
             toast.classList.remove('translate-x-full', 'opacity-0');
             const pBar = toast.querySelector('#progress-bar');
             if (pBar) pBar.style.width = '0%';
         }, 20);
-
         // Tự động đóng sau `duration`
         setTimeout(() => {
             toast.classList.add('translate-x-full', 'opacity-0');
             setTimeout(() => toast.remove(), 300);
         }, duration);
     }
-
-    // NÚT BẤM TEST POPUP THÔNG BÁO VỚI CÁC KỊCH BẢN THỰC TẾ
-    let testNotifyIndex = 0;
-    function triggerTestNotification(specificType = null) {
-        const scenarios = [
-            {
-                title: 'Lịch Hẹn Mới Vừa Đến! 📅',
-                message: 'Bệnh nhân Nguyễn Văn An vừa đặt lịch khám Khoa Tim Mạch lúc 14:00 hôm nay.',
-                type: 'info'
-            },
-            {
-                title: 'Kê Đơn Thuốc Thành Công! 💊',
-                message: 'Hồ sơ EMR #PK2609012 đã xuất đơn thuốc sang quầy Dược thành công.',
-                type: 'success'
-            },
-            {
-                title: 'Cảnh Báo Lâm Sàng! ⚠️',
-                message: 'Bệnh nhân Lê Thị B có tiền sử dị ứng kháng sinh nhóm Penicillin!',
-                type: 'warning'
-            },
-            {
-                title: 'Cập Nhật CSDL Khóa Luận! 🏥',
-                message: 'Hệ thống H2T Healthcare đã đồng bộ dữ liệu Bệnh nhân và Bác sĩ an toàn 100%.',
-                type: 'success'
-            }
-        ];
-
-        const item = specificType 
-            ? scenarios.find(s => s.type === specificType) || scenarios[0]
-            : scenarios[testNotifyIndex % scenarios.length];
-
-        testNotifyIndex++;
-        showAppNotification({
-            title: item.title,
-            message: item.message,
-            type: item.type,
-            duration: 4500
-        });
-    }
-
     // ==========================================
     // CƠ CHẾ ĐỒNG BỘ THÔNG BÁO THỜI GIAN THỰC (POLLING VÀ TOAST REALTIME)
     // ==========================================
-    let lastNotificationId = parseInt(sessionStorage.getItem('h2t_last_notif_id') || '0');
-    let isFirstNotificationPoll = true;
+    const currentAdminUserId = {{ curr_user.get('id', 0) }};
+    const adminStorageKey = 'h2t_admin_notif_last_id_' + currentAdminUserId;
+    let lastNotificationId = parseInt(sessionStorage.getItem(adminStorageKey) || '0');
+    let isInitialLoad = !sessionStorage.getItem(adminStorageKey);
 
     async function pollNotificationsRealtime() {
+        if (!currentAdminUserId) return;
         try {
-            const res = await fetch(`/api/notifications/poll?last_id=${lastNotificationId}`);
+            const isInitParam = isInitialLoad ? '&init=1' : '';
+            const res = await fetch(`/api/notifications/poll?last_id=${lastNotificationId}${isInitParam}`);
             if (!res.ok) return;
             const data = await res.json();
             if (!data.success) return;
@@ -313,37 +254,52 @@
             // 2. Render danh sách thông báo vào menu Dropdown
             renderNotificationDropdownList(data.recent_list || []);
 
-            // 3. Nếu có thông báo mới (và không phải lần đầu tải trang): Bật Toast Notification
-            if (!isFirstNotificationPoll && data.new_notifications && data.new_notifications.length > 0) {
-                // Đảo ngược để thông báo cũ hiện trước, mới nhất hiện sau
-                data.new_notifications.slice().reverse().forEach(n => {
-                    let type = 'info';
-                    const loai = (n.loai_thong_bao || '').toLowerCase();
-                    if (loai.includes('thanh toán') || loai.includes('tiếp nhận') || loai.includes('thành công')) {
-                        type = 'success';
-                    } else if (loai.includes('hủy') || loai.includes('từ chối') || loai.includes('cảnh báo')) {
-                        type = 'warning';
-                    }
-
-                    showAppNotification({
-                        title: n.tieu_de,
-                        message: n.noi_dung,
-                        type: type,
-                        duration: 5000
-                    });
-                });
+            // 3. Nếu là lần đầu mở trang: đồng bộ ID mới nhất mà không bắn popup toast
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                const newLatest = data.latest_id || (data.recent_list && data.recent_list.length > 0 ? Math.max(...data.recent_list.map(n => n.id)) : 0);
+                lastNotificationId = newLatest;
+                sessionStorage.setItem(adminStorageKey, newLatest);
+                return;
             }
 
-            // 4. Lưu lại ID thông báo lớn nhất
-            if (data.recent_list && data.recent_list.length > 0) {
-                const maxId = Math.max(...data.recent_list.map(n => n.id));
-                if (maxId > lastNotificationId) {
-                    lastNotificationId = maxId;
-                    sessionStorage.setItem('h2t_last_notif_id', maxId);
+            // 4. Nếu có thông báo mới phát sinh trong lúc đang làm việc: Bật Toast Popup
+            if (data.new_notifications && data.new_notifications.length > 0) {
+                playNotificationSound();
+
+                if (data.new_notifications.length <= 2) {
+                    data.new_notifications.slice().reverse().forEach(n => {
+                        let type = 'info';
+                        const loai = (n.loai_thong_bao || '').toLowerCase();
+                        if (loai.includes('thanh toán') || loai.includes('tiếp nhận') || loai.includes('thành công') || loai.includes('phê duyệt')) {
+                            type = 'success';
+                        } else if (loai.includes('hủy') || loai.includes('từ chối') || loai.includes('cảnh báo')) {
+                            type = 'warning';
+                        }
+
+                        showAppNotification({
+                            title: n.tieu_de,
+                            message: n.noi_dung,
+                            type: type,
+                            duration: 5000
+                        });
+                    });
+                } else {
+                    const first = data.new_notifications[0];
+                    showAppNotification({
+                        title: `Bạn có ${data.new_notifications.length} thông báo mới`,
+                        message: first.noi_dung,
+                        type: 'info',
+                        duration: 5000
+                    });
                 }
             }
 
-            isFirstNotificationPoll = false;
+            // 5. Cập nhật lại ID lớn nhất
+            if (data.latest_id && data.latest_id > lastNotificationId) {
+                lastNotificationId = data.latest_id;
+                sessionStorage.setItem(adminStorageKey, lastNotificationId);
+            }
         } catch (err) {
             console.warn('Lỗi kết nối polling thông báo:', err);
         }
@@ -364,7 +320,8 @@
         }
 
         let html = '';
-        list.forEach(n => {
+        const displayList = (list || []).slice(0, 10);
+        displayList.forEach(n => {
             const isUnread = !n.da_doc;
             const loai = (n.loai_thong_bao || '').toLowerCase();
             let iconClass = 'fa-solid fa-bell text-blue-600 bg-blue-50';
@@ -392,7 +349,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-1">
-                            <h6 class="font-bold text-slate-800 text-xs truncate ${isUnread ? 'text-blue-900' : ''}">${n.tieu_de}</h6>
+                            <h6 class="font-bold text-slate-800 text-xs truncate ${isUnread ? 'text-blue-900 font-extrabold' : ''}">${n.tieu_de}</h6>
                             ${isUnread ? '<span class="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>' : ''}
                         </div>
                         <p class="text-slate-600 text-[11px] mt-0.5 line-clamp-2 leading-relaxed">${n.noi_dung}</p>
@@ -431,15 +388,21 @@
             const data = await res.json();
             if (data.success) {
                 pollNotificationsRealtime();
+                const unreadBadges = document.querySelectorAll('#admin-unread-badge');
+                unreadBadges.forEach(b => b.classList.add('hidden'));
+                const pageList = document.getElementById('admin-notifications-page-list');
+                if (pageList) {
+                    pageList.querySelectorAll('.bg-blue-50\\/20').forEach(el => el.classList.remove('bg-blue-50/20'));
+                    pageList.querySelectorAll('.bg-blue-100, .bg-blue-600').forEach(el => el.remove());
+                }
             }
         } catch (e) {
             console.error('Lỗi đánh dấu đã đọc:', e);
         }
     }
 
-    // Bắt đầu chu trình polling khi tải trang và lặp lại mỗi 5 giây
     document.addEventListener('DOMContentLoaded', () => {
         pollNotificationsRealtime();
         setInterval(pollNotificationsRealtime, 5000);
     });
-</script>
+</script>

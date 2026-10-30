@@ -295,6 +295,7 @@
         ma_bn: a.ma_benh_nhan,
         ho_ten: a.ho_ten_benh_nhan,
         id: a.benh_nhan_id,
+        appointment_id: a.id,
         gio: (a.gio_hen || '08:00').slice(0, 5),
         phong: a.ten_phong || a.ten_khoa || 'Phòng Khám Nội',
         loai: a.ma_lich_hen.includes('WEB') ? 'Đặt trước (Web)' : 'Trực tiếp',
@@ -343,7 +344,7 @@
                         <button type="button" onclick="callPatientNumber('${q.stt}', '${q.ho_ten}')" class="px-2.5 py-1 bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold rounded-lg text-xs" title="Gọi số thứ tự">
                             <i class="fa-solid fa-bullhorn mr-1"></i> Gọi Số
                         </button>
-                        <a href="/admin/emr?patient_id=${q.id}" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Khám bệnh EMR">
+                        <a href="/admin/emr?patient_id=${q.id}&appointment_id=${q.appointment_id || ''}" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center" title="Khám bệnh EMR">
                             <i class="fa-solid fa-stethoscope text-xs"></i>
                         </a>
                     </div>

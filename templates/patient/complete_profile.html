@@ -237,7 +237,7 @@
                                 </span>
                                 <span class="text-[10px] text-slate-400">Chọn nhiều</span>
                             </label>
-                            <input type="hidden" name="di_ung" id="complete_di_ung" value="{{ form.di_ung if form else (patient.di_ung if patient else 'Không có') }}">
+                            <input type="hidden" name="di_ung" id="complete_di_ung" value="{{ (form.di_ung if form else (patient.di_ung if patient else '')) or '' }}">
                             <div id="complete-allergy-container" class="space-y-2"></div>
                         </div>
 
@@ -248,7 +248,7 @@
                                 </span>
                                 <span class="text-[10px] text-slate-400">Chọn nhiều</span>
                             </label>
-                            <input type="hidden" name="tien_su_benh" id="complete_tien_su_benh" value="{{ form.tien_su_benh if form else (patient.tien_su_benh if patient else 'Không có') }}">
+                            <input type="hidden" name="tien_su_benh" id="complete_tien_su_benh" value="{{ (form.tien_su_benh if form else (patient.tien_su_benh if patient else '')) or '' }}">
                             <div id="complete-history-container" class="space-y-2"></div>
                         </div>
 
@@ -326,7 +326,7 @@
                     catalog: ALLERGIES,
                     placeholder: 'Gõ tìm kiếm nhóm dị ứng (Penicillin, Hải sản, Aspirin...)...',
                     badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-                    emptyLabel: 'Không có'
+                    emptyLabel: 'Chưa có dữ liệu'
                 });
 
                 window.initCatalogTagSelector({
@@ -335,7 +335,7 @@
                     catalog: HISTORIES,
                     placeholder: 'Gõ tìm kiếm bệnh lý nền (Tăng huyết áp, Đái tháo đường...)...',
                     badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
-                    emptyLabel: 'Không có'
+                    emptyLabel: 'Chưa có dữ liệu'
                 });
             }
         });

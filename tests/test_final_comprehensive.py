@@ -73,6 +73,9 @@ class TestFinalComprehensive(unittest.TestCase):
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM lich_hen WHERE benh_nhan_id = 1 AND ngay_hen = ? AND gio_hen = '09:00'", (target_date,))
+        cursor.execute("DELETE FROM lich_lam_viec WHERE ngay_lam = ?", (target_date,))
+        cursor.execute("INSERT INTO lich_lam_viec (bac_si_id, ngay_lam, ca_lam, phong_kham_id, trang_thai_duyet, trang_thai, so_luong_kham_toi_da, so_luong_da_dang_ky) VALUES (1, ?, 1, 1, 'DA_DUYET', 1, 20, 0)", (target_date,))
+        cursor.execute("INSERT INTO lich_lam_viec (bac_si_id, ngay_lam, ca_lam, phong_kham_id, trang_thai_duyet, trang_thai, so_luong_kham_toi_da, so_luong_da_dang_ky) VALUES (2, ?, 1, 2, 'DA_DUYET', 1, 20, 0)", (target_date,))
         conn.commit()
 
         # Tạo lịch lần 1

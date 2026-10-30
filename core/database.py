@@ -3,6 +3,7 @@ import pyodbc
 from datetime import datetime, date, time
 from decimal import Decimal
 import config
+from flask import current_app, has_app_context
 
 class UnifiedCursor:
     """Cursor bọc chuẩn hóa tương thích cho Microsoft SQL Server."""
@@ -11,21 +12,24 @@ class UnifiedCursor:
         self.lastrowid = None
 
     def execute(self, sql, params=()):
+        self.lastrowid = None
+        is_insert = sql.lstrip().upper().startswith('INSERT')
+        if is_insert:
+            # Same SQL Server batch/scope, unlike @@IDENTITY (which includes triggers).
+            sql = sql.rstrip().rstrip(';') + '; SELECT CAST(SCOPE_IDENTITY() AS bigint) AS __clinic_insert_id;'
         if params:
             self._cur.execute(sql, params)
         else:
             self._cur.execute(sql)
-
-        # Trích xuất SCOPE_IDENTITY() hoặc @@IDENTITY khi chạy INSERT
-        if sql.strip().upper().startswith('INSERT'):
-            try:
-                self._cur.execute('SELECT @@IDENTITY')
-                row = self._cur.fetchone()
-                self.lastrowid = int(row[0]) if row and row[0] is not None else None
-            except Exception:
-                self.lastrowid = None
-        else:
-            self.lastrowid = None
+        if is_insert:
+            while True:
+                description = self._cur.description
+                if description and len(description) == 1 and description[0][0] == '__clinic_insert_id':
+                    row = self._cur.fetchone()
+                    self.lastrowid = int(row[0]) if row and row[0] is not None else None
+                    break
+                if not self._cur.nextset():
+                    raise RuntimeError('SQL Server INSERT identity result is missing')
         return self
 
     def executemany(self, sql, seq_of_params):
@@ -79,11 +83,16 @@ class UnifiedConnection:
 
     def commit(self):
         if self._closed:
-            return None
+            raise RuntimeError('Cannot commit a closed connection')
         try:
             return self._conn.commit()
         except Exception:
-            return None
+            # Preserve the commit error even if cleanup also fails.
+            try:
+                self._conn.rollback()
+            except Exception:
+                self.close()
+            raise
 
     def rollback(self):
         if self._closed:
@@ -106,17 +115,28 @@ class UnifiedConnection:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is not None:
-            self.rollback()
-        else:
-            self.commit()
-        self.close()
-
-_SCHEMA_INITIALIZED = False
+        try:
+            if exc_type is not None:
+                self.rollback()
+            else:
+                self.commit()
+        finally:
+            self.close()
 
 def get_db():
     """Tạo kết nối trực tiếp tới Microsoft SQL Server qua pyodbc kèm retry chống đứt kết nối."""
-    global _SCHEMA_INITIALIZED
+    # Audit and in-app notifications participate in the calendar transaction too.
+    # The import is deferred: importing either module never opens a connection.
+    from core.scheduling import current_connection
+    calendar_connection = current_connection()
+    if calendar_connection is not None:
+        return calendar_connection
+    if has_app_context():
+        factory = current_app.config.get('DATABASE_CONNECTION_FACTORY')
+        if current_app.testing or not current_app.config.get('DATABASE_ACCESS_ENABLED', True):
+            if factory is None:
+                raise RuntimeError('Database access disabled; inject a test connection factory')
+            return factory()
     import time
     cfg = config.SQLSERVER_CONFIG
     servers_to_try = [cfg.get('server', 'localhost'), 'localhost', r'.\SQLEXPRESS', r'localhost\SQLEXPRESS', '.']
@@ -133,12 +153,6 @@ def get_db():
             try:
                 raw_conn = pyodbc.connect(conn_str, timeout=4)
                 conn = UnifiedConnection(raw_conn)
-                if not _SCHEMA_INITIALIZED:
-                    try:
-                        ensure_schema_updates(conn)
-                        _SCHEMA_INITIALIZED = True
-                    except Exception as ex_init:
-                        print("[Database] Schema check exception:", ex_init)
                 return conn
             except Exception as e:
                 last_err = e
@@ -149,6 +163,8 @@ def get_db():
 
 def ensure_schema_updates(conn):
     """Đảm bảo các bảng, cột và chỉ mục trong Microsoft SQL Server luôn cập nhật đầy đủ."""
+    if has_app_context() and current_app.testing:
+        raise RuntimeError('Schema updates disabled in testing')
     try:
         cursor = conn.cursor()
         stmts = [

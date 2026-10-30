@@ -16,6 +16,7 @@ backups/*.bak
 
 # Uploaded media (giu repo nhe, khong commit anh nguoi dung upload)
 static/uploads/
+private_uploads/
 
 # IDE & OS
 .vscode/

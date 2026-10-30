@@ -66,7 +66,7 @@
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <h3 class="text-xl font-bold text-slate-900">{{ patient.ho_ten }}</h3>
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-bold {% if patient.gioi_tinh == 'Nam' %}bg-blue-50 text-blue-700{% else %}bg-pink-50 text-pink-700{% endif %}">
-                            {{ patient.gioi_tinh }} • {{ patient.tuoi }} tuổi
+                            {{ patient.gioi_tinh }} • {{ patient.tuoi|clinical }} tuổi
                         </span>
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 font-mono">
                             Mã: {{ patient.ma_benh_nhan }}
@@ -184,7 +184,7 @@
             <div>
                 <span class="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">Tiền Sử Bệnh Lý Nền</span>
                 <p class="text-xs font-bold text-slate-900 mt-0.5">
-                    {{ patient.tien_su_benh or 'Không ghi nhận bệnh mãn tính' }}
+                    {{ patient.tien_su_benh|clinical }}
                 </p>
                 <span class="text-[10px] text-slate-500">Bệnh sử bản thân đã ghi nhận</span>
             </div>
@@ -198,7 +198,7 @@
             <div>
                 <span class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider block">Tiền Sử Di Truyền</span>
                 <p class="text-xs font-bold text-slate-900 mt-0.5">
-                    {{ patient.tien_su_gia_dinh or 'Gia đình không có tiền sử bệnh' }}
+                    {{ patient.tien_su_gia_dinh|clinical }}
                 </p>
                 <span class="text-[10px] text-slate-500">Yếu tố nguy cơ gia đình</span>
             </div>
@@ -214,57 +214,57 @@
                 </span>
                 <h4 class="font-bold text-slate-900 text-sm">Chỉ Số Sinh Hiệu và Thể Trạng Đo Gần Nhất</h4>
             </div>
-            <span class="text-xs text-slate-400 font-mono">Đo lúc: 20/09/2026 08:15 (Phòng Điều Dưỡng)</span>
+            <span class="text-xs text-slate-400 font-mono">Chỉ hiển thị số liệu đã ghi nhận</span>
         </div>
 
         {% if patient.vitals %}
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 text-center">
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Huyết áp</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.huyet_ap }}</span>
-                <span class="text-[10px] text-emerald-600 font-semibold">Ổn định</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.huyet_ap|clinical('Chưa đo') }}</span>
+
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Nhịp tim / Mạch</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.mach }}</span>
-                <span class="text-[10px] text-slate-500">Đều</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.mach|clinical('Chưa đo') }}</span>
+
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Thân nhiệt</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.nhiet_do }}</span>
-                <span class="text-[10px] text-emerald-600 font-semibold">Bình thường</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.nhiet_do|clinical('Chưa đo') }}</span>
+
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">SpO2</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.spo2 }}</span>
-                <span class="text-[10px] text-emerald-600 font-semibold">Đạt chuẩn</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.spo2|clinical('Chưa đo') }}</span>
+
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Nhịp thở</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.nhip_tho }}</span>
-                <span class="text-[10px] text-slate-500">Êm dịu</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.nhip_tho|clinical('Chưa đo') }}</span>
+
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Chiều cao</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.chieu_cao }}</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.chieu_cao|clinical('Chưa đo') }}</span>
                 <span class="text-[10px] text-slate-400">cm</span>
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Cân nặng</span>
-                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.can_nang }}</span>
+                <span class="text-sm font-bold text-slate-900 block mt-1 font-mono">{{ patient.vitals.can_nang|clinical('Chưa đo') }}</span>
                 <span class="text-[10px] text-slate-400">kg</span>
             </div>
 
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span class="text-[11px] text-slate-400 block font-medium">Chỉ số BMI</span>
-                <span class="text-sm font-bold text-medical-600 block mt-1 font-mono">{{ patient.vitals.bmi.split(' ')[0] }}</span>
-                <span class="text-[10px] text-emerald-600 font-semibold">Chuẩn</span>
+                <span class="text-sm font-bold text-medical-600 block mt-1 font-mono">{{ patient.vitals.bmi|clinical('Chưa đo') }}</span>
+
             </div>
         </div>
         {% else %}
@@ -357,10 +357,10 @@
                                     <td class="py-2.5 px-3 font-semibold text-slate-800">{{ cls.ten }}</td>
                                     <td class="py-2.5 px-3 text-slate-500">{{ cls.loai }}</td>
                                     <td class="py-2.5 px-3 text-slate-600">{{ cls.bac_si_thuc_hien }}</td>
-                                    <td class="py-2.5 px-3 text-teal-800 font-medium">{{ cls.ket_qua }}</td>
+                                    <td class="py-2.5 px-3 text-teal-800 font-medium">{{ cls.ket_qua|clinical }}</td>
                                     <td class="py-2.5 px-3 text-center">
                                         {% if cls.file_ket_qua %}
-                                        <button type="button" onclick="openDetailImageModal('{{ cls.file_ket_qua }}', '{{ cls.ten }}', '{{ cls.ket_qua }}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm">
+                                        <button type="button" onclick="openDetailImageModal('{{ cls.file_ket_qua }}', '{{ cls.ten }}', '{{ cls.ket_qua|clinical }}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-[11px] inline-flex items-center gap-1.5 transition-all shadow-sm">
                                             <i class="fa-solid fa-image"></i>
                                             <span>Xem ảnh</span>
                                         </button>
@@ -477,8 +477,13 @@
         const descEl = document.getElementById('detail-image-modal-desc');
         if (!modal || !img) return;
 
+        let images;
+        try { images = JSON.parse(imageUrl); } catch (_) { images = [imageUrl]; }
+        if (!Array.isArray(images)) images = [imageUrl];
+        imageUrl = images.find(value => typeof value === 'string' && value.startsWith('/medical-images/'));
+        if (!imageUrl) return;
         img.src = imageUrl;
-        if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-image text-medical-600"></i> ${title || 'Ảnh chụp Cận lâm sàng'}`;
+        if (titleEl) titleEl.textContent = title || 'Ảnh chụp Cận lâm sàng';
         if (descEl) descEl.innerText = desc ? `Kết luận: ${desc}` : 'Hình ảnh chẩn đoán kỹ thuật số chuẩn HD';
         modal.classList.remove('hidden');
     }

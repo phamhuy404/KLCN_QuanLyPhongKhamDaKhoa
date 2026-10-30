@@ -1,30 +1,20 @@
 from datetime import datetime, date
 from core.database import get_db
+from core.clinical_data import clinical_value, patient_request, published_results
+from core.medical_media import protected_image_value
 
 def calculate_patient_age(birth_date):
-    """Tính tuổi chính xác theo ngày tháng năm sinh, tương thích đa định dạng."""
     if not birth_date:
-        return 30
-    try:
-        s = str(birth_date).strip()
-        dt = None
-        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
-            try:
-                dt = datetime.strptime(s[:10], fmt).date()
-                break
-            except ValueError:
-                pass
-        if not dt:
-            import re
-            m = re.search(r'\b(19\d{2}|20\d{2})\b', s)
-            if m:
-                return max(0, datetime.now().year - int(m.group(1)))
-            return 30
-        today = date.today()
-        age = today.year - dt.year - ((today.month, today.day) < (dt.month, dt.day))
-        return max(0, age)
-    except Exception:
-        return 30
+        return None
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+        try:
+            born = datetime.strptime(str(birth_date).strip()[:10], fmt).date()
+            today = date.today()
+            return today.year - born.year - ((today.month, today.day) < (born.month, born.day)) if born <= today else None
+        except ValueError:
+            continue
+    return None
+
 
 class PatientModel:
     """Model quản lý hồ sơ bệnh nhân, sinh hiệu và lịch sử điều trị."""
@@ -52,14 +42,14 @@ class PatientModel:
             p = dict(r)
             p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
             p['vitals'] = {
-                'mach': p.get('mach') or '75 lần/phút',
-                'nhiet_do': p.get('nhiet_do') or '36.8 °C',
-                'huyet_ap': p.get('huyet_ap') or '120/80 mmHg',
-                'spo2': p.get('spo2') or '99 %',
-                'nhip_tho': p.get('nhip_tho') or '18 lần/phút',
-                'chieu_cao': p.get('chieu_cao') or '170 cm',
-                'can_nang': p.get('can_nang') or '65 kg',
-                'bmi': p.get('bmi') or '22.5 (Bình thường)'
+                'mach': clinical_value(p.get('mach')),
+                'nhiet_do': clinical_value(p.get('nhiet_do')),
+                'huyet_ap': clinical_value(p.get('huyet_ap')),
+                'spo2': clinical_value(p.get('spo2')),
+                'nhip_tho': clinical_value(p.get('nhip_tho')),
+                'chieu_cao': clinical_value(p.get('chieu_cao')),
+                'can_nang': clinical_value(p.get('can_nang')),
+                'bmi': clinical_value(p.get('bmi'))
             }
             if include_history:
                 p['lich_su_kham'] = PatientModel.get_patient_history(p['id'])
@@ -104,14 +94,14 @@ class PatientModel:
             p = dict(r)
             p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
             p['vitals'] = {
-                'mach': p.get('mach') or '75 lần/phút',
-                'nhiet_do': p.get('nhiet_do') or '36.8 °C',
-                'huyet_ap': p.get('huyet_ap') or '120/80 mmHg',
-                'spo2': p.get('spo2') or '99 %',
-                'nhip_tho': p.get('nhip_tho') or '18 lần/phút',
-                'chieu_cao': p.get('chieu_cao') or '170 cm',
-                'can_nang': p.get('can_nang') or '65 kg',
-                'bmi': p.get('bmi') or '22.5 (Bình thường)'
+                'mach': clinical_value(p.get('mach')),
+                'nhiet_do': clinical_value(p.get('nhiet_do')),
+                'huyet_ap': clinical_value(p.get('huyet_ap')),
+                'spo2': clinical_value(p.get('spo2')),
+                'nhip_tho': clinical_value(p.get('nhip_tho')),
+                'chieu_cao': clinical_value(p.get('chieu_cao')),
+                'can_nang': clinical_value(p.get('can_nang')),
+                'bmi': clinical_value(p.get('bmi'))
             }
             if include_history:
                 p['lich_su_kham'] = PatientModel.get_patient_history(p['id'])
@@ -147,34 +137,35 @@ class PatientModel:
         p = dict(row)
         p['tuoi'] = calculate_patient_age(p.get('ngay_sinh'))
         p['vitals'] = {
-            'mach': p.get('mach') or '75 lần/phút',
-            'nhiet_do': p.get('nhiet_do') or '36.8 °C',
-            'huyet_ap': p.get('huyet_ap') or '120/80 mmHg',
-            'spo2': p.get('spo2') or '99 %',
-            'nhip_tho': p.get('nhip_tho') or '18 lần/phút',
-            'chieu_cao': p.get('chieu_cao') or '170 cm',
-            'can_nang': p.get('can_nang') or '65 kg',
-            'bmi': p.get('bmi') or '22.5 (Bình thường)'
+            'mach': clinical_value(p.get('mach')),
+            'nhiet_do': clinical_value(p.get('nhiet_do')),
+            'huyet_ap': clinical_value(p.get('huyet_ap')),
+            'spo2': clinical_value(p.get('spo2')),
+            'nhip_tho': clinical_value(p.get('nhip_tho')),
+            'chieu_cao': clinical_value(p.get('chieu_cao')),
+            'can_nang': clinical_value(p.get('can_nang')),
+            'bmi': clinical_value(p.get('bmi'))
         }
         conn.close()
         p['lich_su_kham'] = PatientModel.get_patient_history(p['id'])
         return p
 
     @staticmethod
-    def get_patient_history(patient_id):
+    def get_patient_history(patient_id, approved_only=None):
         """Lấy danh sách các phiếu khám, đơn thuốc và cận lâm sàng của bệnh nhân."""
+        approved_only = patient_request() if approved_only is None else approved_only
         conn = get_db()
         cursor = conn.cursor()
 
         try:
             cursor.execute('''
                 SELECT 
-                    pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
+                    pk.id, pk.lich_hen_id, pk.bac_si_id, pk.phong_kham_id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
                     pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
                     pk.hinh_anh_kham, pk.trang_thai,
-                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
-                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                    COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, N'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, N'Phòng Khám Nội 1') AS phong
                 FROM phieu_kham pk
                 LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
                 LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
@@ -187,12 +178,12 @@ class PatientModel:
         except Exception:
             cursor.execute('''
                 SELECT 
-                    pk.id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
+                    pk.id, pk.lich_hen_id, pk.bac_si_id, pk.phong_kham_id, pk.ma_phieu, pk.thoi_gian_kham, pk.ly_do_kham, pk.trieu_chung,
                     pk.chan_doan_so_bo, pk.chan_doan_icd, pk.huong_dieu_tri, pk.loi_dan, pk.ngay_tai_kham,
                     NULL AS hinh_anh_kham, pk.trang_thai,
-                    COALESCE(nv.ho_ten, 'Bác sĩ trực') AS bac_si,
-                    COALESCE(ck.ten_khoa, 'Khoa Nội Tổng Quát') AS khoa,
-                    COALESCE(p.ten_phong, 'Phòng Khám Nội 1') AS phong
+                    COALESCE(nv.ho_ten, N'Bác sĩ trực') AS bac_si,
+                    COALESCE(ck.ten_khoa, N'Khoa Nội Tổng Quát') AS khoa,
+                    COALESCE(p.ten_phong, N'Phòng Khám Nội 1') AS phong
                 FROM phieu_kham pk
                 LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
                 LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
@@ -220,6 +211,12 @@ class PatientModel:
                 WHERE cd.phieu_kham_id = ?
             ''', (enc['id'],))
             enc['can_lam_sang'] = [dict(r) for r in cursor.fetchall()]
+            if approved_only:
+                enc['can_lam_sang'] = published_results(enc['can_lam_sang'])
+            enc['hinh_anh_kham'] = protected_image_value(enc.get('hinh_anh_kham'))
+            for item in enc['can_lam_sang']:
+                item['ket_qua'] = clinical_value(item.get('ket_qua'))
+                item['file_ket_qua'] = protected_image_value(item.get('file_ket_qua'))
 
             # Lấy thông tin đơn thuốc và hình thức mua
             cursor.execute('''
@@ -279,7 +276,7 @@ class PatientModel:
     @staticmethod
     def get_all_lab_results(patient_id):
         """Lấy toàn bộ kết quả Cận lâm sàng của bệnh nhân và tổng hợp số liệu tại BackEnd."""
-        history = PatientModel.get_patient_history(patient_id)
+        history = PatientModel.get_patient_history(patient_id, approved_only=True)
         all_cls = []
         for enc in history:
             for cls in enc.get('can_lam_sang', []):
@@ -288,16 +285,16 @@ class PatientModel:
                     'enc': enc,
                     'ten': cls.get('ten'),
                     'loai': cls.get('loai') or 'Xét nghiệm',
-                    'ket_qua': cls.get('ket_qua') or 'Bình thường trong giới hạn tham chiếu',
+                    'ket_qua': clinical_value(cls.get('ket_qua')),
                     'bac_si_thuc_hien': cls.get('bac_si_thuc_hien') or enc.get('bac_si') or 'KTV Xét nghiệm',
                     'file_ket_qua': cls.get('file_ket_qua'),
-                    'trang_thai': cls.get('trang_thai') or 'Đã có kết quả',
+                    'trang_thai': cls.get('trang_thai'),
                     'ma_phieu': enc.get('ma_phieu'),
                     'thoi_gian_kham': enc.get('thoi_gian_kham')
                 })
         cls_stats = {
             'tong_cls': len(all_cls),
-            'da_co_ket_qua': len([x for x in all_cls if x.get('trang_thai') in ['Đã có kết quả', 'Đã duyệt']]),
+            'da_co_ket_qua': len([x for x in all_cls if x.get('trang_thai') == 'Đã duyệt' and clinical_value(x.get('ket_qua')) is not None]),
             'dot_kham_lien_quan': len(history)
         }
         return all_cls, cls_stats
@@ -372,7 +369,7 @@ class PatientModel:
                 tai_khoan_id,
                 ma_benh_nhan,
                 data.get('ho_ten'),
-                data.get('ngay_sinh', '1990-01-01'),
+                clinical_value(data.get('ngay_sinh')),
                 data.get('gioi_tinh', 'Nam'),
                 data.get('sdt'),
                 data.get('email', ''),
@@ -381,8 +378,8 @@ class PatientModel:
                 data.get('dia_chi', ''),
                 data.get('nhom_mau', 'Chưa rõ'),
                 data.get('ghi_chu_nhom_mau') or data.get('nhom_mau_bien_the', ''),
-                data.get('di_ung') or data.get('tien_su_di_ung', 'Không có'),
-                data.get('tien_su_benh') or data.get('benh_ly_nen', 'Không có'),
+                clinical_value(data.get('di_ung') or data.get('tien_su_di_ung')),
+                clinical_value(data.get('tien_su_benh') or data.get('benh_ly_nen')),
                 co_tai_khoan
             ))
             patient_id = cursor.lastrowid
@@ -392,14 +389,14 @@ class PatientModel:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 patient_id,
-                data.get('mach', '75 lần/phút'),
-                data.get('nhiet_do', '36.8 °C'),
-                data.get('huyet_ap', '120/80 mmHg'),
-                data.get('spo2', '99 %'),
-                data.get('nhip_tho', '18 lần/phút'),
-                data.get('chieu_cao', '170 cm'),
-                data.get('can_nang', '65 kg'),
-                data.get('bmi', '22.5 (Bình thường)')
+                clinical_value(data.get('mach')),
+                clinical_value(data.get('nhiet_do')),
+                clinical_value(data.get('huyet_ap')),
+                clinical_value(data.get('spo2')),
+                clinical_value(data.get('nhip_tho')),
+                clinical_value(data.get('chieu_cao')),
+                clinical_value(data.get('can_nang')),
+                clinical_value(data.get('bmi'))
             ))
 
             conn.commit()

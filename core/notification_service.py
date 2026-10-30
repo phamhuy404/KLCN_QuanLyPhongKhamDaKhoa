@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import config
+from flask import current_app, has_app_context
 from core.database import get_db
 
 class NotificationService:
@@ -37,6 +38,8 @@ class NotificationService:
     @staticmethod
     def send_email(to_email, subject, html_content):
         """Gửi email HTML qua máy chủ SMTP an toàn với TLS/SSL."""
+        if has_app_context() and (current_app.testing or not current_app.config.get('NOTIFICATIONS_ENABLED', True)):
+            return False, 'Notifications disabled'
         if not to_email:
             return False, "Thiếu địa chỉ email người nhận!"
 
@@ -113,6 +116,8 @@ class NotificationService:
     @staticmethod
     def run_all_reminders():
         """Quét và gửi nhắc lịch hẹn khám và lịch tái khám trong vòng 24 - 48 giờ tới."""
+        if has_app_context() and (current_app.testing or not current_app.config.get('NOTIFICATIONS_ENABLED', True)):
+            raise RuntimeError('Notifications disabled')
         stats = {
             'appointments_scanned': 0,
             'appointments_reminded': 0,
@@ -313,8 +318,11 @@ class NotificationService:
     @staticmethod
     def start_background_scheduler(interval_hours=2):
         """Khởi chạy tiến trình kiểm tra định kỳ trong background thread (an toàn không chạy trùng)."""
+        if has_app_context() and (current_app.testing or not current_app.config.get('NOTIFICATIONS_ENABLED', True)):
+            return
         # Nếu đang trong môi trường Werkzeug reloader, chỉ khởi chạy ở worker chính
-        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and getattr(config, 'DEBUG', False):
+        debug = current_app.debug if has_app_context() else getattr(config, 'DEBUG', False)
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and debug:
             return
 
         def _worker():
@@ -331,3 +339,4 @@ class NotificationService:
 
         t = threading.Thread(target=_worker, daemon=True)
         t.start()
+        return t

@@ -1,11 +1,53 @@
 from datetime import datetime
 from core.database import get_db
+from core.scheduling import serialized, CalendarError, integer
+from core.pharmacy_safety import invoices, check_bill, APPROVED, HOSPITAL
+from core.billing_policy import fetch_invoice, validate_invoice, money, CASHIER_ROLES, PAYMENT_METHODS, PAID, UNPAID
+from flask import has_request_context
+from core.security import refresh_session_user
 
 class BillingModel:
     """Model quản lý hóa đơn, viện phí và thanh toán Bảo hiểm Y tế."""
 
     @staticmethod
-    def get_all():
+    def get_invoice(identifier):
+        conn = get_db()
+        try:
+            cursor = conn.cursor()
+            bill = fetch_invoice(cursor, identifier)
+            if bill:
+                cursor.execute('SELECT * FROM chi_tiet_hoa_don WHERE hoa_don_id=? ORDER BY id', (bill['id'],))
+                bill['chi_tiet'] = [dict(row) for row in cursor.fetchall()]
+            return bill
+        except CalendarError:
+            return None
+        finally:
+            conn.close()
+
+    @staticmethod
+    def payment_instructions(identifier, patient_id=None):
+        """Read-only instructions, not a transfer, receipt or persistent transaction."""
+        conn = get_db()
+        try:
+            cursor = conn.cursor()
+            bill = fetch_invoice(cursor, identifier)
+            if not bill:
+                return False, 'Không tìm thấy hóa đơn.'
+            if patient_id is not None and bill['benh_nhan_id'] != patient_id:
+                return False, 'Hóa đơn không thuộc bệnh nhân.'
+            if bill['trang_thai'] != UNPAID:
+                return False, 'Hóa đơn không ở trạng thái chờ thanh toán.'
+            validate_invoice(cursor, bill)
+            return True, {'invoice_id': bill['id'], 'ma_hoa_don': bill['ma_hoa_don'],
+                          'amount': bill['thanh_tien'], 'status': bill['trang_thai'],
+                          'gateway_enabled': False, 'payment_confirmed': False}
+        except (CalendarError, ValueError) as exc:
+            return False, str(exc)
+        finally:
+            conn.close()
+
+    @staticmethod
+    def get_all(patient_id=None):
         """Lấy toàn bộ danh sách hóa đơn viện phí cùng chi tiết các khoản thu."""
         conn = get_db()
         cursor = conn.cursor()
@@ -36,8 +78,9 @@ class BillingModel:
                 bn.sdt
             FROM hoa_don hd
             JOIN benh_nhan bn ON hd.benh_nhan_id = bn.id
+            WHERE (? IS NULL OR hd.benh_nhan_id=?)
             ORDER BY hd.id DESC
-        ''')
+        ''', (patient_id, patient_id))
         invoices = [dict(r) for r in cursor.fetchall()]
 
         for inv in invoices:
@@ -53,7 +96,7 @@ class BillingModel:
             inv['thuc_thu'] = inv['thanh_tien']
             inv['patient_id'] = inv['benh_nhan_id']
             inv['phuong_thuc'] = inv.get('hinh_thuc_thanh_toan') or 'Tiền mặt'
-            inv['status'] = 'paid' if inv['trang_thai'] == 'Đã thanh toán' else 'pending'
+            inv['status'] = {'Đã thanh toán':'paid', 'Chưa thanh toán':'pending', 'Đã hủy':'canceled'}.get(inv['trang_thai'], 'unknown')
 
             # Lấy chi tiết các khoản thu
             cursor.execute('''
@@ -91,42 +134,53 @@ class BillingModel:
     @staticmethod
     def get_by_patient(patient_id):
         """Lấy danh sách hóa đơn của bệnh nhân."""
-        all_invoices = BillingModel.get_all()
-        return [inv for inv in all_invoices if inv['benh_nhan_id'] == patient_id]
+        patient_id = integer(patient_id)
+        if patient_id <= 0:
+            raise CalendarError('Mã bệnh nhân không hợp lệ.')
+        return BillingModel.get_all(patient_id=patient_id)
 
     @staticmethod
-    def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân'):
+    @serialized
+    def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân', audit_user=None, expected_amount=None):
         """Xác nhận thu viện phí và đổi trạng thái hóa đơn thành Đã thanh toán kèm thông báo in-app."""
+        actor = refresh_session_user() if has_request_context() else audit_user
+        if not actor or actor.get('vai_tro') not in CASHIER_ROLES or not actor.get('id'):
+            return False, 'Chi nhan vien thu ngan duoc phan quyen moi duoc xac nhan thu.'
+        if payment_method not in PAYMENT_METHODS:
+            return False, 'Chi ho tro thu tien mat hoac chuyen khoan doi soat thu cong.'
+        cashier_name = actor.get('ho_ten') or str(actor['id'])
         conn = get_db()
         cursor = conn.cursor()
 
         try:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            is_num = str(invoice_id_or_code).isdigit()
-            if is_num:
-                cursor.execute('SELECT id, ma_hoa_don, benh_nhan_id, phieu_kham_id, thanh_tien FROM hoa_don WHERE id = ? OR ma_hoa_don = ?', (int(invoice_id_or_code), str(invoice_id_or_code)))
-            else:
-                cursor.execute('SELECT id, ma_hoa_don, benh_nhan_id, phieu_kham_id, thanh_tien FROM hoa_don WHERE ma_hoa_don = ?', (str(invoice_id_or_code),))
-            hd_row = cursor.fetchone()
+            hd_row = fetch_invoice(cursor, invoice_id_or_code, lock=True)
+            if not hd_row:
+                raise CalendarError('Khong tim thay hoa don.')
+            if hd_row['trang_thai'] != UNPAID:
+                raise CalendarError('Hoa don da thanh toan, da huy hoac trang thai khong hop le; khong ghi nhan thu lai.')
+            if expected_amount is not None and money(expected_amount) != money(hd_row['thanh_tien']):
+                raise CalendarError('So tien da thay doi; vui long tai lai va doi soat.')
+            validate_invoice(cursor, hd_row)
+            if str(hd_row['ma_hoa_don']).startswith('HDT'):
+                from models.pharmacy_model import PharmacyModel
+                cursor.execute('SELECT id FROM don_thuoc WHERE phieu_kham_id=?', (hd_row['phieu_kham_id'],))
+                orders = cursor.fetchall()
+                if len(orders) != 1:
+                    raise CalendarError('Khong xac dinh duoc don thuoc duy nhat.')
+                prescription = PharmacyModel.get_prescription_detail(orders[0]['id'])
+                bills = invoices(cursor, prescription)
+                if len(bills) != 1 or bills[0]['id'] != hd_row['id'] or prescription['trang_thai'] not in APPROVED or prescription['hinh_thuc_mua'] != HOSPITAL:
+                    raise CalendarError('Don thuoc chua duyet hoac hoa don khong hop le.')
+                check_bill(cursor, bills[0], prescription)
 
-            if is_num:
-                cursor.execute('''
-                    UPDATE hoa_don 
-                    SET trang_thai = ?,
-                        hinh_thuc_thanh_toan = ?,
-                        nhan_vien_thu = ?,
-                        thoi_gian_thanh_toan = ?
-                    WHERE id = ? OR ma_hoa_don = ?
-                ''', ('Đã thanh toán', payment_method, cashier_name, now_str, int(invoice_id_or_code), str(invoice_id_or_code)))
-            else:
-                cursor.execute('''
-                    UPDATE hoa_don 
-                    SET trang_thai = ?,
-                        hinh_thuc_thanh_toan = ?,
-                        nhan_vien_thu = ?,
-                        thoi_gian_thanh_toan = ?
-                    WHERE ma_hoa_don = ?
-                ''', ('Đã thanh toán', payment_method, cashier_name, now_str, str(invoice_id_or_code)))
+            cursor.execute('''UPDATE hoa_don
+                SET trang_thai=?, hinh_thuc_thanh_toan=?, nhan_vien_thu=?, thoi_gian_thanh_toan=?
+                OUTPUT inserted.id AS paid_invoice_id
+                WHERE id=? AND trang_thai=?''',
+                (PAID, payment_method, cashier_name, now_str, hd_row['id'], UNPAID))
+            if not cursor.fetchone():
+                raise CalendarError('Hoa don da thay doi; vui long tai lai.')
 
             # Nếu là hóa đơn tiền thuốc (HDT): Cập nhật trạng thái nhận thuốc trên hóa đơn và đơn thuốc
             is_drug_invoice = hd_row and str(hd_row.get('ma_hoa_don', '')).startswith('HDT')
@@ -140,8 +194,8 @@ class BillingModel:
                 cursor.execute('''
                     UPDATE don_thuoc 
                     SET trang_thai = N'Chờ nhận thuốc'
-                    WHERE phieu_kham_id = ? AND hinh_thuc_mua = N'Mua tại bệnh viện'
-                ''', (hd_row['phieu_kham_id'],))
+                    WHERE id = ? AND trang_thai = ?
+                ''', (prescription['id'], prescription['trang_thai']))
 
                 # Gửi thông báo cho Quản lý kho dược (Dược sĩ và Admin) để chuẩn bị phát thuốc
                 cursor.execute("SELECT id FROM tai_khoan WHERE vai_tro_id IN (1, 4) AND trang_thai = 1")

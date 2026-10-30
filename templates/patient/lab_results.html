@@ -125,14 +125,14 @@
                             {{ item.enc.ma_phieu or 'EMR' }} • {{ (item.enc.thoi_gian_kham|string)[:16] }}
                         </td>
                         <td class="py-3.5 px-5 font-semibold text-teal-800">
-                            {{ item.cls.ket_qua or 'Bình thường trong giới hạn tham chiếu' }}
+                            {{ item.cls.ket_qua|clinical }}
                         </td>
                         <td class="py-3.5 px-5 text-slate-500">
                             {{ item.cls.bac_si_thuc_hien or item.enc.bac_si or 'KTV Xét nghiệm' }}
                         </td>
                         <td class="py-3.5 px-5 text-center">
                             {% if item.cls.file_ket_qua %}
-                            <button type="button" onclick="openPatientImageModal('{{ item.cls.file_ket_qua }}', '{{ item.cls.ten }}', '{{ item.cls.ket_qua }}')" class="px-3 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm">
+                            <button type="button" onclick='openPatientImageModal({{ item.cls.file_ket_qua|tojson }}, {{ item.cls.ten|tojson }}, {{ item.cls.ket_qua|tojson }})' class="px-3 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm">
                                 <i class="fa-solid fa-image"></i>
                                 <span>Xem ảnh</span>
                             </button>
@@ -142,7 +142,7 @@
                         </td>
                         <td class="py-3.5 px-5 text-center">
                             <span class="bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full text-[11px]">
-                                {{ item.cls.trang_thai or 'Đã có kết quả' }}
+                                {{ item.cls.trang_thai|clinical }}
                             </span>
                         </td>
                     </tr>
@@ -155,9 +155,9 @@
             <div class="w-14 h-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center text-2xl mx-auto">
                 <i class="fa-solid fa-flask-vial"></i>
             </div>
-            <h4 class="font-bold text-slate-700 text-sm">Chưa có chỉ định cận lâm sàng</h4>
+            <h4 class="font-bold text-slate-700 text-sm">Chưa có kết quả cận lâm sàng đã duyệt</h4>
             <p class="text-xs text-slate-400 max-w-md mx-auto">
-                Hồ sơ của bạn hiện tại chưa có y lệnh cận lâm sàng hoặc xét nghiệm máu nào. Khi bác sĩ ra chỉ định trong đợt khám, kết quả phân tích từ phòng xét nghiệm sẽ tự động xuất hiện tại đây.
+                Kết quả và ảnh xét nghiệm chỉ được công bố sau khi đã duyệt. Kết quả trống không có nghĩa là bình thường.
             </p>
         </div>
         {% endif %}
@@ -177,6 +177,7 @@
             <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
                 <img id="patient-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
             </div>
+            <div id="patient-image-modal-thumbnails" class="p-2 flex gap-2 overflow-x-auto"></div>
             <div class="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
                 <span id="patient-image-modal-desc">Hình ảnh chẩn đoán kỹ thuật số chuẩn HD</span>
                 <div class="flex items-center gap-2">
@@ -198,9 +199,27 @@
             const dlLink = document.getElementById('patient-image-modal-download');
             if (!modal || !img) return;
 
+            let images;
+            try { images = JSON.parse(imageUrl); } catch (_) { images = [imageUrl]; }
+            if (!Array.isArray(images)) images = [imageUrl];
+            images = images.filter(value => typeof value === 'string' && value.startsWith('/medical-images/'));
+            imageUrl = images[0];
+            if (!imageUrl) return;
             img.src = imageUrl;
             if (dlLink) dlLink.href = imageUrl;
-            if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-image text-medical-600"></i> ${title || 'Ảnh chụp Cận lâm sàng'}`;
+            const thumbnails = document.getElementById('patient-image-modal-thumbnails');
+            if (thumbnails) {
+                thumbnails.replaceChildren();
+                images.forEach((source, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.textContent = `Ảnh ${index + 1}`;
+                    button.className = 'px-3 py-1 rounded bg-slate-100 text-xs';
+                    button.onclick = () => { img.src = source; if (dlLink) dlLink.href = source; };
+                    thumbnails.append(button);
+                });
+            }
+            if (titleEl) titleEl.textContent = title || 'Ảnh chụp Cận lâm sàng';
             if (descEl) descEl.innerText = desc ? `Kết quả phân tích: ${desc}` : 'Hình ảnh chẩn đoán kỹ thuật số chuẩn HD';
             modal.classList.remove('hidden');
         }

@@ -28,13 +28,13 @@
                 Quản Lý Viện Phí, BHYT và Thu Ngân Phòng Khám
             </h2>
             <p class="text-xs text-slate-500 mt-1">
-                Thanh toán viện phí, quyết toán chi phí khám chữa bệnh BHYT, xuất hóa đơn điện tử và thanh toán chuyển khoản VietQR tự động.
+                Thanh toán viện phí, quyết toán chi phí khám chữa bệnh BHYT, xuất hóa đơn điện tử và xác nhận thu tiền thủ công sau khi đối soát.
             </p>
         </div>
 
         <div class="flex items-center gap-2.5">
             <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                <i class="fa-solid fa-qrcode text-emerald-600"></i> Cổng VietQR 24/7 trực tuyến
+                <i class="fa-solid fa-qrcode text-emerald-600"></i> Chưa tích hợp cổng thanh toán
             </span>
         </div>
     </div>
@@ -98,7 +98,8 @@
             <div class="sm:col-span-3">
                 <select id="filter-invoice-payment" onchange="filterInvoices()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
                     <option value="">Tất cả Phương thức</option>
-                    <option value="Chuyển khoản QR">Chuyển khoản VietQR</option>
+                    <option value="Chuyển khoản">Chuyển khoản (thu thủ công)</option>
+                    <option value="Chuyển khoản QR">Chuyển khoản QR (lịch sử)</option>
                     <option value="Tiền mặt">Tiền mặt</option>
                     <option value="Thẻ POS">Thẻ ngân hàng (POS)</option>
                 </select>
@@ -154,13 +155,13 @@
         </div>
 
         <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs space-y-1">
-            <div class="flex justify-between"><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="pay-name">Hoàng Bảo Nam</strong></div>
-            <div class="flex justify-between"><span class="text-slate-400">Mã hóa đơn:</span> <span class="font-mono font-bold text-medical-700" id="pay-code">HD260901</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Tổng chi phí KCB:</span> <span class="font-mono text-slate-700" id="pay-total">920.000 đ</span></div>
-            <div class="flex justify-between"><span class="text-slate-400">Bảo hiểm Y tế chi trả:</span> <span class="font-mono text-teal-700" id="pay-bhyt">- 480.000 đ</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Bệnh nhân:</span> <strong class="text-slate-800" id="pay-name">—</strong></div>
+            <div class="flex justify-between"><span class="text-slate-400">Mã hóa đơn:</span> <span class="font-mono font-bold text-medical-700" id="pay-code">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Tổng chi phí KCB:</span> <span class="font-mono text-slate-700" id="pay-total">—</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Bảo hiểm Y tế chi trả:</span> <span class="font-mono text-teal-700" id="pay-bhyt">—</span></div>
             <div class="flex justify-between pt-1 border-t border-slate-200 text-sm">
                 <span class="font-bold text-slate-900">Số tiền người bệnh thực trả:</span>
-                <span class="font-black text-rose-600 font-mono" id="pay-final">440.000 đ</span>
+                <span class="font-black text-rose-600 font-mono" id="pay-final">—</span>
             </div>
         </div>
 
@@ -173,21 +174,17 @@
             <div id="pay-details-list" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
         </div>
 
-        <!-- Mã VietQR thanh toán tự động -->
-        <div class="text-center p-3 bg-white rounded-xl border border-slate-200 space-y-2">
-            <span class="text-[11px] font-bold text-slate-600 block">Quét mã VietQR chuyển khoản nhanh</span>
-            <div class="w-40 h-40 mx-auto bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 overflow-hidden">
-                <img id="pay-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=H2T_CARE" alt="VietQR" class="w-full h-full object-contain">
-            </div>
-            <span class="text-[10px] text-slate-400 block font-mono">Tự động đối soát giao dịch qua STK 1903686868</span>
-        </div>
-
+        <p class="text-xs text-amber-700">Chưa tích hợp cổng thanh toán hay đối soát tự động. Chỉ xác nhận sau khi thực sự nhận tiền.</p>
+        <select id="manual-payment-method" class="w-full border rounded-xl p-2">
+            <option value="Tiền mặt">Tiền mặt</option>
+            <option value="Chuyển khoản">Chuyển khoản (đối soát thủ công)</option>
+        </select>
         <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
             <button type="button" onclick="closePaymentModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs">
                 Đóng
             </button>
-            <button type="button" onclick="confirmPaymentSuccess()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
-                <i class="fa-solid fa-check"></i> Xác Nhận Đã Thu Tiền và In
+            <button id="confirm-manual-payment" type="button" onclick="confirmPaymentSuccess()" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 flex items-center gap-1.5">
+                <i class="fa-solid fa-check"></i> Xác nhận đã thu tiền
             </button>
         </div>
     </div>
@@ -201,6 +198,7 @@
     // Toàn bộ dữ liệu, biến số tính toán và bóc tách đã được chuẩn hóa tại BackEnd
     var invoices = rawInvoices;
 
+    const canConfirmPayment = {{ (session.get('user', {}).get('vai_tro') in ['ADMIN', 'LETAN']) | tojson }};
     let activeInvoiceId = null;
 
     function renderInvoices(dataList) {
@@ -218,7 +216,7 @@
 
             const statusBadge = inv.status === 'paid'
                 ? '<span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã thanh toán</span>'
-                : '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ thu tiền</span>';
+                : inv.status === 'pending' ? '<span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Chờ thu tiền</span>' : '<span class="text-slate-500">' + (inv.status === 'canceled' ? 'Đã hủy' : 'Cần kiểm tra') + '</span>';
 
             tr.innerHTML = `
                 <td class="py-3.5 px-4 font-mono font-bold text-medical-700">${inv.ma_hd}</td>
@@ -243,7 +241,7 @@
                 <td class="py-3.5 px-4 text-center">
                     <div class="flex items-center justify-center gap-1.5">
                         <button type="button" onclick="openPaymentModal(${inv.id})" class="px-2.5 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs transition-colors" title="Thanh toán / In hóa đơn">
-                            <i class="fa-solid fa-receipt mr-1"></i> Thu Tiền
+                            <i class="fa-solid fa-receipt mr-1"></i> ${canConfirmPayment && inv.status === 'pending' ? 'Thu tiền' : 'Xem hóa đơn'}
                         </button>
                     </div>
                 </td>
@@ -316,12 +314,7 @@
             }
         }
 
-        // Cập nhật mã VietQR
-        const qrImg = document.getElementById('pay-qr-img');
-        if (qrImg) {
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent('VIETQR|MB|1903686868|' + inv.thuc_thu + '|' + inv.ma_hd)}`;
-        }
-
+        document.getElementById('confirm-manual-payment').hidden = !canConfirmPayment || inv.status !== 'pending';
         document.getElementById('payment-modal').classList.remove('hidden');
     }
 
@@ -332,14 +325,17 @@
     function confirmPaymentSuccess() {
         if (!activeInvoiceId) return;
         const inv = invoices.find(x => x.id === activeInvoiceId);
-        if (!inv) return;
+        if (!inv || !canConfirmPayment || inv.status !== 'pending') return;
+        if (!window.confirm('Ban xac nhan da thuc su nhan du so tien ' + inv.thuc_thu.toLocaleString() + ' VND?')) return;
 
         fetch('/api/billing/pay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ma_hd: inv.ma_hd,
-                hinh_thuc_thanh_toan: inv.phuong_thuc || 'Chuyển khoản'
+                hinh_thuc_thanh_toan: document.getElementById('manual-payment-method').value,
+                confirm_received: true,
+                expected_amount: inv.thuc_thu
             })
         })
         .then(res => res.json())

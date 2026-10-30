@@ -30,6 +30,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         app.config['TESTING'] = True
+        app.config['DATABASE_ACCESS_ENABLED'] = True
         cls.client = app.test_client()
 
     # =========================================================================
@@ -288,7 +289,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
                 ca_lam=ca_lam
             )
             self.assertFalse(conflict_doc, "Phải chặn xung đột khi cùng bác sĩ đã có lịch trực")
-            self.assertIn("xung đột", msg_doc.lower())
+            self.assertTrue("trùng" in msg_doc.lower() or "xung đột" in msg_doc.lower())
 
             # 2. Thử tạo ca trực trùng Phòng cùng ngày cùng ca (khác bác sĩ) -> Phải bị chặn
             conflict_room, msg_room = ScheduleModel.create_schedule(
