@@ -37,6 +37,7 @@ def create_app():
         'logout': 'auth.logout',
         'patient_dashboard': 'patient.dashboard',
         'patient_booking': 'patient.booking',
+        'patient_appointments': 'patient.appointments',
         'patient_records': 'patient.records',
         'patient_lab_results': 'patient.lab_results',
         'patient_billing': 'patient.billing',

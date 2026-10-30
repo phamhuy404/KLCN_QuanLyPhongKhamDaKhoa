@@ -134,6 +134,18 @@ def booking():
     doctors = UserModel.get_all_doctors()
     return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors)
 
+@patient_bp.route('/appointments')
+@login_required
+def appointments():
+    """Xem và quản lý toàn bộ danh sách lịch hẹn khám của bệnh nhân."""
+    patient_id = _get_current_patient_id()
+    patient = None
+    if patient_id:
+        patient = PatientModel.get_by_id(patient_id)
+
+    appts = AppointmentModel.get_by_patient(patient_id) if patient_id else []
+    return render_template('patient/appointments.html', active_page='appointments', patient=patient, appointments=appts)
+
 @patient_bp.route('/records')
 @login_required
 def records():

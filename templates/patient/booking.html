@@ -156,7 +156,7 @@
                     
                     <div class="flex items-center gap-2 text-xs text-slate-400">
                         <i class="fa-solid fa-circle-info text-medical-500"></i>
-                        <span>Lịch khám sau khi xác nhận sẽ ở trạng thái <strong>Chờ tiếp nhận</strong>. Nhân viên Lễ tân sẽ xác nhận và phân luồng tiếp đón cho bạn.</span>
+                        <span>Lịch khám sau khi xác nhận sẽ ở trạng thái <strong>Chờ xét duyệt</strong>. Nhân viên Lễ tân hoặc Quản trị viên sẽ duyệt và thông báo bác sĩ tiếp nhận cho bạn.</span>
                     </div>
                 </div>
             </div>
@@ -193,7 +193,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Trạng thái ban đầu:</span>
-                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700">Chờ tiếp nhận</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Chờ xét duyệt</span>
                     </div>
                 </div>
 
@@ -389,22 +389,31 @@
 
                     let html = '';
                     data.doctors.forEach(doc => {
-                        const avatarUrl = doc.avatar || '/static/images/default-avatar.png';
+                        const rawName = doc.ho_ten || '';
+                        const cleanName = rawName.replace(/^(BS|ThS|TS|CKI|CKII|GS|PGS)\.?\s*(BS|CKI|CKII)?\.?\s*/gi, '').trim();
+                        const degree = doc.hoc_vi || 'BS';
+                        const fullName = `${degree}. ${cleanName}`;
                         const isChecked = selectedDoctorId === doc.id ? 'checked' : '';
-                        const slotsLeft = Math.max(0, (doc.so_luong_kham_toi_da || 20) - (doc.so_luong_da_dang_ky || 0));
+                        const initials = cleanName.split(' ').map(n => n[0]).filter(Boolean).slice(-2).join('').toUpperCase() || 'BS';
                         const statusBadge = doc.is_active_now 
                             ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Đang làm việc</span>`
                             : `<span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Ngoài giờ làm việc</span>`;
 
+                        const avatarHtml = (doc.avatar && doc.avatar.trim())
+                            ? `<div class="relative w-11 h-11 shrink-0">
+                                 <img src="${doc.avatar}" alt="${cleanName}" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <div class="hidden w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs items-center justify-center border border-medical-200/50">${initials}</div>
+                               </div>`
+                            : `<div class="w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs flex items-center justify-center shrink-0 border border-medical-200/50">${initials}</div>`;
+
                         html += `
-                            <label class="cursor-pointer doctor-item">
-                                <input type="radio" name="doctor" value="${doc.id}" data-name="${doc.hoc_vi || 'BS'} ${doc.ho_ten}" ${isChecked} class="peer sr-only" onchange="onDoctorChange(this)">
-                                <div class="p-3.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3">
-                                    <img src="${avatarUrl}" alt="${doc.ho_ten}" class="w-11 h-11 rounded-xl object-cover shrink-0 ring-1 ring-slate-100">
-                                    <div class="overflow-hidden flex-1">
+                            <label class="cursor-pointer doctor-item block">
+                                <input type="radio" name="doctor" value="${doc.id}" data-name="${fullName}" ${isChecked} class="peer sr-only" onchange="onDoctorChange(this)">
+                                <div class="p-3.5 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all flex items-center gap-3 min-w-0">
+                                    ${avatarHtml}
+                                    <div class="overflow-hidden flex-1 min-w-0">
                                         <div class="flex items-center justify-between">
-                                            <h4 class="font-bold text-xs text-slate-800 truncate">${doc.hoc_vi || 'BS'} ${doc.ho_ten}</h4>
-                                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Còn ${slotsLeft} lượt</span>
+                                            <h4 class="font-bold text-xs text-slate-800 truncate">${fullName}</h4>
                                         </div>
                                         <div class="mt-0.5 mb-1">
                                             ${statusBadge}
@@ -449,10 +458,11 @@
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    showToast(res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở dạng Chờ tiếp nhận.", "success");
+                    let successMsg = res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở trạng thái Chờ xét duyệt.";
+                    showToast(successMsg, "success");
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('patient_dashboard') }}";
-                    }, 1200);
+                        window.location.href = "{{ url_for('patient_appointments') }}";
+                    }, 1400);
                 } else {
                     showToast(res.message || "Không thể đặt lịch hẹn!", "error");
                 }
@@ -460,8 +470,8 @@
             .catch(err => {
                 showToast("Đã lưu lịch hẹn vào CSDL thành công!", "success");
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('patient_dashboard') }}";
-                }, 1200);
+                    window.location.href = "{{ url_for('patient_appointments') }}";
+                }, 1400);
             });
         }
 

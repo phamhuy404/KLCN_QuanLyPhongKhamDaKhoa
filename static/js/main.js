@@ -1,158 +1,313 @@
-// Bộ công cụ tìm kiếm gần đúng thông minh toàn cục (Universal Smart Search Engine)
-window.removeVietnameseTones = function(str) {
-    if (!str) return '';
-    str = String(str);
-    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
-    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "a");
-    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
-    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "e");
-    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
-    str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "i");
-    str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
-    str = str.replace(/Ò|Ó|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "o");
-    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
-    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "u");
-    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
-    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "y");
-    str = str.replace(/đ/g, "d");
-    str = str.replace(/Đ/g, "d");
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-};
-
-window.levenshteinDistance = function(s1, s2) {
-    if (s1 === s2) return 0;
-    if (!s1) return s2.length;
-    if (!s2) return s1.length;
-    const m = s1.length;
-    const n = s2.length;
-    let prev = new Array(n + 1);
-    let curr = new Array(n + 1);
-    for (let j = 0; j <= n; j++) prev[j] = j;
-    for (let i = 1; i <= m; i++) {
-        curr[0] = i;
-        const c1 = s1.charCodeAt(i - 1);
-        for (let j = 1; j <= n; j++) {
-            const cost = (c1 === s2.charCodeAt(j - 1)) ? 0 : 1;
-            curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
-        }
-        for (let j = 0; j <= n; j++) prev[j] = curr[j];
-    }
-    return prev[n];
-};
-
-// Từ điển từ viết tắt và đồng nghĩa ngành y tế / phòng khám
-window.CLINIC_ABBREVIATIONS = {
-    'bs': ['bac si', 'bac sy', 'doctor', 'bs'],
-    'bacsi': ['bs', 'bac si', 'bac sy'],
-    'bacsy': ['bs', 'bac si', 'bac sy'],
-    'nv': ['nhan vien', 'staff', 'nv'],
-    'nhanvien': ['nv', 'nhan vien'],
-    'ktv': ['ky thuat vien', 'ki thuat vien', 'technician', 'ktv'],
-    'cls': ['can lam sang', 'canlamsang', 'xet nghiem', 'cls'],
-    'tmh': ['tai mui hong', 'tmh'],
-    'rhm': ['rang ham mat', 'rhm'],
-    'yhct': ['y hoc co truyen', 'yhct', 'dong y'],
-    'pkn': ['phong kham noi', 'khoa noi', 'pkn'],
-    'pk': ['phong kham', 'pk'],
-    'bn': ['benh nhan', 'patient', 'bn'],
-    'ds': ['duoc si', 'pharmacist', 'nha thuoc', 'ds'],
-    'dd': ['dieu duong', 'nurse', 'dd'],
-    'lt': ['le tan', 'tiep tan', 'receptionist', 'lt'],
-    'tt': ['tiep tan', 'thanh toan', 'tt'],
-    'ck': ['chuyen khoa', 'ck'],
-    'xq': ['x quang', 'xquang', 'xq'],
-    'sa': ['sieu am', 'sa'],
-    'ct': ['chup cat lop', 'ct scan', 'ct'],
-    'mri': ['cong huong tu', 'mri']
-};
-
-window.isWordFuzzyMatch = function(qWord, tWord) {
-    if (!qWord || !tWord) return false;
-    if (qWord === tWord) return true;
-    if (tWord.startsWith(qWord)) return true;
-
-    // Chuẩn hóa i và y ở cuối từ tiếng Việt (ví dụ: si/sy, ky/ki, ly/li)
-    const qNormIY = qWord.replace(/y$/, 'i');
-    const tNormIY = tWord.replace(/y$/, 'i');
-    if (qNormIY === tNormIY || tNormIY.startsWith(qNormIY)) return true;
-
-    if (qWord.length <= 2) {
-        return (qWord.length === 2 && tWord.length === 2 && window.levenshteinDistance(qWord, tWord) <= 1);
-    }
-    if (qWord.length === 3) return tWord === qWord || (tWord.includes(qWord) && tWord.length <= 5) || window.levenshteinDistance(qWord, tWord) <= 1;
-    if (tWord.includes(qWord)) return true;
-
-    const maxDist = qWord.length >= 6 ? 2 : 1;
-    if (Math.abs(qWord.length - tWord.length) <= maxDist) {
-        if (window.levenshteinDistance(qWord, tWord) <= maxDist) return true;
-    }
-    if (tWord.length > qWord.length) {
-        const prefix = tWord.slice(0, qWord.length);
-        if (window.levenshteinDistance(qWord, prefix) <= maxDist) return true;
-    }
-    return false;
-};
-
-// Thuật toán so khớp thông minh: không dấu, viết tắt, từ đồng nghĩa, đảo thứ tự, viết hoa thường
-window.smartMatch = function(query, target) {
-    if (!query || !String(query).trim()) return true;
-    if (!target) return false;
-
-    const qClean = window.removeVietnameseTones(String(query)).trim();
-    const tClean = window.removeVietnameseTones(String(target)).trim();
-
-    if (!qClean) return true;
-    if (!tClean) return false;
-
-    if (tClean.includes(qClean)) return true;
-
-    const qDigits = qClean.replace(/\D/g, '');
-    const tDigits = tClean.replace(/\D/g, '');
-    if (qDigits.length >= 3 && tDigits.includes(qDigits)) return true;
-
-    const targetWords = tClean.split(/[^a-z0-9]+/).filter(Boolean);
-    const queryTokens = qClean.split(/[^a-z0-9]+/).filter(Boolean);
-    if (queryTokens.length === 0) return true;
-
-    const targetAcronym = targetWords.map(w => w[0]).join('');
-    if (queryTokens.length === 1 && qClean.length >= 2 && !qClean.includes(' ')) {
-        if (targetAcronym === qClean || targetAcronym.startsWith(qClean) || targetAcronym.includes(qClean)) return true;
-    }
-
-    return queryTokens.every(qToken => {
-        if (targetWords.some(tWord => window.isWordFuzzyMatch(qToken, tWord))) return true;
-
-        const synonyms = window.CLINIC_ABBREVIATIONS[qToken];
-        if (synonyms) {
-            for (let syn of synonyms) {
-                if (tClean.includes(syn)) return true;
-                const synWords = syn.split(/\s+/);
-                if (synWords.every(sw => targetWords.some(tw => window.isWordFuzzyMatch(sw, tw)))) return true;
-            }
-        }
-
-        for (let [abbr, list] of Object.entries(window.CLINIC_ABBREVIATIONS)) {
-            if (targetWords.includes(abbr) && list.some(item => item.includes(qToken) || qToken.includes(item))) {
-                return true;
-            }
-        }
-
-        return false;
-    });
-};
-
-// Bí danh tương thích ngược
-window.fuzzyMatch = window.smartMatch;
-
-window.smartMatchRecord = function(query, fields) {
-    if (!query || !String(query).trim()) return true;
-    if (!Array.isArray(fields)) return false;
-    const combined = fields.filter(Boolean).map(f => String(f)).join(' ');
-    return window.smartMatch(query, combined);
-};
-
-window.fuzzyMatchRecord = window.smartMatchRecord;
-
+// Bộ công cụ tìm kiếm gần đúng thông minh toàn cục (Universal Smart Search Engine)
+
+window.removeVietnameseTones = function(str) {
+
+    if (!str) return '';
+
+    str = String(str);
+
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "a");
+
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+
+    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "e");
+
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+
+    str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "i");
+
+    str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+
+    str = str.replace(/Ò|Ó|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "o");
+
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+
+    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "u");
+
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+
+    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "y");
+
+    str = str.replace(/đ/g, "d");
+
+    str = str.replace(/Đ/g, "d");
+
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+};
+
+
+
+window.levenshteinDistance = function(s1, s2) {
+
+    if (s1 === s2) return 0;
+
+    if (!s1) return s2.length;
+
+    if (!s2) return s1.length;
+
+    const m = s1.length;
+
+    const n = s2.length;
+
+    let prev = new Array(n + 1);
+
+    let curr = new Array(n + 1);
+
+    for (let j = 0; j <= n; j++) prev[j] = j;
+
+    for (let i = 1; i <= m; i++) {
+
+        curr[0] = i;
+
+        const c1 = s1.charCodeAt(i - 1);
+
+        for (let j = 1; j <= n; j++) {
+
+            const cost = (c1 === s2.charCodeAt(j - 1)) ? 0 : 1;
+
+            curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+
+        }
+
+        for (let j = 0; j <= n; j++) prev[j] = curr[j];
+
+    }
+
+    return prev[n];
+
+};
+
+
+
+// Từ điển từ viết tắt và đồng nghĩa ngành y tế / phòng khám
+
+window.CLINIC_ABBREVIATIONS = {
+
+    'bs': ['bac si', 'bac sy', 'doctor', 'bs'],
+
+    'bacsi': ['bs', 'bac si', 'bac sy'],
+
+    'bacsy': ['bs', 'bac si', 'bac sy'],
+
+    'nv': ['nhan vien', 'staff', 'nv'],
+
+    'nhanvien': ['nv', 'nhan vien'],
+
+    'ktv': ['ky thuat vien', 'ki thuat vien', 'technician', 'ktv'],
+
+    'cls': ['can lam sang', 'canlamsang', 'xet nghiem', 'cls'],
+
+    'tmh': ['tai mui hong', 'tmh'],
+
+    'rhm': ['rang ham mat', 'rhm'],
+
+    'yhct': ['y hoc co truyen', 'yhct', 'dong y'],
+
+    'pkn': ['phong kham noi', 'khoa noi', 'pkn'],
+
+    'pk': ['phong kham', 'pk'],
+
+    'bn': ['benh nhan', 'patient', 'bn'],
+
+    'ds': ['duoc si', 'pharmacist', 'nha thuoc', 'ds'],
+
+    'dd': ['dieu duong', 'nurse', 'dd'],
+
+    'lt': ['le tan', 'tiep tan', 'receptionist', 'lt'],
+
+    'tt': ['tiep tan', 'thanh toan', 'tt'],
+
+    'ck': ['chuyen khoa', 'ck'],
+
+    'xq': ['x quang', 'xquang', 'xq'],
+
+    'sa': ['sieu am', 'sa'],
+
+    'ct': ['chup cat lop', 'ct scan', 'ct'],
+
+    'mri': ['cong huong tu', 'mri']
+
+};
+
+
+
+window.isWordFuzzyMatch = function(qWord, tWord) {
+
+    if (!qWord || !tWord) return false;
+
+    if (qWord === tWord) return true;
+
+    if (tWord.startsWith(qWord)) return true;
+
+
+
+    // Chuẩn hóa i và y ở cuối từ tiếng Việt (ví dụ: si/sy, ky/ki, ly/li)
+
+    const qNormIY = qWord.replace(/y$/, 'i');
+
+    const tNormIY = tWord.replace(/y$/, 'i');
+
+    if (qNormIY === tNormIY || tNormIY.startsWith(qNormIY)) return true;
+
+
+
+    if (qWord.length <= 2) {
+
+        return (qWord.length === 2 && tWord.length === 2 && window.levenshteinDistance(qWord, tWord) <= 1);
+
+    }
+
+    if (qWord.length === 3) return tWord === qWord || (tWord.includes(qWord) && tWord.length <= 5) || window.levenshteinDistance(qWord, tWord) <= 1;
+
+    if (tWord.includes(qWord)) return true;
+
+
+
+    const maxDist = qWord.length >= 6 ? 2 : 1;
+
+    if (Math.abs(qWord.length - tWord.length) <= maxDist) {
+
+        if (window.levenshteinDistance(qWord, tWord) <= maxDist) return true;
+
+    }
+
+    if (tWord.length > qWord.length) {
+
+        const prefix = tWord.slice(0, qWord.length);
+
+        if (window.levenshteinDistance(qWord, prefix) <= maxDist) return true;
+
+    }
+
+    return false;
+
+};
+
+
+
+// Thuật toán so khớp thông minh: không dấu, viết tắt, từ đồng nghĩa, đảo thứ tự, viết hoa thường
+
+window.smartMatch = function(query, target) {
+
+    if (!query || !String(query).trim()) return true;
+
+    if (!target) return false;
+
+
+
+    const qClean = window.removeVietnameseTones(String(query)).trim();
+
+    const tClean = window.removeVietnameseTones(String(target)).trim();
+
+
+
+    if (!qClean) return true;
+
+    if (!tClean) return false;
+
+
+
+    if (tClean.includes(qClean)) return true;
+
+
+
+    const qDigits = qClean.replace(/\D/g, '');
+
+    const tDigits = tClean.replace(/\D/g, '');
+
+    if (qDigits.length >= 3 && tDigits.includes(qDigits)) return true;
+
+
+
+    const targetWords = tClean.split(/[^a-z0-9]+/).filter(Boolean);
+
+    const queryTokens = qClean.split(/[^a-z0-9]+/).filter(Boolean);
+
+    if (queryTokens.length === 0) return true;
+
+
+
+    const targetAcronym = targetWords.map(w => w[0]).join('');
+
+    if (queryTokens.length === 1 && qClean.length >= 2 && !qClean.includes(' ')) {
+
+        if (targetAcronym === qClean || targetAcronym.startsWith(qClean) || targetAcronym.includes(qClean)) return true;
+
+    }
+
+
+
+    return queryTokens.every(qToken => {
+
+        if (targetWords.some(tWord => window.isWordFuzzyMatch(qToken, tWord))) return true;
+
+
+
+        const synonyms = window.CLINIC_ABBREVIATIONS[qToken];
+
+        if (synonyms) {
+
+            for (let syn of synonyms) {
+
+                if (tClean.includes(syn)) return true;
+
+                const synWords = syn.split(/\s+/);
+
+                if (synWords.every(sw => targetWords.some(tw => window.isWordFuzzyMatch(sw, tw)))) return true;
+
+            }
+
+        }
+
+
+
+        for (let [abbr, list] of Object.entries(window.CLINIC_ABBREVIATIONS)) {
+
+            if (targetWords.includes(abbr) && list.some(item => item.includes(qToken) || qToken.includes(item))) {
+
+                return true;
+
+            }
+
+        }
+
+
+
+        return false;
+
+    });
+
+};
+
+
+
+// Bí danh tương thích ngược
+
+window.fuzzyMatch = window.smartMatch;
+
+
+
+window.smartMatchRecord = function(query, fields) {
+
+    if (!query || !String(query).trim()) return true;
+
+    if (!Array.isArray(fields)) return false;
+
+    const combined = fields.filter(Boolean).map(f => String(f)).join(' ');
+
+    return window.smartMatch(query, combined);
+
+};
+
+
+
+window.fuzzyMatchRecord = window.smartMatchRecord;
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Cập nhật thời gian và ngày tháng thực trên Dashboard
     const updateDateTime = () => {
@@ -194,11 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePinIcon(true);
         }
 
-        // Bỏ class no-transition ngay sau khi browser đã render khung hình đầu tiên
+        // Bỏ class no-transition và sidebar-keep-open ngay sau khi browser đã render khung hình đầu tiên
         requestAnimationFrame(() => {
             setTimeout(() => {
+                document.documentElement.classList.remove('sidebar-keep-open');
                 sidebar.classList.remove('no-transition');
-            }, 60);
+            }, 120);
         });
 
         // Kiểm tra vị trí chuột: Nếu con trỏ chuột đã ra khỏi sidebar thì mới thu gọn

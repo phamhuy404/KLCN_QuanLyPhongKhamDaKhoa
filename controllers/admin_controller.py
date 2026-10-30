@@ -15,6 +15,7 @@ from models.billing_model import BillingModel
 from models.clinic_model import ClinicModel
 
 from models.user_model import UserModel
+from core.database import get_db
 
 
 
@@ -516,7 +517,56 @@ def staff():
 
     no_next_week_schedule = (not has_next_week_shift) if user_role != 'BENHNHAN' else False
 
+    # Kiểm tra bác sĩ có lịch hẹn khám cho bệnh nhân nhưng chưa đăng ký ca trực tương ứng
+    unregistered_doctor_appointments = []
+    doc_id = curr_user.get('bac_si_id')
+    if not doc_id and curr_user.get('id'):
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('SELECT bs.id FROM bac_si bs JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id WHERE nv.tai_khoan_id = ?', (curr_user['id'],))
+        r = c.fetchone()
+        conn.close()
+        if r:
+            doc_id = r[0]
+            curr_user['bac_si_id'] = doc_id
 
+    if doc_id:
+        conn = get_db()
+        c = conn.cursor()
+        today_str = datetime.now().strftime('%Y-%m-%d')
+        c.execute('''
+            SELECT lh.id, lh.ma_lich_hen, lh.ngay_hen, lh.gio_hen, bn.ho_ten AS ten_benh_nhan,
+                   ck.ten_khoa
+            FROM lich_hen lh
+            JOIN benh_nhan bn ON lh.benh_nhan_id = bn.id
+            JOIN chuyen_khoa ck ON lh.chuyen_khoa_id = ck.id
+            WHERE lh.bac_si_id = ? AND lh.ngay_hen >= ? AND lh.trang_thai NOT IN (N'Đã hủy', N'Đã khám', N'Hoàn thành')
+            ORDER BY lh.ngay_hen ASC, lh.gio_hen ASC
+        ''', (doc_id, today_str))
+        appts = [dict(r) for r in c.fetchall()]
+
+        from models.appointment_model import AppointmentModel
+        for a in appts:
+            w_date = str(a['ngay_hen'])[:10]
+            w_time = str(a['gio_hen'])[:5]
+            shift_num = AppointmentModel.get_shift_from_time(w_time)
+            c.execute('''
+                SELECT id, trang_thai_duyet FROM lich_lam_viec
+                WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ? AND trang_thai = 1
+            ''', (doc_id, w_date, shift_num))
+            shift_row = c.fetchone()
+            if not shift_row:
+                shift_names = {1: 'Sáng (07:00 - 11:30)', 2: 'Chiều (13:30 - 17:00)', 3: 'Tối (17:30 - 20:30)'}
+                a['ca_lam'] = shift_num
+                a['ten_ca'] = shift_names.get(shift_num, f"Ca {shift_num}")
+                a['gio_hen_fmt'] = w_time
+                try:
+                    a['ngay_hen_fmt'] = datetime.strptime(w_date, '%Y-%m-%d').strftime('%d/%m/%Y')
+                except Exception:
+                    a['ngay_hen_fmt'] = w_date
+                a['ngay_hen_raw'] = w_date
+                unregistered_doctor_appointments.append(a)
+        conn.close()
 
     active_tab = request.args.get('tab', 'schedules')
 
@@ -527,6 +577,7 @@ def staff():
         'admin/staff.html',
 
         no_next_week_schedule=no_next_week_schedule,
+        unregistered_doctor_appointments=unregistered_doctor_appointments,
 
         next_week_label=next_week_label,
 

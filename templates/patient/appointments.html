@@ -1,0 +1,550 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Lịch hẹn khám của tôi - H2T Healthcare{% endblock %}
+
+{% block sidebar %}
+    {% include "patient/components/sidebar.html" %}
+{% endblock %}
+
+{% block header %}
+    {% include "patient/components/header.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Header & Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-calendar-check text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Lịch hẹn khám của tôi</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Theo dõi trạng thái duyệt, bác sĩ phụ trách và quản lý lịch khám thuận tiện</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('patient_booking') }}" 
+           class="inline-flex items-center justify-center gap-2 px-5 py-3 bg-medical-600 hover:bg-medical-700 text-white font-semibold rounded-xl text-xs shadow-md shadow-medical-600/20 transition-all hover:scale-105">
+            <i class="fa-solid fa-calendar-plus text-sm"></i>
+            <span>Đặt lịch khám mới</span>
+        </a>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    {% set total_cnt = appointments|length %}
+    {% set waiting_cnt = appointments|selectattr('status_code', 'equalto', 'waiting')|list|length %}
+    {% set confirmed_cnt = appointments|selectattr('status_code', 'equalto', 'confirmed')|list|length %}
+    {% set completed_cnt = appointments|selectattr('status_code', 'equalto', 'completed')|list|length %}
+    {% set cancelled_cnt = appointments|selectattr('status_code', 'equalto', 'cancelled')|list|length %}
+
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <button type="button" onclick="filterByStatus('all')" class="stat-filter-btn p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm text-left hover:border-medical-500 transition-all group active-filter" data-status="all">
+            <span class="text-xs text-slate-400 group-hover:text-medical-600 font-medium block">Tất cả lịch hẹn</span>
+            <span class="text-2xl font-bold text-slate-800 mt-1 block">{{ total_cnt }}</span>
+        </button>
+
+        <button type="button" onclick="filterByStatus('waiting')" class="stat-filter-btn p-4 rounded-2xl bg-white border border-amber-200 shadow-sm text-left hover:border-amber-500 transition-all group" data-status="waiting">
+            <span class="text-xs text-amber-600 font-medium block flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Chờ xét duyệt
+            </span>
+            <span class="text-2xl font-bold text-amber-700 mt-1 block">{{ waiting_cnt }}</span>
+        </button>
+
+        <button type="button" onclick="filterByStatus('confirmed')" class="stat-filter-btn p-4 rounded-2xl bg-white border border-emerald-200 shadow-sm text-left hover:border-emerald-500 transition-all group" data-status="confirmed">
+            <span class="text-xs text-emerald-600 font-medium block flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đã xác nhận
+            </span>
+            <span class="text-2xl font-bold text-emerald-700 mt-1 block">{{ confirmed_cnt }}</span>
+        </button>
+
+        <button type="button" onclick="filterByStatus('completed')" class="stat-filter-btn p-4 rounded-2xl bg-white border border-blue-200 shadow-sm text-left hover:border-blue-500 transition-all group" data-status="completed">
+            <span class="text-xs text-blue-600 font-medium block flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Đã khám xong
+            </span>
+            <span class="text-2xl font-bold text-blue-700 mt-1 block">{{ completed_cnt }}</span>
+        </button>
+
+        <button type="button" onclick="filterByStatus('cancelled')" class="stat-filter-btn p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-left hover:border-rose-400 transition-all group" data-status="cancelled">
+            <span class="text-xs text-slate-400 font-medium block flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-rose-400"></span> Đã hủy
+            </span>
+            <span class="text-2xl font-bold text-slate-600 mt-1 block">{{ cancelled_cnt }}</span>
+        </button>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <!-- Search -->
+        <div class="relative w-full sm:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="appointment-search" oninput="onSearchChange()" 
+                   placeholder="Tìm theo mã hẹn, bác sĩ, chuyên khoa..." 
+                   class="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500">
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            <button type="button" onclick="filterByStatus('all')" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200" data-tab="all">Tất cả ({{ total_cnt }})</button>
+            <button type="button" onclick="filterByStatus('waiting')" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100" data-tab="waiting">Chờ duyệt ({{ waiting_cnt }})</button>
+            <button type="button" onclick="filterByStatus('confirmed')" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100" data-tab="confirmed">Đã xác nhận ({{ confirmed_cnt }})</button>
+            <button type="button" onclick="filterByStatus('completed')" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100" data-tab="completed">Đã khám ({{ completed_cnt }})</button>
+            <button type="button" onclick="filterByStatus('cancelled')" class="tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100" data-tab="cancelled">Đã hủy ({{ cancelled_cnt }})</button>
+        </div>
+    </div>
+
+    <!-- Appointment Cards Container -->
+    <div id="appointment-cards-list" class="space-y-4">
+        {% if appointments %}
+            {% for app in appointments %}
+                <div class="appointment-card bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
+                     data-status="{{ app.status_code }}"
+                     data-code="{{ app.ma_hen }}"
+                     data-doctor="{{ app.bac_si or '' }}"
+                     data-specialty="{{ app.khoa or '' }}"
+                     data-reason="{{ app.ly_do or '' }}">
+
+                    <!-- Left: Date block + Main Info -->
+                    <div class="flex items-start gap-4 flex-1 min-w-0">
+                        <!-- Date Badge -->
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-medical-50 to-teal-50 border border-medical-200/60 flex flex-col items-center justify-center text-center shrink-0 shadow-sm">
+                            <span class="text-[10px] font-bold text-medical-700 uppercase tracking-wider">Th{{ (app.ngay_hen|string)[5:7] }}</span>
+                            <span class="text-xl font-extrabold text-slate-800 leading-none my-0.5">{{ (app.ngay_hen|string)[8:10] }}</span>
+                            <span class="text-[9px] text-slate-500 font-medium">{{ (app.ngay_hen|string)[:4] }}</span>
+                        </div>
+
+                        <!-- Info Details -->
+                        <div class="space-y-1.5 flex-1 min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-mono text-xs font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded border border-medical-200/50">#{{ app.ma_hen }}</span>
+                                <span class="text-xs font-semibold text-slate-500 flex items-center gap-1">
+                                    <i class="fa-regular fa-clock text-medical-600"></i> {{ app.gio_hen_short }}
+                                </span>
+
+                                <!-- Status Badge -->
+                                {% if app.status_code == 'waiting' %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Chờ xét duyệt
+                                    </span>
+                                {% elif app.status_code == 'confirmed' %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                        <i class="fa-solid fa-check text-[10px]"></i> Đã tiếp nhận / Duyệt
+                                    </span>
+                                {% elif app.status_code == 'completed' %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                                        <i class="fa-solid fa-circle-check text-[10px]"></i> Đã hoàn thành
+                                    </span>
+                                {% else %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                                        Đã hủy
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <h4 class="font-bold text-sm text-slate-800 truncate">{{ app.khoa }}</h4>
+
+                            <!-- Doctor Assignment Display -->
+                            <div class="text-xs text-slate-600 flex flex-wrap items-center gap-3">
+                                {% if app.bac_si and app.bac_si != 'Bác sĩ chuyên khoa' and app.bac_si != 'Đang sắp xếp bác sĩ phù hợp' %}
+                                    <span class="flex items-center gap-1.5 font-medium text-slate-700">
+                                        <i class="fa-solid fa-user-doctor text-medical-600"></i> BS. {{ app.bac_si }}
+                                    </span>
+                                    {% if app.ten_phong %}
+                                        <span class="text-slate-400">•</span>
+                                        <span class="flex items-center gap-1 text-slate-500">
+                                            <i class="fa-solid fa-door-open text-slate-400"></i> {{ app.ten_phong }}
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-medium text-[11px]">
+                                        <i class="fa-solid fa-hourglass-half text-amber-600"></i>
+                                        <span>Đang sắp xếp bác sĩ phù hợp (Ban tiếp đón sẽ phân công)</span>
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Reason -->
+                            {% if app.ly_do %}
+                                <p class="text-xs text-slate-500 italic truncate pt-0.5">
+                                    <i class="fa-regular fa-comment-dots text-slate-400 mr-1"></i> "{{ app.ly_do }}"
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Right: Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        {% if app.status_code == 'waiting' %}
+                            <button type="button" onclick="openRescheduleModal({{ app.id }}, '{{ app.ma_hen }}', '{{ app.ngay_hen }}', '{{ app.gio_hen_short }}', {{ app.bac_si_id or 'null' }}, {{ app.chuyen_khoa_id or 'null' }}, '{{ app.bac_si or '' }}')" 
+                                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-calendar-days text-slate-500"></i> Đổi lịch
+                            </button>
+
+                            <button type="button" onclick="confirmCancelAppointment({{ app.id }}, '{{ app.ma_hen }}')"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-ban text-rose-500"></i> Hủy hẹn
+                            </button>
+                        {% elif app.status_code == 'confirmed' %}
+                            <button type="button" onclick="confirmCancelAppointment({{ app.id }}, '{{ app.ma_hen }}')"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-ban text-rose-500"></i> Hủy hẹn
+                            </button>
+                        {% elif app.status_code == 'completed' %}
+                            <a href="{{ url_for('patient_records') }}" 
+                               class="px-4 py-2 rounded-xl text-xs font-semibold text-medical-700 bg-medical-50 hover:bg-medical-100 border border-medical-200 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-notes-medical"></i> Xem kết quả khám
+                            </a>
+                        {% elif app.status_code == 'cancelled' %}
+                            <a href="{{ url_for('patient_booking') }}" 
+                               class="px-4 py-2 rounded-xl text-xs font-semibold text-medical-600 hover:bg-medical-50 border border-medical-200 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate-right"></i> Đặt lịch lại
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center space-y-3">
+                <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                    <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
+                <h4 class="font-bold text-slate-700 text-base">Bạn chưa có lịch hẹn khám nào</h4>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">Chủ động đặt lịch khám trực tuyến để được chọn bác sĩ chuyên khoa và tiếp đón không cần chờ đợi.</p>
+                <div class="pt-2">
+                    <a href="{{ url_for('patient_booking') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-bold shadow-md shadow-medical-600/20 transition-all">
+                        <i class="fa-solid fa-calendar-plus"></i> Đặt lịch khám ngay
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="no-filter-match" class="hidden bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-400 text-xs">
+        <i class="fa-solid fa-filter-circle-xmark text-2xl block mb-2 text-slate-300"></i>
+        Không tìm thấy lịch hẹn nào phù hợp với bộ lọc tìm kiếm.
+    </div>
+
+</div>
+
+<!-- Modal Đổi Ngày / Giờ Khám -->
+<div id="reschedule-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-medical-600"></i> Đổi ngày giờ khám bệnh
+            </h3>
+            <button onclick="closeRescheduleModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-xs transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="reschedule-form" onsubmit="submitReschedule(event)" class="p-5 space-y-4">
+            <input type="hidden" id="reschedule-app-id">
+
+            <div class="space-y-2">
+                <div class="p-3 rounded-xl bg-medical-50/50 border border-medical-100 text-xs text-medical-900 flex items-center justify-between">
+                    <span>Lịch hẹn: <strong id="reschedule-ma-hen" class="font-mono">#LH...</strong></span>
+                </div>
+                <div id="reschedule-doc-badge" class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 hidden">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Ngày hẹn khám mới</label>
+                <input type="date" id="reschedule-date" required onchange="onRescheduleDateChange()"
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-bold text-slate-700">Khung giờ hẹn khám còn trống</label>
+                    <span id="reschedule-slots-count" class="text-[11px] text-slate-500"></span>
+                </div>
+                <select id="reschedule-time" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500">
+                    <option value="" disabled selected>Đang kiểm tra lịch trống của bác sĩ...</option>
+                </select>
+                <div id="reschedule-slot-alert" class="hidden mt-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="reschedule-slot-alert-msg">Bác sĩ không có lịch trống trong ngày này. Vui lòng chọn ngày khác!</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Lý do dời lịch (tùy chọn)</label>
+                <input type="text" id="reschedule-reason" placeholder="Ví dụ: Bận việc đột xuất, đổi lịch công tác..."
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500">
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeRescheduleModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">
+                    Đóng
+                </button>
+                <button type="submit" id="btn-submit-reschedule" class="px-5 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white text-xs font-bold shadow-md shadow-medical-600/20">
+                    Xác nhận đổi lịch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentFilterStatus = 'all';
+
+    function filterByStatus(status) {
+        currentFilterStatus = status;
+
+        // Update active tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.dataset.tab === status) {
+                btn.className = "tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200";
+            } else {
+                btn.className = "tab-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100";
+            }
+        });
+
+        applyFilters();
+    }
+
+    function onSearchChange() {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const query = (document.getElementById('appointment-search').value || '').trim();
+        const cards = document.querySelectorAll('.appointment-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const status = card.dataset.status;
+            const code = card.dataset.code || '';
+            const doctor = card.dataset.doctor || '';
+            const specialty = card.dataset.specialty || '';
+            const reason = card.dataset.reason || '';
+
+            const matchStatus = (currentFilterStatus === 'all' || status === currentFilterStatus);
+            let matchSearch = true;
+
+            if (query) {
+                const targetText = `${code} ${doctor} ${specialty} ${reason}`;
+                if (window.smartMatch) {
+                    matchSearch = window.smartMatch(query, targetText);
+                } else {
+                    matchSearch = targetText.toLowerCase().includes(query.toLowerCase());
+                }
+            }
+
+            if (matchStatus && matchSearch) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        const noMatchDiv = document.getElementById('no-filter-match');
+        if (noMatchDiv) {
+            noMatchDiv.classList.toggle('hidden', visibleCount > 0);
+        }
+    }
+
+    let currentRescheduleDocId = null;
+    let currentRescheduleDeptId = null;
+
+    function openRescheduleModal(id, maHen, ngayHen, gioHen, docId, deptId, docName) {
+        document.getElementById('reschedule-app-id').value = id;
+        document.getElementById('reschedule-ma-hen').textContent = '#' + maHen;
+        currentRescheduleDocId = docId || null;
+        currentRescheduleDeptId = deptId || null;
+
+        const docBadge = document.getElementById('reschedule-doc-badge');
+        if (docBadge) {
+            if (docName && docName !== 'Bác sĩ chuyên khoa' && docName !== 'Đang sắp xếp bác sĩ phù hợp') {
+                docBadge.innerHTML = `<i class="fa-solid fa-user-doctor text-medical-600 mr-1.5"></i> Bác sĩ phụ trách: <strong>BS. ${docName}</strong>`;
+                docBadge.classList.remove('hidden');
+            } else {
+                docBadge.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-600 mr-1.5"></i> Bác sĩ: <span class="text-amber-800 font-medium">Đang sắp xếp bác sĩ phù hợp (chọn khung giờ chuyên khoa)</span>`;
+                docBadge.classList.remove('hidden');
+            }
+        }
+
+        const dateInput = document.getElementById('reschedule-date');
+        const today = new Date();
+        const minStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        dateInput.min = minStr;
+
+        let initialDate = (ngayHen || '').substring(0, 10);
+        if (!initialDate || initialDate < minStr) {
+            initialDate = minStr;
+        }
+        dateInput.value = initialDate;
+
+        loadRescheduleSlots(initialDate, (gioHen || '').substring(0, 5));
+
+        document.getElementById('reschedule-modal').classList.remove('hidden');
+    }
+
+    function onRescheduleDateChange() {
+        const newDate = document.getElementById('reschedule-date').value;
+        if (newDate) {
+            loadRescheduleSlots(newDate, null);
+        }
+    }
+
+    async function loadRescheduleSlots(dateVal, preferredTime) {
+        const timeSelect = document.getElementById('reschedule-time');
+        const alertBox = document.getElementById('reschedule-slot-alert');
+        const alertMsg = document.getElementById('reschedule-slot-alert-msg');
+        const countSpan = document.getElementById('reschedule-slots-count');
+        const submitBtn = document.getElementById('btn-submit-reschedule');
+
+        timeSelect.disabled = true;
+        timeSelect.innerHTML = '<option value="" disabled selected>Đang kiểm tra lịch trống...</option>';
+        alertBox.classList.add('hidden');
+        if (countSpan) countSpan.textContent = '';
+
+        try {
+            let url = `/api/appointment/time-slots?date=${encodeURIComponent(dateVal)}`;
+            if (currentRescheduleDocId) url += `&doctor_id=${currentRescheduleDocId}`;
+            if (currentRescheduleDeptId) url += `&department_id=${currentRescheduleDeptId}`;
+
+            const res = await fetch(url);
+            const data = await res.json();
+
+            timeSelect.innerHTML = '';
+            let totalAvailable = 0;
+            let firstAvailableVal = null;
+            let preferredFound = false;
+
+            if (data.shifts && Array.isArray(data.shifts)) {
+                data.shifts.forEach(shift => {
+                    const availableSlots = (shift.slots || []).filter(s => s.status === 'available');
+                    if (availableSlots.length > 0) {
+                        const optGroup = document.createElement('optgroup');
+                        optGroup.label = shift.name || `Ca ${shift.shift}`;
+
+                        availableSlots.forEach(s => {
+                            totalAvailable++;
+                            const opt = document.createElement('option');
+                            opt.value = s.time;
+                            opt.textContent = `${s.time} (Còn trống)`;
+                            if (preferredTime && s.time === preferredTime) {
+                                opt.selected = true;
+                                preferredFound = true;
+                            }
+                            if (!firstAvailableVal) firstAvailableVal = s.time;
+                            optGroup.appendChild(opt);
+                        });
+                        timeSelect.appendChild(optGroup);
+                    }
+                });
+            }
+
+            if (totalAvailable > 0) {
+                timeSelect.disabled = false;
+                submitBtn.disabled = false;
+                if (!preferredFound && firstAvailableVal) {
+                    timeSelect.value = firstAvailableVal;
+                }
+                if (countSpan) {
+                    countSpan.innerHTML = `<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-check mr-1"></i>Còn ${totalAvailable} khung giờ</span>`;
+                }
+            } else {
+                timeSelect.disabled = true;
+                submitBtn.disabled = true;
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Không có khung giờ nào còn trống';
+                opt.selected = true;
+                opt.disabled = true;
+                timeSelect.appendChild(opt);
+
+                alertBox.classList.remove('hidden');
+                if (currentRescheduleDocId) {
+                    alertMsg.textContent = `Bác sĩ không có lịch trống trong ngày ${dateVal}. Vui lòng chọn ngày khác!`;
+                } else {
+                    alertMsg.textContent = `Không có bác sĩ trực khả dụng trong ngày ${dateVal}. Vui lòng chọn ngày khác!`;
+                }
+                if (countSpan) {
+                    countSpan.innerHTML = `<span class="text-rose-600 font-semibold"><i class="fa-solid fa-xmark mr-1"></i>Hết chỗ</span>`;
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching time slots:', err);
+            timeSelect.disabled = false;
+            submitBtn.disabled = false;
+        }
+    }
+
+    function closeRescheduleModal() {
+        document.getElementById('reschedule-modal').classList.add('hidden');
+    }
+
+    async function submitReschedule(e) {
+        e.preventDefault();
+        const appId = document.getElementById('reschedule-app-id').value;
+        const newDate = document.getElementById('reschedule-date').value;
+        const newTime = document.getElementById('reschedule-time').value;
+        const reason = document.getElementById('reschedule-reason').value;
+
+        const btn = document.getElementById('btn-submit-reschedule');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xử lý...';
+
+        try {
+            const res = await fetch('/api/appointment/reschedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    appointment_id: appId,
+                    ngay_hen: newDate,
+                    gio_hen: newTime,
+                    ly_do: reason
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || 'Đổi lịch hẹn khám thành công!', 'success');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                showToast(data.message || 'Không thể đổi lịch hẹn!', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Xác nhận đổi lịch';
+            }
+        } catch (err) {
+            showToast('Lỗi kết nối máy chủ!', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Xác nhận đổi lịch';
+        }
+    }
+
+    function confirmCancelAppointment(appId, maHen) {
+        if (!confirm(`Bạn có chắc chắn muốn hủy lịch hẹn #${maHen}?`)) return;
+        const reason = prompt('Vui lòng nhập lý do hủy lịch hẹn (tùy chọn):', 'Thay đổi kế hoạch cá nhân');
+        if (reason === null) return;
+
+        fetch('/api/appointment/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                appointment_id: appId,
+                reason: reason.trim() || 'Bệnh nhân tự hủy qua cổng trực tuyến'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Đã hủy lịch hẹn khám thành công!', 'success');
+                setTimeout(() => window.location.reload(), 1200);
+            } else {
+                showToast(data.message || 'Không thể hủy lịch hẹn!', 'error');
+            }
+        })
+        .catch(err => {
+            showToast('Lỗi kết nối máy chủ!', 'error');
+        });
+    }
+</script>
+{% endblock %}

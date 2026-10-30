@@ -1,5 +1,18 @@
 <!-- SIDEBAR (Cổng Bệnh Nhân - Tự Động Thò Thụt Hoàn Toàn và Fade-in Chữ Không Co Méo) -->
 <aside id="app-sidebar" class="sidebar-auto-expand bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0 z-30 select-none">
+    <script>
+        (function() {
+            try {
+                const isPinned = localStorage.getItem('h2t_sidebar_pinned') === 'true';
+                const isOpen = sessionStorage.getItem('h2t_sidebar_open') === '1';
+                const sb = document.getElementById('app-sidebar');
+                if (sb && (isPinned || isOpen)) {
+                    sb.classList.add('is-hold-open', 'no-transition');
+                    if (isPinned) sb.classList.add('is-pinned');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <div>
         <!-- Logo và Brand Header (Bấm vào icon sẽ về trang home) -->
         <div class="flex items-center h-20 px-3 border-b border-slate-100 overflow-hidden">
@@ -41,6 +54,16 @@
                     <i class="fa-solid fa-calendar-plus nav-icon text-base"></i>
                 </div>
                 <span class="sidebar-text-fade text-sm font-medium">Đặt lịch khám</span>
+            </a>
+
+            <!-- 3. Lịch hẹn của tôi -->
+            <a href="{{ url_for('patient_appointments') }}" 
+               class="nav-item {{ 'nav-item-active' if active_page == 'appointments' else 'nav-item-inactive' }} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
+               title="Lịch hẹn của tôi">
+                <div class="sidebar-icon-box">
+                    <i class="fa-solid fa-calendar-check nav-icon text-base"></i>
+                </div>
+                <span class="sidebar-text-fade text-sm font-medium">Lịch hẹn của tôi</span>
             </a>
 
             <!-- 3. Hồ sơ bệnh án -->
@@ -93,15 +116,7 @@
                 <span class="sidebar-text-fade text-sm font-medium">Thông báo</span>
             </a>
 
-            <!-- Tin tức và Cẩm nang -->
-            <a href="{{ url_for('articles') }}" 
-               class="nav-item {{ 'nav-item-active' if active_page == 'articles' else 'nav-item-inactive' }} flex items-center h-12 rounded-xl transition-all group overflow-hidden"
-               title="Tin tức và Cẩm nang">
-                <div class="sidebar-icon-box">
-                    <i class="fa-solid fa-newspaper nav-icon text-base"></i>
-                </div>
-                <span class="sidebar-text-fade text-sm font-medium">Tin tức và Cẩm nang</span>
-            </a>
+
 
             <!-- 8. Tài khoản của tôi -->
             <a href="{{ url_for('patient_profile') }}" 

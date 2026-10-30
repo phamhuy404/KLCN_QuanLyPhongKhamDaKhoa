@@ -7,19 +7,22 @@ class UserModel:
     """Model quản lý tài khoản người dùng, phân quyền và nhân sự."""
 
     @staticmethod
-    def authenticate(username, password):
+    def authenticate(username, password, clean_phone=None):
         """Xác thực đăng nhập tài khoản theo tên đăng nhập hoặc số điện thoại."""
         conn = get_db()
         cursor = conn.cursor()
 
+        phone_param = clean_phone or username
         cursor.execute('''
             SELECT TOP 1 t.*, v.ma_vai_tro, v.ten_vai_tro
             FROM tai_khoan t
             JOIN vai_tro v ON t.vai_tro_id = v.id
             LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
             LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
-            WHERE t.username = ? OR t.sdt = ? OR t.email = ? OR nv.sdt = ? OR nv.email = ? OR bn.sdt = ? OR bn.email = ?
-        ''', (username, username, username, username, username, username, username))
+            WHERE t.username = ? OR t.sdt = ? OR t.sdt = ? OR t.email = ?
+               OR nv.sdt = ? OR nv.sdt = ? OR nv.email = ?
+               OR bn.sdt = ? OR bn.sdt = ? OR bn.email = ?
+        ''', (username, username, phone_param, username, username, phone_param, username, username, phone_param, username))
         user_row = cursor.fetchone()
 
         if not user_row or not verify_password(user_row['password'], password):

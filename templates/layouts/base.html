@@ -17,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind Configuration -->
-        <!-- Dark Mode Init Script -->
+        <!-- Dark Mode & Sidebar Anti-flicker Init Scripts -->
     <script>
         try {
             const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
@@ -25,6 +25,12 @@
                 document.documentElement.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
+            }
+
+            const isPinned = localStorage.getItem('h2t_sidebar_pinned') === 'true';
+            const isHoldOpen = sessionStorage.getItem('h2t_sidebar_open') === '1';
+            if (isPinned || isHoldOpen) {
+                document.documentElement.classList.add('sidebar-keep-open');
             }
         } catch(e) {}
     </script>

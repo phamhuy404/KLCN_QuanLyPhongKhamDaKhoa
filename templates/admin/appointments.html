@@ -710,13 +710,24 @@
                 }
 
                 container.innerHTML = data.doctors.map(d => {
-                    const isFull = d.available_slots <= 0;
+                    const hasShift = d.has_shift;
+                    const isFull = hasShift && d.available_slots <= 0;
+                    const shiftStatusBadge = hasShift
+                        ? (isFull 
+                            ? `<span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">Đã đầy ca (${d.booked_slots}/${d.max_slots})</span>`
+                            : `<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">Trong ca trực (Còn ${d.available_slots} lượt)</span>`
+                          )
+                        : `<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] border border-indigo-200"><i class="fa-solid fa-bolt mr-0.5 text-[9px]"></i>Ngoài ca trực (Có thể điều phối)</span>`;
+
                     return `
-                        <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-medical-500 cursor-pointer transition-all ${isFull ? 'bg-slate-50 opacity-75' : 'bg-white hover:bg-medical-50/30'}">
+                        <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-medical-500 cursor-pointer transition-all ${isFull ? 'bg-slate-50 opacity-70' : 'bg-white hover:bg-medical-50/30'}">
                             <div class="flex items-center gap-3">
                                 <input type="radio" name="selected_doctor" value="${d.id}" onchange="selectedDoctorIdForAssign = ${d.id}" ${isFull ? 'disabled' : ''} class="text-medical-600 focus:ring-medical-500">
                                 <div>
-                                    <h5 class="font-bold text-slate-800 text-xs">${d.hoc_vi ? d.hoc_vi + '. ' : ''}${d.ho_ten}</h5>
+                                    <h5 class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                        <span>${d.hoc_vi ? d.hoc_vi + '. ' : ''}${d.ho_ten}</span>
+                                        ${!hasShift ? '<span class="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">Ngoài giờ</span>' : ''}
+                                    </h5>
                                     <div class="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
                                         <span><i class="fa-solid fa-clock text-[10px] text-slate-400"></i> ${d.gio_truc}</span>
                                         ${d.ten_phong ? `<span>• <i class="fa-solid fa-door-open text-[10px] text-slate-400"></i> ${d.ten_phong}</span>` : ''}
@@ -724,11 +735,7 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                ${isFull ? `
-                                    <span class="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">Đã đầy lượt (${d.booked_slots}/${d.max_slots})</span>
-                                ` : `
-                                    <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">Còn ${d.available_slots} / ${d.max_slots} lượt</span>
-                                `}
+                                ${shiftStatusBadge}
                             </div>
                         </label>
                     `;

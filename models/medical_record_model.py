@@ -286,7 +286,97 @@ class MedicalRecordModel:
         return dict(row) if row else None
 
     @staticmethod
-    def update_examination(record_id, doctor_id, diagnosis, icd, treatment, advice, reexam_date=None, reason=None, audit_user=None):
+    def _create_reexamination_appointment(cursor, patient_id, doctor_id, room_id, reexam_date, reexam_time='08:30', diagnosis=None):
+        """Tự động tạo lịch hẹn tái khám đã duyệt sẵn cho bệnh nhân và thông báo nhắc nhở bác sĩ nếu chưa đăng ký ca làm."""
+        norm_date = normalize_reexam_date(reexam_date)
+        if not norm_date or not doctor_id:
+            return None
+
+        norm_time = '08:30'
+        if reexam_time:
+            s_time = str(reexam_time).strip()
+            if len(s_time) >= 5:
+                norm_time = s_time[:5]
+
+        # Lấy thông tin bác sĩ & chuyên khoa
+        cursor.execute('''
+            SELECT bs.id, bs.chuyen_khoa_id, bs.phong_kham_chinh_id, nv.ho_ten, nv.tai_khoan_id, ck.ten_khoa
+            FROM bac_si bs
+            JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+            JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+            WHERE bs.id = ?
+        ''', (doctor_id,))
+        doc_info = cursor.fetchone()
+        if not doc_info:
+            return None
+
+        chuyen_khoa_id = doc_info['chuyen_khoa_id']
+        assigned_room = room_id or doc_info.get('phong_kham_chinh_id')
+
+        # Kiểm tra xem đã có lịch tái khám cho bệnh nhân vào ngày này với bác sĩ này chưa
+        cursor.execute('''
+            SELECT id, ma_lich_hen FROM lich_hen
+            WHERE benh_nhan_id = ? AND bac_si_id = ? AND ngay_hen = ? AND trang_thai != N'Đã hủy'
+        ''', (patient_id, doctor_id, norm_date))
+        existing = cursor.fetchone()
+        if existing:
+            return existing['ma_lich_hen']
+
+        # Tạo mã lịch hẹn mới
+        cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM lich_hen')
+        next_id = cursor.fetchone()['next_id']
+        ma_lich_hen = f"LH2609{str(next_id).zfill(3)}"
+
+        ly_do = f"Tái khám: {diagnosis}" if diagnosis else "Tái khám theo hẹn của bác sĩ"
+
+        # Trạng thái 'Đã duyệt' để hiển thị đã duyệt sẵn và tên người khám là của bác sĩ đó
+        cursor.execute('''
+            INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, bac_si_id, chuyen_khoa_id, phong_kham_id, ngay_hen, gio_hen, ly_do_kham, trang_thai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, N'Đã duyệt')
+        ''', (ma_lich_hen, patient_id, doctor_id, chuyen_khoa_id, assigned_room, norm_date, norm_time, ly_do))
+
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Gửi thông báo cho bệnh nhân
+        cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (patient_id,))
+        bn = cursor.fetchone()
+        if bn and bn.get('tai_khoan_id'):
+            cursor.execute('''
+                INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                VALUES (?, ?, ?, N'Lịch tái khám', '/patient/appointments', 0, ?)
+            ''', (
+                bn['tai_khoan_id'],
+                f"Lịch hẹn tái khám mới: {ma_lich_hen}",
+                f"Bác sĩ {doc_info['ho_ten']} đã lên lịch tái khám cho bạn vào ngày {norm_date} lúc {norm_time} tại {doc_info['ten_khoa']}. Lịch đã được xác nhận sẵn.",
+                now_str
+            ))
+
+        # Xác định ca làm việc tương ứng
+        from models.appointment_model import AppointmentModel
+        shift_num = AppointmentModel.get_shift_from_time(norm_time)
+
+        # Kiểm tra ca làm việc của bác sĩ trong lich_lam_viec
+        cursor.execute('''
+            SELECT id FROM lich_lam_viec
+            WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ? AND trang_thai = 1
+        ''', (doctor_id, norm_date, shift_num))
+        has_shift = cursor.fetchone()
+
+        if not has_shift and doc_info.get('tai_khoan_id'):
+            cursor.execute('''
+                INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                VALUES (?, ?, ?, N'Nhắc nhở ca trực', '/admin/staff', 0, ?)
+            ''', (
+                doc_info['tai_khoan_id'],
+                "Nhắc nhở đăng ký ca làm việc",
+                f"Bạn có lịch khám cho bệnh nhân vào ngày {norm_date} nhưng chưa đăng ký ca làm vào giờ đó, vui lòng đăng ký",
+                now_str
+            ))
+
+        return ma_lich_hen
+
+    @staticmethod
+    def update_examination(record_id, doctor_id, diagnosis, icd, treatment, advice, reexam_date=None, reason=None, audit_user=None, reexam_time=None):
         """Bác sĩ chỉnh sửa hồ sơ bệnh án EMR: Lưu thay đổi và ghi nhận lịch sử trước/sau có vết kiểm toán."""
         old_rec = MedicalRecordModel.get_examination_by_id(record_id)
         if not old_rec:
@@ -301,6 +391,18 @@ class MedicalRecordModel:
                 SET chan_doan_so_bo = ?, chan_doan_icd = ?, huong_dieu_tri = ?, loi_dan = ?, ngay_tai_kham = ?
                 WHERE id = ?
             ''', (diagnosis, icd, treatment, advice, normalize_reexam_date(reexam_date), record_id))
+
+            if reexam_date:
+                doc_to_assign = doctor_id or old_rec.get('bac_si_id')
+                MedicalRecordModel._create_reexamination_appointment(
+                    cursor=cursor,
+                    patient_id=old_rec['benh_nhan_id'],
+                    doctor_id=doc_to_assign,
+                    room_id=old_rec.get('phong_kham_id'),
+                    reexam_date=reexam_date,
+                    reexam_time=reexam_time or '08:30',
+                    diagnosis=diagnosis
+                )
 
             conn.commit()
             conn.close()
@@ -336,7 +438,7 @@ class MedicalRecordModel:
             return False, f"Lỗi cập nhật bệnh án: {str(e)}"
 
     @staticmethod
-    def finish_examination(record_id, diagnosis, icd, treatment, advice, reexam_date=None, medicines=None, images=None, audit_user=None):
+    def finish_examination(record_id, diagnosis, icd, treatment, advice, reexam_date=None, medicines=None, images=None, audit_user=None, reexam_time=None):
         """Bác sĩ kết luận chẩn đoán xác định, kê đơn thuốc và hoàn tất phiên khám sau khi có kết quả CLS."""
         old_rec = MedicalRecordModel.get_examination_by_id(record_id)
         if not old_rec:
@@ -362,6 +464,18 @@ class MedicalRecordModel:
                 SET trang_thai = N'Đã khám'
                 WHERE benh_nhan_id = ? AND trang_thai IN (N'Chờ kết quả CLS', N'Đang khám', N'Đã tiếp nhận')
             ''', (old_rec['benh_nhan_id'],))
+
+            # 2.1 Tự động tạo lịch hẹn tái khám đã duyệt sẵn cho bệnh nhân nếu bác sĩ có hẹn ngày tái khám
+            if reexam_date:
+                MedicalRecordModel._create_reexamination_appointment(
+                    cursor=cursor,
+                    patient_id=old_rec['benh_nhan_id'],
+                    doctor_id=old_rec.get('bac_si_id'),
+                    room_id=old_rec.get('phong_kham_id'),
+                    reexam_date=reexam_date,
+                    reexam_time=reexam_time or '08:30',
+                    diagnosis=diagnosis
+                )
 
             # 3. Kê đơn thuốc nếu có
             if medicines and len(medicines) > 0:
@@ -421,7 +535,7 @@ class MedicalRecordModel:
             return False, f"Lỗi hoàn tất phiên khám: {str(e)}"
 
     @staticmethod
-    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, images=None, audit_user=None):
+    def save_examination(patient_id, doctor_id, room_id, reason, symptoms, diagnosis, icd, treatment, advice, reexam_date=None, lab_service_ids=None, medicines=None, images=None, audit_user=None, reexam_time=None):
         """Lưu toàn bộ phiên khám EMR (Phiếu khám, chỉ định CLS, đơn thuốc và hóa đơn viện phí)."""
         conn = get_db()
         cursor = conn.cursor()
@@ -482,6 +596,18 @@ class MedicalRecordModel:
                 WHERE benh_nhan_id = ? 
                   AND trang_thai IN (N'Đã tiếp nhận', N'Đang khám', N'Chờ tiếp nhận', N'Chờ kết quả CLS')
             ''', (appt_status, patient_id))
+
+            # Tự động tạo lịch tái khám nếu có hẹn ngày tái khám
+            if reexam_date and valid_doctor_id:
+                MedicalRecordModel._create_reexamination_appointment(
+                    cursor=cursor,
+                    patient_id=patient_id,
+                    doctor_id=valid_doctor_id,
+                    room_id=room_id,
+                    reexam_date=reexam_date,
+                    reexam_time=reexam_time or '08:30',
+                    diagnosis=diagnosis
+                )
 
             cursor.execute('SELECT bhyt FROM benh_nhan WHERE id = ?', (patient_id,))
             p_check = cursor.fetchone()

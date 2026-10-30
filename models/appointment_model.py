@@ -546,6 +546,55 @@ class AppointmentModel:
                 SET bac_si_id = ?, phong_kham_id = COALESCE(?, phong_kham_id), trang_thai = N'Đã tiếp nhận'
                 WHERE id = ?
             ''', (doctor_id, phong_kham_id, real_id))
+
+            # Gửi thông báo In-App cho Bệnh nhân và Bác sĩ được phân công
+            try:
+                cursor.execute('''
+                    SELECT lh.ma_lich_hen, lh.ngay_hen, lh.gio_hen, bn.tai_khoan_id AS bn_tk_id, bn.ho_ten AS ten_bn,
+                           nv.ho_ten AS ten_bs, bs.hoc_vi, pk.ten_phong
+                    FROM lich_hen lh
+                    JOIN benh_nhan bn ON lh.benh_nhan_id = bn.id
+                    JOIN bac_si bs ON bs.id = ?
+                    JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                    LEFT JOIN phong_kham pk ON pk.id = COALESCE(?, lh.phong_kham_id, bs.phong_kham_chinh_id)
+                    WHERE lh.id = ?
+                ''', (doctor_id, phong_kham_id, real_id))
+                assign_info = cursor.fetchone()
+                if assign_info and assign_info.get('bn_tk_id'):
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    bs_full = f"{assign_info.get('hoc_vi') or 'BS'}. {assign_info['ten_bs']}"
+                    phong_str = f" tại {assign_info['ten_phong']}" if assign_info.get('ten_phong') else ""
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Phân công bác sĩ', '/patient/appointments', 0, ?)
+                    ''', (
+                        assign_info['bn_tk_id'],
+                        f"Đã phân công bác sĩ: {assign_info['ma_lich_hen']}",
+                        f"Lịch hẹn khám ngày {assign_info['ngay_hen']} lúc {str(assign_info['gio_hen'])[:5]} của bạn đã được phân công cho {bs_full}{phong_str}.",
+                        now_str
+                    ))
+
+                # Thông báo cho bác sĩ được phân công
+                cursor.execute('''
+                    SELECT nv.tai_khoan_id FROM bac_si bs
+                    JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                    WHERE bs.id = ?
+                ''', (doctor_id,))
+                doc_tk = cursor.fetchone()
+                if doc_tk and doc_tk.get('tai_khoan_id'):
+                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'Phân công ca khám', '/admin/appointments', 0, ?)
+                    ''', (
+                        doc_tk['tai_khoan_id'],
+                        f"Lịch khám mới được phân công: {assign_info['ma_lich_hen']}",
+                        f"Bạn vừa được phân công tiếp nhận bệnh nhân {assign_info['ten_bn']} vào ngày {assign_info['ngay_hen']} lúc {str(assign_info['gio_hen'])[:5]}.",
+                        now_str
+                    ))
+            except Exception as e_notif:
+                pass
+
             conn.commit()
             conn.close()
 
@@ -621,7 +670,7 @@ class AppointmentModel:
         return docs
 
     @staticmethod
-    def create(benh_nhan_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do_kham, audit_user=None):
+    def create(benh_nhan_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do_kham, audit_user=None, return_details=False):
         """Tạo lịch hẹn khám mới kèm kiểm tra ca trực và gửi thông báo in-app."""
         # Kiểm tra ngày giờ hợp lệ (chuẩn hóa đa định dạng và không cho đặt trong quá khứ)
         work_date_str = AppointmentModel.normalize_date(ngay_hen)
@@ -658,9 +707,11 @@ class AppointmentModel:
 
             shift_num = AppointmentModel.get_shift_from_time(work_time_str)
 
-            # 2. Kiểm tra bác sĩ và chỉ nhận 1 bệnh nhân cho mỗi lịch hẹn 30 phút
+            # 2. Kiểm tra bác sĩ và phân công linh hoạt (ngẫu nhiên nếu có nhiều bác sĩ trực ca)
             ten_bac_si = "Bác sĩ chuyên khoa"
             phong_kham_id = None
+            assigned_random = False
+
             if bac_si_id:
                 cursor.execute('''
                     SELECT nv.ho_ten, bs.trang_thai_lam_viec, nv.trang_thai, bs.phong_kham_chinh_id 
@@ -687,6 +738,8 @@ class AppointmentModel:
                     conn.close()
                     return False, f"Bác sĩ {ten_bac_si} đã có bệnh nhân hẹn vào lúc {work_time_str} ngày {work_date_str}. Mỗi khung giờ 30 phút bác sĩ chỉ nhận 1 bệnh nhân!"
             else:
+                import random
+                # Tìm tất cả bác sĩ trực ca của khoa trong ca trực này
                 cursor.execute('''
                     SELECT bs.id, nv.ho_ten, bs.phong_kham_chinh_id
                     FROM bac_si bs
@@ -695,8 +748,8 @@ class AppointmentModel:
                     WHERE bs.chuyen_khoa_id = ? AND llv.ngay_lam = ? AND llv.ca_lam = ? AND llv.trang_thai = 1 AND bs.trang_thai_lam_viec = 'Đang làm việc'
                 ''', (chuyen_khoa_id, work_date_str, shift_num))
                 duty_docs = cursor.fetchall()
+                available_docs = []
                 if duty_docs:
-                    available_doc = None
                     for d in duty_docs:
                         cursor.execute('''
                             SELECT id FROM lich_hen
@@ -704,37 +757,42 @@ class AppointmentModel:
                               AND ABS(DATEDIFF(MINUTE, CAST(? AS TIME), gio_hen)) < 30
                         ''', (d['id'], work_date_str, work_time_str))
                         if not cursor.fetchone():
-                            available_doc = d
-                            break
-                    if available_doc:
-                        bac_si_id = available_doc['id']
-                        ten_bac_si = available_doc['ho_ten']
-                        phong_kham_id = available_doc.get('phong_kham_chinh_id')
-                    else:
-                        conn.close()
-                        return False, f"Tất cả bác sĩ trực ca của khoa đã có bệnh nhân hẹn vào lúc {work_time_str} ngày {work_date_str}. Mỗi khung giờ 30 phút chỉ nhận 1 bệnh nhân cho mỗi bác sĩ!"
+                            available_docs.append(d)
+
+                if available_docs:
+                    chosen_doc = random.choice(available_docs)
+                    bac_si_id = chosen_doc['id']
+                    ten_bac_si = chosen_doc['ho_ten']
+                    phong_kham_id = chosen_doc.get('phong_kham_chinh_id')
+                    assigned_random = True
+                else:
+                    # Nếu không có bác sĩ trực ca nào rảnh, không báo lỗi mà chuyển sang chế độ Admin/Tiếp tân phân công
+                    bac_si_id = None
+                    ten_bac_si = "Đang sắp xếp bác sĩ phù hợp"
+                    phong_kham_id = None
+                    assigned_random = False
 
             # 3. Kiểm tra và cập nhật ca trực trong lich_lam_viec theo đúng ca sáng/chiều
-
-            cursor.execute('''
-                SELECT id, so_luong_kham_toi_da, so_luong_da_dang_ky, phong_kham_id
-                FROM lich_lam_viec
-                WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ? AND trang_thai = 1
-            ''', (bac_si_id, work_date_str, shift_num) if bac_si_id else (-1, work_date_str, shift_num))
-            schedule_row = cursor.fetchone()
-            if schedule_row:
-                if schedule_row['so_luong_da_dang_ky'] >= schedule_row['so_luong_kham_toi_da']:
-                    conn.close()
-                    return False, f"Ca khám của bác sĩ {ten_bac_si} ngày {work_date_str} đã hết lượt đăng ký (tối đa {schedule_row['so_luong_kham_toi_da']} lượt)!"
+            if bac_si_id:
                 cursor.execute('''
-                    UPDATE lich_lam_viec
-                    SET so_luong_da_dang_ky = so_luong_da_dang_ky + 1
-                    WHERE id = ?
-                ''', (schedule_row['id'],))
-                if not phong_kham_id:
-                    phong_kham_id = schedule_row.get('phong_kham_id')
+                    SELECT id, so_luong_kham_toi_da, so_luong_da_dang_ky, phong_kham_id
+                    FROM lich_lam_viec
+                    WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ? AND trang_thai = 1
+                ''', (bac_si_id, work_date_str, shift_num))
+                schedule_row = cursor.fetchone()
+                if schedule_row:
+                    if schedule_row['so_luong_da_dang_ky'] >= schedule_row['so_luong_kham_toi_da']:
+                        conn.close()
+                        return False, f"Ca khám của bác sĩ {ten_bac_si} ngày {work_date_str} đã hết lượt đăng ký (tối đa {schedule_row['so_luong_kham_toi_da']} lượt)!"
+                    cursor.execute('''
+                        UPDATE lich_lam_viec
+                        SET so_luong_da_dang_ky = so_luong_da_dang_ky + 1
+                        WHERE id = ?
+                    ''', (schedule_row['id'],))
+                    if not phong_kham_id:
+                        phong_kham_id = schedule_row.get('phong_kham_id')
 
-            # 4. Tạo mã lịch hẹn
+            # 4. Tạo mã lịch hẹn và lưu trạng thái ban đầu 'Chờ xét duyệt'
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM lich_hen')
             next_id = cursor.fetchone()['next_id']
             ma_lich_hen = f"LH2609{str(next_id).zfill(3)}"
@@ -742,7 +800,7 @@ class AppointmentModel:
             cursor.execute('''
                 INSERT INTO lich_hen (ma_lich_hen, benh_nhan_id, bac_si_id, chuyen_khoa_id, phong_kham_id, ngay_hen, gio_hen, ly_do_kham, trang_thai)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ma_lich_hen, benh_nhan_id, bac_si_id if bac_si_id else None, chuyen_khoa_id, phong_kham_id, work_date_str, gio_hen, ly_do_kham, 'Chờ tiếp nhận'))
+            ''', (ma_lich_hen, benh_nhan_id, bac_si_id if bac_si_id else None, chuyen_khoa_id, phong_kham_id, work_date_str, work_time_str, ly_do_kham, 'Chờ xét duyệt'))
             created_appt_id = cursor.lastrowid
 
             # 5. Tạo thông báo In-App cho bệnh nhân và Lễ tân/Admin
@@ -751,13 +809,18 @@ class AppointmentModel:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if bn_row and bn_row.get('tai_khoan_id'):
+                if bac_si_id:
+                    doc_desc = f"Bác sĩ: {ten_bac_si} (hệ thống chỉ định ngẫu nhiên trong ca trực)." if assigned_random else f"Bác sĩ: {ten_bac_si}."
+                else:
+                    doc_desc = "Bác sĩ: Đang sắp xếp bác sĩ phù hợp (Ban tiếp đón sẽ phân công bác sĩ sớm nhất)."
+
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Đặt lịch hẹn', '/patient/dashboard', 0, ?)
+                    VALUES (?, ?, ?, 'Đặt lịch hẹn', '/patient/appointments', 0, ?)
                 ''', (
                     bn_row['tai_khoan_id'],
                     f"Đăng ký khám thành công: {ma_lich_hen}",
-                    f"Quý khách đã đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {gio_hen}). Trạng thái: Chờ tiếp nhận.",
+                    f"Quý khách đã đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {work_time_str}). {doc_desc} Trạng thái: Chờ xét duyệt.",
                     now_str
                 ))
 
@@ -770,13 +833,20 @@ class AppointmentModel:
             ''')
             admin_letan_accs = cursor.fetchall()
             for adm in admin_letan_accs:
+                if bac_si_id:
+                    adm_title = f"Lịch hẹn khám mới: {ma_lich_hen}"
+                    adm_content = f"Bệnh nhân {patient_name} vừa đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {work_time_str}) với BS {ten_bac_si}. Vui lòng xét duyệt."
+                else:
+                    adm_title = f"Lịch hẹn cần phân công bác sĩ: {ma_lich_hen}"
+                    adm_content = f"Bệnh nhân {patient_name} đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {work_time_str}) đang chờ xếp bác sĩ. Vui lòng phân công bác sĩ phụ trách."
+
                 cursor.execute('''
                     INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                    VALUES (?, ?, ?, 'Lịch khám mới', '/admin/reception', 0, ?)
+                    VALUES (?, ?, ?, 'Lịch khám mới', '/admin/appointments', 0, ?)
                 ''', (
                     adm['id'],
-                    f"Lịch hẹn khám mới: {ma_lich_hen}",
-                    f"Bệnh nhân {patient_name} vừa đặt lịch khám tại {ck['ten_khoa']} ({work_date_str} lúc {gio_hen}). Vui lòng kiểm tra và tiếp nhận.",
+                    adm_title,
+                    adm_content,
                     now_str
                 ))
 
@@ -790,9 +860,16 @@ class AppointmentModel:
                 performed_by=audit_user.get('id') if audit_user else None,
                 performed_by_name=audit_user.get('ho_ten') if audit_user else (bn_row['ho_ten'] if bn_row else 'Bệnh nhân'),
                 reason='Đặt lịch khám mới',
-                after_data={'ma_lich_hen': ma_lich_hen, 'ngay_hen': work_date_str, 'gio_hen': gio_hen, 'chuyen_khoa_id': chuyen_khoa_id, 'bac_si_id': bac_si_id}
+                after_data={'ma_lich_hen': ma_lich_hen, 'ngay_hen': work_date_str, 'gio_hen': work_time_str, 'chuyen_khoa_id': chuyen_khoa_id, 'bac_si_id': bac_si_id, 'trang_thai': 'Chờ xét duyệt'}
             )
 
+            if return_details:
+                return True, {
+                    'ma_lich_hen': ma_lich_hen,
+                    'bac_si_id': bac_si_id,
+                    'ten_bac_si': ten_bac_si,
+                    'assigned_random': assigned_random
+                }
             return True, ma_lich_hen
         except Exception as e:
             conn.rollback()
@@ -823,13 +900,9 @@ class AppointmentModel:
             if not patient_id or appt['benh_nhan_id'] != patient_id:
                 return False, "Bạn chỉ được phép thay đổi lịch hẹn của chính mình!"
 
-            # Kiểm tra thời gian trước giờ khám
-            try:
-                curr_appt_dt = datetime.strptime(f"{str(appt['ngay_hen'])[:10]} {str(appt['gio_hen'])[:5]}", '%Y-%m-%d %H:%M')
-                if curr_appt_dt <= datetime.now():
-                    return False, "Đã quá thời gian khám của lịch hẹn! Chỉ nhân viên y tế mới có quyền điều phối sau giờ khám."
-            except Exception:
-                pass
+            # Sau khi đã duyệt lịch rồi thì không thể dời lịch nữa mà chỉ có thể hủy lịch
+            if appt.get('trang_thai') in ['Đã duyệt', 'Đã tiếp nhận', 'Đã xác nhận']:
+                return False, "Lịch hẹn đã được phê duyệt xác nhận nên không thể dời lịch nữa. Quý khách vui lòng hủy lịch hẹn nếu không thể đến khám đúng giờ!"
 
         # Kiểm tra ngày giờ mới phải là tương lai
         try:
@@ -953,20 +1026,38 @@ class AppointmentModel:
                     WHERE bac_si_id = ? AND ngay_lam = ?
                 ''', (appt['bac_si_id'], str(appt['ngay_hen'])[:10]))
 
-            # 3. Gửi thông báo cho bệnh nhân nếu hủy bởi nhân viên
+            # 3. Gửi thông báo cho bệnh nhân hoặc nhân viên khi hủy lịch
+            cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (appt['benh_nhan_id'],))
+            bn_row = cursor.fetchone()
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
             if user_role in ['ADMIN', 'LETAN', 'BACSI']:
-                cursor.execute('SELECT tai_khoan_id FROM benh_nhan WHERE id = ?', (appt['benh_nhan_id'],))
-                bn_row = cursor.fetchone()
                 if bn_row and bn_row.get('tai_khoan_id'):
-                    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     ly_do_text = f" Lý do: {reason}." if reason else ""
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, 'Hủy lịch hẹn', '/patient/dashboard', 0, ?)
+                        VALUES (?, ?, ?, 'Hủy lịch hẹn', '/patient/appointments', 0, ?)
                     ''', (
                         bn_row['tai_khoan_id'],
                         f"Lịch hẹn {appt['ma_lich_hen']} đã bị hủy",
-                        f"Phòng khám xin thông báo lịch hẹn ngày {appt['ngay_hen']} của bạn đã được hủy.{ly_do_text}",
+                        f"Phòng khám xin thông báo lịch hẹn ngày {appt['ngay_hen']} lúc {str(appt.get('gio_hen'))[:5]} của bạn đã được hủy.{ly_do_text} Quý khách vui lòng đặt lại lịch khám vào khung giờ khác nếu có nhu cầu.",
+                        now_str
+                    ))
+            else:
+                # Bệnh nhân tự hủy -> Thông báo cho Admin và Lễ tân
+                cursor.execute('''
+                    SELECT t.id FROM tai_khoan t
+                    JOIN vai_tro v ON t.vai_tro_id = v.id
+                    WHERE v.ma_vai_tro IN ('ADMIN', 'LETAN') AND t.trang_thai = 1
+                ''')
+                for adm in cursor.fetchall():
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, 'Hủy lịch hẹn', '/admin/appointments', 0, ?)
+                    ''', (
+                        adm['id'],
+                        f"Bệnh nhân hủy lịch: {appt['ma_lich_hen']}",
+                        f"Bệnh nhân {bn_row['ho_ten'] if bn_row else ''} vừa hủy lịch hẹn khám ngày {appt['ngay_hen']} lúc {str(appt.get('gio_hen'))[:5]}.",
                         now_str
                     ))
 
@@ -1019,7 +1110,7 @@ class AppointmentModel:
             cursor.execute('UPDATE lich_hen SET trang_thai = ? WHERE id = ?', (new_status, appt['id']))
 
             # Nếu tiếp nhận hoặc xác nhận lịch hẹn, tự động gửi thông báo in-app cho bệnh nhân và bác sĩ
-            if new_status in ['Đã tiếp nhận', 'Đã xác nhận']:
+            if new_status in ['Đã tiếp nhận', 'Đã xác nhận', 'Đã duyệt']:
                 cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (appt['benh_nhan_id'],))
                 bn_row = cursor.fetchone()
                 now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1035,7 +1126,7 @@ class AppointmentModel:
                     )
                     cursor.execute('''
                         INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
-                        VALUES (?, ?, ?, N'Lịch hẹn', '/patient/booking', 0, ?)
+                        VALUES (?, ?, ?, N'Lịch hẹn', '/patient/appointments', 0, ?)
                     ''', (bn_row['tai_khoan_id'], tieu_de, noi_dung, now_str))
 
                 # Thông báo cho bác sĩ ngay khi tiếp tân/admin duyệt tiếp nhận

@@ -66,6 +66,30 @@
         </div>
     </div>
 
+    <!-- Cảnh báo có lịch hẹn khám cho bệnh nhân nhưng chưa đăng ký ca trực -->
+    {% if unregistered_doctor_appointments %}
+    <div class="space-y-2">
+        {% for u_app in unregistered_doctor_appointments %}
+        <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-base animate-pulse"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-xs">Cần đăng ký ca trực khám bệnh</div>
+                    <div class="text-[11px] opacity-90">
+                        Bạn có lịch khám cho bệnh nhân vào ngày <strong>{{ u_app.ngay_hen_fmt }}</strong> nhưng chưa đăng ký ca làm vào giờ đó, vui lòng đăng ký (Lịch hẹn <strong>#{{ u_app.ma_lich_hen }}</strong> lúc {{ u_app.gio_hen_fmt }} - {{ u_app.ten_ca }}, Bệnh nhân: {{ u_app.ten_ben_nhan }}).
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="switchTab('register')" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-xs whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-calendar-plus"></i> Đăng ký ca làm ngay
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Nhắc nhở đăng ký lịch tuần tới nếu chưa có lịch -->
     {% if no_next_week_schedule %}
     <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -620,6 +644,22 @@
 
     <!-- TAB 3: ĐĂNG KÝ CA LÀM (CHỌN NHIỀU CA CÙNG LÚC TRÊN LƯỚI VÀ XÁC NHẬN) -->
     <div id="tab-register" class="tab-pane hidden space-y-5">
+        <!-- Cảnh báo có lịch hẹn khám cho bệnh nhân nhưng chưa đăng ký ca làm -->
+        {% if unregistered_doctor_appointments %}
+        <div class="space-y-2">
+            {% for u_app in unregistered_doctor_appointments %}
+            <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-base">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="text-xs">
+                    <span class="font-bold">Lưu ý:</span> Bạn có lịch khám cho bệnh nhân vào ngày <strong>{{ u_app.ngay_hen_fmt }}</strong> nhưng chưa đăng ký ca làm vào giờ đó, vui lòng đăng ký (Lịch hẹn <strong>#{{ u_app.ma_lich_hen }}</strong> lúc {{ u_app.gio_hen_fmt }} - {{ u_app.ten_ca }}, Bệnh nhân: {{ u_app.ten_ben_nhan }}).
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Banner quy tắc đăng ký ca làm -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md">
             <div class="flex items-start gap-4">

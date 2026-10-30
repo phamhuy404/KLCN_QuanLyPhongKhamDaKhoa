@@ -68,19 +68,24 @@ html {
 }
 
 /* Giữ trạng thái mở tức thì khi chuyển trang, loại bỏ hiệu ứng giật thụt vô thò ra */
-.sidebar-auto-expand.is-hold-open {
+.sidebar-auto-expand.is-hold-open,
+html.sidebar-keep-open .sidebar-auto-expand {
     width: 16.5rem !important;
 }
 
-.sidebar-auto-expand.is-hold-open .sidebar-text-fade {
+.sidebar-auto-expand.is-hold-open .sidebar-text-fade,
+html.sidebar-keep-open .sidebar-auto-expand .sidebar-text-fade {
     opacity: 1 !important;
     visibility: visible !important;
     transform: translateX(0) !important;
+    transition: none !important;
 }
 
-.sidebar-auto-expand.is-hold-open .sidebar-extra-content {
+.sidebar-auto-expand.is-hold-open .sidebar-extra-content,
+html.sidebar-keep-open .sidebar-auto-expand .sidebar-extra-content {
     opacity: 1 !important;
     max-height: 120px !important;
+    transition: none !important;
 }
 
 /* Vô hiệu hóa transition trong tích tắc render đầu tiên để chống giật */

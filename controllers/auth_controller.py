@@ -15,13 +15,18 @@ def login():
             return redirect(url_for('admin.dashboard'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
-        return redirect(url_for('patient.dashboard'))
+        return redirect(url_for('home.home'))
 
     if request.method == 'POST':
         username = sanitize_text(request.form.get('username', ''))
         password = request.form.get('password', '').strip()
 
-        user = UserModel.authenticate(username, password)
+        clean_phone = username.replace(' ', '').replace('.', '').replace('-', '')
+        if clean_phone.startswith('+84'):
+            clean_phone = '0' + clean_phone[3:]
+        elif clean_phone.startswith('84') and len(clean_phone) == 11:
+            clean_phone = '0' + clean_phone[2:]
+        user = UserModel.authenticate(username, password, clean_phone=clean_phone)
         if not user:
             return render_template('auth/login.html', error='Tên đăng nhập hoặc mật khẩu không chính xác!')
 
@@ -44,13 +49,13 @@ def login():
         next_url = request.args.get('next')
         if next_url:
             if next_url.startswith('/admin') and user['vai_tro'] == 'BENHNHAN':
-                return redirect(url_for('patient.dashboard'))
+                return redirect(url_for('home.home'))
             return redirect(next_url)
 
         # Điều hướng theo vai trò người dùng
         if user['vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
-        return redirect(url_for('patient.dashboard'))
+        return redirect(url_for('home.home'))
 
     return render_template('auth/login.html')
 
@@ -65,7 +70,7 @@ def register():
             return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
-        return redirect(url_for('patient.dashboard'))
+        return redirect(url_for('home.home'))
 
     if request.method == 'POST':
         ho_ten = sanitize_text(request.form.get('ho_ten', ''))
@@ -123,7 +128,7 @@ def force_change_password():
             return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
-        return redirect(url_for('patient.dashboard'))
+        return redirect(url_for('home.home'))
 
     if request.method == 'POST':
         new_pw = request.form.get('new_password', '').strip()
@@ -169,6 +174,6 @@ def force_change_password():
             return redirect(url_for('patient.complete_profile'))
         if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
             return redirect(url_for('admin.dashboard'))
-        return redirect(url_for('patient.dashboard'))
+        return redirect(url_for('home.home'))
 
     return render_template('auth/force_change_password.html', user=user)

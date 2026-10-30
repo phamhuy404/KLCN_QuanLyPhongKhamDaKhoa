@@ -235,7 +235,7 @@
                         <input type="text" id="emr-treatment" value="Chỉ định CLS (Xét nghiệm máu, X-quang), điều trị nội khoa kết hợp chế độ ăn uống" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Lời dặn của bác sĩ điều trị</label>
                             <input type="text" id="emr-advice" value="Ăn uống đúng giờ, kiêng đồ cay nóng chua cay, tái khám đúng hẹn." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
@@ -243,6 +243,38 @@
                         <div>
                             <label class="block font-semibold text-slate-700 mb-1">Ngày hẹn tái khám (Nếu có)</label>
                             <input type="date" id="emr-reexam" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">Khung giờ hẹn tái khám</label>
+                            <select id="emr-reexam-time" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-medical-500">
+                                <optgroup label="Ca Sáng">
+                                    <option value="07:30">07:30</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="08:30" selected>08:30</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="09:30">09:30</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="10:30">10:30</option>
+                                    <option value="11:00">11:00</option>
+                                </optgroup>
+                                <optgroup label="Ca Chiều">
+                                    <option value="13:30">13:30</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="14:30">14:30</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="15:30">15:30</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="16:30">16:30</option>
+                                </optgroup>
+                                <optgroup label="Ca Tối">
+                                    <option value="17:30">17:30</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="18:30">18:30</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="19:30">19:30</option>
+                                    <option value="20:00">20:00</option>
+                                </optgroup>
+                            </select>
                         </div>
                     </div>
 
@@ -1269,6 +1301,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
         const treatment = document.getElementById('emr-treatment')?.value || 'Chỉ định CLS và kê đơn điều trị nội khoa';
         const advice = document.getElementById('emr-advice')?.value || 'Uống thuốc đúng giờ, tái khám đúng hẹn';
         const reexam = document.getElementById('emr-reexam')?.value || null;
+        const reexam_time = document.getElementById('emr-reexam-time')?.value || '08:30';
 
         // Lấy danh sách ID các kỹ thuật CLS đã chọn
         const checkedCls = Array.from(document.querySelectorAll('input[name="cls_service_id"]:checked')).map(el => parseInt(el.value));
@@ -1288,6 +1321,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
             treatment: treatment,
             advice: advice,
             reexam_date: reexam,
+            reexam_time: reexam_time,
             lab_services: checkedCls,
             medicines: prescriptionItems.map(x => ({
                 thuoc_id: x.thuoc_id,
@@ -1340,6 +1374,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
             treatment: treatment,
             advice: advice,
             reexam_date: reexam,
+            reexam_time: reexam_time,
             medicines: prescriptionItems.map(x => ({
                 thuoc_id: x.thuoc_id,
                 so_luong: x.so_luong,

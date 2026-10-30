@@ -27,8 +27,27 @@ def book_appointment():
     if not ngay_hen or not gio_hen:
         return jsonify({'success': False, 'message': 'Vui lòng chọn ngày và giờ khám!'}), 400
 
-    success, result = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do, audit_user=user)
+    success, result = AppointmentModel.create(patient_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do, audit_user=user, return_details=True)
     if success:
+        if isinstance(result, dict):
+            ma_lh = result.get('ma_lich_hen')
+            ten_bs = result.get('ten_bac_si')
+            bs_id = result.get('bac_si_id')
+            assigned_rnd = result.get('assigned_random')
+            if bs_id and assigned_rnd:
+                msg = f'Đặt lịch thành công! Bác sĩ {ten_bs} được chỉ định ngẫu nhiên tiếp nhận bạn.'
+            elif bs_id:
+                msg = f'Đặt lịch thành công! Bác sĩ {ten_bs} sẽ tiếp nhận bạn.'
+            else:
+                msg = 'Đặt lịch thành công! Hệ thống đang sắp xếp bác sĩ phù hợp cho bạn.'
+            return jsonify({
+                'success': True,
+                'ma_lich_hen': ma_lh,
+                'ten_bac_si': ten_bs,
+                'bac_si_id': bs_id,
+                'assigned_random': assigned_rnd,
+                'message': msg
+            })
         return jsonify({'success': True, 'ma_lich_hen': result, 'message': 'Đặt lịch thành công!'})
     return jsonify({'success': False, 'message': result}), 400
 
@@ -270,6 +289,7 @@ def save_emr_examination():
         treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
         advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
         reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
+        reexam_time = data.get('reexam_time') or data.get('gio_tai_kham') or '08:30'
         lab_service_ids = data.get('lab_services') or data.get('dich_vu_chi_dinh') or []
         medicines = data.get('medicines') or data.get('don_thuoc') or []
         raw_images = data.get('images', [])
@@ -291,6 +311,7 @@ def save_emr_examination():
         treatment = request.form.get('treatment', 'Theo dõi và điều trị nội khoa')
         advice = request.form.get('advice', 'Ăn uống nghỉ ngơi điều độ')
         reexam_date = request.form.get('reexam_date')
+        reexam_time = request.form.get('reexam_time') or request.form.get('gio_tai_kham') or '08:30'
         
         lab_raw = request.form.get('lab_services')
         try:
@@ -326,6 +347,7 @@ def save_emr_examination():
         treatment=treatment,
         advice=advice,
         reexam_date=reexam_date,
+        reexam_time=reexam_time,
         lab_service_ids=lab_service_ids,
         medicines=medicines,
         images=saved_images,
@@ -421,6 +443,7 @@ def finish_emr_examination():
         treatment = data.get('treatment', 'Theo dõi và điều trị nội khoa')
         advice = data.get('advice') or data.get('loi_dan') or 'Ăn uống nghỉ ngơi điều độ'
         reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
+        reexam_time = data.get('reexam_time') or data.get('gio_tai_kham') or '08:30'
         medicines = data.get('medicines') or data.get('don_thuoc') or []
         raw_images = data.get('images', [])
         saved_images = []
@@ -437,6 +460,7 @@ def finish_emr_examination():
         treatment = request.form.get('treatment', 'Theo dõi và điều trị nội khoa')
         advice = request.form.get('advice', 'Ăn uống nghỉ ngơi điều độ')
         reexam_date = request.form.get('reexam_date')
+        reexam_time = request.form.get('reexam_time') or request.form.get('gio_tai_kham') or '08:30'
 
         med_raw = request.form.get('medicines')
         try:
@@ -463,6 +487,7 @@ def finish_emr_examination():
         treatment=treatment,
         advice=advice,
         reexam_date=reexam_date,
+        reexam_time=reexam_time,
         medicines=medicines,
         images=saved_images if saved_images else None,
         audit_user=user
@@ -1484,6 +1509,7 @@ def update_emr_record():
     treatment = data.get('treatment') or data.get('huong_dieu_tri')
     advice = data.get('advice') or data.get('loi_dan')
     reexam_date = data.get('reexam_date') or data.get('ngay_tai_kham')
+    reexam_time = data.get('reexam_time') or data.get('gio_tai_kham') or '08:30'
     reason = data.get('reason') or data.get('ly_do_sua')
 
     if not record_id or not diagnosis or not treatment:
@@ -1500,6 +1526,7 @@ def update_emr_record():
         treatment=treatment,
         advice=advice,
         reexam_date=reexam_date,
+        reexam_time=reexam_time,
         reason=reason,
         audit_user=user
     )
