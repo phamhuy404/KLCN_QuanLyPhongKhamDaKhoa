@@ -1,759 +1,1376 @@
 <!DOCTYPE html>
+
 <html lang="vi">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Bệnh viện Đa khoa Quốc tế H2T Healthcare - Hệ thống Y tế Chất lượng cao</title>
 
     <!-- Tailwind CSS CDN -->
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- FontAwesome cho Icons -->
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Google Fonts: Inter -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Tailwind Configuration đồng bộ màu dự án -->
+
         <!-- Dark Mode Init Script -->
+
     <script>
+
         try {
+
             const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+
             if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+
                 document.documentElement.classList.add('dark');
+
             } else {
+
                 document.documentElement.classList.remove('dark');
+
             }
+
         } catch(e) {}
+
     </script>
+
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+
     <script>
+
         tailwind.config = {
+
             darkMode: 'class',
+
             theme: {
+
                 extend: {
+
                     fontFamily: {
+
                         sans: ['Inter', 'sans-serif'],
+
                     },
+
                     colors: {
+
                         medical: {
+
                             50: '#eefcf6',
+
                             100: '#d4f8e8',
+
                             500: '#10b981',
+
                             600: '#059669',
+
                             700: '#047857',
+
                             900: '#065f46',
+
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     </script>
 
     <!-- Custom CSS -->
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 
     <style>
+
         html {
+
             scroll-behavior: smooth;
+
         }
 
         /* Đường ray trượt banner ngang mượt mà */
+
         #carousel-track {
+
             display: flex;
+
             width: 300%;
+
             height: 100%;
+
             transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+
             will-change: transform;
+
         }
 
         /* Thanh cuộn mỏng đẹp cho phần bài viết mới */
+
         .article-scroll-container::-webkit-scrollbar {
+
             width: 5px;
+
         }
+
         .article-scroll-container::-webkit-scrollbar-track {
+
             background: #f1f5f9;
+
             border-radius: 9999px;
+
         }
+
         .article-scroll-container::-webkit-scrollbar-thumb {
+
             background: #cbd5e1;
+
             border-radius: 9999px;
+
         }
+
         .article-scroll-container::-webkit-scrollbar-thumb:hover {
+
             background: #10b981;
+
         }
+
     </style>
+
 </head>
+
 <body class="bg-slate-50 font-sans antialiased text-slate-800">
 
     <!-- 1. Header công khai (Topbar và Main Header) -->
+
     <!-- Top utility bar -->
+
     <div class="bg-gradient-to-r from-medical-700 to-teal-800 text-white text-xs py-2 px-4 sm:px-8 border-b border-white/10">
+
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+
             <div class="flex items-center gap-6">
+
                 <span class="flex items-center gap-1.5 text-medical-100">
+
                     <i class="fa-solid fa-phone-volume text-amber-300"></i> Cấp cứu 24/7: <a href="tel:19xxxxxxxx" class="font-bold text-white hover:underline">19XX XXXX</a>
+
                 </span>
+
                 <span class="hidden md:flex items-center gap-1.5 text-medical-100">
+
                     <i class="fa-solid fa-location-dot text-medical-300"></i> 140 Lê Trọng Tấn, P. Tây Thạnh, Q. Tân Phú, TP.HCM
+
                 </span>
+
             </div>
 
             <div class="flex items-center gap-4 text-medical-100">
-                <a href="#bac-si" class="hover:text-white transition-colors">Tìm bác sĩ</a>
+
+                <a href="{{ url_for('home.doctors') }}" class="hover:text-white transition-colors">Tìm bác sĩ</a>
+
                 <span>•</span>
+
                 <a href="mailto:contact@huit.edu.vn" class="hover:text-white transition-colors">Chăm sóc khách hàng</a>
+
             </div>
+
         </div>
+
     </div>
 
     <!-- Main Header -->
+
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+
             
+
             <!-- Brand Logo (Nhấp vào về trang home) -->
+
             <a href="{{ url_for('home') }}" class="flex items-center gap-3 shrink-0" title="Về trang chủ">
+
                 <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-medical-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/25">
+
                     <i class="fa-solid fa-heart-pulse text-2xl"></i>
+
                 </div>
+
                 <div>
+
                     <h1 class="font-extrabold text-slate-900 text-xl tracking-tight leading-tight">H2T Healthcare<span class="text-medical-500">+</span></h1>
+
                     <span class="text-[11px] text-slate-400 font-medium block">Bệnh viện Đa khoa Quốc tế HUIT</span>
+
                 </div>
+
             </a>
 
             <!-- Search Box -->
+
             <div class="hidden md:flex flex-1 max-w-md mx-6">
+
                 <div class="relative w-full">
+
                     <input type="text" placeholder="Tìm chuyên khoa, bác sĩ, triệu chứng bệnh..." 
+
                         class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:bg-white focus:ring-2 focus:ring-medical-500/20 transition-all">
+
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
+
                     </span>
+
                 </div>
+
             </div>
 
             <!-- Action Buttons: Mở khóa điều hướng chuẩn -->
+
             <div class="flex items-center gap-3">
+
                 <a href="{{ url_for('booking') }}" 
+
                    class="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-medical-50 border border-medical-200 text-medical-700 hover:bg-medical-100 font-semibold text-xs shadow-sm transition-all" title="Đặt lịch khám trực tuyến">
+
                     <i class="fa-solid fa-calendar-check text-medical-600"></i>
+
                     <span>Đặt Lịch Khám</span>
+
                 </a>
 
                 {% if session.get('logged_in') %}
+
                     {% set curr_user = session.get('user', {}) %}
+
                     {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+
                         <div class="flex items-center gap-2">
+
                             <a href="{{ url_for('admin_dashboard') }}" 
+
                                class="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2"
+
                                title="Vào Cổng Bác sĩ / Quản trị">
+
                                 <i class="fa-solid fa-user-doctor text-medical-400"></i>
+
                                 <span>{{ curr_user.get('ho_ten', 'Quản trị viên') }}</span>
+
                                 <span class="bg-slate-800 text-[10px] text-teal-300 px-1.5 py-0.5 rounded font-normal">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+
                             </a>
+
                             <a href="{{ url_for('patient_dashboard') }}" 
+
                                class="hidden md:inline-flex px-3 py-2.5 rounded-xl bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs border border-medical-200 transition-all"
+
                                title="Xem Cổng Bệnh Nhân">
+
                                 <i class="fa-solid fa-eye mr-1"></i> Cổng BN
+
                             </a>
+
                             <a href="{{ url_for('logout') }}" 
+
                                class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
+
                             </a>
+
                         </div>
+
                     {% else %}
+
                         <div class="flex items-center gap-2">
+
                             <a href="{{ url_for('patient_dashboard') }}" 
+
                                class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
+
                                 <i class="fa-solid fa-circle-user"></i>
+
                                 <span>{{ curr_user.get('ho_ten', 'Bệnh nhân') }}</span>
+
                             </a>
+
                             <a href="{{ url_for('logout') }}" 
+
                                class="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+
                                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
+
                             </a>
+
                         </div>
+
                     {% endif %}
+
                 {% else %}
+
                     <a href="{{ url_for('login') }}" 
+
                        class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
+
                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
+
                         <span>Đăng nhập</span>
+
                     </a>
+
                     <a href="{{ url_for('register') }}" 
+
                        class="hidden lg:inline-flex px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-all">
+
                         Đăng ký
+
                     </a>
+
                 {% endif %}
+
                 <!-- Nut chuyen doi Dark Mode -->
+
                 <button type="button" onclick="toggleDarkMode()" 
+
                         class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+
                         title="Chuyển chế độ Giao diện Sáng / Tối">
+
                     <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+
                 </button>
+
             </div>
 
         </div>
 
         <!-- 2. Menu ngang điều hướng nội bộ -->
+
         <nav class="bg-white border-t border-slate-100 px-4 sm:px-6">
-            <div class="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-slate-600 space-x-1 sm:space-x-2">
+
+            <div class="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto custom-scrollbar-x pb-2 pt-1 text-xs font-semibold text-slate-600 space-x-1 sm:space-x-2">
+
                 <a href="{{ url_for('home') }}" class="px-3.5 py-2 rounded-lg text-medical-700 bg-medical-50/80 font-bold whitespace-nowrap">
+
                     Trang chủ
+
                 </a>
-                <a href="#chuyen-khoa" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                    Chuyên khoa
-                </a>
-                <a href="#bac-si" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                    Đội ngũ Nhân viên & Bác sĩ
-                </a>
+
+                <a href="{{ url_for('home.departments') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Chuyên khoa</a>
+
+                <a href="{{ url_for('home.doctors') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">Đội ngũ Nhân viên & Bác sĩ</a>
+
                 <a href="#quy-trinh-dang-ky" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+
                     Quy trình Đăng ký
+
                 </a>
+
                 <a href="#quy-trinh-kham" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+
                     Quy trình Khám bệnh
+
                 </a>
+
                 <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap font-bold text-teal-700">
+
                     <i class="fa-solid fa-newspaper mr-1"></i> Tin tức và Bài viết
+
                 </a>
-                <a href="{{ url_for('patient_billing') if session.get('logged_in') else url_for('login', next=url_for('patient_billing')) }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-                    Bảng giá và Viện phí
-                </a>
+
+                <a href="{{ url_for('home.pricing') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 transition-colors whitespace-nowrap font-bold text-emerald-700">Bảng giá và Viện phí</a>
+
             </div>
+
         </nav>
+
     </header>
 
     <!-- 3. Banner chính tự động trượt ngang mỗi 5 giây -->
+
     <section class="relative bg-slate-900 overflow-hidden select-none">
+
         
+
         <!-- Khung bao ngoài slider -->
+
         <div class="relative w-full h-[380px] sm:h-[460px] lg:h-[500px] overflow-hidden">
+
             
+
             <!-- Đường ray trượt ngang -->
+
             <div id="carousel-track" style="width: {{ banner_count * 100 }}%; transform: translateX(0%);">
+
                 
+
                 {% for b in banner_list %}
+
                 <div class="h-full shrink-0 flex items-center justify-between text-white p-6 sm:p-14 lg:p-20 relative overflow-hidden"
+
                      style="width: {{ 100 / banner_count }}%; background: linear-gradient(to right, rgba(4, 120, 87, 0.92), rgba(15, 118, 110, 0.85), rgba(15, 23, 42, 0.75)), url('{{ b.hinh_anh }}') center/cover no-repeat;">
+
                     <div class="absolute -right-20 -top-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+
                     <div class="absolute right-1/4 -bottom-24 w-80 h-80 bg-teal-300/15 rounded-full blur-3xl"></div>
 
                     <div class="max-w-2xl z-10 space-y-4">
+
                         {% if b.phu_de %}
+
                         <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold text-white tracking-wider uppercase border border-white/20">
+
                             <i class="fa-solid fa-award text-amber-300"></i> {{ b.phu_de }}
+
                         </div>
+
                         {% endif %}
+
                         <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">
+
                             {{ b.tieu_de }}
+
                         </h2>
+
                         <p class="text-medical-100 text-sm sm:text-base leading-relaxed max-w-xl">
+
                             {{ b.mo_ta }}
+
                         </p>
+
                         <div class="pt-2 flex flex-wrap items-center gap-3.5">
+
                             <a href="{{ b.link_lien_ket or url_for('booking') }}" 
+
                                class="px-6 py-3 rounded-xl bg-white hover:bg-medical-50 text-medical-700 font-bold text-sm shadow-xl transition-all flex items-center gap-2">
+
                                 <i class="fa-solid fa-calendar-check"></i> {{ b.text_nut or 'ĐĂNG KÝ KHÁM NGAY' }}
+
                             </a>
+
                             <a href="#chuyen-khoa" class="px-5 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold text-sm backdrop-blur-md transition-all">
+
                                 Tìm hiểu chuyên khoa
+
                             </a>
+
                         </div>
+
                     </div>
 
                     <div class="hidden lg:flex items-center justify-center shrink-0 pr-8 z-10">
+
                         <div class="w-80 h-80 rounded-3xl bg-white/10 border border-white/20 backdrop-blur-md p-6 flex flex-col items-center justify-center text-center shadow-2xl relative">
+
                             <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-white to-medical-100 text-medical-600 flex items-center justify-center text-4xl shadow-lg mb-4">
+
                                 <i class="fa-solid fa-user-doctor"></i>
+
                             </div>
+
                             <h4 class="font-bold text-lg text-white">Đa khoa Quốc tế H2T</h4>
+
                             <p class="text-xs text-medical-100 mt-1">Đồng hành cùng sức khỏe gia đình bạn 24/7</p>
+
                             <div class="mt-4 flex items-center gap-1 text-amber-300 text-sm">
+
                                 <i class="fa-solid fa-star"></i>
+
                                 <i class="fa-solid fa-star"></i>
+
                                 <i class="fa-solid fa-star"></i>
+
                                 <i class="fa-solid fa-star"></i>
+
                                 <i class="fa-solid fa-star"></i>
+
                                 <span class="text-xs text-white ml-1.5 font-bold">4.9 / 5.0</span>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
                 {% endfor %}
 
                 <!-- Nut chuyen doi Dark Mode -->
+
                 <button type="button" onclick="toggleDarkMode()" 
+
                         class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+
                         title="Chuyển chế độ Giao diện Sáng / Tối">
+
                     <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+
                 </button>
+
             </div>
 
         </div>
 
         <!-- Carousel Indicators -->
+
         {% if banner_count > 1 %}
+
         <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5">
+
             {% for b in banner_list %}
+
             <button class="carousel-dot {% if loop.first %}w-6 h-3 rounded-full bg-white{% else %}w-3 h-3 rounded-full bg-white/40 hover:bg-white/70{% endif %} transition-all shadow-sm" onclick="setSlide({{ loop.index0 }})"></button>
+
             {% endfor %}
+
         </div>
 
         <!-- Carousel Arrows -->
+
         <button onclick="prevSlide()" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/25 hover:bg-black/45 text-white flex items-center justify-center backdrop-blur-sm transition-all" title="Slide trước">
+
             <i class="fa-solid fa-chevron-left text-sm"></i>
+
         </button>
+
         <button onclick="nextSlide()" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/25 hover:bg-black/45 text-white flex items-center justify-center backdrop-blur-sm transition-all" title="Slide kế tiếp">
+
             <i class="fa-solid fa-chevron-right text-sm"></i>
+
         </button>
+
         {% endif %}
+
     </section>
 
     <!-- Thẻ tác vụ nhanh nổi (Floating quick action cards) -->
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 -mt-8 relative z-30">
+
         <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+
             
+
             <a href="tel:19xxxxxxxx" 
+
                class="p-3.5 rounded-xl hover:bg-medical-50/60 transition-all flex items-center gap-3.5 group border border-transparent hover:border-medical-200">
+
                 <div class="w-11 h-11 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+
                     <i class="fa-solid fa-phone-volume"></i>
+
                 </div>
+
                 <div>
+
                     <h4 class="font-bold text-xs sm:text-sm text-slate-800">Gọi tổng đài</h4>
+
                     <span class="text-[11px] text-slate-400 block mt-0.5">Tư vấn 24/7: 19XX XXXX</span>
+
                 </div>
+
             </a>
 
             <a href="{{ url_for('booking') }}" 
+
                class="p-3.5 rounded-xl hover:bg-medical-50/60 transition-all flex items-center gap-3.5 group border border-transparent hover:border-medical-200">
+
                 <div class="w-11 h-11 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+
                     <i class="fa-solid fa-calendar-check"></i>
+
                 </div>
+
                 <div>
+
                     <h4 class="font-bold text-xs sm:text-sm text-slate-800">Đặt Lịch Hẹn</h4>
+
                     <span class="text-[11px] text-slate-400 block mt-0.5">Chủ động giờ khám</span>
+
                 </div>
+
             </a>
 
             <a href="#bac-si" class="p-3.5 rounded-xl hover:bg-medical-50/60 transition-all flex items-center gap-3.5 group border border-transparent hover:border-medical-200">
+
                 <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+
                     <i class="fa-solid fa-user-doctor"></i>
+
                 </div>
+
                 <div>
+
                     <h4 class="font-bold text-xs sm:text-sm text-slate-800">Tìm Bác sĩ</h4>
+
                     <span class="text-[11px] text-slate-400 block mt-0.5">Hơn 50+ chuyên gia</span>
+
                 </div>
+
             </a>
 
             <a href="{{ url_for('patient_records') if session.get('logged_in') else url_for('login', next=url_for('patient_records')) }}" 
+
                class="p-3.5 rounded-xl hover:bg-medical-50/60 transition-all flex items-center gap-3.5 group border border-transparent hover:border-medical-200">
+
                 <div class="w-11 h-11 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
+
                     <i class="fa-solid fa-receipt"></i>
+
                 </div>
+
                 <div>
+
                     <h4 class="font-bold text-xs sm:text-sm text-slate-800">Tra cứu kết quả</h4>
+
                     <span class="text-[11px] text-slate-400 block mt-0.5">Bệnh án và Xét nghiệm</span>
+
                 </div>
+
             </a>
 
         </div>
+
     </div>
 
     <!-- Bố cục chính: Cột lớn bên trái (Nội dung) và Cột nhỏ bên phải (Bài viết) -->
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
             
+
             <!-- Cột lớn bên trái (8/12 cột) -->
+
             <div class="lg:col-span-8 space-y-12">
 
                 <!-- 1. Chuyên khoa trọng điểm -->
+
                 <section id="chuyen-khoa" class="scroll-mt-36 space-y-4">
+
                     <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+
                         <div>
+
                             <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Hệ thống Y khoa</span>
+
                             <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Các Chuyên Khoa Mũi Nhọn</h3>
+
                         </div>
-                        <a href="#chuyen-khoa" 
-                           class="text-xs font-semibold text-medical-600 hover:underline flex items-center gap-1">
-                            Xem tất cả khoa <i class="fa-solid fa-chevron-right text-[10px]"></i>
+
+                        <a href="{{ url_for('home.departments') }}" class="text-xs font-semibold text-medical-600 hover:underline flex items-center gap-1">Xem tất cả khoa <i class="fa-solid fa-chevron-right text-[10px]"></i>
+
                         </a>
+
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+
                         {% if departments %}
+
                             {% for dep in departments[:6] %}
+
                             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-medical-200 transition-all text-center flex flex-col items-center">
+
                                 <div class="w-12 h-12 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center text-xl mb-2.5">
+
                                     <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
+
                                 </div>
+
                                 <h4 class="font-bold text-sm text-slate-800">{{ dep.ten_khoa }}</h4>
+
                                 <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ dep.mo_ta or 'Khám và điều trị chuyên sâu theo chuẩn y khoa' }}</p>
+
                             </div>
+
                             {% endfor %}
+
                         {% else %}
+
                             <div class="col-span-3 text-center py-6 text-xs text-slate-400">Đang cập nhật danh sách chuyên khoa...</div>
+
                         {% endif %}
+
                     </div>
+
                 </section>
 
                 <!-- 2. Đội ngũ Bác sĩ Chuyên gia -->
+
                 <section id="bac-si" class="scroll-mt-36 space-y-4">
-                    <div class="border-b border-slate-200 pb-3">
-                        <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Đội Ngũ Y Tế</span>
-                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Bác Sĩ và Chuyên Gia Đầu Ngành</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Hội tụ các giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm từ các bệnh viện lớn</p>
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                        <div>
+                            <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Đội Ngũ Y Tế</span>
+                            <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Bác Sĩ và Chuyên Gia Đầu Ngành</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Hội tụ các giáo sư, tiến sĩ, bác sĩ chuyên khoa giàu kinh nghiệm từ các bệnh viện lớn</p>
+                        </div>
+                        <a href="{{ url_for('home.doctors') }}" class="text-xs font-semibold text-medical-600 hover:underline flex items-center gap-1 shrink-0">Xem tất cả bác sĩ <i class="fa-solid fa-chevron-right text-[10px]"></i></a>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
                         {% if doctors %}
+
                             {% for doc in doctors[:6] %}
+
                             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between group hover:border-medical-200">
+
                                 <div class="text-center">
-                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ho_ten }}" 
+
+                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
+
                                         class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
-                                    <h4 class="font-bold text-slate-900 text-sm mt-3.5">{{ doc.hoc_vi or 'Bác sĩ' }} {{ doc.ho_ten }}</h4>
+
+                                    <h4 class="font-bold text-slate-900 text-sm mt-3.5">{{ doc.ten_hien_thi or doc.ho_ten }}</h4>
+
                                     <div class="mt-1 flex items-center justify-center">
+
                                         {% if doc.is_active_now %}
+
                                         <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+
                                             Đang làm việc
+
                                         </span>
+
                                         {% else %}
+
                                         <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+
                                             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+
                                             Ngoài giờ làm việc
+
                                         </span>
+
                                         {% endif %}
+
                                     </div>
+
                                     <span class="text-xs text-medical-700 font-semibold block mt-1">{{ doc.ten_khoa or 'Chuyên khoa' }}</span>
+
                                     <p class="text-[11px] text-slate-400 mt-1 leading-relaxed line-clamp-2">{{ doc.kinh_nghiem or 'Bác sĩ chuyên khoa giàu kinh nghiệm, tận tâm thăm khám.' }}</p>
+
                                 </div>
+
                                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+
                                     <span class="text-slate-500 font-medium"><i class="fa-solid fa-door-open text-medical-500 mr-1"></i>{{ doc.ten_phong or 'Phòng khám' }}</span>
+
                                     <a href="{{ url_for('booking') }}" 
+
                                        class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
+
                                 </div>
+
                             </div>
+
                             {% endfor %}
+
                         {% else %}
+
                             <div class="col-span-3 text-center py-6 text-xs text-slate-400">Đang cập nhật danh sách bác sĩ...</div>
+
                         {% endif %}
+
                     </div>
+
                 </section>
 
                 <!-- 3. Quy trình Đăng ký -->
+
                 <section id="quy-trinh-dang-ky" class="scroll-mt-36 space-y-4">
+
                     <div class="border-b border-slate-200 pb-3">
+
                         <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Thủ Tục Thuận Tiện</span>
+
                         <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Quy Trình Đăng Ký Khám Bệnh</h3>
+
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
                         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+
                             <div class="w-8 h-8 rounded-full bg-medical-500 text-white font-extrabold text-xs flex items-center justify-center mb-3">1</div>
+
                             <h4 class="font-bold text-slate-800 text-sm">Đăng Ký Khám</h4>
+
                             <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Đăng ký trực tuyến trên cổng website hoặc lấy số thứ tự tại ki-ốt tiếp nhận tự động ở sảnh bệnh viện.</p>
+
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+
                             <div class="w-8 h-8 rounded-full bg-medical-500 text-white font-extrabold text-xs flex items-center justify-center mb-3">2</div>
+
                             <h4 class="font-bold text-slate-800 text-sm">Xác Nhận và Cấp Mã BN</h4>
+
                             <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Xuất trình CCCD hoặc thẻ BHYT. Nhân viên quầy tiếp tân kiểm tra thông tin và cấp phiếu khám chuyên khoa.</p>
+
                         </div>
 
                         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
+
                             <div class="w-8 h-8 rounded-full bg-medical-500 text-white font-extrabold text-xs flex items-center justify-center mb-3">3</div>
+
                             <h4 class="font-bold text-slate-800 text-sm">Phân Luồng Phòng Khám</h4>
+
                             <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Di chuyển đến khu vực phòng khám chỉ định. Màn hình điện tử hiển thị thứ tự gọi tên khám theo thời gian thực.</p>
+
                         </div>
+
                     </div>
+
                 </section>
 
                 <!-- 4. Quy trình Khám chữa bệnh -->
+
                 <section id="quy-trinh-kham" class="scroll-mt-36 space-y-4">
+
                     <div class="border-b border-slate-200 pb-3">
+
                         <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Tiêu Chuẩn Y Tế</span>
+
                         <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Quy Trình Khám Chữa Bệnh Toàn Diện</h3>
+
                     </div>
 
                     <div class="space-y-3">
+
                         <div class="bg-white p-4 rounded-xl border border-slate-100 flex items-start gap-3.5 shadow-sm">
+
                             <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-sm shrink-0">
+
                                 01
+
                             </div>
+
                             <div>
+
                                 <h4 class="font-bold text-slate-900 text-sm">Khám Lâm Sàng Ban Đầu và Đo Sinh Hiệu</h4>
+
                                 <p class="text-xs text-slate-500 mt-0.5">Điều dưỡng tiến hành đo huyết áp, mạch, nhiệt độ, chiều cao, cân nặng trước khi vào gặp bác sĩ chuyên khoa.</p>
+
                             </div>
+
                         </div>
 
                         <div class="bg-white p-4 rounded-xl border border-slate-100 flex items-start gap-3.5 shadow-sm">
+
                             <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-sm shrink-0">
+
                                 02
+
                             </div>
+
                             <div>
+
                                 <h4 class="font-bold text-slate-900 text-sm">Bác Sĩ Thăm Khám và Chỉ Định Cận Lâm Sàng</h4>
+
                                 <p class="text-xs text-slate-500 mt-0.5">Bác sĩ khám kỹ lưỡng, khai thác tiền sử bệnh và chỉ định các xét nghiệm cần thiết (máu, X-Quang, siêu âm, nội soi).</p>
+
                             </div>
+
                         </div>
 
                         <div class="bg-white p-4 rounded-xl border border-slate-100 flex items-start gap-3.5 shadow-sm">
+
                             <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-sm shrink-0">
+
                                 03
+
                             </div>
+
                             <div>
+
                                 <h4 class="font-bold text-slate-900 text-sm">Thực Hiện Cận Lâm Sàng và Nhận Kết Quả Tức Thì</h4>
+
                                 <p class="text-xs text-slate-500 mt-0.5">Quy trình xét nghiệm tự động khép kín. Kết quả được đồng bộ tự động lên máy tính của bác sĩ khám.</p>
+
                             </div>
+
                         </div>
 
                         <div class="bg-white p-4 rounded-xl border border-slate-100 flex items-start gap-3.5 shadow-sm">
+
                             <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-sm shrink-0">
+
                                 04
+
                             </div>
+
                             <div>
+
                                 <h4 class="font-bold text-slate-900 text-sm">Kết Luận Chẩn Đoán, Kê Toa Thuốc và Nhận Dược Phẩm</h4>
+
                                 <p class="text-xs text-slate-500 mt-0.5">Bác sĩ tư vấn phác đồ điều trị, xuất toa thuốc điện tử. Bệnh nhân nhận thuốc tại Nhà thuốc Bệnh viện đạt chuẩn GPP.</p>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </section>
 
                 <!-- 5. Khối Cảm nhận của Người bệnh -->
+
                 <section id="cam-nhan" class="scroll-mt-36 space-y-4">
+
                     <div class="border-b border-slate-200 pb-3">
+
                         <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Đánh Giá Từ Khách Hàng</span>
+
                         <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mt-0.5">Cảm Nhận Của Người Bệnh</h3>
+
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                         {% if feedbacks %}
+
                             {% for fb in feedbacks[:4] %}
+
                             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+
                                 <div class="space-y-2.5">
+
                                     <div class="flex items-center gap-1 text-amber-400 text-xs">
+
                                         {% for s in range(fb.diem_danh_gia or 5) %}
+
                                         <i class="fa-solid fa-star"></i>
+
                                         {% endfor %}
+
                                     </div>
+
                                     <p class="text-xs text-slate-600 italic leading-relaxed">
+
                                         "{{ fb.noi_dung }}"
+
                                     </p>
+
                                 </div>
+
                                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+
                                     <div class="w-9 h-9 rounded-full bg-medical-100 text-medical-700 flex items-center justify-center font-bold text-xs shrink-0">
+
                                         {{ (fb.ten_benh_nhan or 'BN')[:2]|upper }}
+
                                     </div>
+
                                     <div>
+
                                         <h5 class="font-bold text-slate-800 text-xs">{{ fb.ten_benh_nhan or 'Bệnh nhân' }}</h5>
+
                                         <span class="text-[11px] text-slate-400">{{ fb.chu_de or 'Dịch vụ khám bệnh' }} • {{ str(fb.thoi_gian or '')[:10] }}</span>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                             {% endfor %}
+
                         {% else %}
+
                             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+
                                 <div class="space-y-2.5">
+
                                     <div class="flex items-center gap-1 text-amber-400 text-xs">
+
                                         <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+
                                     </div>
+
                                     <p class="text-xs text-slate-600 italic leading-relaxed">
+
                                         "Đặt lịch trực tuyến qua hệ thống rất nhanh chóng và tiện lợi, giảm đáng kể thời gian chờ đợi."
+
                                     </p>
+
                                 </div>
+
                                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+
                                     <div class="w-9 h-9 rounded-full bg-medical-100 text-medical-700 flex items-center justify-center font-bold text-xs">BN</div>
+
                                     <div>
+
                                         <h5 class="font-bold text-slate-800 text-xs">Người bệnh H2T</h5>
+
                                         <span class="text-[11px] text-slate-400">Đánh giá dịch vụ</span>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                             <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
+
                                 <div class="space-y-2.5">
+
                                     <div class="flex items-center gap-1 text-amber-400 text-xs">
+
                                         <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+
                                     </div>
+
                                     <p class="text-xs text-slate-600 italic leading-relaxed">
+
                                         "Bác sĩ chuyên khoa khám tận tâm, toa thuốc và kết quả xét nghiệm được lưu điện tử rất dễ tra cứu."
+
                                     </p>
+
                                 </div>
+
                                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-3">
+
                                     <div class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">BN</div>
+
                                     <div>
+
                                         <h5 class="font-bold text-slate-800 text-xs">Người bệnh H2T</h5>
+
                                         <span class="text-[11px] text-slate-400">Đánh giá dịch vụ</span>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         {% endif %}
+
                     </div>
+
                 </section>
 
             </div>
 
             <!-- Cột nhỏ bên phải (4/12 cột): Bài viết mới và Cẩm nang thông tin y tế -->
+
             <aside class="lg:col-span-4 space-y-6">
+
                 
+
                 <!-- 1. Khối Bài viết mới -->
+
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+
                         <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+
                             <i class="fa-solid fa-newspaper text-medical-600"></i> Bài Viết Mới Nhất
+
                         </h4>
+
                         <span class="text-[10px] font-bold text-medical-700 bg-medical-50 px-2 py-0.5 rounded-full">Cập nhật 24/7</span>
+
                     </div>
 
                     <!-- Danh sách bài viết có thanh cuộn từ CSDL -->
+
                     <div class="article-scroll-container max-h-[480px] overflow-y-auto space-y-3 pr-1.5">
+
                         {% if articles %}
+
                             {% for art in articles %}
+
                             <a href="{{ url_for('article_detail', slug=art.slug) }}" class="block p-3 rounded-xl bg-slate-50 hover:bg-medical-50/70 border border-slate-100 transition-all cursor-pointer group">
+
                                 <div class="flex items-start gap-3">
+
                                     {% if art.image %}
+
                                     <img src="{{ art.image }}" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
+
                                     {% else %}
+
                                     <div class="w-14 h-14 rounded-lg bg-medical-100 text-medical-700 flex items-center justify-center shrink-0 text-lg font-bold">
+
                                         <i class="{{ art.category_icon or 'fa-solid fa-newspaper' }} text-medical-600"></i>
+
                                     </div>
+
                                     {% endif %}
+
                                     <div class="space-y-1">
+
                                         <span class="text-[10px] font-bold text-medical-700 uppercase bg-medical-100/80 px-2 py-0.5 rounded">{{ art.category_name }}</span>
+
                                         <h5 class="font-semibold text-xs text-slate-800 group-hover:text-medical-700 leading-snug line-clamp-2">
+
                                             {{ art.title }}
+
                                         </h5>
+
                                         <span class="text-[10px] text-slate-400 block">{{ art.published_at }} • {{ art.read_time }} phút đọc</span>
+
                                     </div>
+
                                 </div>
+
                             </a>
+
                             {% endfor %}
+
                         {% else %}
+
                             <div class="py-8 text-center text-xs text-slate-400">Đang cập nhật bài viết mới...</div>
+
                         {% endif %}
+
                     </div>
 
                     <!-- Nút xem tất cả bài viết -->
+
                     <div class="pt-2 border-t border-slate-100">
+
                         <a href="{{ url_for('articles') }}" 
+
                            class="w-full py-2.5 px-4 bg-slate-100 hover:bg-medical-50 text-slate-700 hover:text-medical-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200 transition-all shadow-sm group">
+
                             <span>Xem tất cả bài viết y khoa</span>
+
                             <i class="fa-solid fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+
                         </a>
+
                     </div>
+
                 </div>
 
-                <!-- 2. Khối Cẩm nang Thông tin Y tế -->
+                <!-- 2. Khối Cẩm nang Thông tin Y tế (Lấy từ CSDL) -->
+
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+
                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+
                         <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+
                             <i class="fa-solid fa-book-medical text-teal-600"></i> Cẩm Nang Thông Tin Y Tế
+
                         </h4>
-                        <span class="text-[11px] text-slate-400">Hướng dẫn</span>
+
+                        <span class="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">Hướng dẫn y khoa</span>
+
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-teal-50/60 border border-teal-100 text-xs space-y-2 text-slate-700">
-                        <div class="flex items-center gap-2 font-bold text-teal-900">
-                            <i class="fa-solid fa-notes-medical text-teal-600"></i> Hướng Dẫn Chuẩn Bị Khám
-                        </div>
-                        <p class="leading-relaxed text-slate-600">
-                            Nhịn ăn ít nhất 6-8 tiếng đối với xét nghiệm đường huyết và siêu âm ổ bụng tổng quát. Mang theo CCCD, thẻ BHYT và các toa thuốc đang sử dụng.
-                        </p>
+                    <!-- Danh sách Cẩm nang y tế chọn ngẫu nhiên từ CSDL -->
+
+                    <div class="space-y-3">
+
+                        {% if handbooks %}
+
+                            {% for hb in handbooks %}
+
+                            <a href="{{ url_for('article_detail', slug=hb.slug) }}" class="block p-3.5 rounded-xl bg-teal-50/60 hover:bg-teal-50 border border-teal-100/80 hover:border-teal-300 transition-all group">
+
+                                <div class="flex items-center gap-2 font-bold text-xs text-teal-900 group-hover:text-teal-700">
+
+                                    <i class="{{ hb.category_icon or 'fa-solid fa-book-medical' }} text-teal-600"></i>
+
+                                    <span class="line-clamp-1">{{ hb.title }}</span>
+
+                                </div>
+
+                                <p class="text-[11px] text-slate-600 leading-relaxed mt-1.5 line-clamp-2">
+
+                                    {{ hb.summary }}
+
+                                </p>
+
+                                <div class="mt-2.5 flex items-center justify-between text-[10px] text-teal-700 font-semibold border-t border-teal-100/60 pt-2">
+
+                                    <span class="bg-white/80 px-1.5 py-0.5 rounded border border-teal-200/50 text-teal-800">{{ hb.category_name }}</span>
+
+                                    <span class="group-hover:translate-x-0.5 transition-transform flex items-center gap-1">Đọc cẩm nang <i class="fa-solid fa-arrow-right text-[9px]"></i></span>
+
+                                </div>
+
+                            </a>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="py-8 text-center text-xs text-slate-400">Đang cập nhật cẩm nang y tế...</div>
+
+                        {% endif %}
+
                     </div>
 
-                    <!-- Các ô trống chờ bổ sung nội dung -->
-                    <div class="space-y-2.5 pt-1">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ô Trống Chờ Bổ Sung Nội Dung</span>
-                        
-                        <div class="p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-medical-400 bg-slate-50/50 hover:bg-medical-50/30 transition-all flex flex-col items-center justify-center text-center cursor-pointer py-5">
-                            <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs mb-1.5">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <span class="text-xs font-semibold text-slate-500">Ô trống nội dung chuyên đề #1</span>
-                            <span class="text-[10px] text-slate-400">Dành riêng cho cẩm nang y khoa sắp tới</span>
-                        </div>
+                    <!-- Nút xem tất cả cẩm nang y tế -->
 
-                        <div class="p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-medical-400 bg-slate-50/50 hover:bg-medical-50/30 transition-all flex flex-col items-center justify-center text-center cursor-pointer py-5">
-                            <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-xs mb-1.5">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <span class="text-xs font-semibold text-slate-500">Ô trống nội dung chuyên đề #2</span>
-                            <span class="text-[10px] text-slate-400">Dành riêng cho thông tin y tế</span>
-                        </div>
+                    <div class="pt-2 border-t border-slate-100">
+
+                        <a href="{{ url_for('articles', category='cam-nang-y-te') }}" 
+
+                           class="w-full py-2.5 px-4 bg-teal-50 hover:bg-teal-100/80 text-teal-800 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-teal-200 transition-all shadow-2xs group">
+
+                            <span>Xem tất cả cẩm nang y khoa</span>
+
+                            <i class="fa-solid fa-arrow-right text-[11px] group-hover:translate-x-1 transition-transform"></i>
+
+                        </a>
+
                     </div>
+
                 </div>
 
                 <!-- 3. Widget Lịch Trực Phòng Khám Tuần Này -->
+
                 <div class="bg-gradient-to-br from-medical-600 to-teal-700 text-white rounded-2xl p-5 shadow-lg shadow-medical-600/20 space-y-3">
+
                     <h4 class="font-bold text-sm flex items-center gap-2">
+
                         <i class="fa-solid fa-calendar-day"></i> Lịch Trực Phòng Khám Tuần Này
+
                     </h4>
+
                     <p class="text-xs text-medical-100 leading-relaxed">
+
                         Phòng khám mở cửa tiếp nhận bệnh nhân liên tục từ 07:00 đến 20:00. Bạn có thể chủ động đặt lịch trước để được tiếp đón ưu tiên.
+
                     </p>
+
                     <a href="{{ url_for('booking') }}" 
+
                        class="w-full py-2.5 bg-white hover:bg-medical-50 text-medical-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all">
+
                         <i class="fa-solid fa-clock"></i> Đặt lịch hẹn ngay
+
                     </a>
+
                 </div>
 
             </aside>
 
         </div>
+
     </div>
 
     <!-- Footer chung hệ thống -->
+
     {% include "layouts/footer.html" %}
 
     <!-- Javascript cho Carousel chuyển cảnh mượt mà -->
+
     <script>
+
         let currentSlide = 0;
+
         const totalSlides = {{ banner_count }};
+
         const track = document.getElementById('carousel-track');
+
         const dots = document.querySelectorAll('.carousel-dot');
+
         let slideTimer;
 
         function updateSlidePosition() {
+
             track.style.transform = `translateX(-${(currentSlide * 100) / totalSlides}%)`;
 
             dots.forEach((dot, i) => {
+
                 if (i === currentSlide) {
+
                     dot.className = 'carousel-dot w-6 h-3 rounded-full bg-white transition-all shadow-sm';
+
                 } else {
+
                     dot.className = 'carousel-dot w-3 h-3 rounded-full bg-white/40 hover:bg-white/70 transition-all shadow-sm';
+
                 }
+
             });
+
         }
 
         function nextSlide() {
+
             currentSlide = (currentSlide + 1) % totalSlides;
+
             updateSlidePosition();
+
         }
 
         function prevSlide() {
+
             currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+
             updateSlidePosition();
+
         }
 
         function setSlide(index) {
+
             currentSlide = index;
+
             updateSlidePosition();
+
             resetAutoSlide();
+
         }
 
         function startAutoSlide() {
+
             slideTimer = setInterval(nextSlide, 5000);
+
         }
 
         function resetAutoSlide() {
+
             clearInterval(slideTimer);
+
             startAutoSlide();
+
         }
 
         // Bắt đầu chạy trượt ảnh tự động mỗi 5 giây
+
         startAutoSlide();
+
     </script>
+
 </body>
+
 </html>
+

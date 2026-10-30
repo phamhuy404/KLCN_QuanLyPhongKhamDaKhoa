@@ -292,15 +292,21 @@ class TestUpgradedFeatures(unittest.TestCase):
         app.config['TESTING'] = True
         client = app.test_client()
 
-        for role in ['BACSI', 'DUOCSI', 'KTV']:
+        role_user_ids = {
+            'BACSI': 17,
+            'DUOCSI': 7,
+            'KTV': 12
+        }
+
+        for role, uid in role_user_ids.items():
             with client.session_transaction() as sess:
                 sess['logged_in'] = True
                 sess['user'] = {
-                    'id': 2,
+                    'id': uid,
                     'username': f'test_{role.lower()}',
                     'ho_ten': f'Test {role}',
                     'vai_tro': role,
-                    'staff_id': 2,
+                    'staff_id': uid,
                     'da_hoan_thien_ho_so': 1
                 }
             
@@ -309,6 +315,7 @@ class TestUpgradedFeatures(unittest.TestCase):
             self.assertEqual(resp.status_code, 200, f"Role {role} phai xem duoc danh sach /admin/articles")
             html = resp.data.decode('utf-8')
             self.assertNotIn('Viết và Đăng Bài Mới', html, f"Role {role} khong duoc phep thay nut Viet bai")
+            self.assertNotIn('+ Thêm Cẩm Nang Y Tế', html, f"Role {role} khong duoc phep thay nut Them Cam Nang")
 
             # 2. Thu vao trang tao bai viet -> Bi chuyen huong
             resp_create = client.get('/admin/articles/create')
@@ -355,6 +362,58 @@ class TestUpgradedFeatures(unittest.TestCase):
         resp = client.get('/')
         self.assertEqual(resp.status_code, 200)
         self.assertIn('toggleDarkMode()', resp.data.decode('utf-8'))
+
+
+    def test_public_pricing_page(self):
+        """Kiem tra trang bang gia dich vu & vien phi cong khai cho Guest va benh nhan."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        resp = client.get('/pricing')
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode('utf-8')
+        self.assertIn('Bảng Giá Dịch Vụ Khám Chữa Bệnh', html)
+        self.assertIn('BHYT trả', html)
+        self.assertIn('Giá Sau Giảm BHYT', html)
+
+        self.assertEqual(client.get('/services').status_code, 200)
+        self.assertEqual(client.get('/bang-gia').status_code, 200)
+
+    def test_public_doctors_page(self):
+        """Kiem tra trang doi ngu bac si & nhan vien y te cong khai, khong hien thi admin."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        resp = client.get('/doctors')
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode('utf-8')
+        self.assertIn('Đội Ngũ Bác Sĩ & Cán Bộ Y Tế', html)
+        self.assertIn('ThS.BS Trần Minh Quân', html)
+        self.assertIn('0912111001', html)
+        self.assertNotIn('Quản Trị Viên Hệ Thống', html)
+        self.assertNotIn('Bác Sĩ Kiểm Thử', html)
+
+        self.assertEqual(client.get('/doi-ngu-bac-si').status_code, 200)
+
+    def test_public_departments_page(self):
+        """Kiem tra trang danh sach cac chuyen khoa y te mui nhon cong khai."""
+        from app import create_app
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        resp = client.get('/departments')
+        self.assertEqual(resp.status_code, 200)
+        html = resp.data.decode('utf-8')
+        self.assertIn('Danh Sách Các Chuyên Khoa Mũi Nhọn', html)
+        self.assertIn('Khoa Nội Tổng Quát', html)
+        self.assertIn('Phòng Khám Trực Thuộc', html)
+
+        self.assertEqual(client.get('/chuyen-khoa').status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

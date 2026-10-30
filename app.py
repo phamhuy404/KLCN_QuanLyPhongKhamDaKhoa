@@ -1,4 +1,4 @@
-from flask import Flask, session, url_for as flask_url_for, redirect
+from flask import Flask, session, url_for as flask_url_for, redirect, request
 import config
 import secrets
 
@@ -44,6 +44,8 @@ def create_app(test_config=None):
     register_medical_media(app)
     from core.clinical_data import display_clinical
     app.jinja_env.filters['clinical'] = display_clinical
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.jinja_env.auto_reload = True
     if app.config.get('MAX_CONTENT_LENGTH') is None:
         app.config['MAX_CONTENT_LENGTH'] = 96 * 1024 * 1024
 
@@ -52,6 +54,10 @@ def create_app(test_config=None):
         'home': 'home.home',
         'articles': 'home.articles',
         'article_detail': 'home.article_detail',
+        'pricing': 'home.pricing',
+        'services': 'home.pricing',
+        'doctors': 'home.doctors',
+        'departments': 'home.departments',
         'booking': 'patient.booking',
         'login': 'auth.login',
         'register': 'auth.register',
@@ -105,6 +111,18 @@ def create_app(test_config=None):
         if not session.get('logged_in'):
             return redirect(flask_url_for('auth.login', next=flask_url_for('patient.booking')))
         return redirect(flask_url_for('patient.booking'))
+
+    @app.route('/billing')
+    def legacy_billing():
+        if not session.get('logged_in'):
+            return redirect(flask_url_for('home.pricing'))
+        return redirect(flask_url_for('patient.billing'))
+
+    @app.before_request
+    def redirect_guest_billing():
+        if request.path in ('/billing', '/patient/billing') and not session.get('logged_in'):
+            return redirect(flask_url_for('home.pricing'))
+
 
     # Context processor truyền thông tin người dùng, danh mục và resolver url_for vào templates
     @app.context_processor

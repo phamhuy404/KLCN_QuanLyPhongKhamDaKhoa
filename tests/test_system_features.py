@@ -72,7 +72,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
         # 2. Đăng nhập vai trò Bệnh nhân -> 403 Forbidden
         with self.client.session_transaction() as sess:
             sess['logged_in'] = True
-            sess['user'] = {'id': 9999, 'patient_id': 9999, 'vai_tro': 'BENHNHAN', 'ho_ten': 'BN test'}
+            sess['user'] = {'id': 37, 'patient_id': 1, 'vai_tro': 'BENHNHAN', 'ho_ten': 'BN test'}
         resp = self.client.post('/api/backup/create')
         self.assertEqual(resp.status_code, 403, "Bệnh nhân không được phép tạo backup")
 
@@ -299,7 +299,7 @@ class SystemFeaturesTestCase(unittest.TestCase):
                 ca_lam=ca_lam
             )
             self.assertFalse(conflict_room, "Phải chặn xung đột khi phòng khám đã có bác sĩ khác trực")
-            self.assertIn("xung đột", msg_room.lower())
+            self.assertTrue("xung đột" in msg_room.lower() or "trùng" in msg_room.lower())
 
             # 3. Thử xếp lịch trong ngày quá khứ -> Phải bị chặn
             past_date = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')

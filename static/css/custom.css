@@ -24,6 +24,53 @@ html {
     background: #94a3b8;
 }
 
+
+/* Thanh kéo ngang hiển thị trực quan, mượt mà và dễ tương tác */
+.custom-scrollbar-x {
+    overflow-x: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #94a3b8 #f1f5f9 !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar {
+    height: 7px !important;
+    display: block !important;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 9999px !important;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb {
+    background: #94a3b8 !important;
+    border-radius: 9999px !important;
+    border: 1px solid #f1f5f9 !important;
+    cursor: grab;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+    background: #059669 !important;
+}
+
+.custom-scrollbar-x::-webkit-scrollbar-thumb:active {
+    cursor: grabbing;
+}
+
+html.dark .custom-scrollbar-x::-webkit-scrollbar-track {
+    background: #1e293b !important;
+}
+
+html.dark .custom-scrollbar-x::-webkit-scrollbar-thumb {
+    background: #475569 !important;
+    border: 1px solid #1e293b !important;
+}
+
+html.dark .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+    background: #10b981 !important;
+}
+
 /* Custom Dark Scrollbar cho Sidebar */
 .custom-dark-scrollbar::-webkit-scrollbar {
     width: 4px;
