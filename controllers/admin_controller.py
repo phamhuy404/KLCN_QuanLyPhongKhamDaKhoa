@@ -1,3 +1,4 @@
+from datetime import datetime, date, timedelta
 from flask import Blueprint, render_template, request, abort, jsonify, redirect, url_for, session, flash
 from core.security import (login_required, roles_required, require_patient_access, visible_patients,
                            filter_patient_records)
@@ -350,7 +351,15 @@ def feedbacks():
     status_filter = request.args.get('status', 'ALL')
     topic_filter = request.args.get('topic', 'ALL')
     feedback_list = FeedbackModel.get_all(filter_status=status_filter, filter_topic=topic_filter)
-    return render_template('admin/feedbacks.html', active_page='admin_feedbacks', feedbacks=feedback_list, current_status=status_filter, current_topic=topic_filter)
+    suggestion_list = FeedbackModel.get_all_suggestions()
+    return render_template(
+        'admin/feedbacks.html',
+        active_page='admin_feedbacks',
+        feedbacks=feedback_list,
+        suggestions=suggestion_list,
+        current_status=status_filter,
+        current_topic=topic_filter
+    )
 
 @admin_bp.route('/backups')
 @roles_required('ADMIN')

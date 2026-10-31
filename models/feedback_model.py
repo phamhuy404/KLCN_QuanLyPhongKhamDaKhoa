@@ -141,3 +141,54 @@ class FeedbackModel:
             conn.rollback()
             conn.close()
             return False, f"Lỗi cập nhật phản hồi: {str(e)}"
+
+    @staticmethod
+    def create_guest_suggestion(ho_ten, sdt='', email='', chu_de='Góp ý khác', noi_dung=''):
+        """Lưu thư góp ý từ khách vãng lai hoặc cổng thông tin công khai vào bảng hom_thu_gop_y."""
+        ho_ten = (ho_ten or 'Khách vãng lai').strip()
+        sdt = (sdt or '').strip()
+        email = (email or '').strip()
+        chu_de = (chu_de or 'Góp ý khác').strip()
+
+        if not noi_dung or len(noi_dung.strip()) < 5:
+            return False, "Nội dung thư góp ý phải có ít nhất 5 ký tự!"
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                INSERT INTO hom_thu_gop_y (ho_ten, email, sdt, chu_de, noi_dung, ngay_gui, trang_thai)
+                VALUES (?, ?, ?, ?, ?, ?, N'Chờ tiếp nhận')
+            ''', (
+                ho_ten[:100],
+                email[:100] if email else None,
+                sdt[:20] if sdt else None,
+                chu_de[:150],
+                noi_dung.strip(),
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ))
+            conn.commit()
+            conn.close()
+            return True, "Đã gửi thư góp ý thành công! Cảm ơn ý kiến đóng góp quý báu của bạn."
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi khi lưu thư góp ý: {str(e)}"
+
+    @staticmethod
+    def get_all_suggestions():
+        """Lấy danh sách thư góp ý công khai từ bảng hom_thu_gop_y."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT id, ho_ten, email, sdt, chu_de, noi_dung, ngay_gui, trang_thai
+                FROM hom_thu_gop_y
+                ORDER BY id DESC
+            ''')
+            rows = [dict(r) for r in cursor.fetchall()]
+        except Exception:
+            rows = []
+        finally:
+            conn.close()
+        return rows

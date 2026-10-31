@@ -20,9 +20,6 @@ def seed_schedules():
     doctors = cur.fetchall()
     print(f"Tim thay {len(doctors)} bac si.")
 
-    # Xóa lịch cũ nếu có
-    cur.execute("DELETE FROM lich_lam_viec")
-
     shifts = {
         1: ('07:00:00', '11:30:00'),
         2: ('13:30:00', '17:00:00'),
@@ -38,18 +35,12 @@ def seed_schedules():
     today = date.today()
     inserted_count = 0
 
-    # Tạo lịch cho 14 ngày tới (từ hôm nay đến ngày 14)
-    for day_offset in range(14):
+    # Tao ca truc luon phien cho 45 ngay toi (tu hom nay den 45 ngay sau)
+    for day_offset in range(45):
         target_date = today + timedelta(days=day_offset)
         date_str = target_date.strftime('%Y-%m-%d')
 
         for ck_id, doc_list in dept_doctors.items():
-            # Trong 5 bác sĩ của mỗi khoa:
-            # Luân phiên ca theo ngày:
-            # Bác sĩ 0, 1: Ca 1 (Sáng)
-            # Bác sĩ 2, 3: Ca 2 (Chiều)
-            # Bác sĩ 4: Ca 3 (Tối)
-            # Xoay vòng (shift rotation) theo ngày
             n_docs = len(doc_list)
             for idx, doc in enumerate(doc_list):
                 # Gán ca trực luân phiên
@@ -57,12 +48,21 @@ def seed_schedules():
                 start_time, end_time = shifts[shift_idx]
 
                 cur.execute('''
-                    INSERT INTO lich_lam_viec (
-                        bac_si_id, nhan_vien_id, phong_kham_id, ngay_lam, ca_lam,
-                        gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky,
-                        trang_thai, trang_thai_duyet
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 20, 0, 1, 'DA_DUYET')
+                    IF NOT EXISTS (
+                        SELECT 1 FROM lich_lam_viec 
+                        WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ?
+                    )
+                    BEGIN
+                        INSERT INTO lich_lam_viec (
+                            bac_si_id, nhan_vien_id, phong_kham_id, ngay_lam, ca_lam,
+                            gio_bat_dau, gio_ket_thuc, so_luong_kham_toi_da, so_luong_da_dang_ky,
+                            trang_thai, trang_thai_duyet
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, 20, 0, 1, 'DA_DUYET')
+                    END
                 ''', (
+                    doc['bac_si_id'],
+                    date_str,
+                    shift_idx,
                     doc['bac_si_id'],
                     doc['nhan_vien_id'],
                     doc['phong_kham_chinh_id'],

@@ -15,7 +15,10 @@ import unittest
 from unittest.mock import Mock, patch
 
 from PIL import Image
-import test_security_access as security_support
+try:
+    import test_security_access as security_support
+except ImportError:
+    from tests import test_security_access as security_support
 
 
 class ClinicalMediaTests(unittest.TestCase):

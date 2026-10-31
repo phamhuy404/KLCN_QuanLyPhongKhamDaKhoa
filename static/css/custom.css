@@ -94,9 +94,7 @@ html.dark .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 0.45);
 }
 
-/* ==========================================================================
-   HỆ THỐNG SIDEBAR TỰ ĐỘNG THÒ THỤT (AUTO HOVER-EXPAND) HOÀN TOÀN MƯỢT MÀ
-   ========================================================================== */
+/* He thong Sidebar tu dong mo rong khi hover */
 
 /* Trạng thái mặc định: Chiều rộng cố định 5rem (80px), tự nở ra 16.5rem (264px) khi hover */
 .sidebar-auto-expand {
@@ -811,10 +809,28 @@ html.dark footer .bg-amber-50\/90 {
     border-color: rgba(245, 158, 11, 0.25) !important;
 }
 
-/* Ban do Google Maps che do dem */
+/* Giu ban do Google Maps sang ro, tu nhien trong ca che do sang va toi */
+iframe[src*="maps"],
 html.dark iframe[src*="maps"] {
-    filter: invert(90%) hue-rotate(180deg) brightness(88%) contrast(92%);
+    filter: none !important;
+    -webkit-filter: none !important;
+    color-scheme: light !important;
+    background-color: #f8fafc !important;
     border-radius: inherit;
+}
+
+.map-direction-pill,
+html.dark .map-direction-pill {
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18) !important;
+}
+
+.map-direction-pill:hover,
+html.dark .map-direction-pill:hover {
+    background-color: #ffffff !important;
+    color: #059669 !important;
 }
 
 /* Hop thoai thong bao va Modal */
@@ -847,4 +863,311 @@ html.dark .shadow-md,
 html.dark .shadow-lg,
 html.dark .shadow-xl {
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Bo sung Dark Mode cho tien ich gray, nen alpha, lich truc, bai viet va trinh soan thao */
+html.dark .border-gray-300 {
+    border-color: #2b3a55 !important;
+}
+
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #1f2d48 !important;
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-slate-50\/80:hover {
+    background-color: #1e2b44 !important;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+    background-color: #263654 !important;
+}
+
+html.dark .hover\:bg-gray-200:hover {
+    background-color: #304469 !important;
+}
+
+html.dark .hover\:text-gray-600:hover,
+html.dark .hover\:text-slate-600:hover {
+    color: #f1f5f9 !important;
+}
+
+html.dark .text-gray-300,
+html.dark .text-slate-300 {
+    color: #475569 !important;
+}
+
+html.dark .bg-slate-50\/40,
+html.dark .bg-slate-50\/60,
+html.dark .bg-gray-50\/50 {
+    background-color: rgba(24, 34, 54, 0.72) !important;
+}
+
+html.dark .bg-blue-50\/20,
+html.dark .bg-blue-50\/30,
+html.dark .bg-blue-50\/40,
+html.dark .bg-blue-50\/50,
+html.dark .bg-blue-50\/60,
+html.dark .bg-blue-50\/70 {
+    background-color: rgba(37, 99, 235, 0.14) !important;
+    border-color: rgba(59, 130, 246, 0.28) !important;
+}
+
+html.dark .hover\:bg-blue-50\/20:hover {
+    background-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+html.dark .bg-medical-50\/40,
+html.dark .bg-medical-50\/60,
+html.dark .bg-medical-50\/70,
+html.dark .bg-medical-50\/80,
+html.dark .bg-teal-50\/20,
+html.dark .bg-teal-50\/30,
+html.dark .bg-teal-50\/40,
+html.dark .bg-teal-50\/50,
+html.dark .bg-teal-50\/60,
+html.dark .bg-teal-50\/70,
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-50\/80,
+html.dark .bg-emerald-50\/90 {
+    background-color: rgba(16, 185, 129, 0.13) !important;
+    border-color: rgba(16, 185, 129, 0.26) !important;
+}
+
+html.dark .hover\:bg-medical-50\/60:hover,
+html.dark .hover\:bg-medical-50\/70:hover {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+html.dark .bg-amber-50\/60,
+html.dark .bg-amber-50\/70,
+html.dark .bg-amber-50\/80,
+html.dark .bg-amber-50\/90 {
+    background-color: rgba(245, 158, 11, 0.14) !important;
+    border-color: rgba(245, 158, 11, 0.28) !important;
+}
+
+html.dark .bg-rose-50\/30,
+html.dark .bg-rose-50\/50,
+html.dark .bg-rose-50\/60,
+html.dark .bg-rose-50\/80 {
+    background-color: rgba(244, 63, 94, 0.14) !important;
+    border-color: rgba(244, 63, 94, 0.28) !important;
+}
+
+html.dark .bg-indigo-50\/40,
+html.dark .bg-indigo-50\/50,
+html.dark .bg-indigo-50\/60,
+html.dark .bg-purple-50\/70 {
+    background-color: rgba(139, 92, 246, 0.15) !important;
+    border-color: rgba(139, 92, 246, 0.28) !important;
+}
+
+html.dark .schedule-grid-table th,
+html.dark .schedule-grid-table td {
+    border-color: #1f2d48 !important;
+}
+
+html.dark .schedule-col-shift {
+    background-color: rgba(245, 158, 11, 0.16) !important;
+    color: #fde68a !important;
+}
+
+html.dark .register-slot-card.is-selected {
+    border-color: #6366f1 !important;
+    background-color: rgba(99, 102, 241, 0.18) !important;
+}
+
+html.dark .article-body h2 {
+    color: #f8fafc !important;
+    border-left-color: #10b981 !important;
+}
+
+html.dark .article-body h3,
+html.dark .article-body strong {
+    color: #e2e8f0 !important;
+}
+
+html.dark .article-body p,
+html.dark .article-body li {
+    color: #cbd5e1 !important;
+}
+
+html.dark .article-body blockquote {
+    background: rgba(16, 185, 129, 0.12) !important;
+    border-left-color: #10b981 !important;
+}
+
+html.dark .article-body blockquote p,
+html.dark .article-body a {
+    color: #34d399 !important;
+}
+
+html.dark .ql-toolbar.ql-snow,
+html.dark .ql-container.ql-snow {
+    border-color: #2b3a55 !important;
+    background-color: #0f1626 !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark .ql-snow .ql-stroke {
+    stroke: #cbd5e1 !important;
+}
+
+html.dark .ql-snow .ql-fill {
+    fill: #cbd5e1 !important;
+}
+
+html.dark .ql-snow .ql-picker {
+    color: #cbd5e1 !important;
+}
+
+html.dark .ql-snow .ql-picker-options {
+    background-color: #131b2e !important;
+    border-color: #2b3a55 !important;
+}
+
+/* Hoạt ảnh chuyển ngang từ phải qua và hiệu ứng tương tác hiện đại */
+@keyframes h2tSlideInRight {
+    0% {
+        opacity: 0;
+        transform: translate3d(28px, 0, 0);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes h2tModalPop {
+    0% {
+        opacity: 0;
+        transform: translate3d(16px, 0, 0) scale(0.97);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes h2tDrawerInLeft {
+    0% {
+        opacity: 0;
+        transform: translate3d(-100%, 0, 0);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Chuyển ngang mượt từ phải qua cho khung nội dung chính, trả về transform: none để giữ an toàn modal fixed */
+main {
+    animation: h2tSlideInRight 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+main > div:not(.fixed) > :not(.fixed):not(script):not(style):nth-child(1),
+main > section:not(.fixed):nth-child(1) {
+    animation: h2tSlideInRight 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.03s backwards;
+}
+
+main > div:not(.fixed) > :not(.fixed):not(script):not(style):nth-child(2),
+main > section:not(.fixed):nth-child(2) {
+    animation: h2tSlideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.07s backwards;
+}
+
+main > div:not(.fixed) > :not(.fixed):not(script):not(style):nth-child(3),
+main > section:not(.fixed):nth-child(3) {
+    animation: h2tSlideInRight 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.11s backwards;
+}
+
+main > div:not(.fixed) > :not(.fixed):not(script):not(style):nth-child(4),
+main > section:not(.fixed):nth-child(4) {
+    animation: h2tSlideInRight 0.44s cubic-bezier(0.22, 1, 0.36, 1) 0.15s backwards;
+}
+
+body > div.max-w-4xl,
+body > div.max-w-xl,
+body > div.max-w-md {
+    animation: h2tSlideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.animate-slide-in-right {
+    animation: h2tSlideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.animate-fade-in,
+.animate-in,
+.animate-scale-up {
+    animation: h2tModalPop 0.24s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Hiệu ứng trượt ngang từ phải qua khi cuộn trang công khai */
+.reveal-pending {
+    opacity: 0;
+    transform: translate3d(30px, 0, 0);
+}
+
+.reveal-visible {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Tương tác nâng nhẹ hiện đại cho thẻ nội dung và nút bấm */
+.hover-lift {
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-3px);
+}
+
+/* Ngăn kéo Sidebar trên thiết bị di động */
+@media (max-width: 767.98px) {
+    #app-sidebar.mobile-sidebar-open {
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 16.5rem !important;
+        z-index: 50 !important;
+        animation: h2tDrawerInLeft 0.25s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    #app-sidebar.mobile-sidebar-open .sidebar-text-fade {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        pointer-events: auto !important;
+    }
+
+    #app-sidebar.mobile-sidebar-open .sidebar-extra-content {
+        opacity: 1 !important;
+        max-height: 120px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    main,
+    main > div:not(.fixed) > *,
+    main > section:not(.fixed),
+    body > div.max-w-4xl,
+    body > div.max-w-xl,
+    body > div.max-w-md,
+    .animate-slide-in-right,
+    .animate-fade-in,
+    .animate-in,
+    .animate-scale-up {
+        animation: none !important;
+    }
+
+    .reveal-pending,
+    .reveal-visible {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
 }

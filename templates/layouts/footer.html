@@ -1,10 +1,10 @@
 <!-- FOOTER CHUNG HỆ THỐNG PHÒNG KHÁM / BỆNH VIỆN H2T HEALTHCARE -->
 <footer class="bg-white border-t border-slate-200 mt-auto text-slate-600 text-xs">
     <div class="max-w-7xl mx-auto px-6 py-9">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 items-start">
             
             <!-- Cột 1: Thông tin thương hiệu và Địa chỉ (4 cols) -->
-            <div class="lg:col-span-4 space-y-2.5">
+            <div class="xl:col-span-4 min-w-0 space-y-2.5">
                 <a href="{{ url_for('home') }}" class="flex items-center gap-2.5 group cursor-pointer" title="Về trang chủ">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-medical-600 to-medical-400 flex items-center justify-center text-white shadow-md shadow-medical-500/20 shrink-0 group-hover:scale-105 transition-transform">
                         <i class="fa-solid fa-heart-pulse text-base"></i>
@@ -32,17 +32,17 @@
                             </a>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <i class="fa-solid fa-id-card text-medical-600 shrink-0 text-xs"></i>
                         <span><strong>MSST:</strong> <span class="font-mono font-semibold text-slate-800">XXXXXXXXXX</span></span>
                         <span class="text-slate-300">•</span>
-                        <a href="mailto:contact@huit.edu.vn" class="text-slate-500 hover:text-medical-600 hover:underline">contact@huit.edu.vn</a>
+                        <a href="mailto:contact@huit.edu.vn" class="text-slate-500 hover:text-medical-600 hover:underline break-all">contact@huit.edu.vn</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Cột 2: Bản đồ Google Maps mở rộng to rõ (3 cols) -->
-            <div class="lg:col-span-3 space-y-2">
+            <!-- Cột 2: Bản đồ Google Maps sáng rõ (3 cols) -->
+            <div class="xl:col-span-3 min-w-0 space-y-2">
                 <div class="flex items-center justify-between">
                     <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-map-location-dot text-medical-600"></i> Bản đồ phòng khám
@@ -54,7 +54,7 @@
                     </a>
                 </div>
 
-                <!-- Khung bản đồ Google Maps to rõ, bấm trực tiếp để mở Google Maps -->
+                <!-- Khung bản đồ Google Maps luôn giữ nền sáng tự nhiên -->
                 <div class="relative w-full h-[155px] rounded-xl overflow-hidden border border-slate-200/90 shadow-xs group bg-slate-100">
                     {% if clinic_info and clinic_info.maps_api_key %}
                     <iframe 
@@ -75,9 +75,9 @@
                     <!-- Lớp phủ click mở Google Maps trực tiếp -->
                     <a href="{{ clinic_info.maps_dir_url if clinic_info else 'https://maps.google.com/?q=140+L%C3%AA+Tr%E1%BB%8Dng+T%E1%BA%A5n,+T%C3%A2y+Th%E1%BA%A1nh,+T%C3%A2n+Ph%C3%BA,+TP.+H%E1%BB%93+Ch%C3%AD+Minh' }}" 
                        target="_blank" rel="noopener noreferrer" 
-                       class="absolute inset-0 bg-slate-900/0 hover:bg-slate-900/20 transition-all flex items-end justify-end p-2.5 group-hover:backdrop-blur-[0.5px]"
+                       class="absolute inset-0 bg-slate-900/0 hover:bg-slate-900/15 transition-all flex items-end justify-end p-2.5"
                        title="Bấm vào để mở Google Maps chỉ đường">
-                        <span class="px-2.5 py-1 bg-white/95 hover:bg-white text-slate-800 text-[10px] font-bold rounded-lg shadow-md border border-slate-200/90 flex items-center gap-1.5 transition-transform group-hover:scale-105 hover:text-medical-600">
+                        <span class="map-direction-pill px-2.5 py-1 text-[10px] font-bold rounded-lg shadow-md border flex items-center gap-1.5 transition-transform group-hover:scale-105">
                             <i class="fa-solid fa-diamond-turn-right text-medical-600 text-[10px]"></i>
                             <span>Chỉ đường trên Google Maps</span>
                         </span>
@@ -86,7 +86,7 @@
             </div>
 
             <!-- Cột 3: Thời gian làm việc và Hotline (3 cols) -->
-            <div class="lg:col-span-3 space-y-2.5">
+            <div class="xl:col-span-3 min-w-0 space-y-2.5">
                 <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fa-regular fa-clock text-medical-600"></i> Thời gian và Hotline
                 </h4>
@@ -119,22 +119,22 @@
             </div>
 
             <!-- Cột 4: Kết nối và Hòm thư góp ý cân đối (2 cols) -->
-            <div class="lg:col-span-2 space-y-2.5">
+            <div class="xl:col-span-2 min-w-0 space-y-2.5">
                 <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Kết nối</h4>
                 
                 <!-- 3 Icon Mạng Xã Hội -->
                 <div class="flex items-center gap-2">
-                    <a href=" " target="_blank" rel="noopener noreferrer" 
+                    <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" 
                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#1877F2] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
                        title="Facebook">
                         <i class="fa-brands fa-facebook-f text-sm"></i>
                     </a>
-                    <a href=" " target="_blank" rel="noopener noreferrer" 
+                    <a href="https://zalo.me" target="_blank" rel="noopener noreferrer" 
                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-[#0068FF] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
                        title="Zalo">
                         <span class="font-extrabold text-[10px]">Zalo</span>
                     </a>
-                    <a href=" " target="_blank" rel="noopener noreferrer" 
+                    <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" 
                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] text-slate-600 hover:text-white flex items-center justify-center transition-all shadow-2xs hover:scale-105" 
                        title="Instagram">
                         <i class="fa-brands fa-instagram text-sm"></i>
@@ -147,9 +147,9 @@
                     <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform text-xs shadow-xs">
                         <i class="fa-solid fa-envelope-open-text"></i>
                     </div>
-                    <div class="leading-tight">
-                        <span class="font-bold text-xs block text-slate-800">Hòm thư góp ý</span>
-                        <span class="text-[10px] text-amber-700">Ý kiến xây dựng BV</span>
+                    <div class="leading-tight min-w-0">
+                        <span class="font-bold text-xs block text-slate-800 truncate">Hòm thư góp ý</span>
+                        <span class="text-[10px] text-amber-700 block truncate">Ý kiến xây dựng BV</span>
                     </div>
                 </button>
             </div>
@@ -159,7 +159,7 @@
         <!-- Dòng bản quyền và pháp lý -->
         <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400 text-[11px]">
             <p>© 2026 Bệnh viện Đa khoa H2T Healthcare. Bản quyền thuộc về Khóa luận tốt nghiệp Đại học Công Thương TP.HCM (HUIT).</p>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
                 <span>MSST: <strong>XXXXXXXXXX</strong></span>
                 <span>•</span>
                 <a href="mailto:contact@huit.edu.vn" class="hover:underline">contact@huit.edu.vn</a>
@@ -183,12 +183,31 @@
                     <p class="text-[11px] text-slate-400">Gửi trực tiếp đến Ban Giám đốc Bệnh viện H2T Healthcare</p>
                 </div>
             </div>
-            <button onclick="closeFeedbackModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600">
+            <button type="button" onclick="closeFeedbackModal()" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
         <form id="feedback-form" onsubmit="submitFeedback(event)" class="space-y-3.5 text-xs">
+            {% if not (session.get('user') and session.get('user').get('patient_id')) %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Họ và tên</label>
+                    <input type="text" id="footer-feedback-name"
+                           value="{{ session.get('user', {}).get('ho_ten', '') }}"
+                           placeholder="Nhập họ tên của bạn..."
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 text-slate-700">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Số điện thoại hoặc Email</label>
+                    <input type="text" id="footer-feedback-contact"
+                           value="{{ session.get('user', {}).get('sdt') or session.get('user', {}).get('email', '') }}"
+                           placeholder="Để phòng khám phản hồi..."
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 text-slate-700">
+                </div>
+            </div>
+            {% endif %}
+
             <div>
                 <label class="block font-semibold text-slate-700 mb-1">Chủ đề đóng góp</label>
                 <select id="footer-feedback-topic" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 text-slate-700">
@@ -207,7 +226,11 @@
             </div>
 
             <p class="text-[11px] text-slate-400 italic">
-                * Phản hồi được lưu vào tài khoản bệnh nhân để phòng khám tiếp nhận và trả lời trong mục Góp ý và Phản hồi.
+                {% if session.get('user') and session.get('user').get('patient_id') %}
+                * Phản hồi được đồng bộ trực tiếp vào hồ sơ bệnh nhân của bạn để phòng khám tiếp nhận và trả lời.
+                {% else %}
+                * Thư góp ý được chuyển trực tiếp tới Hòm thư Chăm sóc khách hàng & Ban Giám đốc phòng khám.
+                {% endif %}
             </p>
 
             <button type="submit" id="footer-feedback-submit" class="w-full py-3 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-medical-600/20 flex items-center justify-center gap-2">
@@ -236,10 +259,14 @@
         button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
 
         try {
-            const response = await fetch('/api/feedback/submit', {
+            const nameEl = document.getElementById('footer-feedback-name');
+            const contactEl = document.getElementById('footer-feedback-contact');
+            const response = await fetch('/api/suggestion/submit', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
+                    ho_ten: nameEl ? nameEl.value.trim() : '',
+                    lien_he: contactEl ? contactEl.value.trim() : '',
                     chu_de: document.getElementById('footer-feedback-topic').value,
                     diem_danh_gia: 5,
                     noi_dung: document.getElementById('footer-feedback-content').value.trim()

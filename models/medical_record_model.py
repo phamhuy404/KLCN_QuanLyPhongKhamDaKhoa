@@ -575,9 +575,9 @@ class MedicalRecordModel:
             initial_pk_status = 'Chờ kết quả CLS' if has_cls else 'Hoàn thành'
             appt_status = 'Chờ kết quả CLS' if has_cls else 'Đã khám'
             import json
-            images_json = json.dumps(images,ensure_ascii=False) if images else None
+            images_json = json.dumps(images, ensure_ascii=False) if images else record.get('hinh_anh_kham')
             cursor.execute("""UPDATE phieu_kham SET ly_do_kham=?,trieu_chung=?,chan_doan_so_bo=?,chan_doan_icd=?,
-                huong_dieu_tri=?,loi_dan=?,ngay_tai_kham=?,hinh_anh_kham=COALESCE(?,hinh_anh_kham),trang_thai=? WHERE id=?""",
+                huong_dieu_tri=?,loi_dan=?,ngay_tai_kham=?,hinh_anh_kham=?,trang_thai=? WHERE id=?""",
                 (reason,symptoms,diagnosis,icd,treatment,advice,normalize_reexam_date(reexam_date),images_json,initial_pk_status,phieu_kham_id))
             if record.get('lich_hen_id'):
                 cursor.execute('UPDATE lich_hen SET trang_thai=? WHERE id=?',(appt_status,record['lich_hen_id']))
@@ -624,7 +624,8 @@ class MedicalRecordModel:
                         bh_pt = bh_percent / Decimal(100) if has_bhyt else Decimal(0)
                         tong_tien_kham += dg
                         tien_bhyt += (dg * bh_pt).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                        invoice_items.append((dv_row['loai_dich_vu'] or 'Cận lâm sàng', dv_row['ten_dich_vu'], s_id, 1, dg, dg))
+                        item_kind = dv_row['loai_dich_vu'] if dv_row.get('loai_dich_vu') != 'Khám bệnh' else 'Cận lâm sàng'
+                        invoice_items.append((item_kind or 'Cận lâm sàng', dv_row['ten_dich_vu'], s_id, 1, dg, dg))
                     cursor.execute('''
                         INSERT INTO chi_tiet_chi_dinh (phieu_chi_dinh_id, dich_vu_id, ket_qua, trang_thai)
                         VALUES (?, ?, NULL, ?)

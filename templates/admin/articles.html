@@ -138,7 +138,7 @@
                         <td class="py-3.5 px-4">
                             <div class="flex items-center gap-3">
                                 {% if b.hinh_anh %}
-                                <img src="{{ b.hinh_anh }}"
+                                <img src="{{ b.hinh_anh }}" onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                     class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200">
                                 {% else %}
                                 <div

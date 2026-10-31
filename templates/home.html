@@ -74,7 +74,7 @@
 
                             50: '#eefcf6',
 
-                            100: '#d4f8e8',
+                            100: '#d4f8e8', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399',
 
                             500: '#10b981',
 
@@ -82,7 +82,7 @@
 
                             700: '#047857',
 
-                            900: '#065f46',
+                            800: '#065f46', 900: '#064e3b',
 
                         }
 
@@ -232,7 +232,7 @@
 
                 <div class="relative w-full">
 
-                    <input type="text" placeholder="Tìm chuyên khoa, bác sĩ, triệu chứng bệnh..." 
+                    <input type="text" name="search" placeholder="Tìm chuyên khoa, bác sĩ, triệu chứng bệnh..." onkeydown="if(event.key==='Enter'&&this.value.trim()){window.location.href='{{ url_for('articles') }}?search='+encodeURIComponent(this.value.trim());}" 
 
                         class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:bg-white focus:ring-2 focus:ring-medical-500/20 transition-all">
 
@@ -722,7 +722,7 @@
 
                 <!-- 2. Đội ngũ Bác sĩ Chuyên gia -->
 
-                <section id="bac-si" class="scroll-mt-36 space-y-4">
+                <section id="bac-si" class="scroll-mt-36 space-y-4 reveal-slide-right">
                     <div class="flex items-center justify-between border-b border-slate-200 pb-3">
                         <div>
                             <span class="text-xs text-medical-600 font-bold uppercase tracking-wider">Đội Ngũ Y Tế</span>
@@ -742,7 +742,7 @@
 
                                 <div class="text-center">
 
-                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
+                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}'" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
 
                                         class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
 
@@ -806,7 +806,7 @@
 
                 <!-- 3. Quy trình Đăng ký -->
 
-                <section id="quy-trinh-dang-ky" class="scroll-mt-36 space-y-4">
+                <section id="quy-trinh-dang-ky" class="scroll-mt-36 space-y-4 reveal-slide-right">
 
                     <div class="border-b border-slate-200 pb-3">
 
@@ -854,7 +854,7 @@
 
                 <!-- 4. Quy trình Khám chữa bệnh -->
 
-                <section id="quy-trinh-kham" class="scroll-mt-36 space-y-4">
+                <section id="quy-trinh-kham" class="scroll-mt-36 space-y-4 reveal-slide-right">
 
                     <div class="border-b border-slate-200 pb-3">
 
@@ -944,7 +944,7 @@
 
                 <!-- 5. Khối Cảm nhận của Người bệnh -->
 
-                <section id="cam-nhan" class="scroll-mt-36 space-y-4">
+                <section id="cam-nhan" class="scroll-mt-36 space-y-4 reveal-slide-right">
 
                     <div class="border-b border-slate-200 pb-3">
 
@@ -1084,7 +1084,7 @@
 
             <!-- Cột nhỏ bên phải (4/12 cột): Bài viết mới và Cẩm nang thông tin y tế -->
 
-            <aside class="lg:col-span-4 space-y-6">
+            <aside class="lg:col-span-4 space-y-6 reveal-slide-right">
 
                 
 
@@ -1118,7 +1118,7 @@
 
                                     {% if art.image %}
 
-                                    <img src="{{ art.image }}" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
+                                    <img src="{{ art.image }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/articles/cam-cum.jpg') }}'" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
 
                                     {% else %}
 
@@ -1290,7 +1290,7 @@
 
     {% include "layouts/footer.html" %}
 
-    <!-- Javascript cho Carousel chuyển cảnh mượt mà -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
     <script>
 

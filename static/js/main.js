@@ -642,5 +642,93 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(() => {});
     }
+
+    // 6. Điều khiển ngăn kéo Sidebar trên thiết bị di động
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    if (mobileMenuBtn && sidebar) {
+        let backdrop = document.getElementById('mobile-sidebar-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'mobile-sidebar-backdrop';
+            backdrop.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 hidden md:hidden transition-opacity';
+            document.body.appendChild(backdrop);
+        }
+
+        const closeMobileSidebar = () => {
+            sidebar.classList.remove('mobile-sidebar-open');
+            backdrop.classList.add('hidden');
+        };
+
+        mobileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = sidebar.classList.toggle('mobile-sidebar-open');
+            backdrop.classList.toggle('hidden', !isOpen);
+        });
+
+        backdrop.addEventListener('click', closeMobileSidebar);
+        sidebar.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', () => {
+                if (window.innerWidth < 768) closeMobileSidebar();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeMobileSidebar();
+        });
+    }
+
+    // 7. Phím tắt thao tác nhanh cho phân hệ Quản trị và Y tế
+    if (window.location.pathname.startsWith('/admin')) {
+        document.addEventListener('keydown', (e) => {
+            const tag = (document.activeElement && document.activeElement.tagName) || '';
+            const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || (document.activeElement && document.activeElement.isContentEditable);
+
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                const searchInput = document.querySelector('main input[type="search"], main input[placeholder*="Tìm"], main input[name="search"], main input[id*="search"]');
+                if (searchInput) {
+                    e.preventDefault();
+                    searchInput.focus();
+                    searchInput.select();
+                }
+            } else if (!isTyping && e.altKey && e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                window.location.href = '/admin/patients';
+            } else if (!isTyping && e.key === 'F2') {
+                e.preventDefault();
+                window.location.href = '/admin/reception';
+            } else if (e.key === 'Escape') {
+                document.querySelectorAll('.fixed.inset-0:not(.hidden)').forEach(modal => {
+                    if (modal.id && (modal.id.includes('modal') || modal.id.includes('Modal'))) {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }
+                });
+            }
+        });
+    }
+
+    // 8. Hiệu ứng trượt ngang từ phải qua khi cuộn trang cho các phân vùng nội dung dài
+    const revealItems = document.querySelectorAll('.reveal-slide-right');
+    if (revealItems.length > 0 && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.remove('reveal-pending');
+                    entry.target.classList.add('reveal-visible');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+        revealItems.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top > window.innerHeight * 0.92) {
+                el.classList.add('reveal-pending');
+                observer.observe(el);
+            } else {
+                el.classList.add('reveal-visible');
+            }
+        });
+    }
 });
 

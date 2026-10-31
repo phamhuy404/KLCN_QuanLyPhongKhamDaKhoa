@@ -38,11 +38,11 @@
                     colors: {
                         medical: {
                             50: '#eefcf6',
-                            100: '#d4f8e8',
+                            100: '#d4f8e8', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399',
                             500: '#10b981',
                             600: '#059669',
-                            700: '#047857',
-                            900: '#065f46',
+                            700: '#047857', 800: '#065f46', 900: '#064e3b',
+                            950: '#022c22',
                         }
                     }
                 }
@@ -286,7 +286,7 @@
                             <!-- Ảnh -->
                             <div class="relative h-52 sm:h-64 bg-gradient-to-br from-medical-600 to-teal-400 overflow-hidden">
                                 {% if featured.image %}
-                                    <img src="{{ url_for('static', filename='img/articles/' + featured.image) }}" alt="{{ featured.title }}"
+                                    <img src="{{ featured.image }}" alt="{{ featured.title }}" onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-white/30">
@@ -335,7 +335,7 @@
                                 <!-- Ảnh -->
                                 <div class="relative h-40 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden shrink-0">
                                     {% if article.image %}
-                                        <img src="{{ url_for('static', filename='img/articles/' + article.image) }}" alt="{{ article.title }}"
+                                        <img src="{{ article.image }}" alt="{{ article.title }}" onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                     {% else %}
                                         <div class="w-full h-full flex items-center justify-center text-slate-400">
@@ -471,7 +471,7 @@
                             <!-- Ảnh nhỏ -->
                             <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-medical-100 to-teal-100 flex-shrink-0 overflow-hidden">
                                 {% if rel.image %}
-                                    <img src="{{ url_for('static', filename='img/articles/' + rel.image) }}" alt="{{ rel.title }}"
+                                    <img src="{{ rel.image }}" alt="{{ rel.title }}" onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                                 {% else %}
                                     <div class="w-full h-full flex items-center justify-center text-medical-400">

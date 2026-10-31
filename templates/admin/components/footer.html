@@ -74,7 +74,7 @@
         
         <div class="p-5 space-y-3 text-xs">
             <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span class="text-slate-600">Tìm kiếm nhanh bệnh nhân</span>
+                <span class="text-slate-600">Tìm kiếm nhanh trên trang</span>
                 <kbd class="px-2 py-1 bg-slate-100 border border-slate-200 rounded font-mono font-semibold text-slate-700">Ctrl + K</kbd>
             </div>
             <div class="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -177,15 +177,16 @@
         const desc = document.getElementById('bug-desc').value.trim();
         if (!desc) return;
         closeBugReportModal();
-        if (typeof showAdminToast === 'function') {
-            showAdminToast('Đã gửi thông báo sự cố tới bộ phận IT thành công!', true);
+        if (typeof showAppNotification === 'function') {
+            showAppNotification({ title: 'Đã gửi báo cáo IT', message: 'Thông báo sự cố đã được chuyển tới bộ phận IT nội bộ!', type: 'success' });
+        } else if (typeof showToast === 'function') {
+            showToast('Đã gửi thông báo sự cố tới bộ phận IT thành công!', 'success');
         } else {
             alert('Đã gửi thông báo sự cố tới bộ phận IT thành công!');
         }
         document.getElementById('bug-desc').value = '';
     }
 
-    // Lắng nghe phím tắt Esc để đóng modal
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             toggleAdminShortcutsModal(false);

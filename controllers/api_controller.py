@@ -1,3 +1,4 @@
+from datetime import datetime, date, timedelta
 from flask import Blueprint, request, jsonify, session
 from core.security import (login_required, roles_required, require_own_patient,
                            require_patient_access, positive_id, deny, filter_patient_records,
@@ -743,6 +744,30 @@ def submit_feedback():
     phieu_kham_id = data.get('phieu_kham_id')
 
     ok, msg = FeedbackModel.create(patient_id, phieu_kham_id, chu_de, diem, noi_dung)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/suggestion/submit', methods=['POST'])
+def submit_public_suggestion():
+    """API tiếp nhận hòm thư góp ý từ cả bệnh nhân đã đăng nhập và khách vãng lai ở chân trang."""
+    from models.feedback_model import FeedbackModel
+    data = request.get_json() or {}
+    user = session.get('user') or {}
+    chu_de = data.get('chu_de', 'Dịch vụ khám bệnh')
+    noi_dung = data.get('noi_dung', '')
+
+    patient_id = user.get('patient_id')
+    if patient_id:
+        diem = data.get('diem_danh_gia', 5)
+        ok, msg = FeedbackModel.create(patient_id, None, chu_de, diem, noi_dung)
+    else:
+        ho_ten = (data.get('ho_ten') or user.get('ho_ten') or 'Khách vãng lai').strip()
+        lien_he = (data.get('lien_he') or '').strip()
+        email = data.get('email') or (lien_he if '@' in lien_he else user.get('email', ''))
+        sdt = data.get('sdt') or ('' if '@' in lien_he else lien_he) or user.get('sdt', '')
+        ok, msg = FeedbackModel.create_guest_suggestion(ho_ten, sdt=sdt, email=email, chu_de=chu_de, noi_dung=noi_dung)
+
     if ok:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400

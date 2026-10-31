@@ -1,7 +1,30 @@
+import os
 import unicodedata
 import re
 from datetime import datetime
 from core.database import get_db
+
+DEFAULT_ARTICLE_IMAGE = '/static/img/articles/kham-tong-quat.jpg'
+_ARTICLE_IMG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'img', 'articles')
+
+
+def resolve_article_image_url(raw_img):
+    """Chuẩn hóa đường dẫn ảnh bài viết hỗ trợ tên file tĩnh, ảnh upload WebP và URL ngoài."""
+    val = (raw_img or '').strip()
+    if not val:
+        return DEFAULT_ARTICLE_IMAGE
+    if val.startswith(('http://', 'https://', '/')):
+        return val
+    clean_name = val.lstrip('./\\')
+    if clean_name.startswith('static/'):
+        return '/' + clean_name.replace('\\', '/')
+    if clean_name.startswith('img/articles/'):
+        return '/static/' + clean_name.replace('\\', '/')
+    candidate = os.path.join(_ARTICLE_IMG_DIR, clean_name)
+    if os.path.exists(candidate):
+        return f'/static/img/articles/{clean_name}'
+    return DEFAULT_ARTICLE_IMAGE
+
 def remove_vietnamese_tones(text):
     if not text:
         return ""
@@ -147,7 +170,7 @@ class ArticleModel:
                 'category_slug': cat_slug,
                 'category_name': cat_name,
                 'category_icon': cat_icon,
-                'image': r.get('hinh_anh') or '',
+                'image': resolve_article_image_url(r.get('hinh_anh')),
                 'published_at': str(r.get('ngay_dang') or '')[:10],
                 'read_time': 5,
                 'views': r.get('luot_xem', 0),
@@ -192,7 +215,7 @@ class ArticleModel:
                 'category_slug': 'cam-nang-y-te',
                 'category_name': cat_name,
                 'category_icon': cat_icon,
-                'image': r.get('hinh_anh') or '',
+                'image': resolve_article_image_url(r.get('hinh_anh')),
                 'published_at': str(r.get('ngay_dang') or '')[:10],
                 'read_time': 5,
                 'views': r.get('luot_xem', 0),
@@ -233,7 +256,7 @@ class ArticleModel:
             'category_slug': 'suc-khoe-tong-quat',
             'category_name': r.get('danh_muc') or 'Cẩm Nang Y Tế',
             'category_icon': 'fa-solid fa-shield-heart',
-            'image': r.get('hinh_anh') or '',
+            'image': resolve_article_image_url(r.get('hinh_anh')),
             'published_at': str(r.get('ngay_dang') or '')[:10],
             'read_time': 5,
             'views': r.get('luot_xem', 0) + 1,
@@ -256,7 +279,11 @@ class ArticleModel:
         ''', (article_id,))
         row = cursor.fetchone()
         conn.close()
-        return dict(row) if row else None
+        if not row:
+            return None
+        d = dict(row)
+        d['hinh_anh'] = resolve_article_image_url(d.get('hinh_anh'))
+        return d
 
     @staticmethod
 
@@ -289,6 +316,8 @@ class ArticleModel:
         cursor.execute(sql, tuple(params))
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
+        for r in rows:
+            r['hinh_anh'] = resolve_article_image_url(r.get('hinh_anh'))
         return rows
 
     @staticmethod

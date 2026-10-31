@@ -136,8 +136,8 @@
                         {% endif %}
 
                         {% if is_unread %}
-                        <button type="button" onclick="markSingleRead({{ noti.id }})" 
-                                class="text-xs text-slate-400 hover:text-slate-600 font-semibold flex items-center gap-1 transition">
+                        <button type="button" data-type="btn-mark-single" onclick="markSingleRead({{ noti.id }})" 
+                                class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-medical-50 text-slate-600 hover:text-medical-700 border border-slate-200/80 text-xs font-semibold flex items-center gap-1 transition">
                             <i class="fa-solid fa-check text-[11px]"></i> Đánh dấu đã đọc
                         </button>
                         {% endif %}
@@ -199,7 +199,7 @@ async function markSingleRead(id) {
                 const badge = row.querySelector('.bg-blue-100');
                 if (badge) badge.remove();
                 const dot = row.querySelector('.bg-blue-600');
-                if (dot) dot.remove();
+                if (dot) dot.remove(); const btn = row.querySelector('[data-type="btn-mark-single"]'); if (btn) btn.remove();
             }
             if (typeof pollNotificationsRealtime === 'function') {
                 pollNotificationsRealtime();

@@ -223,9 +223,9 @@
             setTimeout(() => toast.remove(), 300);
         }, duration);
     }
-    // ==========================================
+
     // CƠ CHẾ ĐỒNG BỘ THÔNG BÁO THỜI GIAN THỰC (POLLING VÀ TOAST REALTIME)
-    // ==========================================
+
     const currentAdminUserId = {{ curr_user.get('id', 0) }};
     const adminStorageKey = 'h2t_admin_notif_last_id_' + currentAdminUserId;
     let lastNotificationId = parseInt(sessionStorage.getItem(adminStorageKey) || '0');

@@ -160,6 +160,58 @@
             </table>
         </div>
     </div>
+
+    <!-- Hòm thư góp ý công khai -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </span>
+                <div>
+                    <h3 class="font-bold text-sm text-slate-800">Hòm Thư Góp Ý Công Khai</h3>
+                    <p class="text-[11px] text-slate-400">Thư góp ý gửi từ chân trang cổng thông tin bệnh viện</p>
+                </div>
+            </div>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                {{ (suggestions or [])|length }} thư góp ý
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 uppercase text-slate-500 font-semibold border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-3.5">Người Gửi</th>
+                        <th class="px-6 py-3.5">Liên Hệ</th>
+                        <th class="px-6 py-3.5">Chủ Đề</th>
+                        <th class="px-6 py-3.5">Nội Dung</th>
+                        <th class="px-6 py-3.5">Thời Gian</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% if suggestions %}
+                        {% for sg in suggestions %}
+                        <tr class="hover:bg-slate-50/70 transition-colors">
+                            <td class="px-6 py-3.5 font-bold text-slate-800">{{ sg.ho_ten or 'Khách vãng lai' }}</td>
+                            <td class="px-6 py-3.5 font-mono text-slate-500">{{ sg.sdt or sg.email or '---' }}</td>
+                            <td class="px-6 py-3.5">
+                                <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold">{{ sg.chu_de }}</span>
+                            </td>
+                            <td class="px-6 py-3.5 max-w-lg text-slate-700 leading-relaxed">{{ sg.noi_dung }}</td>
+                            <td class="px-6 py-3.5 text-slate-400">{{ sg.ngay_gui }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">
+                                Chưa có thư góp ý công khai nào.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Trả Lời và Xử Lý Phản Hồi -->
@@ -233,7 +285,7 @@ function openReplyModal(id, patientName, topic, content, status, currentReply) {
     document.getElementById('reply-patient-name').innerText = patientName;
     document.getElementById('reply-topic').innerText = topic;
     document.getElementById('reply-content').innerText = content;
-    document.getElementById('reply-status-select').value = status || 'Đã giải quyết';
+    document.getElementById('reply-status-select').value = (status && status !== 'Chờ tiếp nhận') ? status : 'Đã giải quyết';
     document.getElementById('reply-text').value = currentReply || '';
 
     const modal = document.getElementById('modal-reply');

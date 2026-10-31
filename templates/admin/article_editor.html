@@ -53,6 +53,7 @@ endblock %}
         </div>
     </div>
 
+    {% if error %}<div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2"><i class="fa-solid fa-circle-exclamation"></i><span>{{ error }}</span></div>{% endif %}
     <!-- Form Biên Tập Bài Viết -->
     <form id="article-form" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
