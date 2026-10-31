@@ -143,7 +143,45 @@ class BackupModel:
             return False, msg
 
     @staticmethod
-    def restore_backup(filename, user_name='admin', **kwargs):
+    def get_latest_backup():
+        """Lấy tên tệp sao lưu .bak mới nhất trong thư mục backups."""
+        backup_dir = BackupModel.get_backup_dir()
+        if not os.path.exists(backup_dir):
+            return None
+        bak_files = [
+            f for f in os.listdir(backup_dir)
+            if f.endswith('.bak') and os.path.isfile(os.path.join(backup_dir, f))
+        ]
+        if not bak_files:
+            return None
+        bak_files.sort(key=lambda x: os.path.getmtime(os.path.join(backup_dir, x)), reverse=True)
+        return bak_files[0]
+
+    @staticmethod
+    def cleanup_old_backups(keep=20):
+        """Giữ lại tối đa N bản sao lưu gần nhất để tiết kiệm dung lượng đĩa."""
+        backup_dir = BackupModel.get_backup_dir()
+        if not os.path.exists(backup_dir):
+            return 0
+        bak_files = [
+            f for f in os.listdir(backup_dir)
+            if f.endswith('.bak') and os.path.isfile(os.path.join(backup_dir, f))
+        ]
+        if len(bak_files) <= keep:
+            return 0
+        bak_files.sort(key=lambda x: os.path.getmtime(os.path.join(backup_dir, x)), reverse=True)
+        to_delete = bak_files[keep:]
+        deleted_count = 0
+        for f in to_delete:
+            try:
+                os.remove(os.path.join(backup_dir, f))
+                deleted_count += 1
+            except Exception:
+                pass
+        return deleted_count
+
+    @staticmethod
+    def restore_backup(filename, user_name='admin', create_safety_copy=True, **kwargs):
         """Phục hồi CSDL Microsoft SQL Server từ tệp .bak."""
         backup_dir = BackupModel.get_backup_dir()
         safe_filename = secure_filename(filename)
@@ -159,7 +197,8 @@ class BackupModel:
         db_name = cfg.get('database', 'quan_ly_phong_kham')
 
         try:
-            BackupModel.create_backup(user_name=f"{user_name}_auto_safety")
+            if create_safety_copy:
+                BackupModel.create_backup(user_name=f"{user_name}_auto_safety")
 
             if cfg.get('trusted_connection', 'yes').lower() == 'yes':
                 master_conn_str = f"DRIVER={cfg['driver']};SERVER={cfg['server']};DATABASE=master;Trusted_Connection=yes;"
@@ -213,3 +252,41 @@ class BackupModel:
             return True, f"Đã xóa thành công tệp sao lưu {safe_filename}!"
         except Exception as e:
             return False, f"Lỗi khi xóa tệp: {str(e)}"
+
+    @staticmethod
+    def start_auto_backup_scheduler(interval_hours=2):
+        """Khởi chạy tiến trình tự động sao lưu CSDL định kỳ trong background thread."""
+        import threading
+        import time
+        from flask import current_app, has_app_context
+
+        if has_app_context() and (current_app.testing or not current_app.config.get('DATABASE_ACCESS_ENABLED', True)):
+            return None
+
+        debug = current_app.debug if has_app_context() else getattr(config, 'DEBUG', False)
+        if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and debug:
+            return None
+
+        if interval_hours <= 0:
+            return None
+
+        def _worker():
+            print(f"[BackupScheduler] Tiến trình tự động sao lưu đã kích hoạt (chu kỳ {interval_hours} tiếng).")
+            while True:
+                time.sleep(interval_hours * 3600)
+                try:
+                    ok, msg = BackupModel.create_backup(user_name='auto_scheduler_2h')
+                    if ok:
+                        print(f"[BackupScheduler] Đã tự động tạo bản sao lưu: {msg}")
+                        max_keep = getattr(config, 'AUTO_BACKUP_MAX_KEEP', 20)
+                        del_cnt = BackupModel.cleanup_old_backups(keep=max_keep)
+                        if del_cnt > 0:
+                            print(f"[BackupScheduler] Đã dọn dẹp {del_cnt} bản sao lưu cũ.")
+                    else:
+                        print(f"[BackupScheduler] Tự động sao lưu thất bại: {msg}")
+                except Exception as e:
+                    print(f"[BackupScheduler] Lỗi trong tiến trình sao lưu ngầm: {e}")
+
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+        return t

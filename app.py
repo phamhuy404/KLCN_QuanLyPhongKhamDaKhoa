@@ -181,5 +181,31 @@ def start_runtime_services(app):
         app.extensions['reminder_scheduler_started'] = True
 
 if __name__ == '__main__':
+    import os
+    import sys
+    import config
+    from models.backup_model import BackupModel
+
+    # Tu dong phuc hoi ban sao luu moi nhat khi khoi dong (chay mot lan trong tien trinh khoi dong chinh)
+    should_restore = getattr(config, 'AUTO_RESTORE_ON_STARTUP', True) or ('--restore-latest' in sys.argv)
+    is_main_startup = (os.environ.get('WERKZEUG_RUN_MAIN') is None) or (not getattr(config, 'DEBUG', False))
+
+    if should_restore and is_main_startup:
+        latest = BackupModel.get_latest_backup()
+        if latest:
+            print(f"[*] Khoi dong he thong: Dang nap ban sao luu moi nhat ({latest})...")
+            ok, msg = BackupModel.restore_backup(latest, user_name='startup_auto_restore', create_safety_copy=False)
+            if ok:
+                print(f"[Thanh cong] Da dua ban luu gan nhat vao CSDL ({latest}).")
+            else:
+                print(f"[Canh bao] Khong the nap ban luu gan nhat: {msg}")
+        else:
+            print("[*] Chua co ban sao luu .bak nao trong thu muc backups/, giu nguyen CSDL hien hanh.")
+
     start_runtime_services(app)
+
+    # Khoi chay tien trinh tu dong sao luu dinh ky moi 2 tieng
+    auto_backup_hours = getattr(config, 'AUTO_BACKUP_INTERVAL_HOURS', 2)
+    BackupModel.start_auto_backup_scheduler(interval_hours=auto_backup_hours)
+
     app.run(debug=True, port=5000)

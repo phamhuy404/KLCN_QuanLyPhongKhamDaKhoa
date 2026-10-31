@@ -5,6 +5,11 @@ html {
     scroll-behavior: smooth;
 }
 
+body.h-screen {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
 /* Custom Scrollbar for modern clinical look */
 ::-webkit-scrollbar {
     width: 6px;

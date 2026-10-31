@@ -120,6 +120,14 @@ def doctors_available_by_shift():
         'total': len(doctors)
     })
 
+@api_bp.route('/appointment/booking-matrix', methods=['GET'])
+def appointment_booking_matrix():
+    """Lấy danh sách đầy đủ bác sĩ theo chuyên khoa và ma trận khung giờ khả dụng hai chiều."""
+    date_val = request.args.get('date') or datetime.now().strftime('%Y-%m-%d')
+    dept_id = request.args.get('department_id', type=int) or request.args.get('chuyen_khoa_id', type=int) or 1
+    matrix = AppointmentModel.get_booking_matrix(date_val, dept_id)
+    return jsonify(matrix)
+
 @api_bp.route('/appointment/time-slots', methods=['GET'])
 def appointment_time_slots():
     """API tra cứu trạng thái khung giờ khám 30 phút theo ca (còn trống: xanh, đã có người hẹn: vàng, ngoài giờ: đỏ)."""

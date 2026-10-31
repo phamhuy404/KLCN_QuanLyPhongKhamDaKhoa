@@ -415,6 +415,55 @@ class TestUpgradedFeatures(unittest.TestCase):
 
         self.assertEqual(client.get('/chuyen-khoa').status_code, 200)
 
+    def test_booking_matrix_and_interactive_filter(self):
+        """Kiem tra ma tran ca truc hai chieu va trang booking khong hien thi trang thai bac si."""
+        from app import create_app
+        matrix = AppointmentModel.get_booking_matrix('2026-11-01', 1)
+        self.assertTrue(matrix['success'])
+        self.assertEqual(len(matrix['doctors']), 5)
+        self.assertIn('doctor_slots', matrix)
+        self.assertIn('slot_doctors', matrix)
+
+        app = create_app()
+        app.config['TESTING'] = True
+        client = app.test_client()
+
+        api_res = client.get('/api/appointment/booking-matrix?date=2026-11-01&department_id=1')
+        self.assertEqual(api_res.status_code, 200)
+        api_data = api_res.get_json()
+        self.assertTrue(api_data['success'])
+        self.assertEqual(len(api_data['doctors']), 5)
+
+        with client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['user'] = {
+                'id': 52,
+                'vai_tro': 'BENHNHAN',
+                'patient_id': 1,
+                'da_hoan_thien_ho_so': 1
+            }
+        booking_page = client.get('/patient/booking')
+        self.assertEqual(booking_page.status_code, 200)
+        page_html = booking_page.data.decode('utf-8')
+        self.assertNotIn('Đang làm việc', page_html)
+        self.assertNotIn('Ngoài giờ làm việc', page_html)
+        self.assertIn('applyInteractiveFilter', page_html)
+        self.assertIn('booking-matrix', page_html)
+
+    def test_auto_backup_and_latest_restore(self):
+        """Kiem tra tien ich lay ban sao luu moi nhat va don dep backup cu."""
+        from models.backup_model import BackupModel
+        latest = BackupModel.get_latest_backup()
+        self.assertIsNotNone(latest)
+        self.assertTrue(latest.endswith('.bak'))
+
+        del_cnt = BackupModel.cleanup_old_backups(keep=25)
+        self.assertIsInstance(del_cnt, int)
+
+        # Kiem tra scheduler duoc bao ve trong moi truong testing
+        scheduler = BackupModel.start_auto_backup_scheduler(interval_hours=2)
+        self.assertIsNone(scheduler)
+
 if __name__ == '__main__':
     unittest.main()
 

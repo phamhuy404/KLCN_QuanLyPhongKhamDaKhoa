@@ -844,6 +844,74 @@ class AppointmentModel:
         return rows, shift
 
 
+    @staticmethod
+    def get_booking_matrix(date_str, chuyen_khoa_id):
+        """Lấy toàn bộ bác sĩ của khoa và ma trận khung giờ khả dụng hai chiều."""
+        import re
+        day = AppointmentModel.normalize_date(date_str)
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT bs.id, nv.ho_ten, bs.hoc_vi, bs.avatar, bs.kinh_nghiem, bs.chuyen_khoa_id, ck.ten_khoa, pk.ten_phong
+                FROM bac_si bs
+                JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                LEFT JOIN phong_kham pk ON pk.chuyen_khoa_id = ck.id AND pk.trang_thai = 1
+                WHERE bs.chuyen_khoa_id = ? AND nv.trang_thai = 1 AND ck.trang_thai = 1
+                ORDER BY bs.id
+            ''', (int(chuyen_khoa_id),))
+
+            doctors_dict = {}
+            for r in cursor.fetchall():
+                d = dict(r)
+                if d['id'] not in doctors_dict:
+                    raw_name = d.get('ho_ten', '')
+                    clean_name = re.sub(r'^(BS|ThS|TS|CKI|CKII|GS|PGS)\.?\s*(BS|CKI|CKII)?\.?\s*', '', raw_name, flags=re.IGNORECASE).strip()
+                    degree = d.get('hoc_vi') or 'BS'
+                    d['full_name'] = f'{degree}. {clean_name}'
+                    d['clean_name'] = clean_name
+                    doctors_dict[d['id']] = d
+
+            doctors = list(doctors_dict.values())
+
+            slots_by_shift = {
+                1: ['07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00'],
+                2: ['13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'],
+                3: ['17:30', '18:00', '18:30', '19:00', '19:30', '20:00']
+            }
+            shift_names = {1: 'Ca Sáng (07:00 - 11:30)', 2: 'Ca Chiều (13:30 - 17:00)', 3: 'Ca Tối (17:30 - 20:30)'}
+
+            doctor_slots = {doc['id']: [] for doc in doctors}
+            all_available_slots = set()
+            slot_doctors = {}
+
+            for shift, times in slots_by_shift.items():
+                for t in times:
+                    slot_doctors[t] = []
+                    for doc in doctors:
+                        try:
+                            booking_target(cursor, None, int(chuyen_khoa_id), doc['id'], day, t, availability=True)
+                            doctor_slots[doc['id']].append(t)
+                            slot_doctors[t].append(doc['id'])
+                            all_available_slots.add(t)
+                        except CalendarError:
+                            pass
+
+            return {
+                'success': True,
+                'date': day,
+                'department_id': int(chuyen_khoa_id),
+                'doctors': doctors,
+                'shifts': [{'shift': s, 'name': shift_names[s], 'slots': slots_by_shift[s]} for s in (1, 2, 3)],
+                'doctor_slots': doctor_slots,
+                'slot_doctors': slot_doctors,
+                'all_available_slots': sorted(list(all_available_slots))
+            }
+        finally:
+            conn.close()
+
+
 
 
 

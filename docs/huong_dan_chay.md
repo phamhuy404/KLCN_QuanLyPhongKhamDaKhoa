@@ -39,22 +39,28 @@ SQLSERVER_CONFIG = {
 ```
 *Lưu ý: Nếu sử dụng tài khoản `sa` của SQL Server Authentication, cấu hình `'trusted_connection': 'no'` và bổ sung thêm `'uid': 'sa'`, `'pwd': 'mat_khau_cua_ban'`.*
 
-### Bước 3: Khởi tạo Cơ sở dữ liệu và nạp dữ liệu sạch
-Chọn một trong hai cách dưới đây:
+### Bước 3: Khởi tạo Cơ sở dữ liệu và nạp dữ liệu sạch (CHỈ CHẠY 1 LẦN KHI CÀI ĐẶT ĐẦU TIÊN)
+
+> **LƯU Ý ĐẶC BIỆT**:
+> - Bước 3 chỉ thực hiện duy nhất một lần khi thiết lập hệ thống lần đầu.
+> - **Khi khởi động lại hệ thống ở các lần làm việc tiếp theo, BỎ QUA Bước 3 và CHỈ CẦN CHẠY Bước 4 (`python app.py`)** để bảo toàn nguyên vẹn mọi dữ liệu bạn đã chỉnh sửa (như thông tin admin, lịch hẹn, hồ sơ bệnh nhân,...).
+> - Nếu chạy lại Bước 3, hệ thống sẽ xóa toàn bộ dữ liệu hiện thời và nạp lại dữ liệu mẫu gốc ban đầu.
+
+Chọn một trong hai cách dưới đây khi cài đặt lần đầu:
 
 **Cách 1: Khởi tạo tự động bằng Script Python (Khuyến nghị)**
 Chạy lệnh sau tại thư mục gốc:
 ```bash
 python scratch/seed_database.py
 ```
-Script sẽ tự động kết nối SQL Server, khởi tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 27 bảng dữ liệu, chỉ mục và nạp đầy đủ danh mục thuốc, dịch vụ y tế, 69 tài khoản mẫu chuẩn hóa.
+Script sẽ tự động kết nối SQL Server, khởi tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 27 bảng dữ liệu, chỉ mục và nạp đầy đủ danh mục thuốc, dịch vụ y tế, 69 tài khoản mẫu chuẩn hóa. (Nếu CSDL đã có dữ liệu, script sẽ hiển thị cảnh báo bảo vệ).
 
 **Cách 2: Khởi tạo thủ công bằng SQL Server Management Studio (SSMS)**
 1. Mở SSMS và kết nối đến SQL Server Instance của máy tính.
 2. Mở file [database/cosodulieu.sql](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/database/cosodulieu.sql).
 3. Nhấn **Execute (F5)** để thực thi toàn bộ kịch bản DDL và DML.
 
-### Bước 4: Khởi chạy máy chủ Web Flask
+### Bước 4: Khởi chạy máy chủ Web Flask (Lệnh vận hành hàng ngày)
 Chạy lệnh:
 ```bash
 python app.py
@@ -65,6 +71,8 @@ Khi hiển thị thông báo:
 * Restarting with stat
 ```
 Hệ thống đã khởi chạy thành công!
+
+*(Mẹo cho nhóm: Khi nhận được file `.bak` mới từ thành viên khác, bạn có thể nạp ngay bản sao lưu mới nhất bằng lệnh `python scratch/restore_backup.py` hoặc `python app.py --restore-latest`).*
 
 ### Bước 5: Truy cập các phân hệ trên trình duyệt
 - **Trang chủ và Đặt lịch trực tuyến**: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)

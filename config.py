@@ -29,6 +29,9 @@ SQLSERVER_CONFIG = {
 
 # Cấu hình thư mục sao lưu dữ liệu
 BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+AUTO_RESTORE_ON_STARTUP = os.environ.get('AUTO_RESTORE_ON_STARTUP', 'true').lower() in ('true', '1', 'yes')
+AUTO_BACKUP_INTERVAL_HOURS = int(os.environ.get('AUTO_BACKUP_INTERVAL_HOURS', '2'))
+AUTO_BACKUP_MAX_KEEP = int(os.environ.get('AUTO_BACKUP_MAX_KEEP', '20'))
 
 # Cấu hình Email SMTP (Bảo mật thông tin gửi mail)
 SMTP_SERVER = os.environ.get('SMTP_SERVER', '')

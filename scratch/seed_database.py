@@ -26,6 +26,30 @@ def get_connection():
 def seed():
     conn = get_connection()
     cur = conn.cursor()
+
+    # Bao ve an toan chong ghi de du lieu khi khoi dong lai du an
+    if '--force' not in sys.argv:
+        try:
+            cur.execute("SELECT COUNT(*) FROM tai_khoan")
+            count = cur.fetchone()[0]
+            if count > 0:
+                print("[CANH BAO AN TOAN] Co so du lieu hien tai da co du lieu hoat dong.")
+                print("Chay seed_database.py se XOA TOAN BO du lieu hien tai va nap lai tu dau.")
+                print("De khoi chay ung dung giu nguyen du lieu, chi can chay: python app.py")
+                print("De nap lai du lieu mau tu dau, hay chay lenh kem co: python scratch/seed_database.py --force")
+                if sys.stdin and sys.stdin.isatty():
+                    ans = input("Ban co chac chan muon xoa het va nap lai tu dau? (y/N): ").strip().lower()
+                    if ans != 'y':
+                        print("Da huy thao tac. Du lieu hien tai duoc bao toan nguyen ven.")
+                        conn.close()
+                        return
+                else:
+                    print("Thieu co xac nhan --force. Da dung thao tac de bao ve du lieu.")
+                    conn.close()
+                    return
+        except Exception:
+            pass
+
     print("Ket noi SQL Server thanh cong, bat dau lam sach va nap du lieu moi...")
 
     # Xoa du lieu theo thu tu khoa ngoai
