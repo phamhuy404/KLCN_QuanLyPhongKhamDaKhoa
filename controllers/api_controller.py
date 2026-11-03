@@ -1822,6 +1822,64 @@ def get_work_statistics_api():
     return jsonify({'success': True, **data})
 
 
+@api_bp.route('/schedule/week', methods=['GET'])
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+def get_week_schedules_api():
+    """API tải dữ liệu ca trực theo tuần hoặc khoảng ngày phục vụ Lazy Loading & Client-side Caching."""
+    from models.schedule_model import ScheduleModel
+    
+    from_date = request.args.get('from', '').strip()
+    to_date = request.args.get('to', '').strip()
+    doctor_id = request.args.get('doctor_id', type=int)
+    room_id = request.args.get('room_id', type=int)
+    
+    if not from_date or not to_date:
+        bounds = ScheduleModel.get_week_bounds()
+        w_start, w_end = bounds['current_week']
+        from_date = from_date or str(w_start)
+        to_date = to_date or str(w_end)
+        
+    curr_user = session.get('user', {})
+    raw_schedules = ScheduleModel.get_all(
+        from_date=from_date,
+        to_date=to_date,
+        filter_doctor_id=doctor_id,
+        filter_room_id=room_id,
+        current_user=curr_user
+    )
+    
+    lean_list = [{
+        'id': s['id'],
+        'ngay_lam': str(s['ngay_lam'])[:10],
+        'ca_lam': s['ca_lam'],
+        'ten_ca': s.get('ten_ca') or f"Ca {s['ca_lam']}",
+        'staff_id': s.get('staff_id'),
+        'nhan_vien_id': s.get('nhan_vien_id'),
+        'bac_si_id': s.get('bac_si_id'),
+        'ten_bac_si': s.get('ten_bac_si') or s.get('ten_nhan_vien') or '',
+        'ten_nhan_vien': s.get('ten_nhan_vien') or s.get('ten_bac_si') or '',
+        'ten_vai_tro': s.get('ten_vai_tro') or '',
+        'ten_khoa': s.get('ten_khoa') or '',
+        'ten_phong': s.get('ten_phong') or '',
+        'vi_tri_tang': s.get('vi_tri_tang') or '',
+        'phong_kham_id': s.get('phong_kham_id'),
+        'trang_thai_duyet': s.get('trang_thai_duyet') or 'DA_DUYET',
+        'is_my_shift': bool(s.get('is_my_shift')),
+        'can_request_cancel': bool(s.get('can_request_cancel')),
+        'is_next_2_weeks': bool(s.get('is_next_2_weeks')),
+        'is_current_week': bool(s.get('is_current_week')),
+        'is_past': bool(s.get('is_past')),
+    } for s in raw_schedules]
+    
+    return jsonify({
+        'success': True,
+        'from_date': from_date,
+        'to_date': to_date,
+        'count': len(lean_list),
+        'schedules': lean_list
+    })
+
+
 @api_bp.route('/lab/result/save-alias', methods=['POST'])
 @roles_required('ADMIN', 'BACSI', 'KTV')
 def lab_result_save_alias():

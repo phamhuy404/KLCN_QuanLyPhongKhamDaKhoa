@@ -808,7 +808,14 @@
 
         pollPatientNotificationsRealtime();
 
-        setInterval(pollPatientNotificationsRealtime, 5000);
+        setInterval(pollPatientNotificationsRealtime, 2500);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                pollPatientNotificationsRealtime();
+            }
+        });
+        window.addEventListener('focus', pollPatientNotificationsRealtime);
 
     });
 

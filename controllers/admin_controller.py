@@ -242,7 +242,11 @@ def staff():
     user_role = curr_user.get('vai_tro', 'ADMIN')
     staff_list = UserModel.get_all_staff(user_info=curr_user)
     doctors = UserModel.get_all_doctors()
-    schedules = ScheduleModel.get_all(current_user=curr_user)
+    week_bounds = ScheduleModel.get_week_bounds()
+    cur_start_str = str(week_bounds['current_week'][0])
+    cur_end_str = str(week_bounds['current_week'][1])
+    # Tối ưu Lazy Loading & Cache: Ban đầu chỉ nạp tuần hiện tại (246 ca), các tuần khác nạp tức thì qua AJAX & Cache
+    schedules = ScheduleModel.get_all(from_date=cur_start_str, to_date=cur_end_str, current_user=curr_user)
     # Bảo mật: Nhân sự không phải ADMIN/LETAN không xem được username của người khác
     if user_role not in ['ADMIN', 'LETAN']:
         curr_uid = curr_user.get('id')
