@@ -135,9 +135,13 @@ def create_app(test_config=None):
     # Điều hướng đường dẫn đặt lịch chung
     @app.route('/booking')
     def legacy_booking():
+        target = flask_url_for('patient.booking', **request.args)
         if not session.get('logged_in'):
-            return redirect(flask_url_for('auth.login', next=flask_url_for('patient.booking')))
-        return redirect(flask_url_for('patient.booking'))
+            return redirect(flask_url_for('auth.login', next=target))
+        user = session.get('user', {})
+        if user.get('vai_tro') != 'BENHNHAN':
+            return redirect(flask_url_for('admin.appointments'))
+        return redirect(target)
 
     @app.route('/billing')
     def legacy_billing():

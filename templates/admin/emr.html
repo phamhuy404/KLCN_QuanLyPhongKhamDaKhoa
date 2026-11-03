@@ -503,17 +503,12 @@
                                             <span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-100 text-amber-800 border border-amber-200">{{ s.loai_dich_vu }}</span>
                                         {% endif %}
                                     </div>
-                                    <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="text-slate-400">Giá gốc:</span>
-                                            <span class="font-bold text-slate-700 font-mono">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
+                                    <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
                                             {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
-                                                <span class="text-[9px] text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded font-medium border border-emerald-200">BHYT: {{ s.bhyt_chi_tra_pt }}%</span>
+                                                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
                                             {% endif %}
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-[10px] text-slate-400">Vào viện phí:</span>
-                                            <span class="font-bold font-mono text-medical-700">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
                                         </div>
                                     </div>
                                 </div>
@@ -548,17 +543,12 @@
                                         <span class="font-bold text-slate-800 text-xs">{{ s.ten_dich_vu }}</span>
                                         <span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-slate-100 text-slate-700">{{ s.loai_dich_vu or 'Khác' }}</span>
                                     </div>
-                                    <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="text-slate-400">Giá gốc:</span>
-                                            <span class="font-bold text-slate-700 font-mono">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
+                                    <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
                                             {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
-                                                <span class="text-[9px] text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded font-medium border border-emerald-200">BHYT: {{ s.bhyt_chi_tra_pt }}%</span>
+                                                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
                                             {% endif %}
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-[10px] text-slate-400">Vào viện phí:</span>
-                                            <span class="font-bold font-mono text-medical-700">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
                                         </div>
                                     </div>
                                 </div>

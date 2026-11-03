@@ -18,6 +18,35 @@ class BillingModel:
             if bill:
                 cursor.execute('SELECT * FROM chi_tiet_hoa_don WHERE hoa_don_id=? ORDER BY id', (bill['id'],))
                 bill['chi_tiet'] = [dict(row) for row in cursor.fetchall()]
+                for item in bill['chi_tiet']:
+                    item['don_gia'] = float(item.get('don_gia') or 0)
+                    item['thanh_tien'] = float(item.get('thanh_tien') or 0)
+
+                cursor.execute('SELECT ho_ten, ma_benh_nhan, bhyt, sdt, dia_chi FROM benh_nhan WHERE id=?', (bill['benh_nhan_id'],))
+                bn = cursor.fetchone()
+                if bn:
+                    bill['benh_nhan'] = bn['ho_ten']
+                    bill['ho_ten_benh_nhan'] = bn['ho_ten']
+                    bill['ma_benh_nhan'] = bn['ma_benh_nhan']
+                    bill['ma_bn'] = bn['ma_benh_nhan']
+                    bill['bhyt'] = bn['bhyt']
+                    bill['sdt'] = bn['sdt']
+                    bill['dia_chi'] = bn['dia_chi']
+
+                tong = float(bill.get('tong_tien') or 0)
+                bhyt = float(bill.get('tien_bhyt') or 0)
+                thuc_thu = float(bill.get('thanh_tien') or 0)
+                giam_gia = float(bill.get('giam_gia') or 0)
+                bill['tong_tien'] = tong
+                bill['tien_bhyt'] = bhyt
+                bill['thanh_tien'] = thuc_thu
+                bill['giam_gia'] = giam_gia
+                bill['tong'] = tong
+                bill['bhyt_chi_tra'] = bhyt
+                bill['thuc_thu'] = thuc_thu
+                bill['bhyt_percent'] = round((bhyt / tong) * 100) if tong > 0 and bhyt > 0 else 0
+                bill['ma_the_bhyt'] = str(bn.get('bhyt') or '').strip() if bn else ''
+                bill['has_bhyt'] = bool(bill['ma_the_bhyt'] and bhyt > 0)
             return bill
         except CalendarError:
             return None
@@ -66,7 +95,8 @@ class BillingModel:
                 hd.trang_thai, 
                 hd.trang_thai_nhan_thuoc,
                 hd.thoi_gian_thanh_toan,
-                hd.thoi_gian_thanh_toan AS ngay_tao, 
+                COALESCE(hd.thoi_gian_thanh_toan, pk.thoi_gian_kham) AS ngay_tao,
+                COALESCE(hd.thoi_gian_thanh_toan, pk.thoi_gian_kham) AS thoi_gian_tao,
                 hd.nhan_vien_thu,
                 hd.phieu_kham_id,
                 bn.id AS benh_nhan_id, 
@@ -78,6 +108,7 @@ class BillingModel:
                 bn.sdt
             FROM hoa_don hd
             JOIN benh_nhan bn ON hd.benh_nhan_id = bn.id
+            LEFT JOIN phieu_kham pk ON hd.phieu_kham_id = pk.id
             WHERE (? IS NULL OR hd.benh_nhan_id=?)
             ORDER BY hd.id DESC
         ''', (patient_id, patient_id))
@@ -91,10 +122,14 @@ class BillingModel:
             inv['giam_gia'] = float(inv['giam_gia'] or 0)
             
             # Gán sẵn các biến số phục vụ hiển thị trực tiếp mà không cần FrontEnd tính toán lại
+            the_bhyt = str(inv.get('bhyt') or '').strip()
+            inv['ma_the_bhyt'] = the_bhyt
+            inv['has_bhyt'] = bool(the_bhyt and inv['tien_bhyt'] > 0)
             inv['tong'] = inv['tong_tien']
             inv['bhyt'] = inv['tien_bhyt']
             inv['thuc_thu'] = inv['thanh_tien']
             inv['patient_id'] = inv['benh_nhan_id']
+            inv['bhyt_percent'] = round((inv['tien_bhyt'] / inv['tong_tien']) * 100) if inv['tong_tien'] > 0 and inv['tien_bhyt'] > 0 else 0
             inv['phuong_thuc'] = inv.get('hinh_thuc_thanh_toan') or 'Tiền mặt'
             inv['status'] = {'Đã thanh toán':'paid', 'Chưa thanh toán':'pending', 'Đã hủy':'canceled'}.get(inv['trang_thai'], 'unknown')
 

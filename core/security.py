@@ -60,7 +60,8 @@ def login_required(f):
         if refresh_session_user() is None:
             if request.path.startswith('/api/'):
                 deny(401, 'Tài khoản không tồn tại, bị khóa hoặc thiếu hồ sơ phù hợp!')
-            return redirect(url_for('auth.login', next=request.path))
+            next_url = request.full_path.rstrip('?') if request.query_string else request.path
+            return redirect(url_for('auth.login', next=next_url))
         if session.get('force_change_password') and request.endpoint not in (
                 'auth.force_change_password', 'auth.logout'):
             if request.path.startswith('/api/'):

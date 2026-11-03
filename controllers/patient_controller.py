@@ -235,7 +235,38 @@ def booking():
     departments = ClinicModel.get_all_departments(active_only=True)
     doctors = UserModel.get_all_doctors()
     exam_services = ClinicModel.get_exam_services(active_only=True)
-    return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors, exam_services=exam_services)
+
+    preselected_dept_id = request.args.get('chuyen_khoa_id', type=int) or request.args.get('department_id', type=int) or request.args.get('dept_id', type=int) or request.args.get('khoa_id', type=int)
+    preselected_service_id = request.args.get('service_id', type=int) or request.args.get('dich_vu_id', type=int) or request.args.get('exam_service_id', type=int)
+    preselected_service_name = (request.args.get('service_name', '') or request.args.get('ten_dich_vu', '')).strip()
+    preselected_doctor_id = request.args.get('bac_si_id', type=int) or request.args.get('doctor_id', type=int)
+    preselected_date = (request.args.get('date', '') or request.args.get('ngay_hen', '')).strip()
+
+    if preselected_service_id and not preselected_dept_id:
+        for srv in exam_services:
+            if srv.get('id') == preselected_service_id and srv.get('chuyen_khoa_id'):
+                preselected_dept_id = srv.get('chuyen_khoa_id')
+                break
+
+    if preselected_doctor_id and not preselected_dept_id:
+        for doc in doctors:
+            if doc.get('id') == preselected_doctor_id and doc.get('chuyen_khoa_id'):
+                preselected_dept_id = doc.get('chuyen_khoa_id')
+                break
+
+    return render_template(
+        'patient/booking.html',
+        active_page='booking',
+        patient=patient,
+        departments=departments,
+        doctors=doctors,
+        exam_services=exam_services,
+        preselected_dept_id=preselected_dept_id,
+        preselected_service_id=preselected_service_id,
+        preselected_service_name=preselected_service_name,
+        preselected_doctor_id=preselected_doctor_id,
+        preselected_date=preselected_date
+    )
 
 
 

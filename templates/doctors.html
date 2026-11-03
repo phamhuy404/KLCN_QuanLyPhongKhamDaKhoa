@@ -255,8 +255,9 @@
                             <span class="text-xs font-normal text-slate-400">({{ dept.doctors|length }} bác sĩ chuyên khoa)</span>
                         </h3>
                     </div>
-                    <a href="{{ url_for('booking') }}" 
-                       class="text-xs font-semibold text-medical-600 hover:underline flex items-center gap-1">
+                    <a href="{{ url_for('booking', chuyen_khoa_id=dept.id) }}" 
+                       class="text-xs font-semibold text-medical-600 hover:underline flex items-center gap-1"
+                       title="Đặt lịch tại {{ dept.ten_khoa }}">
                         Đặt lịch khoa này <i class="fa-solid fa-chevron-right text-[10px]"></i>
                     </a>
                 </div>
@@ -316,8 +317,9 @@
                                 <i class="fa-solid fa-door-open text-medical-500"></i>
                                 <span>{{ doc.ten_phong or 'Phòng khám' }}</span>
                             </span>
-                            <a href="{{ url_for('booking') }}" 
-                               class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold transition-colors">
+                            <a href="{{ url_for('booking', chuyen_khoa_id=dept.id, bac_si_id=doc.id) }}" 
+                               class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold transition-colors"
+                               title="Đặt lịch hẹn với {{ doc.ten_hien_thi or doc.ho_ten }}">
                                 Đặt lịch hẹn
                             </a>
                         </div>

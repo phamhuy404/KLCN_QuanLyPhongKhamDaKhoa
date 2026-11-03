@@ -784,9 +784,10 @@
 
                                     <span class="text-slate-500 font-medium"><i class="fa-solid fa-door-open text-medical-500 mr-1"></i>{{ doc.ten_phong or 'Phòng khám' }}</span>
 
-                                    <a href="{{ url_for('booking') }}" 
+                                    <a href="{{ url_for('booking', chuyen_khoa_id=doc.chuyen_khoa_id, bac_si_id=doc.id) }}" 
 
-                                       class="text-medical-600 hover:text-medical-800 font-bold hover:underline">Đặt hẹn</a>
+                                       class="text-medical-600 hover:text-medical-800 font-bold hover:underline"
+                                       title="Đặt hẹn với {{ doc.ten_hien_thi or doc.ho_ten }}">Đặt hẹn</a>
 
                                 </div>
 

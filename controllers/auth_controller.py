@@ -14,6 +14,9 @@ def login():
             return redirect(url_for('admin.doctor_complete_profile'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
+        next_target = safe_next_url(request.args.get('next'))
+        if next_target and user.get('vai_tro') == 'BENHNHAN':
+            return redirect(next_target)
         # Cả bệnh nhân và nhân viên đều bắt đầu ở trang Home
         return redirect(url_for('home.home'))
 
@@ -47,6 +50,9 @@ def login():
         if user['vai_tro'] == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
 
+        next_target = safe_next_url(request.args.get('next') or request.form.get('next'))
+        if next_target and user.get('vai_tro') == 'BENHNHAN':
+            return redirect(next_target)
         # Cả bệnh nhân và nhân viên y tế khi đăng nhập đều bắt đầu ở trang Home
         return redirect(url_for('home.home'))
 

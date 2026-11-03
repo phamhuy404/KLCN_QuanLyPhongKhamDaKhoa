@@ -260,8 +260,9 @@
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <a href="{{ url_for('booking') }}" 
-                           class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-1.5">
+                        <a href="{{ url_for('booking', chuyen_khoa_id=dept.id if dept.id else 1) }}" 
+                           class="px-4 py-2 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-1.5"
+                           title="Đăng ký lịch khám tại {{ dept.ten_khoa }}">
                             <i class="fa-solid fa-calendar-check"></i> Đăng ký khám khoa này
                         </a>
                     </div>
@@ -285,10 +286,9 @@
                                 <thead>
                                     <tr class="bg-slate-50/80 text-slate-500 font-semibold border-y border-slate-200/80">
                                         <th class="py-3 px-4">Tên Dịch Vụ / Kỹ Thuật</th>
-                                        <th class="py-3 px-4 text-right">Giá Niêm Yết<br><span class="text-[10px] text-slate-400 font-normal">(Chưa giảm)</span></th>
-                                        <th class="py-3 px-4 text-center">Mức Hưởng BHYT<br><span class="text-[10px] text-slate-400 font-normal">(Đúng tuyến)</span></th>
-                                        <th class="py-3 px-4 text-right">Giá Sau Giảm BHYT<br><span class="text-[10px] text-medical-600 font-bold">(Người bệnh trả)</span></th>
-                                        <th class="py-3 px-4 text-center w-24">Thao tác</th>
+                                        <th class="py-3 px-4 text-right">Giá Gốc<br><span class="text-[10px] text-slate-400 font-normal">(Chưa BHYT)</span></th>
+                                        <th class="py-3 px-4 text-right">Giá Nếu Có BHYT<br><span class="text-[10px] text-teal-600 font-bold">(Đúng tuyến)</span></th>
+                                        <th class="py-3 px-4 text-center w-28">Đặt Lịch</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
@@ -300,31 +300,32 @@
                                             <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{{ s.mo_ta }}</div>
                                             {% endif %}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right font-semibold text-slate-700 whitespace-nowrap">
-                                            {{ "{:,.0f}".format(s.don_gia_val) }} đ
-                                        </td>
-                                        <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                            {% if s.has_bhyt %}
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
-                                                <i class="fa-solid fa-circle-check text-[10px]"></i> BHYT trả {{ s.bhyt_chi_tra_pt }}%
-                                                <span class="text-slate-400 font-normal">(-{{ "{:,.0f}".format(s.tien_bhyt_val) }}đ)</span>
-                                            </span>
-                                            {% else %}
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[11px] font-medium">
-                                                Theo yêu cầu (0%)
-                                            </span>
-                                            {% endif %}
+                                        <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                            <div class="text-sm sm:text-base font-extrabold text-slate-900 font-mono">
+                                                {{ "{:,.0f}".format(s.don_gia_val) }} đ
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 font-normal">Biểu giá gốc</div>
                                         </td>
                                         <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                                            <span class="text-sm sm:text-base font-extrabold text-medical-600">
+                                            {% if s.has_bhyt %}
+                                            <div class="text-sm sm:text-base font-bold text-teal-700 font-mono">
                                                 {{ "{:,.0f}".format(s.gia_sau_bhyt_val) }} đ
-                                            </span>
+                                            </div>
+                                            <div class="text-[10px] text-emerald-600 font-medium flex items-center justify-end gap-1">
+                                                <i class="fa-solid fa-shield-heart text-[9px]"></i> Giảm -{{ s.bhyt_chi_tra_pt }}% (-{{ "{:,.0f}".format(s.tien_bhyt_val) }} đ)
+                                            </div>
+                                            {% else %}
+                                            <div class="text-xs font-semibold text-slate-600 font-mono">
+                                                {{ "{:,.0f}".format(s.don_gia_val) }} đ
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 font-normal">Không hỗ trợ BHYT</div>
+                                            {% endif %}
                                         </td>
                                         <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                            <a href="{{ url_for('booking') }}" 
-                                               class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-medical-50 text-slate-700 hover:text-medical-700 font-semibold text-[11px] transition-colors inline-block"
-                                               title="Đăng ký lịch khám dịch vụ này">
-                                                Đặt khám
+                                            <a href="{{ url_for('booking', chuyen_khoa_id=s.chuyen_khoa_id if s.chuyen_khoa_id else (dept.id if dept.id else 1), service_id=s.id, service_name=s.ten_dich_vu) }}" 
+                                               class="px-3 py-1.5 rounded-xl bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-xs transition-colors inline-flex items-center gap-1 shadow-2xs border border-medical-200"
+                                               title="Đăng ký lịch khám dịch vụ {{ s.ten_dich_vu }}">
+                                                <i class="fa-solid fa-calendar-check text-[11px]"></i> Đặt khám
                                             </a>
                                         </td>
                                     </tr>

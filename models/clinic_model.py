@@ -343,11 +343,10 @@ class ClinicModel:
             SELECT dv.*, ck.ten_khoa, ck.ma_khoa
             FROM dich_vu dv
             LEFT JOIN chuyen_khoa ck ON dv.chuyen_khoa_id = ck.id
-            WHERE dv.loai_dich_vu IN (N'Khám bệnh', N'Khám chuyên khoa', N'Thủ thuật')
         '''
         if active_only:
-            sql += ' AND dv.trang_thai = 1'
-        sql += " ORDER BY COALESCE(dv.chuyen_khoa_id, 999) ASC, CASE WHEN dv.loai_dich_vu = N'Khám bệnh' THEN 0 WHEN dv.loai_dich_vu = N'Khám chuyên khoa' THEN 1 ELSE 2 END ASC, dv.id ASC"
+            sql += ' WHERE dv.trang_thai = 1'
+        sql += " ORDER BY COALESCE(dv.chuyen_khoa_id, 999) ASC, CASE WHEN dv.loai_dich_vu = N'Khám bệnh' THEN 0 WHEN dv.loai_dich_vu = N'Khám chuyên khoa' THEN 1 WHEN dv.loai_dich_vu = N'Thủ thuật' THEN 2 ELSE 3 END ASC, dv.id ASC"
         cursor.execute(sql)
         rows = [dict(r) for r in cursor.fetchall()]
         conn.close()

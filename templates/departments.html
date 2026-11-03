@@ -366,12 +366,12 @@
                                                 {{ s.loai_dich_vu or 'Khám bệnh' }}
                                             </span>
                                             {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
-                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                                BHYT {{ s.bhyt_chi_tra_pt }}%
+                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                                <i class="fa-solid fa-shield-heart text-[9px]"></i> Nếu có BHYT: -{{ s.bhyt_chi_tra_pt }}%
                                             </span>
                                             {% else %}
-                                            <span class="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
-                                                Tự nguyện
+                                            <span class="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+                                                Tự nguyện (0%)
                                             </span>
                                             {% endif %}
                                         </div>
@@ -384,10 +384,20 @@
                                     </div>
 
                                     <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-                                        <span class="text-[11px] text-slate-400">Đơn giá:</span>
-                                        <span class="text-sm font-extrabold text-medical-700 font-mono">
-                                            {{ "{:,.0f}".format(s.don_gia or 0) }} đ
-                                        </span>
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 block">Đơn giá niêm yết:</span>
+                                            <span class="text-sm sm:text-base font-extrabold text-slate-900 font-mono">
+                                                {{ "{:,.0f}".format(s.don_gia or 0) }} đ
+                                            </span>
+                                        </div>
+                                        {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
+                                        <div class="text-right">
+                                            <span class="text-[10px] text-teal-600 font-semibold block">Có BHYT còn:</span>
+                                            <span class="text-xs font-bold text-teal-700 font-mono">
+                                                {{ "{:,.0f}".format((s.don_gia or 0) * (1 - (s.bhyt_chi_tra_pt or 0)/100)) }} đ
+                                            </span>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -410,8 +420,9 @@
                             </a>
                         </div>
 
-                        <a href="{{ url_for('booking') }}" 
-                           class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
+                        <a href="{{ url_for('booking', chuyen_khoa_id=dep.id) }}" 
+                           class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2"
+                           title="Đặt lịch khám tại {{ dep.ten_khoa }}">
                             <i class="fa-solid fa-calendar-check"></i> Đặt lịch khám tại {{ dep.ten_khoa }}
                         </a>
                     </div>

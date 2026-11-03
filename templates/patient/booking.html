@@ -49,7 +49,7 @@
                     {% if departments %}
                         {% for dep in departments %}
                         <label class="cursor-pointer specialty-item flex flex-col h-full">
-                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if loop.first %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
+                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if (preselected_dept_id and dep.id == preselected_dept_id) or (not preselected_dept_id and loop.first) %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
                             <div class="w-full h-full min-h-[128px] p-3 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center justify-center gap-2">
                                 <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg shrink-0">
                                     <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
@@ -201,11 +201,14 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Chuyên khoa:</span>
-                        <span id="sum-specialty" class="font-semibold text-slate-800">Nội Tổng Quát</span>
+                        <span id="sum-specialty" class="font-semibold text-slate-800">
+                            {%- set active_dep = (departments | selectattr('id', 'equalto', preselected_dept_id) | first) if preselected_dept_id else (departments[0] if departments else None) -%}
+                            {{ active_dep.ten_khoa if active_dep else 'Nội Tổng Quát' }}
+                        </span>
                     </div>
                     <div class="flex justify-between items-start" id="sum-service-row">
                         <span class="text-slate-400 shrink-0">Loại hình khám:</span>
-                        <span id="sum-service" class="font-semibold text-medical-700 text-right text-xs max-w-[180px]">Khám Chuyên Khoa Chuẩn</span>
+                        <span id="sum-service" class="font-semibold text-medical-700 text-right text-xs max-w-[180px]">{{ preselected_service_name if preselected_service_name else "Khám Chuyên Khoa Chuẩn" }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Thời gian khám:</span>
@@ -213,7 +216,10 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Bác sĩ khám:</span>
-                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">Để phòng khám tự phân công</span>
+                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">
+                            {%- set active_doc = (doctors | selectattr('id', 'equalto', preselected_doctor_id) | first) if preselected_doctor_id else None -%}
+                            {{ active_doc.ho_ten if active_doc else 'Để phòng khám tự phân công' }}
+                        </span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-slate-400">Trạng thái ban đầu:</span>
@@ -221,18 +227,14 @@
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-100 space-y-2">
-                    <div class="flex justify-between text-xs text-slate-400">
-                        <span>Giá khám niêm yết:</span>
-                        <span id="sum-original-fee" class="line-through">150.000 đ</span>
+                <div class="pt-4 border-t border-slate-100 space-y-2.5">
+                    <div class="flex justify-between items-baseline">
+                        <span class="font-bold text-slate-800 text-xs">Giá khám niêm yết (Giá gốc):</span>
+                        <span id="sum-fee" class="text-xl font-black text-slate-900 font-mono">150.000 đ</span>
                     </div>
-                    <div class="flex justify-between text-xs text-emerald-600 font-medium">
-                        <span>Ưu đãi đặt trực tuyến:</span>
-                        <span>-20%</span>
-                    </div>
-                    <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
-                        <span class="font-bold text-slate-800">Tạm tính phí khám:</span>
-                        <span id="sum-fee" class="text-xl font-bold text-medical-600">120.000 đ</span>
+                    <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                        <i class="fa-solid fa-shield-heart text-emerald-600 shrink-0"></i>
+                        <span>Giảm nếu có BHYT: Sẽ tự động trừ trên hóa đơn viện phí nếu người bệnh có đăng ký thẻ BHYT hợp lệ.</span>
                     </div>
                     <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán tại quầy tiếp đón khi đến nơi.</p>
                 </div>
@@ -309,10 +311,27 @@
 
             if (srvPrice && srvPrice > 0) {
                 const fee = parseFloat(srvPrice);
-                const discountedFee = Math.round(fee * 0.8);
-                document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
-                document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
+                const feeEl = document.getElementById('sum-fee');
+                if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
+            } else {
+                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
+                const defaultFee = activeDeptRadio ? parseFloat(activeDeptRadio.dataset.fee || 150000) : 150000;
+                const feeEl = document.getElementById('sum-fee');
+                if (feeEl) feeEl.textContent = defaultFee.toLocaleString('vi-VN') + " đ";
             }
+
+            document.querySelectorAll('#specialized-service-list label').forEach(lbl => {
+                const radio = lbl.querySelector('input[name="exam_service_opt"]');
+                const isThis = (radio && ((!srvId && !radio.value) || (srvId && parseInt(radio.value) === srvId)));
+                if (radio) radio.checked = isThis;
+                if (isThis) {
+                    lbl.classList.add('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
+                    lbl.classList.remove('border-slate-200', 'bg-white');
+                } else {
+                    lbl.classList.remove('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
+                    lbl.classList.add('border-slate-200', 'bg-white');
+                }
+            });
         }
 
         function formatDateDisplay(isoDate) {
@@ -335,9 +354,8 @@
             document.getElementById('selected-dept-label').textContent = selectedSpecialtyName;
 
             const fee = parseFloat(el.dataset.fee || 150000);
-            const discountedFee = Math.round(fee * 0.8);
-            document.getElementById('sum-original-fee').textContent = fee.toLocaleString('vi-VN') + " đ";
-            document.getElementById('sum-fee').textContent = discountedFee.toLocaleString('vi-VN') + " đ";
+            const feeEl = document.getElementById('sum-fee');
+            if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
 
             renderSpecializedServices(selectedSpecialtyId);
             loadBookingMatrix();
@@ -382,6 +400,13 @@
                 matrixData = data;
                 renderTimeSlots();
                 renderDoctors();
+
+                if (selectedDoctorId && matrixData.doctors) {
+                    const matchedDoc = matrixData.doctors.find(d => d.id === selectedDoctorId);
+                    if (matchedDoc) {
+                        selectedDoctorName = matchedDoc.full_name || matchedDoc.ho_ten;
+                    }
+                }
 
                 // Nếu giờ đã chọn không còn khả dụng thì bỏ chọn để người dùng tự do chọn lại
                 const availSlots = matrixData.all_available_slots || [];
@@ -740,10 +765,73 @@
                 selectedDate = tomorrowStr;
             }
 
-            const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
-            if (activeDeptRadio) {
-                selectedSpecialtyId = parseInt(activeDeptRadio.value);
-                selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramDeptId = parseInt(urlParams.get('chuyen_khoa_id') || urlParams.get('department_id') || urlParams.get('dept_id') || urlParams.get('khoa_id') || '{{ preselected_dept_id or 0 }}');
+            const paramServiceId = parseInt(urlParams.get('service_id') || urlParams.get('dich_vu_id') || urlParams.get('exam_service_id') || '{{ preselected_service_id or 0 }}');
+            const paramServiceName = (urlParams.get('service_name') || urlParams.get('ten_dich_vu') || '{{ preselected_service_name or "" }}').trim();
+            const paramDoctorId = parseInt(urlParams.get('bac_si_id') || urlParams.get('doctor_id') || '{{ preselected_doctor_id or 0 }}');
+            const paramDate = (urlParams.get('date') || urlParams.get('ngay_hen') || '{{ preselected_date or "" }}').trim();
+
+            if (paramDate && datePicker) {
+                datePicker.value = paramDate;
+                selectedDate = paramDate;
+            }
+
+            let matchedDeptId = paramDeptId;
+            if (!matchedDeptId && paramServiceId > 0) {
+                const srv = allExamServices.find(s => s.id === paramServiceId);
+                if (srv && srv.chuyen_khoa_id) matchedDeptId = srv.chuyen_khoa_id;
+            }
+
+            if (matchedDeptId > 0) {
+                const targetDeptRadio = document.querySelector(`input[name="specialty"][value="${matchedDeptId}"]`);
+                if (targetDeptRadio) {
+                    document.querySelectorAll('input[name="specialty"]').forEach(r => r.checked = false);
+                    targetDeptRadio.checked = true;
+                    selectedSpecialtyId = matchedDeptId;
+                    selectedSpecialtyName = targetDeptRadio.dataset.name || "Chuyên Khoa";
+                    const fee = parseFloat(targetDeptRadio.dataset.fee || 150000);
+                    const feeEl = document.getElementById('sum-fee');
+                    if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
+                }
+            } else {
+                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
+                if (activeDeptRadio) {
+                    selectedSpecialtyId = parseInt(activeDeptRadio.value);
+                    selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
+                }
+            }
+
+            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
+            const deptLabel = document.getElementById('selected-dept-label');
+            if (deptLabel) deptLabel.textContent = selectedSpecialtyName;
+
+            if (paramDoctorId > 0) {
+                selectedDoctorId = paramDoctorId;
+            }
+
+            if (paramServiceId > 0 || paramServiceName) {
+                const targetSrv = allExamServices.find(s => 
+                    (paramServiceId > 0 && s.id === paramServiceId) ||
+                    (paramServiceName && s.ten_dich_vu && s.ten_dich_vu.toLowerCase() === paramServiceName.toLowerCase())
+                );
+                if (targetSrv) {
+                    selectedServiceId = targetSrv.id;
+                    selectedServiceName = targetSrv.ten_dich_vu;
+                    const fee = parseFloat(targetSrv.don_gia || 0);
+                    if (fee > 0) {
+                        const feeEl = document.getElementById('sum-fee');
+                        if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
+                    }
+                    const reasonInput = document.getElementById('booking-reason');
+                    if (reasonInput && !reasonInput.value.trim()) {
+                        reasonInput.value = `Đăng ký khám dịch vụ: ${selectedServiceName}`;
+                    }
+                } else if (paramServiceName) {
+                    selectedServiceName = paramServiceName;
+                }
+                const sumSrvEl = document.getElementById('sum-service');
+                if (sumSrvEl) sumSrvEl.textContent = selectedServiceName;
             }
 
             renderSpecializedServices(selectedSpecialtyId);
