@@ -181,10 +181,9 @@ def create_app(test_config=None):
         from models.system_setting_model import SystemSettingModel
         settings = SystemSettingModel.get_settings()
 
-        # Kiểm tra chế độ bảo trì Cổng Bệnh nhân
+        # Kiểm tra chế độ bảo trì Cổng Bệnh nhân (Chỉ chặn khi truy cập phân hệ tài khoản/đặt lịch, cho phép vào trang Home)
         if settings.get('maintenance_patient'):
             is_patient_area = (
-                role == 'BENHNHAN' or
                 request.path.startswith('/patient') or
                 request.path.startswith('/booking') or
                 request.path in ('/register', '/auth/register') or
@@ -201,10 +200,9 @@ def create_app(test_config=None):
                     }), 503
                 return redirect('/maintenance/patient')
 
-        # Kiểm tra chế độ bảo trì Phân hệ Nhân viên y tế
+        # Kiểm tra chế độ bảo trì Phân hệ Nhân viên y tế (Chỉ chặn khi truy cập nghiệp vụ nội bộ, cho phép vào trang Home)
         if settings.get('maintenance_staff'):
             is_staff_area = (
-                role in ('BACSI', 'LETAN', 'DUOCSI', 'KTV') or
                 request.path.startswith('/admin') or
                 request.path.startswith('/api/emr') or
                 request.path.startswith('/api/schedule') or

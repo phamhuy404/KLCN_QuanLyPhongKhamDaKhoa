@@ -12,10 +12,9 @@ def login():
         user = session['user']
         if user.get('vai_tro') == 'BACSI' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('admin.doctor_complete_profile'))
-        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin.dashboard'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
+        # Cả bệnh nhân và nhân viên đều bắt đầu ở trang Home
         return redirect(url_for('home.home'))
 
     if request.method == 'POST':
@@ -48,15 +47,7 @@ def login():
         if user['vai_tro'] == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
 
-        next_url = safe_next_url(request.args.get('next'))
-        if next_url:
-            if next_url.startswith('/admin') and user['vai_tro'] == 'BENHNHAN':
-                return redirect(url_for('home.home'))
-            return redirect(next_url)
-
-        # Điều hướng theo vai trò người dùng
-        if user['vai_tro'] in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin.dashboard'))
+        # Cả bệnh nhân và nhân viên y tế khi đăng nhập đều bắt đầu ở trang Home
         return redirect(url_for('home.home'))
 
     return render_template('auth/login.html')
@@ -70,8 +61,6 @@ def register():
             return redirect(url_for('admin.doctor_complete_profile'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
-        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('home.home'))
 
     if request.method == 'POST':
@@ -129,8 +118,6 @@ def force_change_password():
             return redirect(url_for('admin.doctor_complete_profile'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
-        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('home.home'))
 
     if request.method == 'POST':
@@ -175,8 +162,6 @@ def force_change_password():
             return redirect(url_for('admin.doctor_complete_profile'))
         if user.get('vai_tro') == 'BENHNHAN' and not user.get('da_hoan_thien_ho_so'):
             return redirect(url_for('patient.complete_profile'))
-        if user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV']:
-            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('home.home'))
 
     return render_template('auth/force_change_password.html', user=user)

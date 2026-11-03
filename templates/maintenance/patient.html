@@ -3,13 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Đang Nâng Cấp & Bảo Trì - H2T Care+</title>
+    <title>Hệ Thống Đang Bảo Trì - Bệnh viện Đa khoa Quốc tế H2T Healthcare</title>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Dark Mode Init Script -->
+    <script>
+        try {
+            const t = localStorage.getItem('h2t_theme') || localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch(e) {}
+    </script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -20,7 +34,10 @@
                         medical: {
                             50: '#eefcf6',
                             100: '#d4f8e8', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399',
-                            500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46', 900: '#064e3b',
                         }
                     }
                 }
@@ -29,151 +46,238 @@
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <style>
-        @keyframes subtleFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+        html { scroll-behavior: smooth; }
+        @keyframes floatSubtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
         }
-        @keyframes pulseRing {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 0.3; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-        .float-animation {
-            animation: subtleFloat 4s ease-in-out infinite;
-        }
-        .pulse-ring {
-            animation: pulseRing 3s ease-in-out infinite;
+        .anim-float {
+            animation: floatSubtle 3.5s ease-in-out infinite;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/40 text-slate-800 min-h-screen flex flex-col justify-between font-sans antialiased selection:bg-medical-500 selection:text-white">
+<body class="bg-slate-50 dark:bg-slate-900 font-sans antialiased text-slate-800 dark:text-slate-100 min-h-screen flex flex-col selection:bg-medical-500 selection:text-white">
 
-    <!-- Top Navigation / Header Info -->
-    <header class="w-full max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
-        <a href="{{ url_for('home') }}" class="flex items-center gap-3 group">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-medical-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-medical-500/25 group-hover:scale-105 transition-transform">
-                <i class="fa-solid fa-heart-pulse text-2xl"></i>
+    <!-- 1. Top Utility Bar (Giống Giao Diện Chính) -->
+    <div class="bg-gradient-to-r from-medical-700 to-teal-800 text-white text-xs py-2 px-4 sm:px-8 border-b border-white/10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-6">
+                <span class="flex items-center gap-1.5 text-medical-100">
+                    <i class="fa-solid fa-phone-volume text-amber-300"></i> Cấp cứu 24/7: <a href="tel:{{ (settings.maintenance_hotline or '1900 1234').split('-')[0].strip() }}" class="font-bold text-white hover:underline">{{ settings.maintenance_hotline or '1900 1234' }}</a>
+                </span>
+                <span class="hidden md:flex items-center gap-1.5 text-medical-100">
+                    <i class="fa-solid fa-location-dot text-medical-300"></i> 140 Lê Trọng Tấn, P. Tây Thạnh, Q. Tân Phú, TP.HCM
+                </span>
             </div>
-            <div>
-                <h1 class="font-extrabold text-slate-900 text-lg tracking-tight">H2T Healthcare<span class="text-medical-600">+</span></h1>
-                <span class="text-xs text-slate-500 font-medium">Hệ Thống Phòng Khám Đa Khoa</span>
+            <div class="flex items-center gap-4 text-medical-100">
+                <a href="{{ url_for('home.doctors') }}" class="hover:text-white transition-colors">Tìm bác sĩ</a>
+                <span>•</span>
+                <a href="mailto:contact@huit.edu.vn" class="hover:text-white transition-colors">Chăm sóc khách hàng</a>
             </div>
-        </a>
+        </div>
+    </div>
 
-        {% if is_preview or is_admin %}
-        <div class="flex items-center gap-2 bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm">
-            <i class="fa-solid fa-eye"></i>
-            <span>Chế độ Xem trước của Quản trị viên</span>
-            <a href="{{ url_for('admin_backups') }}" class="ml-2 underline hover:text-amber-950">Về Bảng Điều Khiển</a>
+    <!-- 2. Main Header (Giống Giao Diện Chính) -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <a href="{{ url_for('home') }}" class="flex items-center gap-3 shrink-0" title="Về trang chủ">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-medical-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-medical-500/25">
+                    <i class="fa-solid fa-heart-pulse text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-slate-900 dark:text-white text-xl tracking-tight leading-tight">H2T Healthcare<span class="text-medical-500">+</span></h1>
+                    <span class="text-[11px] text-slate-400 font-medium block">Bệnh viện Đa khoa Quốc tế HUIT</span>
+                </div>
+            </a>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('home') }}" class="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-semibold text-xs transition-all">
+                    <i class="fa-solid fa-house text-medical-600"></i>
+                    <span>Trang Chủ</span>
+                </a>
+
+                {% if session.get('logged_in') %}
+                    {% set curr_user = session.get('user', {}) %}
+                    {% if curr_user.get('vai_tro') in ['ADMIN', 'LETAN', 'BACSI', 'DUOCSI', 'KTV'] %}
+                        <div class="flex items-center gap-2">
+                            <span class="px-3.5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-user-doctor text-medical-400"></i>
+                                <span>{{ curr_user.get('ho_ten', 'Cổng Y Tế') }}</span>
+                                <span class="bg-slate-800 text-[10px] text-teal-300 px-1.5 py-0.5 rounded font-normal">{{ curr_user.get('chuc_vu') or curr_user.get('ten_vai_tro') }}</span>
+                            </span>
+                            <a href="{{ url_for('logout') }}" class="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-rose-50 text-slate-600 dark:text-slate-300 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="flex items-center gap-2">
+                            <span class="px-4 py-2.5 rounded-xl bg-medical-600 text-white font-bold text-xs flex items-center gap-2">
+                                <i class="fa-solid fa-circle-user"></i>
+                                <span>{{ curr_user.get('ho_ten', 'Bệnh nhân') }}</span>
+                            </span>
+                            <a href="{{ url_for('logout') }}" class="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-rose-50 text-slate-600 dark:text-slate-300 hover:text-rose-600 font-semibold text-xs transition-all" title="Đăng xuất">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        <span>Đăng nhập</span>
+                    </a>
+                {% endif %}
+
+                <!-- Nut Chuyen Doi Dark Mode -->
+                <button type="button" onclick="toggleDarkMode()" 
+                        class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-amber-400 transition-all shadow-xs" 
+                        title="Chuyển chế độ Sáng / Tối">
+                    <i class="fa-solid fa-moon theme-toggle-icon text-sm"></i>
+                </button>
+            </div>
         </div>
-        {% else %}
-        <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-            <span>Đang Bảo Trì Nâng Cấp Hệ Thống</span>
-        </div>
-        {% endif %}
+
+        <!-- 3. Menu Điều Hướng Ngang (Giống Giao Diện Chính) -->
+        <nav class="bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 px-4 sm:px-6">
+            <div class="max-w-7xl mx-auto flex items-center overflow-x-auto custom-scrollbar-x pb-2 pt-1 text-xs font-semibold text-slate-600 dark:text-slate-300 space-x-1 sm:space-x-2">
+                <a href="{{ url_for('home') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                    Trang chủ
+                </a>
+                <a href="{{ url_for('home.departments') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                    Chuyên khoa
+                </a>
+                <a href="{{ url_for('home.doctors') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                    Đội ngũ Bác sĩ
+                </a>
+                <a href="{{ url_for('articles') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                    Tin tức và Bài viết
+                </a>
+                <a href="{{ url_for('home.pricing') }}" class="px-3.5 py-2 rounded-lg hover:text-medical-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                    Bảng giá dịch vụ
+                </a>
+                <span class="px-3.5 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-bold whitespace-nowrap">
+                    <i class="fa-solid fa-wrench mr-1"></i> Cổng Bệnh Nhân (Đang Bảo Trì)
+                </span>
+            </div>
+        </nav>
     </header>
 
-    <!-- Main Content Card -->
-    <main class="w-full max-w-3xl mx-auto px-6 py-8 flex-1 flex flex-col justify-center items-center text-center">
-        
-        <!-- Central Animated Graphic -->
-        <div class="relative mb-8">
-            <div class="absolute inset-0 bg-emerald-400/20 rounded-full blur-2xl pulse-ring"></div>
-            <div class="relative w-28 h-28 mx-auto rounded-3xl bg-white border border-emerald-100 shadow-2xl shadow-emerald-500/20 flex items-center justify-center float-animation">
-                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-3xl shadow-md">
+    <!-- 4. Main Body: Thông Báo Bảo Trì Theo Đúng Chuẩn Giao Diện Web Chính -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 flex flex-col justify-center">
+
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-xs text-slate-400 mb-6">
+            <a href="{{ url_for('home') }}" class="hover:text-medical-600">Trang chủ</a>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <span class="text-slate-500 dark:text-slate-400">Tài khoản & Dịch vụ</span>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            <span class="text-amber-600 dark:text-amber-400 font-bold">Hệ thống đang bảo trì</span>
+        </nav>
+
+        <!-- Maintenance Card -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/90 dark:border-slate-700 shadow-xl p-8 sm:p-12 text-center relative overflow-hidden">
+            
+            <!-- Background Glow Decor -->
+            <div class="absolute -top-20 -right-20 w-64 h-64 bg-amber-400/10 dark:bg-amber-400/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-medical-500/10 dark:bg-medical-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            {% if is_preview or is_admin %}
+            <div class="inline-flex items-center gap-2 bg-amber-100 text-amber-800 border border-amber-300 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-xs mb-6">
+                <i class="fa-solid fa-eye"></i>
+                <span>Chế độ Xem trước của Quản trị viên</span>
+                <a href="{{ url_for('admin_backups') }}" class="ml-2 underline font-extrabold hover:text-amber-950">Về Bảng Điều Khiển</a>
+            </div>
+            {% endif %}
+
+            <!-- Central Icon -->
+            <div class="relative w-24 h-24 mx-auto mb-6 anim-float">
+                <div class="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white flex items-center justify-center text-3xl shadow-xl shadow-amber-500/25">
                     <i class="fa-solid fa-screwdriver-wrench"></i>
                 </div>
-            </div>
-            <div class="absolute -bottom-2 -right-2 bg-amber-500 text-white w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-md border-2 border-white">
-                <i class="fa-solid fa-clock"></i>
-            </div>
-        </div>
-
-        <!-- Status Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 text-emerald-800 border border-emerald-200 text-xs font-bold mb-4">
-            <i class="fa-solid fa-circle-notch fa-spin text-emerald-600"></i>
-            <span>BẢO TRÌ NÂNG CẤP ĐỊNH KỲ</span>
-        </div>
-
-        <!-- Main Title -->
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight max-w-xl">
-            Cổng Bệnh Nhân Đang Tạm Dừng Để Nâng Cấp Trải Nghiệm
-        </h2>
-
-        <!-- Message from Settings -->
-        <p class="mt-4 text-slate-600 text-base sm:text-lg max-w-2xl leading-relaxed">
-            {{ settings.maintenance_message_patient or 'Hệ thống đang được nâng cấp máy chủ và cải tiến tính năng khám chữa bệnh trực tuyến nhằm phục vụ quý bệnh nhân tốt hơn.' }}
-        </p>
-
-        <!-- ETA Box -->
-        <div class="mt-6 inline-flex items-center gap-3 bg-white border border-slate-200/90 shadow-sm rounded-2xl px-5 py-3">
-            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base">
-                <i class="fa-regular fa-clock"></i>
-            </div>
-            <div class="text-left">
-                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Thời gian dự kiến mở lại</p>
-                <p class="text-sm font-bold text-slate-800" id="eta-display">{{ settings.maintenance_eta or 'Sẽ hoàn thành trong ít phút' }}</p>
-            </div>
-        </div>
-
-        <!-- Urgent Emergency Box -->
-        <div class="mt-8 w-full max-w-xl bg-white/90 backdrop-blur-md rounded-2xl border border-rose-200/80 p-5 text-left shadow-lg shadow-rose-500/5">
-            <div class="flex items-start gap-4">
-                <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0">
-                    <i class="fa-solid fa-truck-medical"></i>
+                <div class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white dark:bg-slate-800 text-medical-600 shadow-md flex items-center justify-center text-xs border border-slate-200 dark:border-slate-700">
+                    <i class="fa-solid fa-clock"></i>
                 </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-bold text-rose-900 uppercase tracking-wide flex items-center gap-2">
-                        <span>Hỗ Trợ Cấp Cứu Y Tế Khẩn Cấp 24/7</span>
-                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                    </h3>
-                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Các hoạt động cấp cứu và khám bệnh trực tiếp tại phòng khám vẫn hoạt động liên tục. Quý bệnh nhân vui lòng đến thẳng cơ sở hoặc liên hệ tổng đài trực ban:
-                    </p>
-                    <div class="mt-3 flex flex-wrap items-center gap-3">
-                        <a href="tel:{{ (settings.maintenance_hotline or '1900 1234').split('-')[0].strip() }}" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-all">
-                            <i class="fa-solid fa-phone-volume"></i>
-                            <span>Hotline: {{ settings.maintenance_hotline or '1900 1234' }}</span>
-                        </a>
-                        <span class="text-xs text-slate-500 flex items-center gap-1.5">
-                            <i class="fa-solid fa-location-dot text-rose-500"></i>
-                            <span>140 Lê Trọng Tấn, Tây Thạnh, Tân Phú, TP. HCM</span>
-                        </span>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold mb-3">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                <span>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</span>
+            </div>
+
+            <!-- Heading -->
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight max-w-xl mx-auto">
+                Cổng Dịch Vụ Bệnh Nhân Đang Tạm Dừng Để Nâng Cấp
+            </h2>
+
+            <!-- Message -->
+            <p class="mt-3.5 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                {{ settings.maintenance_message_patient or 'Hệ thống đang được nâng cấp máy chủ và cải tiến tính năng khám chữa bệnh trực tuyến nhằm phục vụ quý bệnh nhân tốt hơn. Quý khách vẫn có thể tra cứu thông tin và cẩm nang sức khỏe trên trang chủ.' }}
+            </p>
+
+            <!-- ETA Box -->
+            <div class="mt-6 inline-flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl px-5 py-3 shadow-xs">
+                <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+                <div class="text-left">
+                    <p class="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Thời gian dự kiến mở lại dịch vụ</p>
+                    <p class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ settings.maintenance_eta or 'Khoảng 30 - 60 phút' }}</p>
+                </div>
+            </div>
+
+            <!-- Emergency Card -->
+            <div class="mt-8 max-w-xl mx-auto bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-5 text-left">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 flex items-center justify-center text-lg shrink-0">
+                        <i class="fa-solid fa-truck-medical"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-xs font-bold text-rose-900 dark:text-rose-300 uppercase tracking-wide flex items-center gap-2">
+                            <span>Khám & Cấp Cứu Trực Tiếp Vẫn Hoạt Động 24/7</span>
+                        </h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                            Quý bệnh nhân cần hỗ trợ y tế khẩn cấp vui lòng đến trực tiếp cơ sở phòng khám hoặc liên hệ đường dây nóng cấp cứu trực ban:
+                        </p>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <a href="tel:{{ (settings.maintenance_hotline or '1900 1234').split('-')[0].strip() }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all">
+                                <i class="fa-solid fa-phone-volume"></i>
+                                <span>Hotline: {{ settings.maintenance_hotline or '1900 1234' }}</span>
+                            </a>
+                            <a href="https://maps.google.com/?q=140+Le+Trong+Tan,+Tay+Thanh,+Tan+Phu,+TP+Ho+Chi+Minh" target="_blank" class="text-xs text-rose-700 dark:text-rose-300 font-semibold hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span>140 Lê Trọng Tấn, Tân Phú, TP. HCM</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Action Buttons -->
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <button onclick="checkMaintenanceStatus(true)" id="btn-check-reload" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold shadow-md transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
-                <i class="fa-solid fa-rotate text-xs" id="reload-icon"></i>
-                <span>Kiểm Tra Lại Hệ Thống</span>
-            </button>
-            <a href="https://maps.google.com/?q=140+Le+Trong+Tan,+Tay+Thanh,+Tan+Phu,+TP+Ho+Chi+Minh" target="_blank" class="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
-                <i class="fa-solid fa-map-location-dot text-medical-600"></i>
-                <span>Xem Chỉ Đường Cơ Sở</span>
-            </a>
-            {% if session.get('logged_in') %}
-            <a href="{{ url_for('auth.logout') }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-medium transition-all">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất
-            </a>
-            {% endif %}
-        </div>
+            <!-- Action Buttons -->
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-3.5">
+                <a href="{{ url_for('home') }}" class="px-6 py-3 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl text-xs shadow-md shadow-medical-600/25 transition-all flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Quay Về Trang Chủ</span>
+                </a>
+                <button type="button" onclick="checkMaintenanceStatus(true)" id="btn-check-reload" class="px-5 py-3 bg-white dark:bg-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-rotate text-xs" id="reload-icon"></i>
+                    <span>Kiểm Tra Lại Kết Nối</span>
+                </button>
+            </div>
 
-        <!-- Auto Polling Notice -->
-        <p class="text-xs text-slate-400 mt-6 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Hệ thống tự động kiểm tra mỗi 15 giây và sẽ tự đưa bạn trở lại dịch vụ ngay khi hoàn tất.</span>
-        </p>
+            <!-- Auto Refresh Note -->
+            <p class="text-[11px] text-slate-400 mt-6 flex items-center justify-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Hệ thống tự động kiểm tra mỗi 15 giây và sẽ đưa bạn trở lại dịch vụ ngay khi bảo trì hoàn tất.</span>
+            </p>
+
+        </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="w-full max-w-5xl mx-auto px-6 py-5 text-center text-xs text-slate-400 border-t border-slate-200/60">
-        &copy; 2026 H2T Healthcare+. Bản quyền thuộc Phòng Khám Đa Khoa Quốc Tế H2T. Mọi thông tin được bảo mật theo tiêu chuẩn Bộ Y Tế.
-    </footer>
+    <!-- 5. Footer Chung (Giống Giao Diện Chính) -->
+    {% include "layouts/footer.html" %}
 
     <script>
         async function checkMaintenanceStatus(manual = false) {
@@ -197,7 +301,6 @@
             }
         }
 
-        // Tự động kiểm tra mỗi 15 giây để tự reload
         setInterval(() => {
             checkMaintenanceStatus(false);
         }, 15000);
