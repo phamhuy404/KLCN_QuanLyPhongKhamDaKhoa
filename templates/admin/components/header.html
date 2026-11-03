@@ -808,7 +808,14 @@
 
         pollNotificationsRealtime();
 
-        setInterval(pollNotificationsRealtime, 5000);
+        setInterval(pollNotificationsRealtime, 2500);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                pollNotificationsRealtime();
+            }
+        });
+        window.addEventListener('focus', pollNotificationsRealtime);
 
     });
 

@@ -2480,18 +2480,63 @@ function toggleScheduleViewMode(mode) {
 }
 
 // Render thời khóa biểu dạng lưới trực quan (Tab 2)
-function renderTimetableGrid(weekType) {
+window.weekScheduleCache = window.weekScheduleCache || {};
+
+async function renderTimetableGrid(weekType) {
     const container = document.getElementById('timetable-grid-content');
     if (!container) return;
 
     const days = getWeekDaysArray(weekType);
+    if (!days || days.length === 0) return;
+
+    const fromDate = days[0].date_str;
+    const toDate = days[6].date_str;
+    const cacheKey = `${fromDate}_${toDate}`;
+
+    // Kiểm tra và tải theo nhu cầu (Lazy Loading & Client Cache)
+    let activeWeekSchedules = null;
+    if (window.weekScheduleCache[cacheKey]) {
+        activeWeekSchedules = window.weekScheduleCache[cacheKey];
+    } else {
+        const inMemory = (window.schedulesData || []).filter(s => s.ngay_lam >= fromDate && s.ngay_lam <= toDate);
+        if (inMemory.length > 0) {
+            activeWeekSchedules = inMemory;
+            window.weekScheduleCache[cacheKey] = inMemory;
+        } else {
+            // Hiển thị trạng thái tải nhẹ
+            container.innerHTML = `
+                <div class="py-20 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
+                    <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-sky-50 text-sky-600 mb-2 animate-pulse">
+                        <i class="fa-solid fa-circle-notch fa-spin text-lg"></i>
+                    </div>
+                    <p class="font-bold text-slate-700 text-xs">Đang tải lịch trực tuần (${days[0].display_date} - ${days[6].display_date})...</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Nạp dữ liệu theo nhu cầu (Lazy Loading & Client Cache)...</p>
+                </div>
+            `;
+            try {
+                const res = await fetch(`/api/schedule/week?from=${fromDate}&to=${toDate}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.schedules) {
+                        activeWeekSchedules = data.schedules;
+                        window.weekScheduleCache[cacheKey] = activeWeekSchedules;
+                        window.schedulesData = (window.schedulesData || []).concat(activeWeekSchedules);
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi tải lịch trực tuần:", err);
+            }
+        }
+    }
+    if (!activeWeekSchedules) activeWeekSchedules = [];
+
     const defaultShifts = [
         { id: 1, ca_id: 1, ten: 'Sáng', ten_ca: 'Sáng', gio: '07:00 - 11:30', gio_lam_viec: '07:00 - 11:30', icon: 'fa-solid fa-sun', icon_color: 'text-amber-500' },
         { id: 2, ca_id: 2, ten: 'Chiều', ten_ca: 'Chiều', gio: '13:30 - 17:00', gio_lam_viec: '13:30 - 17:00', icon: 'fa-solid fa-cloud-sun', icon_color: 'text-amber-600' },
         { id: 3, ca_id: 3, ten: 'Tối', ten_ca: 'Tối', gio: '17:30 - 20:30', gio_lam_viec: '17:30 - 20:30', icon: 'fa-solid fa-moon', icon_color: 'text-indigo-900' }
     ];
     const shifts = (window.shiftsInfo && window.shiftsInfo.length) ? window.shiftsInfo : defaultShifts;
-    const allSchedules = window.schedulesData || [];
+    const allSchedules = activeWeekSchedules;
     const currUser = window.currentUser || {};
 
     let html = `
