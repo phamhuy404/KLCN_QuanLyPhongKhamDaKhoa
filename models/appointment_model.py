@@ -1641,6 +1641,7 @@ class AppointmentModel:
     @staticmethod
 
 
+    @serialized
     def create(benh_nhan_id, chuyen_khoa_id, bac_si_id, ngay_hen, gio_hen, ly_do_kham, audit_user=None, return_details=False):
 
 

@@ -8,6 +8,7 @@ from controllers.patient_controller import patient_bp
 from controllers.admin_controller import admin_bp
 from controllers.api_controller import api_bp
 from controllers.mobile_auth_controller import mobile_auth_bp
+from controllers.mobile_patient_controller import mobile_patient_bp
 
 _DEVELOPMENT_SECRET_KEY = secrets.token_hex(32)
 
@@ -33,6 +34,29 @@ def create_app(test_config=None):
         app.config.setdefault('DATABASE_ACCESS_ENABLED', True)
         app.config.setdefault('NOTIFICATIONS_ENABLED', True)
 
+    # Mobile uses Bearer tokens, not web cookies. Only explicitly configured web origins.
+    import os
+    app.config.setdefault('MOBILE_ALLOWED_ORIGINS', tuple(
+        value.strip() for value in os.environ.get('MOBILE_ALLOWED_ORIGINS', '').split(',') if value.strip()))
+
+    @app.before_request
+    def mobile_preflight():
+        if request.path.startswith('/api/v1/mobile/') and request.method == 'OPTIONS':
+            if request.headers.get('Origin') not in app.config['MOBILE_ALLOWED_ORIGINS']:
+                return '', 403
+            return '', 204
+
+    @app.after_request
+    def mobile_cors(response):
+        if request.path.startswith('/api/v1/mobile/'):
+            origin = request.headers.get('Origin')
+            if origin and origin in app.config['MOBILE_ALLOWED_ORIGINS']:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+                response.vary.add('Origin')
+        return response
+
     # 2. Đăng ký các Controller (Blueprints)
     app.register_blueprint(home_bp)
     app.register_blueprint(auth_bp)
@@ -40,6 +64,7 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(mobile_auth_bp)
+    app.register_blueprint(mobile_patient_bp)
     from core.medical_media import register_medical_media
     register_medical_media(app)
     from core.clinical_data import display_clinical

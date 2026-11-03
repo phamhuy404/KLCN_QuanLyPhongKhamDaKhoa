@@ -53,7 +53,7 @@ def register():
     valid, normalized = validate_name(name)
     if not valid or not VN_PHONE_PATTERN.fullmatch(phone) or (email and not EMAIL_PATTERN.fullmatch(email)):
         fail('VALIDATION_ERROR', 'Họ tên, số điện thoại hoặc email không hợp lệ.', 400)
-    if len(password) < 6 or password != password.strip() or gender not in {'Nam','Nữ','Khác'}:
+    if len(password) < 6 or password != password.strip() or gender not in {'Nam','Nữ'}:
         fail('VALIDATION_ERROR', 'Mật khẩu tối thiểu 6 ký tự, không có khoảng trắng đầu/cuối; giới tính không hợp lệ.', 400)
     try:
         birthday = date.fromisoformat(birth)

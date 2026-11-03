@@ -11,7 +11,7 @@ from werkzeug.exceptions import HTTPException
 from PIL import Image
 
 from core.database import get_db
-from core.security import login_required, require_patient_access, positive_id
+from core.security import login_required, require_patient_access, positive_id, refresh_session_user
 from core.clinical_data import result_is_published
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -133,7 +133,7 @@ def can_use_reference(reference, expected_patient_id=None):
         return False
     if expected_patient_id is not None and positive_id(reference['patient_id']) != positive_id(expected_patient_id):
         return False
-    if session['user']['vai_tro'] == 'BENHNHAN' and reference['kind'] == 'lab' and not result_is_published(reference):
+    if refresh_session_user()['vai_tro'] == 'BENHNHAN' and reference['kind'] == 'lab' and not result_is_published(reference):
         return False
     try:
         require_patient_access(reference['patient_id'])
@@ -153,8 +153,8 @@ def serve_medical_image(relative, legacy=False, references=None):
     references = medical_references(url) if references is None else references
     if not references:
         abort(404)
-    if session['user']['vai_tro'] == 'BENHNHAN' and any(
-            ref['kind'] == 'lab' and positive_id(ref['patient_id']) == positive_id(session['user'].get('patient_id'))
+    if refresh_session_user()['vai_tro'] == 'BENHNHAN' and any(
+            ref['kind'] == 'lab' and positive_id(ref['patient_id']) == positive_id(refresh_session_user().get('patient_id'))
             and not result_is_published(ref) for ref in references):
         # A second clinical reference must not publish the same pending lab image.
         abort(403)

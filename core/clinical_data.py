@@ -1,5 +1,5 @@
 """Clinical values stay unknown until recorded; lab results require approval."""
-from flask import has_request_context, session
+from flask import has_request_context, session, g
 from jinja2 import Undefined
 
 
@@ -12,7 +12,7 @@ def result_is_published(result):
 
 
 def patient_request():
-    return has_request_context() and session.get('user', {}).get('vai_tro') == 'BENHNHAN'
+    return has_request_context() and (getattr(g, 'authenticated_user', None) or session.get('user', {})).get('vai_tro') == 'BENHNHAN'
 
 
 def published_results(results):

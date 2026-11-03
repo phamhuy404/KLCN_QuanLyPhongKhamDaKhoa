@@ -68,7 +68,8 @@ def live_identity(cursor, account_id):
 def public_user(user):
     return dict(account_id=user['id'], patient_id=user['patient_id'], role='BENHNHAN',
                 name=user.get('ho_ten') or '', email=user.get('email') or '',
-                phone=user.get('sdt') or '', patient_code=user.get('ma_benh_nhan') or '')
+                phone=user.get('sdt') or '', patient_code=user.get('ma_benh_nhan') or '',
+                profile_complete=bool(user.get('da_hoan_thien_ho_so')))
 
 
 def issue(cursor, account_id):
