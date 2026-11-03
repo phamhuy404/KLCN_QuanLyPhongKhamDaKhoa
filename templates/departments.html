@@ -272,8 +272,8 @@
                         </div>
                     </div>
 
-                    <!-- 3 Cột Thông tin: Phòng Khám, Đội ngũ Bác sĩ, Dịch vụ kỹ thuật -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+                    <!-- Cơ sở hạ tầng & Đội ngũ y tế phụ trách -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
                         
                         <!-- Cột 1: Danh sách phòng khám trực thuộc -->
                         <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100 space-y-2.5">
@@ -309,7 +309,7 @@
                                 </a>
                                 {% endif %}
                             </div>
-                            <div class="space-y-2 pt-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                                 {% if dep.doctors %}
                                     {% for doc in dep.doctors[:4] %}
                                     <div class="bg-white p-2 rounded-xl border border-slate-100 flex items-center gap-2.5">
@@ -325,47 +325,76 @@
                                         {% endif %}
                                     </div>
                                     {% endfor %}
-                                    {% if dep.doctor_count > 4 %}
-                                    <div class="text-center pt-1">
-                                        <span class="text-[11px] text-slate-400 font-medium">+ {{ dep.doctor_count - 4 }} bác sĩ chuyên khoa khác</span>
-                                    </div>
-                                    {% endif %}
                                 {% else %}
-                                    <p class="text-slate-400 text-xs italic">KTV và cán bộ kỹ thuật phụ trách thường trực</p>
+                                    <p class="text-slate-400 text-xs italic col-span-2">KTV và cán bộ kỹ thuật phụ trách thường trực</p>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <!-- Cột 3: Dịch vụ kỹ thuật tiêu biểu -->
-                        <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100 space-y-2.5">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-bold text-slate-800 flex items-center gap-2 text-xs uppercase tracking-wider">
-                                    <i class="fa-solid fa-list-check text-indigo-600"></i> Dịch Vụ Nổi Bật ({{ dep.service_count }})
+                    </div>
+
+                    <!-- Mở rộng: Danh mục các loại khám & dịch vụ chuyên khoa kèm giá riêng của khoa -->
+                    <div class="bg-slate-50/80 rounded-2xl p-4 sm:p-5 border border-slate-100/90 space-y-3.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                            <div>
+                                <h4 class="font-extrabold text-slate-800 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wider">
+                                    <i class="fa-solid fa-list-check text-medical-600"></i> Các Loại Khám & Dịch Vụ Kỹ Thuật Chuyên Sâu ({{ dep.service_count }})
                                 </h4>
-                                {% if dep.service_count > 0 %}
-                                <a href="{{ url_for('home.pricing') }}#khoa-{{ dep.id }}" class="text-[11px] text-medical-600 hover:underline font-semibold">
-                                    Bảng giá đầy đủ
-                                </a>
-                                {% endif %}
+                                <p class="text-[11px] text-slate-500 mt-0.5">Giá niêm yết rõ ràng của từng loại khám, hỗ trợ theo mức thanh toán BHYT</p>
                             </div>
-                            <div class="space-y-1.5 pt-1">
-                                {% if dep.services %}
-                                    {% for s in dep.services[:4] %}
-                                    <div class="bg-white p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-                                        <div class="truncate max-w-[170px] font-medium text-slate-700">
-                                            {{ s.ten_dich_vu }}
+                            {% if dep.service_count > 0 %}
+                            <a href="{{ url_for('home.pricing') }}#khoa-{{ dep.id }}" class="inline-flex items-center gap-1 text-xs text-medical-600 hover:text-medical-700 font-bold hover:underline shrink-0">
+                                <span>Bảng giá viện phí đầy đủ</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                            {% if dep.services %}
+                                {% for s in dep.services %}
+                                <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 hover:border-medical-300 hover:shadow-xs transition-all flex flex-col justify-between gap-2.5">
+                                    <div class="space-y-1.5">
+                                        <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold 
+                                                {% if s.loai_dich_vu == 'Khám chuyên khoa' %}bg-indigo-50 text-indigo-700 border border-indigo-200
+                                                {% elif s.loai_dich_vu == 'Khám bệnh' %}bg-sky-50 text-sky-700 border border-sky-200
+                                                {% elif s.loai_dich_vu == 'Thủ thuật' %}bg-amber-50 text-amber-700 border border-amber-200
+                                                {% elif s.loai_dich_vu == 'Thăm dò chức năng' %}bg-purple-50 text-purple-700 border border-purple-200
+                                                {% elif s.loai_dich_vu == 'Xét nghiệm' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                                {% else %}bg-teal-50 text-teal-700 border border-teal-200{% endif %}">
+                                                {{ s.loai_dich_vu or 'Khám bệnh' }}
+                                            </span>
+                                            {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
+                                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                BHYT {{ s.bhyt_chi_tra_pt }}%
+                                            </span>
+                                            {% else %}
+                                            <span class="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">
+                                                Tự nguyện
+                                            </span>
+                                            {% endif %}
                                         </div>
-                                        <span class="font-bold text-medical-700 shrink-0 font-mono text-[11px]">
-                                            {{ "{:,.0f}".format(s.don_gia or 0) }}đ
+                                        <h5 class="font-bold text-slate-800 text-xs leading-snug line-clamp-2" title="{{ s.ten_dich_vu }}">
+                                            {{ s.ten_dich_vu }}
+                                        </h5>
+                                        {% if s.mo_ta %}
+                                        <p class="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{{ s.mo_ta }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                        <span class="text-[11px] text-slate-400">Đơn giá:</span>
+                                        <span class="text-sm font-extrabold text-medical-700 font-mono">
+                                            {{ "{:,.0f}".format(s.don_gia or 0) }} đ
                                         </span>
                                     </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <p class="text-slate-400 text-xs italic">Khám và chẩn đoán theo chỉ định chuyên khoa</p>
-                                {% endif %}
-                            </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-slate-400 text-xs italic col-span-3 py-4 text-center">Khám và chẩn đoán theo chỉ định chuyên khoa</p>
+                            {% endif %}
                         </div>
-
                     </div>
 
                     <!-- Thao tác liên kết trực tiếp -->

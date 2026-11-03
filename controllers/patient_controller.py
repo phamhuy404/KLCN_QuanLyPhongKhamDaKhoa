@@ -90,7 +90,7 @@ def complete_profile():
 
         cur_nhom_mau = request.form.get('nhom_mau', cur_nhom_mau)
 
-        is_valid, errors = validate_patient_profile(request.form)
+        is_valid, errors = validate_patient_profile(request.form, onboarding=True)
 
         if not is_valid:
 
@@ -180,11 +180,11 @@ def dashboard():
 
 
 
-    upcoming_appointment = appointments[0] if appointments else None
+    upcoming_appointments = [a for a in appointments if a.get('status_code') in ('waiting', 'confirmed')]
+    upcoming_appointments.sort(key=lambda a: (str(a.get('ngay_hen') or ''), str(a.get('gio_hen') or '')))
+    upcoming_appointment = upcoming_appointments[0] if upcoming_appointments else None
 
-
-
-    return render_template('patient/dashboard.html', active_page='dashboard', patient=patient, appointments=appointments, upcoming_appointment=upcoming_appointment, recent_notifications=recent_notifs)
+    return render_template('patient/dashboard.html', active_page='dashboard', patient=patient, appointments=appointments, upcoming_appointment=upcoming_appointment, upcoming_appointments=upcoming_appointments, recent_notifications=recent_notifs)
 
 
 
@@ -211,6 +211,9 @@ def booking():
         gio_hen = request.form.get('gio_hen')
 
         ly_do = request.form.get('ly_do', '')
+        exam_service_name = request.form.get('exam_service_name', '').strip()
+        if exam_service_name and f"[Loại khám: {exam_service_name}]" not in ly_do:
+            ly_do = f"[Loại khám: {exam_service_name}] {ly_do}".strip()
 
 
 
@@ -229,12 +232,10 @@ def booking():
 
 
     patient = PatientModel.get_by_id(patient_id)
-
     departments = ClinicModel.get_all_departments(active_only=True)
-
     doctors = UserModel.get_all_doctors()
-
-    return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors)
+    exam_services = ClinicModel.get_exam_services(active_only=True)
+    return render_template('patient/booking.html', active_page='booking', patient=patient, departments=departments, doctors=doctors, exam_services=exam_services)
 
 
 
@@ -263,17 +264,12 @@ def appointments():
 
 
 @patient_bp.route('/records')
-
+@patient_bp.route('/prescriptions')
 @login_required
-
 def records():
-
-    """Hồ sơ bệnh án điện tử cá nhân của bệnh nhân."""
-
+    """Hồ sơ bệnh án điện tử cá nhân và đơn thuốc của bệnh nhân."""
     patient_id = _get_current_patient_id()
-
     patient = PatientModel.get_by_id(patient_id)
-
     return render_template('patient/records.html', active_page='records', patient=patient)
 
 
@@ -297,9 +293,8 @@ def lab_results():
 
 
 @patient_bp.route('/billing')
-
+@patient_bp.route('/invoices')
 @login_required
-
 def billing():
 
     """Tra cứu hóa đơn viện phí và chi trả BHYT."""

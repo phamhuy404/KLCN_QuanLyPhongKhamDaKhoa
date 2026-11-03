@@ -202,6 +202,13 @@ if __name__ == '__main__':
         else:
             print("[*] Chua co ban sao luu .bak nao trong thu muc backups/, giu nguyen CSDL hien hanh.")
 
+    if is_main_startup:
+        try:
+            from models.clinic_model import ClinicModel
+            ClinicModel.ensure_specialized_services()
+        except Exception as seed_err:
+            print(f"[Canh bao] Khong the dong bo danh muc dich vu chuyen nganh: {seed_err}")
+
     start_runtime_services(app)
 
     # Khoi chay tien trinh tu dong sao luu dinh ky moi 2 tieng

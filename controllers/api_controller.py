@@ -86,7 +86,8 @@ def assign_doctor():
     if not appointment_id or not doctor_id:
         return jsonify({'success': False, 'message': 'Thiếu ID lịch hẹn hoặc ID bác sĩ!'}), 400
 
-    success, msg = AppointmentModel.assign_doctor(appointment_id, int(doctor_id), user_info=user)
+    approve_now = bool(data.get('approve_now', True))
+    success, msg = AppointmentModel.assign_doctor(appointment_id, int(doctor_id), user_info=user, approve_now=approve_now)
     if success:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
@@ -1749,7 +1750,7 @@ def appointment_status_alias():
 @api_bp.route('/appointment/create', methods=['POST'])
 @roles_required('ADMIN', 'LETAN', 'BACSI')
 def appointment_create_alias():
-    """API tạo lịch hẹn mới từ giao diện admin."""
+    """API nhân viên y tế (Bác sĩ, Tiếp tân, Admin) tạo lịch hẹn mới duyệt sẵn cho bệnh nhân."""
     data = request.get_json() or {}
     patient_id = data.get('patient_id')
     ngay_kham = data.get('ngay_kham') or data.get('ngay_hen')
@@ -1762,12 +1763,45 @@ def appointment_create_alias():
     if not patient_id or not ngay_kham or not gio_kham:
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp bệnh nhân, ngày và giờ khám!'}), 400
 
-    success, result = AppointmentModel.create(
-        patient_id, chuyen_khoa_id, bac_si_id, ngay_kham, gio_kham, ly_do, audit_user=user
+    require_patient_access(patient_id)
+    allow_cur_shift = bool(data.get('walk_in') or data.get('allow_current_shift'))
+    init_status = data.get('initial_status') or 'Đã duyệt'
+
+    success, result = AppointmentModel.create_by_staff(
+        benh_nhan_id=patient_id,
+        chuyen_khoa_id=chuyen_khoa_id,
+        bac_si_id=bac_si_id,
+        ngay_hen=ngay_kham,
+        gio_hen=gio_kham,
+        ly_do_kham=ly_do,
+        audit_user=user,
+        allow_current_shift=allow_cur_shift,
+        initial_status=init_status
     )
     if success:
-        return jsonify({'success': True, 'ma_lich_hen': result, 'message': 'Tạo lịch hẹn thành công!'})
+        return jsonify({'success': True, 'ma_lich_hen': result, 'message': f'Đã tạo và duyệt sẵn lịch hẹn #{result} thành công!'})
     return jsonify({'success': False, 'message': result}), 400
+
+
+@api_bp.route('/schedule/work-stats', methods=['GET'])
+@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
+def get_work_statistics_api():
+    """API thống kê tổng giờ công, số ca khám hoàn thành và lịch sử ca làm việc có phân quyền."""
+    from models.schedule_model import ScheduleModel
+    user = session.get('user', {})
+    selected_month = request.args.get('month')
+    scope = request.args.get('scope')
+    filter_staff_id = request.args.get('staff_id')
+    months_back = request.args.get('months_back', 6, type=int)
+
+    data = ScheduleModel.get_work_statistics_and_history(
+        current_user=user,
+        selected_month=selected_month,
+        scope=scope,
+        filter_staff_id=filter_staff_id,
+        months_back=months_back
+    )
+    return jsonify({'success': True, **data})
 
 
 @api_bp.route('/lab/result/save-alias', methods=['POST'])

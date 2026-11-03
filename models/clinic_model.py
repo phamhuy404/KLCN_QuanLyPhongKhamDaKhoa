@@ -328,11 +328,91 @@ class ClinicModel:
             sql += ' AND dv.loai_dich_vu = ?'
             params.append(category)
 
-        sql += ' ORDER BY dv.id ASC'
+        sql += ' ORDER BY COALESCE(dv.chuyen_khoa_id, 999) ASC, dv.loai_dich_vu ASC, dv.id ASC'
         cursor.execute(sql, tuple(params))
         services = [dict(r) for r in cursor.fetchall()]
         conn.close()
         return services
+
+    @staticmethod
+    def get_exam_services(active_only=True):
+        """Lấy danh sách các loại hình khám chuyên ngành và thủ thuật có thể đăng ký cho bệnh nhân."""
+        conn = get_db()
+        cursor = conn.cursor()
+        sql = '''
+            SELECT dv.*, ck.ten_khoa, ck.ma_khoa
+            FROM dich_vu dv
+            LEFT JOIN chuyen_khoa ck ON dv.chuyen_khoa_id = ck.id
+            WHERE dv.loai_dich_vu IN (N'Khám bệnh', N'Khám chuyên khoa', N'Thủ thuật')
+        '''
+        if active_only:
+            sql += ' AND dv.trang_thai = 1'
+        sql += " ORDER BY COALESCE(dv.chuyen_khoa_id, 999) ASC, CASE WHEN dv.loai_dich_vu = N'Khám bệnh' THEN 0 WHEN dv.loai_dich_vu = N'Khám chuyên khoa' THEN 1 ELSE 2 END ASC, dv.id ASC"
+        cursor.execute(sql)
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+
+    @staticmethod
+    def ensure_specialized_services():
+        """Khởi tạo bổ sung danh mục khám chuyên ngành và kỹ thuật phân theo từng chuyên khoa (idempotent)."""
+        seed_items = [
+            ('KHOA_NOI', 'DV_KHAM_NOI_TIMMACH', 'Khám chuyên sâu Tim mạch và Tăng huyết áp', 'Khám chuyên khoa', 200000.0, 80, 'Khám, đánh giá nguy cơ tim mạch, huyết áp và tư vấn phác đồ kiểm soát.'),
+            ('KHOA_NOI', 'DV_KHAM_NOI_TIEUHOA', 'Khám chuyên sâu Tiêu hóa - Gan mật', 'Khám chuyên khoa', 200000.0, 80, 'Khám bệnh lý dạ dày, đại tràng, trào ngược và viêm gan mạn tính.'),
+            ('KHOA_NOI', 'DV_KHAM_NOI_NOITIET', 'Khám chuyên sâu Nội tiết - Đái tháo đường - Tuyến giáp', 'Khám chuyên khoa', 200000.0, 80, 'Tầm soát và điều chỉnh phác đồ rối loạn chuyển hóa, đái tháo đường, tuyến giáp.'),
+            ('KHOA_NOI', 'DV_KHAM_NOI_HOHAP', 'Khám chuyên sâu Hô hấp - Hen và COPD', 'Khám chuyên khoa', 210000.0, 80, 'Khám chuyên khoa phổi, hen phế quản và bệnh phổi tắc nghẽn mạn tính.'),
+            ('KHOA_NOI', 'DV_TDCN_HOHAP_KY', 'Đo chức năng hô hấp ký (Spirometry)', 'Thăm dò chức năng', 180000.0, 80, 'Đánh giá dung tích sống và mức độ tắc nghẽn đường thở.'),
+            ('KHOA_NGOAI', 'DV_KHAM_NGOAI_CXK', 'Khám chuyên sâu Ngoại Cơ xương khớp và Cột sống', 'Khám chuyên khoa', 200000.0, 80, 'Khám chấn thương, thoái hóa khớp, thoát vị đĩa đệm và bệnh lý cột sống.'),
+            ('KHOA_NGOAI', 'DV_KHAM_NGOAI_TIETNIEU', 'Khám chuyên sâu Ngoại Tiết niệu - Sỏi thận', 'Khám chuyên khoa', 200000.0, 80, 'Khám sỏi đường tiết niệu, phì đại tuyến tiền liệt và rối loạn tiểu tiện.'),
+            ('KHOA_NGOAI', 'DV_KHAM_NGOAI_HAUPHAU', 'Khám tái đánh giá Hậu phẫu và Chăm sóc vết mổ', 'Khám chuyên khoa', 160000.0, 80, 'Kiểm tra tiến triển liền thương sau phẫu thuật/tiểu phẫu.'),
+            ('KHOA_NGOAI', 'DV_TT_THAY_BANG', 'Thay băng vô khuẩn và Cắt chỉ vết mổ', 'Thủ thuật', 120000.0, 80, 'Chăm sóc, sát khuẩn thay băng và cắt chỉ ngoại khoa.'),
+            ('KHOA_NHI', 'DV_KHAM_NHI_DINHDUONG', 'Khám và Tư vấn Dinh dưỡng - Tăng trưởng Nhi khoa', 'Khám chuyên khoa', 180000.0, 80, 'Đánh giá biểu đồ tăng trưởng, vi chất và chế độ dinh dưỡng trẻ em.'),
+            ('KHOA_NHI', 'DV_KHAM_NHI_HOHAP', 'Khám chuyên sâu Hô hấp - Dị ứng Nhi khoa', 'Khám chuyên khoa', 180000.0, 80, 'Khám viêm phế quản, hen suyễn và viêm mũi họng tái phát ở trẻ nhỏ.'),
+            ('KHOA_NHI', 'DV_KHAM_NHI_TIEMCHUNG', 'Khám sàng lọc chuyên khoa trước tiêm chủng Trẻ em', 'Khám chuyên khoa', 120000.0, 0, 'Khám lâm sàng sàng lọc an toàn trước tiêm vắc-xin cho trẻ.'),
+            ('KHOA_NHI', 'DV_TT_KHI_DUNG_NHI', 'Khí dung thuốc giãn phế quản Nhi khoa', 'Thủ thuật', 100000.0, 80, 'Phun khí dung hỗ trợ thông thoáng đường thở cho bệnh nhi.'),
+            ('KHOA_RHM', 'DV_KHAM_RHM_CHINHNHA', 'Khám chuyên sâu Chỉnh nha và Khớp cắn', 'Khám chuyên khoa', 180000.0, 0, 'Khám phân tích khớp cắn, tư vấn chỉnh nha và phục hình thẩm mỹ.'),
+            ('KHOA_RHM', 'DV_KHAM_RHM_NOINHA', 'Khám chuyên sâu Nội nha và Nha chu', 'Khám chuyên khoa', 180000.0, 80, 'Khám viêm tủy răng, viêm nha chu và bảo tồn răng thật.'),
+            ('KHOA_RHM', 'DV_XQUANG_PANORAMA', 'Chụp X-Quang răng toàn cảnh Panorama kỹ thuật số', 'Chẩn đoán hình ảnh', 250000.0, 80, 'Khảo sát toàn bộ cung hàm, mầm răng khôn và xương hàm.'),
+            ('KHOA_SAN', 'DV_KHAM_SAN_THAIKY', 'Khám thai định kỳ và Quản lý thai kỳ', 'Khám chuyên khoa', 220000.0, 80, 'Theo dõi sức khỏe mẹ và thai nhi theo từng quý thai kỳ.'),
+            ('KHOA_SAN', 'DV_KHAM_SAN_PHUKHOA', 'Khám chuyên sâu Phụ khoa và Tầm soát cổ tử cung', 'Khám chuyên khoa', 220000.0, 80, 'Khám phụ khoa chuyên sâu và tư vấn tầm soát ung thư cổ tử cung.'),
+            ('KHOA_SAN', 'DV_XN_PAPSMEAR', 'Xét nghiệm tế bào học cổ tử cung (Pap Smear)', 'Xét nghiệm', 280000.0, 50, 'Tầm soát sớm biến đổi tế bào cổ tử cung.'),
+            ('KHOA_SAN', 'DV_TDCN_MONITOR_SAN', 'Đo tim thai và cơn gò tử cung (Monitoring sản khoa)', 'Thăm dò chức năng', 180000.0, 80, 'Theo dõi biểu đồ nhịp tim thai và hoạt động cơ tử cung.'),
+            ('KHOA_TMH', 'DV_KHAM_TMH_NOISOI', 'Khám chuyên sâu Nội soi Tai - Mũi - Họng ống mềm', 'Khám chuyên khoa', 240000.0, 80, 'Nội soi chẩn đoán viêm xoang, polyp mũi, hạ họng và dây thanh quản.'),
+            ('KHOA_TMH', 'DV_KHAM_TMH_THINHHOC', 'Khám chuyên sâu Thính học và Rối loạn tiền đình', 'Khám chuyên khoa', 220000.0, 80, 'Khám ù tai, nghe kém, chóng mặt ngoại biên và rối loạn tiền đình.'),
+            ('KHOA_TMH', 'DV_TDCN_THINH_LUC', 'Đo thính lực đơn âm và Nhĩ lượng đồ', 'Thăm dò chức năng', 200000.0, 80, 'Đánh giá ngưỡng nghe và chức năng tai giữa.'),
+            ('KHOA_MAT', 'DV_KHAM_MAT_DAYMAT', 'Khám chuyên sâu Đáy mắt và Tầm soát Glôcôm', 'Khám chuyên khoa', 220000.0, 80, 'Soi đáy mắt, đánh giá võng mạc đái tháo đường/tăng huyết áp và nhãn áp.'),
+            ('KHOA_MAT', 'DV_KHAM_MAT_KHUCXA', 'Khám chuyên sâu Khúc xạ và Thị giác học đường', 'Khám chuyên khoa', 180000.0, 50, 'Đo khúc xạ chuyên sâu cận - viễn - loạn thị và điều tiết mắt.'),
+            ('KHOA_MAT', 'DV_TDCN_NHAN_AP', 'Đo nhãn áp không tiếp xúc và Soi góc tiền phòng', 'Thăm dò chức năng', 150000.0, 80, 'Tầm soát tăng nhãn áp và bệnh lý bán phần trước nhãn cầu.'),
+            ('KHOA_CLS', 'DV_XN_HBA1C', 'Định lượng HbA1c máu (Kiểm soát đường huyết 3 tháng)', 'Xét nghiệm', 140000.0, 80, 'Đánh giá chỉ số đường huyết trung bình trong 8-12 tuần.'),
+            ('KHOA_CLS', 'DV_XN_LIPID_MAU', 'Bộ xét nghiệm Mỡ máu 4 chỉ số (Cholesterol, Triglyceride, HDL, LDL)', 'Xét nghiệm', 180000.0, 80, 'Đánh giá rối loạn lipid máu và nguy cơ xơ vữa mạch.'),
+            ('KHOA_CLS', 'DV_SIEU_AM_TIM', 'Siêu âm Doppler màu Tim và Van tim', 'Chẩn đoán hình ảnh', 320000.0, 80, 'Đánh giá chức năng co bóp cơ tim, buồng tim và hệ thống van tim.'),
+            ('KHOA_CLS', 'DV_SIEU_AM_GIAP', 'Siêu âm Doppler tuyến giáp độ phân giải cao', 'Chẩn đoán hình ảnh', 200000.0, 80, 'Tầm soát nhân giáp, nang giáp và phân loại TIRADS.'),
+        ]
+        conn = get_db()
+        cursor = conn.cursor()
+        inserted = 0
+        try:
+            cursor.execute('SELECT id, ma_khoa FROM chuyen_khoa')
+            dept_map = {str(r['ma_khoa']).strip().upper(): r['id'] for r in cursor.fetchall() if r.get('ma_khoa')}
+            for ma_khoa, ma_dv, ten_dv, loai_dv, don_gia, bhyt_pt, mo_ta in seed_items:
+                ck_id = dept_map.get(ma_khoa)
+                if not ck_id:
+                    continue
+                cursor.execute('SELECT id FROM dich_vu WHERE ma_dich_vu = ?', (ma_dv,))
+                if cursor.fetchone():
+                    continue
+                cursor.execute('''
+                    INSERT INTO dich_vu (chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta, trang_thai)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                ''', (ck_id, ma_dv, ten_dv, loai_dv, don_gia, bhyt_pt, mo_ta))
+                inserted += 1
+            conn.commit()
+            conn.close()
+            return True, inserted
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
 
     @staticmethod
     def get_service_by_id(service_id):

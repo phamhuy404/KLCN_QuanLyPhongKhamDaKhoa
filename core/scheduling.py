@@ -236,7 +236,9 @@ def booking_target(cursor, patient, department, doctor, day, value, exclude=None
         occupancy = sum(in_schedule(row, schedule) for row in existing)
         if occupancy >= int(schedule.get('so_luong_kham_toi_da') or 0):
             continue
+        confirmed_statuses = {'Đã tiếp nhận', 'Đã xác nhận', 'Đã duyệt', 'Đang khám', 'Đã khám', 'Hoàn thành'}
         if any((row['bac_si_id'] == candidate['id'] or row.get('phong_kham_id') == schedule['phong_kham_id'])
+               and (row.get('trang_thai') in confirmed_statuses or not row.get('trang_thai'))
                and abs(minutes(row['gio_hen']) - minutes(value)) < 30 for row in existing):
             continue
         return schedule

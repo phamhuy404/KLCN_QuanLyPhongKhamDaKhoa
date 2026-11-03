@@ -125,6 +125,11 @@
                                 </span>
 
                                 <!-- Status Badge -->
+                                {% if app.is_doctor_scheduled %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-2xs">
+                                        <i class="fa-solid fa-user-doctor text-[10px]"></i> Bác sĩ hẹn mới • Đã duyệt
+                                    </span>
+                                {% endif %}
                                 {% if app.status_code == 'waiting' %}
                                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Chờ xét duyệt

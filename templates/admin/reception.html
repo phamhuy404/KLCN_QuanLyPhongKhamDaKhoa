@@ -103,11 +103,12 @@
             <div class="sm:col-span-3">
                 <label class="block font-semibold text-slate-700 mb-1">Phòng khám chuyên khoa <span class="text-rose-500">*</span></label>
                 <select id="reception-room-select" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
-                    <option value="Phòng 101 - Nội Tổng Quát">Phòng 101 - Nội Tổng Quát</option>
-                    <option value="Phòng 102 - Tim Mạch">Phòng 102 - Tim Mạch</option>
-                    <option value="Phòng 201 - Tai Mũi Họng">Phòng 201 - Tai Mũi Họng</option>
-                    <option value="Phòng 301 - Nhi Khoa">Phòng 301 - Nhi Khoa</option>
-                    <option value="Phòng 104 - Nội Tiết">Phòng 104 - Nội Tiết</option>
+                    {% for r in rooms %}
+                    <option value="{{ r.ten_phong }}" data-dept-id="{{ r.chuyen_khoa_id }}">{{ r.ten_phong }} - {{ r.ten_khoa }}</option>
+                    {% endfor %}
+                    {% if not rooms %}
+                    <option value="Phòng 101 - Nội Tổng Quát" data-dept-id="1">Phòng 101 - Nội Tổng Quát</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -117,6 +118,16 @@
                     <option value="BHYT">Bảo Hiểm Y Tế (Khấu trừ)</option>
                     <option value="Dịch vụ">Khám Dịch Vụ / Tự Nguyện</option>
                     <option value="Ưu tiên">Ưu tiên (Người già / Trẻ nhỏ)</option>
+                </select>
+            </div>
+
+            <div class="sm:col-span-12 md:col-span-10">
+                <label class="block font-semibold text-slate-700 mb-1">Dịch vụ khám chuyên khoa</label>
+                <select id="reception-service-select" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 font-medium">
+                    <option value="">-- Khám chuyên khoa tiêu chuẩn --</option>
+                    {% for srv in exam_services %}
+                    <option value="{{ srv.ten_dich_vu }}">{{ srv.ten_dich_vu }} ({{ srv.ten_khoa }})</option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -370,15 +381,22 @@
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         const dateStr = now.toISOString().slice(0, 10);
 
-        fetch('/api/appointment/book', {
+        const roomSelect = document.getElementById('reception-room-select');
+        const deptId = roomSelect.options[roomSelect.selectedIndex]?.dataset?.deptId || 1;
+        const srvChoice = document.getElementById('reception-service-select')?.value || '';
+        const reasonStr = srvChoice ? `[${srvChoice}] Tiếp nhận tại quầy: ${room} (${type})` : `Tiếp nhận tại quầy: ${room} (${type})`;
+
+        fetch('/api/appointment/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 patient_id: parseInt(pId),
-                chuyen_khoa_id: 1,
-                ngay_hen: dateStr,
-                gio_hen: timeStr,
-                ly_do: `Tiếp nhận tại quầy: ${room} (${type})`
+                chuyen_khoa_id: parseInt(deptId),
+                ngay_kham: dateStr,
+                gio_kham: timeStr,
+                ly_do: reasonStr,
+                walk_in: true,
+                initial_status: 'Đã tiếp nhận'
             })
         })
         .then(res => res.json())
@@ -414,8 +432,20 @@
         document.getElementById('ticket-modal').classList.add('hidden');
     }
 
-    function callPatientNumber(stt, name) {
-        alert(`Đang phát loa gọi số: Xin mời bệnh nhân #${stt} - ${name} vào phòng khám!`);
+    function callPatientNumber(stt, name, room) {
+        const text = `Xin mời bệnh nhân số ${stt}, ${name}, vào ${room || 'phòng khám'}.`;
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'vi-VN';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+        if (typeof showToast === 'function') {
+            showToast(`📢 ${text}`, 'info');
+        } else {
+            alert(`📢 ${text}`);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

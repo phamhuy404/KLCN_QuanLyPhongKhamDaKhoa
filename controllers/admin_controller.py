@@ -97,7 +97,8 @@ def appointments():
     patients_list = visible_patients()
     doctors = UserModel.get_all_doctors()
     departments = ClinicModel.get_all_departments()
-    return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments_list, patients=patients_list, doctors=doctors, departments=departments)
+    exam_services = ClinicModel.get_exam_services(active_only=True)
+    return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments_list, patients=patients_list, doctors=doctors, departments=departments, exam_services=exam_services)
 
 @admin_bp.route('/reception')
 
@@ -108,11 +109,13 @@ def reception():
     departments = ClinicModel.get_all_departments()
     stats = {
         'tong_benh_nhan': len(patients_list),
-        'dang_cho': len([a for a in appointments_list if a.get('trang_thai') in ['Chờ tiếp nhận', 'Đã tiếp nhận', 'Chờ xác nhận']]),
+        'dang_cho': len([a for a in appointments_list if a.get('trang_thai') in ['Chờ tiếp nhận', 'Đã tiếp nhận', 'Chờ xác nhận', 'Chờ xét duyệt', 'Chờ duyệt', 'Đã duyệt', 'Đã xác nhận']]),
         'dang_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đang khám']),
         'da_kham': len([a for a in appointments_list if a.get('trang_thai') == 'Đã khám'])
     }
-    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments, stats=stats)
+    rooms = ClinicModel.get_all_rooms(active_only=True)
+    exam_services = ClinicModel.get_exam_services(active_only=True)
+    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments, rooms=rooms, exam_services=exam_services, stats=stats)
 
 @admin_bp.route('/emr')
 
@@ -132,7 +135,7 @@ def emr():
             FROM lich_hen
             WHERE (bac_si_id = ? OR phong_kham_id IN (SELECT phong_kham_chinh_id FROM bac_si WHERE id = ?))
               AND CAST(ngay_hen AS DATE) = CAST(GETDATE() AS DATE)
-              AND trang_thai IN (N'Đã tiếp nhận', N'Đang khám', N'Chờ kết quả CLS')
+              AND trang_thai IN (N'Đã tiếp nhận', N'Đã duyệt', N'Đã xác nhận', N'Đang khám', N'Chờ kết quả CLS')
         ''', (doc_id, doc_id))
         queue_ids = {r['benh_nhan_id'] for r in cursor.fetchall()}
         conn.close()
@@ -142,18 +145,20 @@ def emr():
     else:
         patients_list = all_patients
     medicines = PharmacyModel.get_all_medicines()
-    services = ClinicModel.get_all_services()
+    services = ClinicModel.get_all_services(active_only=True)
+    departments = ClinicModel.get_all_departments(active_only=True)
     doctors = UserModel.get_all_doctors()
     from core.catalog import get_all_catalogs
     catalogs = get_all_catalogs()
-    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, doctors=doctors, catalogs=catalogs, emr_appointments=filter_patient_records(AppointmentModel.get_all()), emr_rooms=ClinicModel.get_all_rooms(active_only=True))
+    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, departments=departments, doctors=doctors, catalogs=catalogs, emr_appointments=filter_patient_records(AppointmentModel.get_all()), emr_rooms=ClinicModel.get_all_rooms(active_only=True))
 
 @admin_bp.route('/lab')
 
 def lab():
     """Phân hệ kỹ thuật viên: Thực hiện xét nghiệm và chẩn đoán hình ảnh."""
     patients_list = visible_patients()
-    services = ClinicModel.get_all_services()
+    services = ClinicModel.get_all_services(active_only=True)
+    departments = ClinicModel.get_all_departments(active_only=True)
     lab_orders = filter_patient_records(MedicalRecordModel.get_all_lab_orders(), key='patient_id')
     stats = {
         'cho_thuc_hien': len([o for o in lab_orders if o.get('trang_thai') == 'Chờ thực hiện']),
@@ -339,7 +344,13 @@ def staff():
         pending_approvals=pending_approvals,
         cancel_requests=cancel_requests,
         reg_requests=reg_requests,
-        active_tab=active_tab
+        active_tab=active_tab,
+        work_stats=ScheduleModel.get_work_statistics_and_history(
+            current_user=curr_user,
+            selected_month=request.args.get('stats_month'),
+            scope=request.args.get('stats_scope'),
+            filter_staff_id=request.args.get('stats_staff_id')
+        )
     )
 
 @admin_bp.route('/feedbacks')

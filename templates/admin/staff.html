@@ -136,6 +136,11 @@
             <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-700">{{ all_rooms|length if all_rooms else rooms|length }}</span>
         </button>
         {% endif %}
+                <button id="tab-workstats-btn" onclick="switchTab('workstats')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
+            <i class="fa-solid fa-chart-line text-blue-600"></i>
+            <span>Giờ công & Lịch sử ca</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">Thống kê</span>
+        </button>
         <button id="tab-staff-btn" onclick="switchTab('staff')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50">
             <i class="fa-solid fa-users"></i>
             <span>Đội ngũ Nhân sự và Tài khoản</span>
@@ -916,6 +921,456 @@
     </div>
     {% endif %}
 </div>
+
+
+
+    <!-- TAB 5: THỐNG KÊ GIỜ CÔNG & LỊCH SỬ CA LÀM VIỆC (ALL ROLES) -->
+    <div id="tab-workstats" class="tab-pane hidden space-y-6">
+        <!-- Bộ lọc phạm vi và chu kỳ thời gian -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-blue-600"></i>
+                    Bảng Thống kê Giờ công & Lịch sử Ca làm việc
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Theo dõi tổng số giờ công làm việc, số ca khám/nghiệp vụ đã hoàn thành và xem lại lịch sử các ca trực.
+                </p>
+            </div>
+
+            <!-- Form chọn bộ lọc -->
+            <form method="GET" action="{{ url_for('admin.staff') }}" class="flex flex-wrap items-center gap-2.5">
+                <input type="hidden" name="tab" value="workstats">
+                
+                {% if work_stats and work_stats.can_view_all %}
+                <!-- Chọn chế độ xem (Chỉ ADMIN & LỄ TÂN) -->
+                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Phạm vi:</label>
+                    <select name="stats_scope" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="all" {% if work_stats.scope == 'all' %}selected{% endif %}>Toàn bộ nhân sự</option>
+                        <option value="mine" {% if work_stats.scope == 'mine' %}selected{% endif %}>Chỉ cá nhân tôi</option>
+                    </select>
+                </div>
+
+                {% if work_stats.scope == 'all' %}
+                <!-- Lọc theo nhân viên cụ thể -->
+                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Nhân viên:</label>
+                    <select name="stats_staff_id" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500 max-w-[180px]">
+                        <option value="">Tất cả nhân viên</option>
+                        {% for s in staff_list %}
+                        <option value="{{ s.id }}" {% if request.args.get('stats_staff_id') == s.id|string %}selected{% endif %}>
+                            {{ s.ho_ten }} ({{ s.vai_tro }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Lọc theo tháng -->
+                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Kỳ tháng:</label>
+                    <select name="stats_month" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="all" {% if work_stats and work_stats.selected_month == 'all' %}selected{% endif %}>Tất cả các tháng</option>
+                        {% if work_stats and work_stats.available_months %}
+                        {% for m in work_stats.available_months %}
+                        <option value="{{ m.key }}" {% if work_stats.selected_month == m.key %}selected{% endif %}>{{ m.label }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <a href="{{ url_for('admin.staff', tab='workstats') }}" class="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg font-semibold transition" title="Đặt lại bộ lọc">
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                </a>
+            </form>
+        </div>
+
+        <!-- 4 Thẻ KPI thống kê chính -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- KPI 1: Giờ công đã thực tế làm trong kỳ -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-blue-300 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500">Giờ công thực tế (Kỳ này)</span>
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-business-time"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-extrabold text-slate-800">{{ work_stats.totals.gio_cong_da_lam_ky if work_stats else 0 }}</span>
+                    <span class="text-xs font-bold text-slate-400">giờ</span>
+                </div>
+                <div class="mt-2 flex items-center gap-1.5 text-[11px] text-blue-600 font-semibold bg-blue-50/60 px-2 py-1 rounded-lg">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Dự kiến đã duyệt: {{ work_stats.totals.tong_gio_duyet_ky if work_stats else 0 }} giờ</span>
+                </div>
+            </div>
+
+            <!-- KPI 2: Tổng giờ công tích lũy -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-emerald-300 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500">Tổng giờ công tích lũy</span>
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-extrabold text-emerald-700">{{ work_stats.totals.tong_gio_cong_tich_luy if work_stats else 0 }}</span>
+                    <span class="text-xs font-bold text-slate-400">giờ</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-500">
+                    Tính trên toàn bộ lịch sử ca trực đã được duyệt
+                </div>
+            </div>
+
+            <!-- KPI 3: Số ca khám hoàn thành -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-purple-300 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500">Ca khám đã hoàn thành</span>
+                    <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-stethoscope"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-extrabold text-purple-700">{{ work_stats.totals.so_ca_kham_hoan_thanh_ky if work_stats else 0 }}</span>
+                    <span class="text-xs font-bold text-slate-400">ca (kỳ này)</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-500">
+                    Tích lũy toàn thời gian: <strong class="text-purple-600">{{ work_stats.totals.tong_ca_kham_hoan_thanh if work_stats else 0 }}</strong> ca
+                </div>
+            </div>
+
+            <!-- KPI 4: Lịch sử ca làm đã đăng ký -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs relative overflow-hidden group hover:border-amber-300 transition">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500">Lịch sử lượt ca đăng ký</span>
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-extrabold text-amber-700">{{ work_stats.totals.tong_luot_dang_ky_lich_su if work_stats else 0 }}</span>
+                    <span class="text-xs font-bold text-slate-400">lượt ca</span>
+                </div>
+                <div class="mt-2 text-[11px] text-slate-500">
+                    Lưu trữ đầy đủ các ca cũ và hiện tại
+                </div>
+            </div>
+        </div>
+
+        <!-- BẢNG 1: THỐNG KÊ TỔNG HỢP THEO TỪNG THÁNG (CÁC THÁNG TRƯỚC VÀ HIỆN TẠI) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">
+                        <i class="fa-solid fa-calendar-week"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Thống kê Giờ công theo Từng Tháng</h3>
+                        <p class="text-[11px] text-slate-400">Xem lại tổng giờ công thực tế và số ca khám của các tháng trước</p>
+                    </div>
+                </div>
+                <span class="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-100">
+                    {{ work_stats.monthly_summary|length if work_stats and work_stats.monthly_summary else 0 }} tháng gần nhất
+                </span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-3">Kỳ Tháng</th>
+                            <th class="px-4 py-3 text-center">Số Ca Đã Duyệt</th>
+                            <th class="px-4 py-3 text-right">Giờ Đã Hoàn Thành</th>
+                            <th class="px-4 py-3 text-right">Tổng Giờ Duyệt Theo Lịch</th>
+                            <th class="px-4 py-3 text-center">Số Ca Khám Hoàn Thành</th>
+                            <th class="px-4 py-3 text-center">Trạng Thái Kỳ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                        {% if work_stats and work_stats.monthly_summary %}
+                        {% for ms in work_stats.monthly_summary %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="px-4 py-3 font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-regular fa-calendar text-blue-500"></i>
+                                <span>{{ ms.label }}</span>
+                                {% if loop.first %}
+                                <span class="px-1.5 py-0.5 text-[9px] bg-emerald-100 text-emerald-700 font-bold rounded">Hiện tại</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{{ ms.tong_ca_truc }} ca</span>
+                            </td>
+                            <td class="px-4 py-3 text-right font-extrabold text-blue-700">
+                                {{ ms.gio_cong_da_lam }} h
+                            </td>
+                            <td class="px-4 py-3 text-right font-medium text-slate-500">
+                                {{ ms.tong_gio_duyet }} h
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="font-bold text-purple-700 px-2 py-0.5 rounded-full bg-purple-50">{{ ms.so_ca_kham_hoan_thanh }} ca</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                {% if ms.gio_cong_da_lam > 0 %}
+                                <span class="px-2 py-0.5 text-[10px] bg-emerald-50 text-emerald-700 font-bold rounded-full border border-emerald-100">
+                                    <i class="fa-solid fa-check text-[9px]"></i> Đã có dữ liệu công
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded-full">
+                                    Chưa có giờ công
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-6 text-center text-slate-400">Không có dữ liệu tháng nào</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BẢNG 2: BẢNG THỐNG KÊ CHI TIẾT THEO TỪNG NHÂN VIÊN (STAFF STATS) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                        <i class="fa-solid fa-user-clock"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Bảng Thống kê Giờ làm & Ca khám Từng Nhân viên</h3>
+                        <p class="text-[11px] text-slate-400">Chi tiết giờ công, số ca khám hoàn thành và nghiệp vụ chuyên môn</p>
+                    </div>
+                </div>
+                <!-- Live search nhân viên -->
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="workstats-staff-search" oninput="filterWorkstatsStaffTable()" placeholder="Tìm theo tên hoặc vai trò..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs" id="workstats-staff-table">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-3">Nhân Viên</th>
+                            <th class="px-4 py-3">Vai Trò / Khoa</th>
+                            <th class="px-4 py-3 text-right">Giờ Công Kỳ Này</th>
+                            <th class="px-4 py-3 text-right">Tổng Giờ Tích Lũy</th>
+                            <th class="px-4 py-3 text-center">Số Ca Khám Hoàn Thành</th>
+                            <th class="px-4 py-3 text-center">Nghiệp Vụ Chuyên Môn</th>
+                            <th class="px-4 py-3 text-center">Tỷ Lệ Duyệt Ca</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                        {% if work_stats and work_stats.staff_stats %}
+                        {% for st in work_stats.staff_stats %}
+                        <tr class="hover:bg-slate-50/80 transition workstats-staff-row" data-name="{{ st.ho_ten|lower }}" data-role="{{ st.vai_tro|lower }}">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">
+                                        {{ st.ho_ten[:1] }}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-800">{{ st.ho_ten }}</div>
+                                        <div class="text-[10px] text-slate-400">Mã: #{{ st.ma_nhan_vien or st.id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold 
+                                    {% if st.vai_tro == 'BACSI' %}bg-blue-50 text-blue-700 border border-blue-200
+                                    {% elif st.vai_tro == 'LETAN' %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% elif st.vai_tro == 'DUOCSI' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                    {% elif st.vai_tro == 'KTV' %}bg-purple-50 text-purple-700 border border-purple-200
+                                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    {{ st.vai_tro }}
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">{{ st.ten_chuyen_khoa }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="font-extrabold text-blue-700 text-xs">{{ st.gio_cong_da_lam_ky }} h</span>
+                                <div class="text-[10px] text-slate-400">Duyệt: {{ st.tong_gio_duyet_ky }}h</div>
+                            </td>
+                            <td class="px-4 py-3 text-right font-extrabold text-emerald-700">
+                                {{ st.tong_gio_cong_tich_luy }} h
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                {% if st.vai_tro == 'BACSI' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                    {{ st.so_ca_kham_hoan_thanh_ky }} ca
+                                </span>
+                                <div class="text-[10px] text-slate-400 mt-0.5">Tích lũy: {{ st.tong_ca_kham_hoan_thanh }} ca</div>
+                                {% else %}
+                                <span class="text-slate-300 text-xs">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                {% if st.nhan_nghiep_vu_phu %}
+                                <div class="inline-block px-2 py-0.5 bg-slate-50 text-slate-700 rounded text-[11px] font-semibold border border-slate-200">
+                                    <strong>{{ st.so_nghiep_vu_phu_ky }}</strong> {{ st.nhan_nghiep_vu_phu }}
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">Tổng: {{ st.tong_nghiep_vu_phu }}</div>
+                                {% else %}
+                                <span class="text-slate-300">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="text-[11px] font-bold text-slate-700">
+                                    <span class="text-emerald-600 font-extrabold">{{ st.ca_da_duyet }}</span> / {{ st.tong_ca_dang_ky }} ca
+                                </div>
+                                {% if st.ca_cho_duyet > 0 %}
+                                <span class="text-[10px] text-amber-600 font-semibold">({{ st.ca_cho_duyet }} chờ duyệt)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-6 text-center text-slate-400">Không có dữ liệu nhân sự</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- BẢNG 3: LỊCH SỬ ĐĂNG KÝ CA LÀM VIỆC (CẢ CA CŨ VÀ MỚI) -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
+                        <i class="fa-solid fa-history"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Lịch Sử Đăng Ký Ca Làm Việc</h3>
+                        <p class="text-[11px] text-slate-400">Toàn bộ danh sách các ca trực đã đăng ký, trạng thái duyệt và số giờ tương ứng</p>
+                    </div>
+                </div>
+
+                <!-- Bộ lọc nhanh trạng thái ca & Live search lịch sử -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-semibold text-slate-600">
+                        <button type="button" onclick="filterShiftHistoryStatus('')" class="shift-history-status-btn px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs font-bold" data-status="">Tất cả</button>
+                        <button type="button" onclick="filterShiftHistoryStatus('Đã duyệt')" class="shift-history-status-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900" data-status="Đã duyệt">Đã duyệt</button>
+                        <button type="button" onclick="filterShiftHistoryStatus('Chờ duyệt')" class="shift-history-status-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900" data-status="Chờ duyệt">Chờ duyệt</button>
+                        <button type="button" onclick="filterShiftHistoryStatus('Từ chối')" class="shift-history-status-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900" data-status="Từ chối">Từ chối</button>
+                    </div>
+                    <div class="relative w-full sm:w-56">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                        <input type="text" id="shift-history-search" oninput="filterShiftHistoryTable()" placeholder="Tìm ngày, ca, tên..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl outline-none focus:border-blue-500 bg-white">
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs" id="shift-history-table">
+                    <thead class="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="px-4 py-3">Ngày Làm Việc</th>
+                            <th class="px-4 py-3">Ca Trực & Khung Giờ</th>
+                            <th class="px-4 py-3">Nhân Viên</th>
+                            <th class="px-4 py-3">Phòng Trực</th>
+                            <th class="px-4 py-3 text-center">Số Giờ</th>
+                            <th class="px-4 py-3 text-center">Trạng Thái Duyệt</th>
+                            <th class="px-4 py-3 text-center">Tiến Độ Thực Tế</th>
+                            <th class="px-4 py-3">Ghi Chú / Thời Điểm ĐK</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                        {% if work_stats and work_stats.shift_history %}
+                        {% for sh in work_stats.shift_history %}
+                        <tr class="hover:bg-slate-50/80 transition shift-history-row" 
+                            data-status="{{ sh.trang_thai }}" 
+                            data-search="{{ sh.ngay_lam_fmt }} {{ sh.ho_ten|lower }} {{ sh.ten_ca|lower }} {{ sh.ten_phong|lower }}">
+                            <td class="px-4 py-3">
+                                <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-regular fa-calendar-check text-blue-500"></i>
+                                    <span>{{ sh.ngay_lam_fmt }}</span>
+                                </div>
+                                <div class="text-[10px] text-slate-400">{{ sh.ngay_lam_viec }}</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-bold text-slate-800">{{ sh.ten_ca }}</div>
+                                <div class="text-[10px] text-slate-500 font-medium">
+                                    <i class="fa-regular fa-clock text-[9px] mr-1"></i>{{ sh.gio_bat_dau_fmt }} - {{ sh.gio_ket_thuc_fmt }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold text-slate-800">{{ sh.ho_ten }}</div>
+                                <span class="text-[10px] text-slate-500">{{ sh.vai_tro }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="font-semibold text-slate-700 px-2 py-0.5 rounded bg-slate-100 text-[11px]">
+                                    <i class="fa-solid fa-door-open text-[9px] text-slate-400 mr-1"></i>{{ sh.ten_phong }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center font-bold text-blue-700">
+                                {{ sh.so_gio }}h
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                {% if sh.trang_thai == 'Đã duyệt' %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-check text-[9px] mr-0.5"></i> Đã duyệt
+                                </span>
+                                {% elif sh.trang_thai == 'Chờ duyệt' %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <i class="fa-solid fa-hourglass-half text-[9px] mr-0.5"></i> Chờ duyệt
+                                </span>
+                                {% elif sh.trang_thai == 'Từ chối' %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <i class="fa-solid fa-xmark text-[9px] mr-0.5"></i> Từ chối
+                                </span>
+                                {% elif sh.trang_thai == 'Chờ hủy' %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    <i class="fa-solid fa-clock-rotate-left text-[9px] mr-0.5"></i> Chờ hủy
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    {{ sh.trang_thai }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                {% if sh.trang_thai_thuc_te == 'Đã hoàn thành' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                    Đã hoàn thành
+                                </span>
+                                {% elif sh.trang_thai_thuc_te == 'Đang diễn ra' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 animate-pulse">
+                                    Đang trực
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-medium text-slate-400">
+                                    Sắp tới
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if sh.ghi_chu %}
+                                <div class="text-[11px] text-slate-700 max-w-[200px] truncate" title="{{ sh.ghi_chu }}">{{ sh.ghi_chu }}</div>
+                                {% endif %}
+                                <div class="text-[10px] text-slate-400">Đăng ký: {{ sh.ngay_dang_ky_fmt }}</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="px-4 py-8 text-center text-slate-400">
+                                <i class="fa-regular fa-calendar-xmark text-2xl text-slate-300 block mb-2"></i>
+                                Chưa có lịch sử ca trực nào được ghi nhận
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
 
 <!-- MODAL PHÂN CÔNG PHÒNG LÀM VIỆC (ADMIN & LỄ TÂN) -->
@@ -1722,7 +2177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRegisterGrid('next1');
 });
 
-// Chuyển đổi giữa 4 tabs
+// Chuyển đổi giữa các tabs (schedules, register, approvals, rooms, workstats, staff)
 function switchTab(tab) {
     document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
     const targetEl = document.getElementById('tab-' + tab);
@@ -1733,8 +2188,9 @@ function switchTab(tab) {
     const regBtn = document.getElementById('tab-register-btn');
     const appBtn = document.getElementById('tab-approvals-btn');
     const roomBtn = document.getElementById('tab-rooms-btn');
+    const workstatsBtn = document.getElementById('tab-workstats-btn');
 
-    [staffBtn, schBtn, regBtn, appBtn, roomBtn].forEach(b => {
+    [staffBtn, schBtn, regBtn, appBtn, roomBtn, workstatsBtn].forEach(b => {
         if (b) {
             b.className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-50";
         }
@@ -1745,18 +2201,71 @@ function switchTab(tab) {
         'schedules': schBtn,
         'register': regBtn,
         'approvals': appBtn,
-        'rooms': roomBtn
+        'rooms': roomBtn,
+        'workstats': workstatsBtn
     };
 
     if (activeMap[tab]) {
         activeMap[tab].className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 bg-blue-50 text-blue-700 shadow-sm border border-blue-100";
     }
 
+    // Cập nhật URL mà không reload để giữ nguyên trạng thái
+    try {
+        const curUrl = new URL(window.location.href);
+        if (curUrl.searchParams.get('tab') !== tab) {
+            curUrl.searchParams.set('tab', tab);
+            window.history.replaceState({}, '', curUrl.toString());
+        }
+    } catch (e) {}
+
     if (tab === 'schedules') {
         renderTimetableGrid(currentTimetableWeekType);
     } else if (tab === 'register') {
         renderRegisterGrid(currentRegisterWeekType);
     }
+}
+
+// Bộ lọc tìm kiếm nhanh cho bảng thống kê nhân sự
+function filterWorkstatsStaffTable() {
+    const q = (document.getElementById('workstats-staff-search')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('.workstats-staff-row').forEach(row => {
+        const name = row.getAttribute('data-name') || '';
+        const role = row.getAttribute('data-role') || '';
+        if (!q || name.includes(q) || role.includes(q)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Bộ lọc trạng thái cho bảng lịch sử ca trực
+let currentShiftHistoryStatusFilter = '';
+function filterShiftHistoryStatus(status) {
+    currentShiftHistoryStatusFilter = status;
+    document.querySelectorAll('.shift-history-status-btn').forEach(btn => {
+        if (btn.getAttribute('data-status') === status) {
+            btn.className = "shift-history-status-btn px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-xs font-bold";
+        } else {
+            btn.className = "shift-history-status-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900";
+        }
+    });
+    filterShiftHistoryTable();
+}
+
+function filterShiftHistoryTable() {
+    const q = (document.getElementById('shift-history-search')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('.shift-history-row').forEach(row => {
+        const status = row.getAttribute('data-status') || '';
+        const search = row.getAttribute('data-search') || '';
+        const matchStatus = !currentShiftHistoryStatusFilter || status === currentShiftHistoryStatusFilter;
+        const matchQuery = !q || search.includes(q);
+        if (matchStatus && matchQuery) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 // Chuyển tuần trong Thời khóa biểu (Tab 2)

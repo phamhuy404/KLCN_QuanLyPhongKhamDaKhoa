@@ -263,57 +263,52 @@ def validate_service_data(data):
 
     return len(errors) == 0, errors
 
-def validate_patient_profile(data):
-    """Kiem tra tinh hop le toan dien cua ho so benh nhan."""
+def validate_patient_profile(data, onboarding=False):
+    """Kiem tra tinh hop le cua ho so benh nhan (onboarding=True chi bat buoc thong tin co ban)."""
     errors = {}
 
-    # 1. Ho va ten
     ok, res = validate_name(data.get('ho_ten', ''), 'Họ và tên')
     if not ok:
         errors['ho_ten'] = res
 
-    # 2. So dien thoai
     sdt = data.get('sdt')
-    if sdt:
+    if sdt and sanitize_text(sdt):
         ok, res = validate_phone(sdt, 'Số điện thoại', required=False)
         if not ok:
             errors['sdt'] = res
 
-    # 3. Ngay sinh
     ok, res = validate_birth_date(data.get('ngay_sinh', ''), is_staff=False, required=True)
     if not ok:
         errors['ngay_sinh'] = res
 
-    # 4. Gioi tinh
     gioi_tinh = sanitize_text(data.get('gioi_tinh', 'Nam'))
     if gioi_tinh not in ['Nam', 'Nữ']:
         errors['gioi_tinh'] = 'Giới tính phải là Nam hoặc Nữ!'
 
-    # 5. CCCD
-    ok, res = validate_cccd(data.get('cccd', ''), required=True)
-    if not ok:
-        errors['cccd'] = res
+    cccd_val = data.get('cccd', '')
+    if not onboarding or (cccd_val and sanitize_text(cccd_val)):
+        ok, res = validate_cccd(cccd_val, required=not onboarding)
+        if not ok:
+            errors['cccd'] = res
 
-    # 6. BHYT (Neu co phai dung 10 so va khong co chu)
     bhyt = data.get('bhyt', '')
     if bhyt and sanitize_text(bhyt):
         ok, res = validate_bhyt(bhyt, required=False)
         if not ok:
             errors['bhyt'] = res
 
-    # 7. Email
     email = data.get('email', '')
     if email and sanitize_text(email):
         ok, res = validate_email(email, required=False)
         if not ok:
             errors['email'] = res
 
-    # 8. Dia chi
-    ok, res = validate_address(data.get('dia_chi', ''), required=True)
-    if not ok:
-        errors['dia_chi'] = res
+    dia_chi_val = data.get('dia_chi', '')
+    if not onboarding or (dia_chi_val and sanitize_text(dia_chi_val)):
+        ok, res = validate_address(dia_chi_val, required=not onboarding)
+        if not ok:
+            errors['dia_chi'] = res
 
-    # 9. Nguoi than (neu co)
     nguoi_than_ho_ten = data.get('nguoi_than_ho_ten', '')
     if nguoi_than_ho_ten and sanitize_text(nguoi_than_ho_ten):
         ok, res = validate_name(nguoi_than_ho_ten, 'Họ tên người thân')
@@ -326,11 +321,11 @@ def validate_patient_profile(data):
         if not ok:
             errors['nguoi_than_sdt'] = res
 
-    # 10. Kiem tra ky tu doc hai trong cac truong y te tu do
     free_fields = [
         ('di_ung', data.get('di_ung', ''), 'Tiền sử dị ứng'),
         ('tien_su_benh', data.get('tien_su_benh', ''), 'Tiền sử bệnh lý'),
-        ('tien_su_gia_dinh', data.get('tien_su_gia_dinh', ''), 'Tiền sử gia đình')
+        ('tien_su_gia_dinh', data.get('tien_su_gia_dinh', ''), 'Tiền sử gia đình'),
+        ('nguoi_than_quan_he', data.get('nguoi_than_quan_he', ''), 'Mối quan hệ người thân')
     ]
     for key, val, label in free_fields:
         if val and FORBIDDEN_CHARS_PATTERN.search(str(val)):

@@ -26,21 +26,36 @@
     </div>
     <!-- Dòng thông báo nhắc đăng ký ca làm tuần tiếp theo nếu chưa có lịch -->
     {% if no_next_week_schedule %}
-    <div class="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse-subtle">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-500 dark:bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 text-lg">
-                <i class="fa-solid fa-bell"></i>
-            </div>
-            <div>
-                <div class="font-extrabold text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-center gap-1.5">
-                    <span>Thông báo: Bạn chưa có lịch làm việc trong tuần tiếp theo!</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold uppercase tracking-wider border border-amber-300/40">Cần đăng ký</span>
-                </div>
-                <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5">
-                    Hệ thống ghi nhận bạn chưa có ca trực nào trong tuần tiếp theo (<strong>{{ next_week_label }}</strong>). Vui lòng đăng ký sớm để phòng khám chủ động sắp xếp ca làm.
-                </p>
-            </div>
-        </div>
+    <div class="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse-subtle">
+
+        <div class="flex items-center gap-3">
+
+            <div class="w-10 h-10 rounded-xl bg-amber-500 dark:bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20 text-lg">
+
+                <i class="fa-solid fa-bell"></i>
+
+            </div>
+
+            <div>
+
+                <div class="font-extrabold text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-center gap-1.5">
+
+                    <span>Thông báo: Bạn chưa có lịch làm việc trong tuần tiếp theo!</span>
+
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-200 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 font-bold uppercase tracking-wider border border-amber-300/40">Cần đăng ký</span>
+
+                </div>
+
+                <p class="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5">
+
+                    Hệ thống ghi nhận bạn chưa có ca trực nào trong tuần tiếp theo (<strong>{{ next_week_label }}</strong>). Vui lòng đăng ký sớm để phòng khám chủ động sắp xếp ca làm.
+
+                </p>
+
+            </div>
+
+        </div>
+
         <a href="{{ url_for('admin_staff') }}?tab=register" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-amber-600/20 flex items-center gap-2 whitespace-nowrap">
             <i class="fa-solid fa-calendar-plus"></i>
             <span>Đăng ký ca làm ngay</span>

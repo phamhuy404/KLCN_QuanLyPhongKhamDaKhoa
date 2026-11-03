@@ -730,5 +730,35 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // 9. Khôi phục vị trí cuộn trang mượt mà sau khi reload
+    try {
+        const scrollKey = 'scroll_pos_' + window.location.pathname;
+        const savedY = sessionStorage.getItem(scrollKey);
+        if (savedY !== null) {
+            sessionStorage.removeItem(scrollKey);
+            setTimeout(() => {
+                window.scrollTo({ top: parseFloat(savedY), behavior: 'instant' });
+            }, 80);
+        }
+    } catch (e) {}
 });
+
+// Hàm hỗ trợ reload trang giữ nguyên vị trí cuộn và cập nhật tham số URL
+window.reloadKeepingScroll = function(extraParams) {
+    try {
+        const scrollKey = 'scroll_pos_' + window.location.pathname;
+        sessionStorage.setItem(scrollKey, window.scrollY.toString());
+    } catch (e) {}
+    if (extraParams && typeof extraParams === 'object') {
+        const url = new URL(window.location.href);
+        Object.entries(extraParams).forEach(([k, v]) => {
+            if (v === null || v === undefined) url.searchParams.delete(k);
+            else url.searchParams.set(k, v);
+        });
+        window.location.href = url.toString();
+    } else {
+        window.location.reload();
+    }
+};
 

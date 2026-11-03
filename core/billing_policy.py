@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from core.scheduling import CalendarError, integer
 
 CASHIER_ROLES = frozenset({'ADMIN', 'LETAN'})
-PAYMENT_METHODS = frozenset({'Tiền mặt', 'Chuyển khoản'})
+PAYMENT_METHODS = frozenset({'Tiền mặt', 'Chuyển khoản', 'Chuyển khoản VietQR'})
 UNPAID, PAID, CANCELED = 'Chưa thanh toán', 'Đã thanh toán', 'Đã hủy'
 
 

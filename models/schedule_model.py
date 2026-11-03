@@ -896,4 +896,374 @@ class ScheduleModel:
         elif success_count > 0:
             return True, f"Đã đăng ký thành công {success_count}/{len(shifts)} ca! (Chi tiết lỗi: {'; '.join(errors)})", success_count, errors
         else:
-            return False, f"Đăng ký thất bại: {'; '.join(errors)}", 0, errors
+            return False, f"Đăng ký thất bại: {'; '.join(errors)}", 0, errors
+
+    @staticmethod
+    def _calc_shift_hours(gio_bat_dau, gio_ket_thuc, ca_lam):
+        """Tính số giờ làm việc của ca trực từ giờ bắt đầu đến giờ kết thúc."""
+        from core.scheduling import clock
+        defaults = {1: 4.5, 2: 3.5, 3: 3.0}
+        try:
+            st = clock(gio_bat_dau)
+            et = clock(gio_ket_thuc)
+            diff = (et.hour * 60 + et.minute) - (st.hour * 60 + st.minute)
+            if diff > 0:
+                return round(diff / 60.0, 2)
+        except Exception:
+            pass
+        return defaults.get(int(ca_lam or 1), 4.0)
+
+    @staticmethod
+    def get_work_statistics_and_history(current_user, selected_month=None, scope=None, filter_staff_id=None, months_back=6):
+        """Thống kê giờ công theo tháng/nhiều tháng, số ca khám hoàn thành và lịch sử đăng ký ca cũ theo phân quyền."""
+        from core.scheduling import clock
+        user = current_user or {}
+        user_role = user.get('vai_tro') or ''
+        can_view_all = user_role in ('ADMIN', 'LETAN')
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            own_staff_id = user.get('staff_id') or user.get('nhan_vien_id')
+            if not own_staff_id and user.get('id'):
+                cursor.execute('SELECT id FROM nhan_vien WHERE tai_khoan_id = ?', (user['id'],))
+                nv_own = cursor.fetchone()
+                if nv_own:
+                    own_staff_id = nv_own['id']
+
+            if not can_view_all:
+                effective_scope = 'mine'
+                target_staff_ids = {int(own_staff_id)} if own_staff_id else {-1}
+            else:
+                effective_scope = scope if scope in ('mine', 'all') else 'all'
+                if effective_scope == 'mine':
+                    target_staff_ids = {int(own_staff_id)} if own_staff_id else {-1}
+                elif filter_staff_id and str(filter_staff_id).isdigit():
+                    target_staff_ids = {int(filter_staff_id)}
+                else:
+                    target_staff_ids = None
+
+            today = date.today()
+            now_time = datetime.now().time()
+            today_iso = today.isoformat()
+            cur_month_key = today.strftime('%Y-%m')
+
+            recent_months = []
+            y_cur, m_cur = today.year, today.month
+            for i in range(max(int(months_back or 6), 6)):
+                m_val = m_cur - i
+                y_val = y_cur
+                while m_val <= 0:
+                    m_val += 12
+                    y_val -= 1
+                recent_months.append(f"{y_val:04d}-{m_val:02d}")
+
+            cursor.execute('''
+                SELECT nv.id AS nhan_vien_id, nv.ma_nhan_vien, nv.ho_ten, nv.chuc_vu, nv.trang_thai,
+                       t.id AS tai_khoan_id, v.ma_vai_tro, v.ten_vai_tro,
+                       bs.id AS bac_si_id, bs.hoc_vi, ck.ten_khoa
+                FROM nhan_vien nv
+                LEFT JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+                LEFT JOIN vai_tro v ON t.vai_tro_id = v.id
+                LEFT JOIN bac_si bs ON bs.nhan_vien_id = nv.id
+                LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id
+                ORDER BY CASE WHEN v.ma_vai_tro = 'BACSI' THEN 0 ELSE 1 END, nv.id ASC
+            ''')
+            all_staff_rows = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute('''
+                SELECT llv.*, nv.ma_nhan_vien, nv.ho_ten AS ten_nhan_vien, nv.chuc_vu,
+                       v.ma_vai_tro, v.ten_vai_tro,
+                       pk.ten_phong, ck.ten_khoa,
+                       nv_duyet.ho_ten AS nguoi_duyet_ten
+                FROM lich_lam_viec llv
+                LEFT JOIN nhan_vien nv ON llv.nhan_vien_id = nv.id
+                LEFT JOIN tai_khoan t ON nv.tai_khoan_id = t.id
+                LEFT JOIN vai_tro v ON t.vai_tro_id = v.id
+                LEFT JOIN bac_si bs ON llv.bac_si_id = bs.id OR bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham pk ON llv.phong_kham_id = pk.id
+                LEFT JOIN chuyen_khoa ck ON bs.chuyen_khoa_id = ck.id OR pk.chuyen_khoa_id = ck.id
+                LEFT JOIN tai_khoan tk_duyet ON llv.nguoi_duyet_id = tk_duyet.id
+                LEFT JOIN nhan_vien nv_duyet ON nv_duyet.tai_khoan_id = tk_duyet.id
+                ORDER BY llv.ngay_lam DESC, llv.ca_lam DESC, llv.id DESC
+            ''')
+            raw_shifts = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute('''
+                SELECT pk.id, pk.bac_si_id,
+                       CONVERT(VARCHAR(7), COALESCE(pk.thoi_gian_kham, GETDATE()), 120) AS month_key
+                FROM phieu_kham pk
+                WHERE pk.trang_thai = N'Hoàn thành' AND pk.bac_si_id IS NOT NULL
+            ''')
+            completed_pk = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute('''
+                SELECT lh.id, lh.bac_si_id,
+                       SUBSTRING(CONVERT(VARCHAR(10), lh.ngay_hen, 120), 1, 7) AS month_key
+                FROM lich_hen lh
+                WHERE lh.trang_thai IN (N'Đã khám', N'Hoàn thành')
+                  AND lh.bac_si_id IS NOT NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM phieu_kham pk
+                      WHERE pk.lich_hen_id = lh.id AND pk.trang_thai = N'Hoàn thành'
+                  )
+            ''')
+            completed_unlinked_lh = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute('''
+                SELECT ct.ktv_thuc_hien,
+                       CONVERT(VARCHAR(7), COALESCE(ct.thoi_gian_thuc_hien, GETDATE()), 120) AS month_key
+                FROM chi_tiet_chi_dinh ct
+                LEFT JOIN dich_vu dv ON ct.dich_vu_id = dv.id
+                WHERE ct.ktv_thuc_hien IS NOT NULL
+                  AND LTRIM(RTRIM(ct.ktv_thuc_hien)) != ''
+                  AND (dv.loai_dich_vu IS NULL OR dv.loai_dich_vu NOT IN (N'Khám bệnh', N'Khám chuyên khoa', N'Thủ thuật'))
+            ''')
+            completed_cls = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute('''
+                SELECT dt.nguoi_duyet,
+                       CONVERT(VARCHAR(7), COALESCE(dt.ngay_duyet, dt.thoi_gian_ke, GETDATE()), 120) AS month_key
+                FROM don_thuoc dt
+                WHERE dt.trang_thai = N'Đã phát'
+            ''')
+            completed_rx = [dict(r) for r in cursor.fetchall()]
+        finally:
+            conn.close()
+
+        doc_to_staff = {r['bac_si_id']: r['nhan_vien_id'] for r in all_staff_rows if r.get('bac_si_id')}
+        name_to_staff = {(r.get('ho_ten') or '').strip().lower(): r['nhan_vien_id'] for r in all_staff_rows if r.get('ho_ten')}
+
+        discovered_months = set(recent_months)
+        for sh in raw_shifts:
+            d_str = str(sh.get('ngay_lam') or '')[:7]
+            if len(d_str) == 7 and d_str[4] == '-':
+                discovered_months.add(d_str)
+        for pk_item in completed_pk + completed_unlinked_lh:
+            mk = str(pk_item.get('month_key') or '')[:7]
+            if len(mk) == 7 and mk[4] == '-':
+                discovered_months.add(mk)
+
+        available_months = sorted(discovered_months, reverse=True)
+        if not selected_month:
+            selected_month = cur_month_key if cur_month_key in available_months else (available_months[0] if available_months else cur_month_key)
+        selected_month = str(selected_month).strip()
+        is_all_months = selected_month.upper() == 'ALL'
+
+        def staff_allowed(nv_id):
+            if target_staff_ids is None:
+                return True
+            return nv_id in target_staff_ids
+
+        status_labels = {
+            'DA_DUYET': 'Đã duyệt',
+            'CHO_DUYET': 'Chờ duyệt',
+            'CHO_HUY': 'Chờ duyệt hủy',
+            'TU_CHOI': 'Từ chối',
+            'DA_HUY': 'Đã hủy'
+        }
+
+        month_buckets = {
+            mk: {
+                'month_key': mk,
+                'month_label': f"Tháng {mk[5:7]}/{mk[:4]}",
+                'so_ca_dang_ky': 0,
+                'so_ca_da_duyet': 0,
+                'so_ca_da_lam': 0,
+                'gio_cong_da_lam': 0.0,
+                'tong_gio_duyet': 0.0,
+                'so_ca_kham_hoan_thanh': 0
+            }
+            for mk in available_months
+        }
+
+        per_staff = {}
+        for st in all_staff_rows:
+            nv_id = st['nhan_vien_id']
+            if not staff_allowed(nv_id):
+                continue
+            per_staff[nv_id] = {
+                'id': nv_id,
+                'nhan_vien_id': nv_id,
+                'ma_nhan_vien': st.get('ma_nhan_vien') or f"NV{nv_id:03d}",
+                'ho_ten': st.get('ho_ten') or 'Nhân viên',
+                'vai_tro': st.get('ma_vai_tro') or 'NHANVIEN',
+                'ten_vai_tro': st.get('ten_vai_tro') or st.get('chuc_vu') or 'Nhân sự',
+                'chuc_vu': st.get('chuc_vu') or '',
+                'ten_khoa': st.get('ten_khoa') or 'Khối Vận Hành / Hành Chính',
+                'ten_chuyen_khoa': st.get('ten_khoa') or 'Khối Vận Hành / Hành Chính',
+                'bac_si_id': st.get('bac_si_id'),
+                'is_me': (own_staff_id is not None and int(nv_id) == int(own_staff_id)),
+                'so_ca_dang_ky_ky': 0,
+                'so_ca_da_duyet_ky': 0,
+                'so_ca_da_lam_ky': 0,
+                'ca_da_duyet': 0,
+                'ca_cho_duyet': 0,
+                'ca_tu_choi': 0,
+                'tong_ca_dang_ky': 0,
+                'gio_cong_da_lam_ky': 0.0,
+                'tong_gio_duyet_ky': 0.0,
+                'tong_gio_cong_tich_luy': 0.0,
+                'tong_so_ca_lich_su': 0,
+                'so_ca_kham_hoan_thanh_ky': 0,
+                'tong_ca_kham_hoan_thanh': 0,
+                'so_nghiep_vu_phu_ky': 0,
+                'tong_nghiep_vu_phu': 0
+            }
+
+        shift_history = []
+        for sh in raw_shifts:
+            nv_id = sh.get('nhan_vien_id')
+            if not nv_id and sh.get('bac_si_id'):
+                nv_id = doc_to_staff.get(sh['bac_si_id'])
+            if not nv_id or not staff_allowed(nv_id):
+                continue
+
+            day_str = str(sh.get('ngay_lam') or '')[:10]
+            mk = day_str[:7]
+            ca_num = int(sh.get('ca_lam') or 1)
+            ca_meta = ScheduleModel.CA_LAM_INFO.get(ca_num, ScheduleModel.CA_LAM_INFO[1])
+            g_start = str(sh.get('gio_bat_dau') or ca_meta['bat_dau'])[:5]
+            g_end = str(sh.get('gio_ket_thuc') or ca_meta['ket_thuc'])[:5]
+            hours = ScheduleModel._calc_shift_hours(g_start, g_end, ca_num)
+
+            tt_duyet = (sh.get('trang_thai_duyet') or 'DA_DUYET').strip()
+            active_flag = sh.get('trang_thai')
+            if active_flag == 0 and tt_duyet == 'DA_DUYET':
+                tt_duyet = 'DA_HUY'
+
+            is_approved = (tt_duyet in ('DA_DUYET', 'CHO_HUY') and (active_flag == 1 or active_flag is None))
+            is_past_day = day_str < today_iso
+            is_today_done = False
+            if day_str == today_iso:
+                try:
+                    is_today_done = clock(g_end) <= now_time
+                except Exception:
+                    is_today_done = False
+            is_worked = is_approved and (is_past_day or is_today_done)
+            in_period = is_all_months or (mk == selected_month)
+
+            if mk in month_buckets:
+                month_buckets[mk]['so_ca_dang_ky'] += 1
+                if is_approved:
+                    month_buckets[mk]['so_ca_da_duyet'] += 1
+                    month_buckets[mk]['tong_gio_duyet'] = round(month_buckets[mk]['tong_gio_duyet'] + hours, 2)
+                if is_worked:
+                    month_buckets[mk]['so_ca_da_lam'] += 1
+                    month_buckets[mk]['gio_cong_da_lam'] = round(month_buckets[mk]['gio_cong_da_lam'] + hours, 2)
+
+            if nv_id in per_staff:
+                ps = per_staff[nv_id]
+                ps['tong_so_ca_lich_su'] += 1
+                if is_worked:
+                    ps['tong_gio_cong_tich_luy'] = round(ps['tong_gio_cong_tich_luy'] + hours, 2)
+                if in_period:
+                    ps['so_ca_dang_ky_ky'] += 1
+                    ps['tong_ca_dang_ky'] += 1
+                    if is_approved:
+                        ps['so_ca_da_duyet_ky'] += 1
+                        ps['ca_da_duyet'] += 1
+                        ps['tong_gio_duyet_ky'] = round(ps['tong_gio_duyet_ky'] + hours, 2)
+                    elif tt_duyet in ('CHO_DUYET', 'CHỜ DUYỆT'):
+                        ps['ca_cho_duyet'] += 1
+                    elif tt_duyet in ('TU_CHOI', 'TỪ CHỐI'):
+                        ps['ca_tu_choi'] += 1
+                    if is_worked:
+                        ps['so_ca_da_lam_ky'] += 1
+                        ps['gio_cong_da_lam_ky'] = round(ps['gio_cong_da_lam_ky'] + hours, 2)
+
+            try:
+                day_fmt = datetime.strptime(day_str, '%Y-%m-%d').strftime('%d/%m/%Y')
+            except Exception:
+                day_fmt = day_str
+
+            note_parts = [p for p in [sh.get('ghi_chu'), sh.get('ly_do_tu_choi'), sh.get('ly_do_huy')] if p and str(p).strip()]
+            shift_history.append({
+                'id': sh.get('id'),
+                'nhan_vien_id': nv_id,
+                'ma_nhan_vien': sh.get('ma_nhan_vien') or f"NV{nv_id:03d}",
+                'ho_ten': sh.get('ten_nhan_vien') or 'Nhân viên',
+                'vai_tro': sh.get('ma_vai_tro') or 'NHANVIEN',
+                'ten_vai_tro': sh.get('ten_vai_tro') or sh.get('chuc_vu') or 'Nhân sự',
+                'ten_khoa': sh.get('ten_khoa') or '',
+                'ten_phong': sh.get('ten_phong') or 'Theo phân công',
+                'ngay_lam': day_str,
+                'ngay_lam_fmt': day_fmt,
+                'month_key': mk,
+                'ca_lam': ca_num,
+                'ten_ca': ca_meta['ten'],
+                'khung_gio': f"{g_start} - {g_end}",
+                'so_gio': hours,
+                'trang_thai_duyet': tt_duyet,
+                'trang_thai_label': status_labels.get(tt_duyet, tt_duyet),
+                'is_past': (is_past_day or is_today_done),
+                'is_worked': is_worked,
+                'in_selected_month': in_period,
+                'nguoi_duyet_ten': sh.get('nguoi_duyet_ten') or '',
+                'ghi_chu': ' | '.join(str(x).strip() for x in note_parts),
+                'ngay_tao': str(sh.get('ngay_tao') or '')[:16]
+            })
+
+        for exam_item in completed_pk + completed_unlinked_lh:
+            nv_id = doc_to_staff.get(exam_item.get('bac_si_id'))
+            if not nv_id or not staff_allowed(nv_id):
+                continue
+            mk = str(exam_item.get('month_key') or '')[:7]
+            if mk in month_buckets:
+                month_buckets[mk]['so_ca_kham_hoan_thanh'] += 1
+            if nv_id in per_staff:
+                per_staff[nv_id]['tong_ca_kham_hoan_thanh'] += 1
+                if is_all_months or mk == selected_month:
+                    per_staff[nv_id]['so_ca_kham_hoan_thanh_ky'] += 1
+
+        for cls_item in completed_cls:
+            ktv_key = (cls_item.get('ktv_thuc_hien') or '').strip().lower()
+            nv_id = name_to_staff.get(ktv_key)
+            if nv_id and nv_id in per_staff:
+                mk = str(cls_item.get('month_key') or '')[:7]
+                per_staff[nv_id]['tong_nghiep_vu_phu'] += 1
+                if is_all_months or mk == selected_month:
+                    per_staff[nv_id]['so_nghiep_vu_phu_ky'] += 1
+
+        for rx_item in completed_rx:
+            rx_key = (rx_item.get('nguoi_duyet') or '').strip().lower()
+            nv_id = name_to_staff.get(rx_key)
+            if nv_id and nv_id in per_staff:
+                mk = str(rx_item.get('month_key') or '')[:7]
+                per_staff[nv_id]['tong_nghiep_vu_phu'] += 1
+                if is_all_months or mk == selected_month:
+                    per_staff[nv_id]['so_nghiep_vu_phu_ky'] += 1
+
+        staff_stats_list = list(per_staff.values())
+        for item in staff_stats_list:
+            if item['vai_tro'] == 'KTV':
+                item['nhan_nghiep_vu_phu'] = 'ca xét nghiệm/CLS'
+            elif item['vai_tro'] == 'DUOCSI':
+                item['nhan_nghiep_vu_phu'] = 'đơn thuốc đã phát'
+            else:
+                item['nhan_nghiep_vu_phu'] = ''
+
+        monthly_summary = [month_buckets[mk] for mk in available_months]
+        totals = {
+            'gio_cong_da_lam_ky': round(sum(s['gio_cong_da_lam_ky'] for s in staff_stats_list), 2),
+            'tong_gio_duyet_ky': round(sum(s['tong_gio_duyet_ky'] for s in staff_stats_list), 2),
+            'tong_gio_cong_tich_luy': round(sum(s['tong_gio_cong_tich_luy'] for s in staff_stats_list), 2),
+            'so_ca_kham_hoan_thanh_ky': sum(s['so_ca_kham_hoan_thanh_ky'] for s in staff_stats_list),
+            'tong_ca_kham_hoan_thanh': sum(s['tong_ca_kham_hoan_thanh'] for s in staff_stats_list),
+            'tong_luot_dang_ky_lich_su': len(shift_history)
+        }
+
+        return {
+            'can_view_all': can_view_all,
+            'scope': effective_scope,
+            'own_staff_id': own_staff_id,
+            'selected_month': selected_month,
+            'available_months': [
+                {'key': mk, 'label': f"Tháng {mk[5:7]}/{mk[:4]}"}
+                for mk in available_months
+            ],
+            'totals': totals,
+            'monthly_summary': monthly_summary,
+            'staff_stats': staff_stats_list,
+            'shift_history': shift_history[:500]
+        }

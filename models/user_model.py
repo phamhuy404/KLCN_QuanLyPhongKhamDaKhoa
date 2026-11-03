@@ -468,35 +468,41 @@ class UserModel:
 
         try:
 
-            ho_ten = data.get('ho_ten', '').strip()
+            ho_ten = (data.get('ho_ten') or '').strip()
 
-            ngay_sinh = data.get('ngay_sinh', '').strip()
+            ngay_sinh = (data.get('ngay_sinh') or '').strip()
 
-            gioi_tinh = data.get('gioi_tinh', 'Nam').strip()
+            gioi_tinh = (data.get('gioi_tinh') or 'Nam').strip()
 
-            cccd = data.get('cccd', '').strip()
+            cccd = (data.get('cccd') or '').strip() or None
 
-            bhyt = data.get('bhyt', '').strip()
+            bhyt = (data.get('bhyt') or '').strip() or None
 
-            email = data.get('email', '').strip()
+            email = (data.get('email') or '').strip() or None
 
-            dia_chi = data.get('dia_chi', '').strip()
+            dia_chi = (data.get('dia_chi') or '').strip() or None
 
-            nhom_mau = data.get('nhom_mau', 'Chưa rõ').strip()
+            nhom_mau = (data.get('nhom_mau') or 'Chưa rõ').strip() or 'Chưa rõ'
 
-            ghi_chu_nhom_mau = data.get('ghi_chu_nhom_mau', '').strip()
+            ghi_chu_nhom_mau = (data.get('ghi_chu_nhom_mau') or '').strip() or None
 
-            di_ung = data.get('di_ung', '').strip()
+            di_ung = (data.get('di_ung') or '').strip() or None
 
-            tien_su_benh = data.get('tien_su_benh', '').strip()
+            tien_su_benh = (data.get('tien_su_benh') or '').strip() or None
 
-            tien_su_gia_dinh = data.get('tien_su_gia_dinh', '').strip()
+            tien_su_gia_dinh = (data.get('tien_su_gia_dinh') or '').strip() or None
 
-            nguoi_than_ho_ten = data.get('nguoi_than_ho_ten', '').strip()
+            nguoi_than_ho_ten = (data.get('nguoi_than_ho_ten') or '').strip() or None
 
-            nguoi_than_sdt = data.get('nguoi_than_sdt', '').strip()
+            nguoi_than_sdt = (data.get('nguoi_than_sdt') or '').strip() or None
 
-            nguoi_than_quan_he = data.get('nguoi_than_quan_he', '').strip()
+            nguoi_than_quan_he = (data.get('nguoi_than_quan_he') or '').strip() or None
+
+            if cccd:
+                cursor.execute('SELECT id FROM benh_nhan WHERE cccd = ? AND (tai_khoan_id IS NULL OR tai_khoan_id != ?)', (cccd, tai_khoan_id))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, 'Số CCCD này đã được đăng ký bởi hồ sơ bệnh nhân khác!'
 
 
 

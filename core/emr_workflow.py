@@ -9,7 +9,7 @@ from core.scheduling import CalendarError, integer
 
 
 OPEN_RECORDS = ('Đang khám', 'Đang kê đơn', 'Chờ kết quả CLS', 'Chờ kết luận')
-OPEN_APPOINTMENTS = ('Đã tiếp nhận', 'Đang khám', 'Chờ kết quả CLS', 'Chờ kết luận', 'Đang kê đơn')
+OPEN_APPOINTMENTS = ('Đã tiếp nhận', 'Đã duyệt', 'Đã xác nhận', 'Đang khám', 'Chờ kết quả CLS', 'Chờ kết luận', 'Đang kê đơn')
 _new_images = ContextVar('emr_new_images', default=None)
 
 

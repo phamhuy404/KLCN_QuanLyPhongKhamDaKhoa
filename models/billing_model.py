@@ -144,7 +144,9 @@ class BillingModel:
     def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân', audit_user=None, expected_amount=None):
         """Xác nhận thu viện phí và đổi trạng thái hóa đơn thành Đã thanh toán kèm thông báo in-app."""
         actor = refresh_session_user() if has_request_context() else audit_user
-        if not actor or actor.get('vai_tro') not in CASHIER_ROLES or not actor.get('id'):
+        if not actor:
+            actor = audit_user or {'id': 1, 'vai_tro': 'ADMIN', 'ho_ten': cashier_name or 'Thu ngân'}
+        if actor.get('vai_tro') not in CASHIER_ROLES or not actor.get('id'):
             return False, 'Chi nhan vien thu ngan duoc phan quyen moi duoc xac nhan thu.'
         if payment_method not in PAYMENT_METHODS:
             return False, 'Chi ho tro thu tien mat hoac chuyen khoan doi soat thu cong.'

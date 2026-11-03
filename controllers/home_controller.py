@@ -132,7 +132,7 @@ def departments():
         rooms_by_dept.setdefault(r['chuyen_khoa_id'], []).append(dict(r))
 
     cursor.execute("""
-        SELECT id, chuyen_khoa_id, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt
+        SELECT id, chuyen_khoa_id, ma_dich_vu, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt, mo_ta
         FROM dich_vu
         WHERE trang_thai = 1
         ORDER BY id ASC
