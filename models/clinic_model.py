@@ -561,13 +561,13 @@ class ClinicModel:
         cursor.execute('SELECT COUNT(*) as total_patients FROM benh_nhan')
         total_patients = cursor.fetchone()['total_patients']
 
-        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai IN ('Chờ tiếp nhận', 'Chờ xác nhận')")
+        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai IN (N'Chờ tiếp nhận', N'Chờ xác nhận', N'Chờ khám', 'Chờ tiếp nhận', 'Chờ xác nhận', 'Chờ khám')")
         waiting_appointments = cursor.fetchone()['waiting_appointments']
 
-        cursor.execute("SELECT COUNT(*) as completed_today FROM phieu_kham")
+        cursor.execute("SELECT COUNT(*) as completed_today FROM phieu_kham WHERE trang_thai IN (N'Hoàn thành', N'Đã hoàn thành', N'Đã khám', 'Hoàn thành', 'Đã khám')")
         completed_today = cursor.fetchone()['completed_today']
 
-        cursor.execute("SELECT COALESCE(SUM(thanh_tien), 0) as total_revenue FROM hoa_don WHERE trang_thai = 'Đã thanh toán'")
+        cursor.execute("SELECT COALESCE(SUM(thanh_tien), 0) as total_revenue FROM hoa_don WHERE trang_thai IN (N'Đã thanh toán', 'Đã thanh toán')")
         total_revenue = cursor.fetchone()['total_revenue']
 
         conn.close()

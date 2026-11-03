@@ -33,24 +33,15 @@ class UserModel:
         phone_param = clean_phone or username
 
         cursor.execute('''
-
             SELECT TOP 1 t.*, v.ma_vai_tro, v.ten_vai_tro
-
             FROM tai_khoan t
-
             JOIN vai_tro v ON t.vai_tro_id = v.id
-
             LEFT JOIN nhan_vien nv ON nv.tai_khoan_id = t.id
-
             LEFT JOIN benh_nhan bn ON bn.tai_khoan_id = t.id
-
-            WHERE t.username = ? OR t.sdt = ? OR t.sdt = ? OR t.email = ?
-
-               OR nv.sdt = ? OR nv.sdt = ? OR nv.email = ?
-
-               OR bn.sdt = ? OR bn.sdt = ? OR bn.email = ?
-
-        ''', (username, username, phone_param, username, username, phone_param, username, username, phone_param, username))
+            WHERE LOWER(t.username) = LOWER(?) OR t.sdt = ? OR t.sdt = ? OR LOWER(t.email) = LOWER(?)
+               OR nv.sdt = ? OR nv.sdt = ? OR LOWER(nv.email) = LOWER(?) OR UPPER(nv.ma_nhan_vien) = UPPER(?)
+               OR bn.sdt = ? OR bn.sdt = ? OR LOWER(bn.email) = LOWER(?) OR UPPER(bn.ma_benh_nhan) = UPPER(?)
+        ''', (username, username, phone_param, username, username, phone_param, username, username, username, phone_param, username, username))
 
         user_row = cursor.fetchone()
 
