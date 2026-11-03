@@ -284,3 +284,24 @@ def pricing():
         bhyt_supported=bhyt_supported,
         dept_count=len(departments_pricing)
     )
+
+
+@home_bp.route('/maintenance/patient')
+def maintenance_patient():
+    """Giao diện thông báo bảo trì nâng cấp dành cho Bệnh nhân."""
+    from models.system_setting_model import SystemSettingModel
+    from flask import session
+    settings = SystemSettingModel.get_settings()
+    is_preview = request.args.get('preview') == '1'
+    is_admin = session.get('user', {}).get('vai_tro') == 'ADMIN'
+    return render_template('maintenance/patient.html', settings=settings, is_preview=is_preview, is_admin=is_admin)
+
+@home_bp.route('/maintenance/staff')
+def maintenance_staff():
+    """Giao diện thông báo bảo trì máy chủ dành cho Nhân viên y tế."""
+    from models.system_setting_model import SystemSettingModel
+    from flask import session
+    settings = SystemSettingModel.get_settings()
+    is_preview = request.args.get('preview') == '1'
+    is_admin = session.get('user', {}).get('vai_tro') == 'ADMIN'
+    return render_template('maintenance/staff.html', settings=settings, is_preview=is_preview, is_admin=is_admin)

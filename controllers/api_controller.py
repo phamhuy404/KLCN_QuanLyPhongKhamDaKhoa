@@ -1948,3 +1948,67 @@ def toggle_doctor_work_status_api():
     if ok:
         return jsonify({'success': True, 'new_status': res, 'message': f'Đã chuyển trạng thái sang: {res}'})
     return jsonify({'success': False, 'message': res}), 400
+
+
+# API QUẢN LÝ BẢO TRÌ HỆ THỐNG
+@api_bp.route('/maintenance/status', methods=['GET'])
+def get_maintenance_status():
+    """API kiểm tra trạng thái bảo trì thời gian thực."""
+    from models.system_setting_model import SystemSettingModel
+    settings = SystemSettingModel.get_settings()
+    return jsonify({
+        'maintenance_patient': settings.get('maintenance_patient', False),
+        'maintenance_staff': settings.get('maintenance_staff', False),
+        'maintenance_eta': settings.get('maintenance_eta', ''),
+        'maintenance_hotline': settings.get('maintenance_hotline', '')
+    })
+
+
+@api_bp.route('/maintenance/toggle', methods=['POST'])
+@roles_required('ADMIN')
+def toggle_maintenance_api():
+    """API Quản trị viên bật/tắt nhanh chế độ bảo trì."""
+    from models.system_setting_model import SystemSettingModel
+    data = request.get_json() or {}
+    target = data.get('target', 'patient')
+    enabled = data.get('enabled')
+    user_name = session.get('user', {}).get('ho_ten', 'admin')
+
+    ok, msg = SystemSettingModel.toggle_maintenance(target=target, enabled=enabled, user_name=user_name)
+    current = SystemSettingModel.get_settings()
+    return jsonify({
+        'success': ok,
+        'message': msg,
+        'settings': current
+    })
+
+
+@api_bp.route('/maintenance/update', methods=['POST'])
+@roles_required('ADMIN')
+def update_maintenance_api():
+    """API Quản trị viên cập nhật chi tiết cấu hình bảo trì."""
+    from models.system_setting_model import SystemSettingModel
+    data = request.get_json() or {}
+    user_name = session.get('user', {}).get('ho_ten', 'admin')
+
+    update_payload = {}
+    if 'maintenance_patient' in data:
+        update_payload['maintenance_patient'] = bool(data['maintenance_patient'])
+    if 'maintenance_staff' in data:
+        update_payload['maintenance_staff'] = bool(data['maintenance_staff'])
+    if 'maintenance_message_patient' in data:
+        update_payload['maintenance_message_patient'] = str(data['maintenance_message_patient']).strip()
+    if 'maintenance_message_staff' in data:
+        update_payload['maintenance_message_staff'] = str(data['maintenance_message_staff']).strip()
+    if 'maintenance_eta' in data:
+        update_payload['maintenance_eta'] = str(data['maintenance_eta']).strip()
+    if 'maintenance_hotline' in data:
+        update_payload['maintenance_hotline'] = str(data['maintenance_hotline']).strip()
+
+    ok, msg = SystemSettingModel.update_settings(update_payload, user_name=user_name)
+    current = SystemSettingModel.get_settings()
+    return jsonify({
+        'success': ok,
+        'message': msg,
+        'settings': current
+    })

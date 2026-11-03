@@ -416,8 +416,10 @@ def feedbacks():
 def backups():
     """Quản lý sao lưu và phục hồi cơ sở dữ liệu an toàn (Dành riêng cho Quản trị viên)."""
     from models.backup_model import BackupModel
+    from models.system_setting_model import SystemSettingModel
     backup_data = BackupModel.list_backups()
-    return render_template('admin/backups.html', active_page='admin_backups', backup_data=backup_data)
+    system_settings = SystemSettingModel.get_settings()
+    return render_template('admin/backups.html', active_page='admin_backups', backup_data=backup_data, system_settings=system_settings)
 
 @admin_bp.route('/accounts')
 @roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
