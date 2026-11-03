@@ -16,13 +16,13 @@ Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa theo
 2. [Hướng Dẫn Cài Đặt và Khởi Chạy](#hướng-dẫn-cài-đặt-và-khởi-chạy)
 3. [Cơ Chế Sao Lưu và Phục Hồi CSDL Tự Động](#cơ-chế-sao-lưu-và-phục-hồi-csdl-tự-động)
 4. [Ma Trận Phân Quyền Hệ Thống (RBAC)](#ma-trận-phân-quyền-hệ-thống-rbac)
-5. [Toàn Bộ Danh Sách Tài Khoản Hệ Thống (92 Tài Khoản)](#toàn-bộ-danh-sách-tài-khoản-hệ-thống-92-tài-khoản)
+5. [Toàn Bộ Danh Sách Tài Khoản Hệ Thống (71 Tài Khoản)](#toàn-bộ-danh-sách-tài-khoản-hệ-thống-71-tài-khoản)
    - [5.1 Quản Trị Viên (ADMIN)](#51-quản-trị-viên-admin---1-tài-khoản)
    - [5.2 Nhân Viên Lễ Tân & Thu Ngân (LETAN)](#52-nhân-viên-lễ-tân--thu-ngân-letan---5-tài-khoản)
-   - [5.3 Bác Sĩ Chuyên Khoa (BACSI)](#53-bác-sĩ-chuyên-khoa-bacsi---43-tài-khoản)
+   - [5.3 Bác Sĩ Chuyên Khoa (BACSI)](#53-bác-sĩ-chuyên-khoa-bacsi---35-tài-khoản)
    - [5.4 Dược Sĩ & Quản Lý Kho Dược (DUOCSI)](#54-dược-sĩ--quản-lý-kho-dược-duocsi---5-tài-khoản)
    - [5.5 Kỹ Thuật Viên Cận Lâm Sàng (KTV)](#55-kỹ-thuật-viên-cận-lâm-sàng-ktv---5-tài-khoản)
-   - [5.6 Bệnh Nhân (BENHNHAN)](#56-khách-hàng--bệnh-nhân-benhnhan---33-tài-khoản)
+   - [5.6 Bệnh Nhân (BENHNHAN)](#56-khách-hàng--bệnh-nhân-benhnhan---20-tài-khoản)
 6. [Danh Mục Tính Năng Nghiệp Vụ Toàn Diện](#danh-mục-tính-năng-nghiệp-vụ-toàn-diện)
 7. [Hệ Thống Ràng Buộc Dữ Liệu & Điền Thông Tin Linh Hoạt](#hệ-thống-ràng-buộc-dữ-liệu--điền-thông-tin-linh-hoạt)
 8. [Cơ Sở Dữ Liệu 27 Bảng Microsoft SQL Server](#cơ-sở-dữ-liệu-27-bảng-microsoft-sql-server)
@@ -177,9 +177,9 @@ Hệ thống thiết lập 6 vai trò người dùng với quyền hạn độc 
 
 ---
 
-## Toàn Bộ Danh Sách Tài Khoản Hệ Thống (92 Tài Khoản)
+## Toàn Bộ Danh Sách Tài Khoản Hệ Thống (71 Tài Khoản)
 
-Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang hoạt động trong hệ thống, được phân loại rõ ràng theo từng vai trò nghiệp vụ:
+Dưới đây là danh sách chi tiết toàn bộ **71 tài khoản** thực tế đang hoạt động trong hệ thống, được phân loại rõ ràng theo từng vai trò nghiệp vụ (100% dữ liệu sạch, đã dọn bỏ hoàn toàn các tài khoản test):
 
 ### 5.1 Quản Trị Viên (ADMIN) - 1 tài khoản
 * **Mật khẩu mặc định**: `admin123`
@@ -203,10 +203,10 @@ Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang ho�
 
 ---
 
-### 5.3 Bác Sĩ Chuyên Khoa (BACSI) - 43 tài khoản
+### 5.3 Bác Sĩ Chuyên Khoa (BACSI) - 35 tài khoản
 * **Mật khẩu mặc định**: `Password@123`
+* **Phân bổ**: 35 Bác sĩ lâm sàng phụ trách 7 chuyên khoa mũi nhọn (mỗi khoa 5 bác sĩ, 100% có ca trực và lịch sử khám bệnh EMR):
 
-#### Nhóm 35 Bác Sĩ Lâm Sàng Chính Phụ Trách 8 Chuyên Khoa
 | ID | Username | Họ và Tên | Chuyên Khoa | Phòng Khám Chính | Số Điện Thoại | Mật Khẩu |
 |:--:|:---|:---|:---|:---|:---|:---|
 | 17 | `bs_noi_1` | BS. Trần Minh Quân | Khoa Nội Tổng Quát | Phòng Khám Nội 1 | 0912111001 | `Password@123` |
@@ -245,18 +245,6 @@ Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang ho�
 | 50 | `bs_mat_4` | BS. Phạm Hồng Nhung | Khoa Mắt | Phòng Khám Mắt 4 | 0912777004 | `Password@123` |
 | 51 | `bs_mat_5` | BS. Vũ Văn Hải | Khoa Mắt | Phòng Khám Mắt 5 | 0912777005 | `Password@123` |
 
-#### Nhóm Bác Sĩ Dự Bị & Điều Phối Bổ Sung
-| ID | Username | Họ và Tên | Chuyên Khoa | Số Điện Thoại | Mật Khẩu |
-|:--:|:---|:---|:---|:---|:---|
-| 69 | `bs_test_32682707` | Bác sĩ Test 32682707 | Khoa Nội Tổng Quát | 0932682707 | `Password@123` |
-| 93 | `bs_test_40166526` | Bác sĩ Test 40166526 | Khoa Nội Tổng Quát | 0940166526 | `Password@123` |
-| 100 | `bs_test_01243937` | Bác sĩ Test 01243937 | Khoa Nội Tổng Quát | 0901243937 | `Password@123` |
-| 109 | `bs_test_06247257` | Bác sĩ Test 06247257 | Khoa Nội Tổng Quát | 0906247257 | `Password@123` |
-| 122 | `bs_test_02775131` | Bác sĩ Test 02775131 | Khoa Nội Tổng Quát | 0902775131 | `Password@123` |
-| 130 | `bs_test_26023588` | Bác sĩ Test 26023588 | Khoa Nội Tổng Quát | 0926023588 | `Password@123` |
-| 143 | `bs_test_06337995` | Bác sĩ Test 06337995 | Khoa Nội Tổng Quát | 0906337995 | `Password@123` |
-| 148 | `bs_test_26662332` | Bác sĩ Test 26662332 | Khoa Nội Tổng Quát | 0926662332 | `Password@123` |
-
 ---
 
 ### 5.4 Dược Sĩ & Quản Lý Kho Dược (DUOCSI) - 5 tài khoản
@@ -285,9 +273,9 @@ Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang ho�
 
 ---
 
-### 5.6 Khách Hàng / Bệnh Nhân (BENHNHAN) - 33 tài khoản
+### 5.6 Khách Hàng / Bệnh Nhân (BENHNHAN) - 20 tài khoản
 
-#### Nhóm 10 Bệnh Nhân Tiêu Biểu & Đã Có Lịch Sử Khám Bệnh
+#### Nhóm 10 Bệnh Nhân Tiêu Biểu & Đã Có Lịch Sử Khám Bệnh Đầy Đủ
 * **Mật khẩu**: `123456`
 
 | ID | Username / SĐT | Họ và Tên Bệnh Nhân | Mã BN | Ghi Chú Hồ Sơ | Mật Khẩu |
@@ -308,20 +296,16 @@ Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang ho�
 
 | ID | Username / SĐT | Họ và Tên Bệnh Nhân | Mã BN | Đặc Điểm Thông Tin Hồ Sơ | Mật Khẩu |
 |:--:|:---|:---|:---|:---|:---|
-| 154 | `0981122334` | Lê Hoàng Long | BN2609024 | Khuyết BHYT, Nhóm máu, Người thân (Đặt lịch trùng chờ duyệt #LH2609101) | `BenhNhan@123` |
-| 155 | `0972233445` | Vũ Thị Bích Ngọc | BN2609025 | Có BHYT, khuyết Nhóm máu, Người thân (Đặt lịch trùng chờ duyệt #LH2609102) | `BenhNhan@123` |
+| 154 | `0981122334` | Lê Hoàng Long | BN2609024 | Khuyết BHYT, Nhóm máu, Người thân (Lịch chờ tiếp nhận #LH2609101) | `BenhNhan@123` |
+| 155 | `0972233445` | Vũ Thị Bích Ngọc | BN2609025 | Có BHYT, khuyết Nhóm máu, Người thân (Lịch chờ tiếp nhận #LH2609102) | `BenhNhan@123` |
 | 156 | `0963344556` | Đặng Quốc Bảo | BN2609026 | Có Nhóm máu O+, khuyết CCCD, BHYT, Người thân (Lịch hẹn #LH2609103 Đã duyệt) | `BenhNhan@123` |
-| 157 | `0944455667` | Phạm Thanh Thảo | BN2609027 | Khuyết BHYT, Nhóm máu, Người thân (Lịch hẹn #LH2609104 Tự động hủy do trùng) | `BenhNhan@123` |
+| 157 | `0944455667` | Phạm Thanh Thảo | BN2609027 | Khuyết BHYT, Nhóm máu, Người thân (Lịch hẹn #LH2609104 Đã hủy do trùng giờ) | `BenhNhan@123` |
 | 158 | `0935566778` | Trịnh Đình Trọng | BN2609028 | Có Người thân (Vợ), khuyết BHYT, Nhóm máu | `BenhNhan@123` |
 | 159 | `0926677889` | Hoàng Mỹ Duyên | BN2609029 | Có BHYT, khuyết CCCD, Nhóm máu, Người thân | `BenhNhan@123` |
 | 160 | `0917788990` | Bùi Hải Đăng | BN2609030 | Có Tên người thân (Bố), khuyết SĐT người thân, BHYT, Nhóm máu | `BenhNhan@123` |
 | 161 | `0908899001` | Nguyễn Khánh Vy | BN2609031 | Khuyết CCCD, BHYT, Nhóm máu, Người thân | `BenhNhan@123` |
 | 162 | `0989900112` | Mai Văn Khiêm | BN2609032 | Có CCCD, khuyết BHYT, Nhóm máu, Người thân | `BenhNhan@123` |
 | 163 | `0970011223` | Đỗ Thị Kim Chi | BN2609033 | Có Nhóm máu A+, khuyết CCCD, BHYT, Người thân | `BenhNhan@123` |
-
-#### Nhóm 13 Bệnh Nhân Khám Bệnh Thực Tế Bổ Sung
-* **Mật khẩu**: `123456`
-* Danh sách SĐT: `099019638`, `099750655`, `099663379`, `099906853`, `099769956`, `099884160`, `099166530`, `099960410`, `099144050`, `099893843`, `099406294`, `099746585`, `099205292`.
 
 ---
 
@@ -347,26 +331,37 @@ Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang ho�
   - Đơn giá niêm yết công khai (VD: `200.000 đ`, `250.000 đ`).
   - Tỷ lệ chi trả BHYT (Hỗ trợ 80% BHYT hoặc Tự nguyện).
 
-### 3. Phân Hệ Quản Lý Nhân Sự & Thống Kê Giờ Công Chấm Công
+### 3. Phân Hệ Quản Lý Nhân Sự, Lịch Trực & Thống Kê Giờ Công
 * Truy cập tại: `/admin/staff`.
+* **Điều hướng lịch trực trong quá khứ & tương lai linh hoạt**:
+  - Giao diện thời khóa biểu lưới (Timetable Grid) tích hợp thanh điều hướng với dropdown chọn tuần nhanh lùi từ tuần -8 (giữa tháng 09/2026) đến tuần +2 trong tương lai, kết hợp nút điều hướng `< Tuần trước` / `Tuần sau >`.
+  - Nút bấm `Chi tiết ngày` trên từng cột ngày của Grid giúp chuyển ngay sang bảng chi tiết được lọc đúng ngày đó.
+* **Bảng danh sách ca trực phân chia nhóm theo từng ngày**:
+  - Chế độ bảng chi tiết tự động nhóm các ca trực theo từng ngày với dải tiêu đề nổi bật: `Thứ 2, Thứ 3, ..., Chủ nhật • Ngày DD/MM/YYYY` kèm huy hiệu đếm số ca trực trong ngày (VD: `3 ca trực`).
+  - Hỗ trợ nút bấm nhanh `Cả tuần này` và dropdown chọn tuần trực tiếp ngay trên thanh công cụ của bảng.
 * **Thống kê chuyên sâu**:
   - Số giờ công thực tế đã làm trong kỳ (`gio_cong_da_lam_ky`).
   - Số giờ công được duyệt trong kỳ (`tong_gio_duyet_ky`).
   - Tổng số giờ công tích lũy (`tong_gio_cong_tich_luy`).
   - Số ca khám bệnh đã hoàn thành trong kỳ (`so_ca_kham_hoan_thanh_ky`).
   - Tổng số ca khám tích lũy (`tong_ca_kham_hoan_thanh`).
-* **Lịch sử ca trực 10 tuần về trước**: Dữ liệu có sẵn đầy đủ từ tháng 08, 09, 10, 11/2026 với hơn 3.800 ca trực và 120 hồ sơ khám bệnh thực tế.
+* **Dữ liệu lịch trực thực tế dày dặn**: Hơn 5.500 ca trực được duyệt (`DA_DUYET`), 30 ca chờ duyệt (`CHO_DUYET`), 15 ca xin hủy (`CHO_HUY`) có lý do thực tế và 25 ca đã duyệt hủy (`DA_HUY`) phân bổ liên tục từ 15/09/2026 đến nay.
 * **Phân quyền xem**:
   - Nhân viên chỉ xem được của chính mình.
-  - Tiếp tân và Admin có quyền xem của mình và xem toàn bộ 59 nhân viên của phòng khám.
+  - Tiếp tân và Admin có quyền xem của mình và xem toàn bộ 50 cán bộ nhân viên y tế của phòng khám.
 
-### 4. Bệnh Án Điện Tử EMR 5 Bước Liên Hoàn
+### 4. Bệnh Án Điện Tử EMR 5 Bước Liên Hoàn & Ràng Buộc Thời Gian Khám
 * Khám bệnh chuyên khoa 5 bước: (1) Khám lâm sàng & Dấu hiệu sinh tồn -> (2) Chỉ định cận lâm sàng -> (3) Kết quả CLS & Chẩn đoán hình ảnh -> (4) Chẩn đoán ICD-10 & Kê đơn thuốc -> (5) Hướng điều trị & Hẹn tái khám.
-* Hẹn tái khám mới: Tự động sinh lịch hẹn mới hoàn toàn, trạng thái `Đã duyệt` sẵn, không đè lên lịch cũ, đồng thời gửi thông báo cho bệnh nhân.
+* **Ràng buộc thời gian khám bệnh chặt chẽ**:
+  - **Chặn khám trước ngày**: Nếu lịch hẹn có ngày khám trong tương lai, hệ thống chặn mở giao diện EMR từ cả trang Danh sách lịch hẹn và trang Bệnh án điện tử, đồng thời hiển thị thông báo lỗi rõ ràng.
+  - **Xác nhận khám trước lượt / ngoài giờ trong ngày**: Nếu lịch hẹn diễn ra trong ngày hiện tại nhưng chưa đến giờ hẹn, hệ thống bật hộp thoại thông báo hỏi ý kiến Bác sĩ có muốn tiếp nhận khám sớm / khám ngoài giờ cho bệnh nhân không trước khi mở ca khám.
+* Hẹn tái khám mới: Tự động sinh lịch hẹn mới hoàn toàn, trạng thái `Đã duyệt` sẵn, không đè lên lịch cũ, đồng thời gửi thông báo tức thì cho bệnh nhân.
 
 ### 5. Quản Lý Dược Phẩm & Cấp Phát Thuốc Khép Kín
 * Cấp phát 3 bước: (1) Bác sĩ kê đơn -> (2) Tiếp tân duyệt & Thu ngân thanh toán hóa đơn thuốc HDT -> (3) Dược sĩ kiểm tra tồn kho và xác nhận cấp phát, tự động trừ kho nguyên tử.
-* Bệnh nhân chủ động chọn: "Mua tại bệnh viện" (sinh hóa đơn HDT) hoặc "Tự mua ngoài" (hủy hóa đơn tạm).
+* **Đầy đủ 2 luồng xử lý đơn thuốc linh hoạt**:
+  - **Mua tại bệnh viện**: Tự động sinh hóa đơn thuốc `HDT`, cấn trừ theo quy chế, chuyển đến Dược sĩ duyệt và cấp thuốc tại quầy thuốc bệnh viện.
+  - **Tự mua ngoài**: Chuyển trạng thái sang `Mua ngoài`, lưu trữ toàn bộ thông tin kê đơn trên Cổng thông tin hồ sơ sức khỏe bệnh nhân (`/patient/records`) để người bệnh chủ động mua tại các nhà thuốc bên ngoài.
 
 ---
 

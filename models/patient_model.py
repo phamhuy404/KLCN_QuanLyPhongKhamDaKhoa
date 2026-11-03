@@ -32,7 +32,12 @@ class PatientModel:
                 s.mach, s.nhiet_do, s.huyet_ap, s.spo2, s.nhip_tho, s.chieu_cao, s.can_nang, s.bmi
             FROM benh_nhan b
             LEFT JOIN tai_khoan t ON b.tai_khoan_id = t.id
-            LEFT JOIN chi_so_sinh_ton s ON b.id = s.benh_nhan_id
+            OUTER APPLY (
+                SELECT TOP 1 cs.mach, cs.nhiet_do, cs.huyet_ap, cs.spo2, cs.nhip_tho, cs.chieu_cao, cs.can_nang, cs.bmi
+                FROM chi_so_sinh_ton cs
+                WHERE cs.benh_nhan_id = b.id
+                ORDER BY cs.id DESC
+            ) s
             ORDER BY b.id ASC
         ''')
         rows = cursor.fetchall()
@@ -73,7 +78,12 @@ class PatientModel:
                 s.mach, s.nhiet_do, s.huyet_ap, s.spo2, s.nhip_tho, s.chieu_cao, s.can_nang, s.bmi
             FROM benh_nhan b
             LEFT JOIN tai_khoan t ON b.tai_khoan_id = t.id
-            LEFT JOIN chi_so_sinh_ton s ON b.id = s.benh_nhan_id
+            OUTER APPLY (
+                SELECT TOP 1 cs.mach, cs.nhiet_do, cs.huyet_ap, cs.spo2, cs.nhip_tho, cs.chieu_cao, cs.can_nang, cs.bmi
+                FROM chi_so_sinh_ton cs
+                WHERE cs.benh_nhan_id = b.id
+                ORDER BY cs.id DESC
+            ) s
             WHERE b.id IN (
                 SELECT benh_nhan_id FROM lich_hen WHERE chuyen_khoa_id = ?
                 UNION
@@ -125,7 +135,12 @@ class PatientModel:
                 s.mach, s.nhiet_do, s.huyet_ap, s.spo2, s.nhip_tho, s.chieu_cao, s.can_nang, s.bmi
             FROM benh_nhan b
             LEFT JOIN tai_khoan t ON b.tai_khoan_id = t.id
-            LEFT JOIN chi_so_sinh_ton s ON b.id = s.benh_nhan_id
+            OUTER APPLY (
+                SELECT TOP 1 cs.mach, cs.nhiet_do, cs.huyet_ap, cs.spo2, cs.nhip_tho, cs.chieu_cao, cs.can_nang, cs.bmi
+                FROM chi_so_sinh_ton cs
+                WHERE cs.benh_nhan_id = b.id
+                ORDER BY cs.id DESC
+            ) s
             WHERE b.id = ?
         ''', (patient_id,))
         row = cursor.fetchone()
@@ -194,37 +209,71 @@ class PatientModel:
             ''', (patient_id,))
             encounters = [dict(r) for r in cursor.fetchall()]
 
-        for enc in encounters:
-            # Lấy cận lâm sàng
-            cursor.execute('''
-                SELECT 
-                    ct.id AS chi_tiet_id,
-                    dv.ten_dich_vu AS ten,
-                    dv.loai_dich_vu AS loai,
-                    ct.ket_qua,
-                    ct.file_ket_qua,
-                    ct.ktv_thuc_hien AS bac_si_thuc_hien,
-                    ct.trang_thai
-                FROM phieu_chi_dinh cd
-                JOIN chi_tiet_chi_dinh ct ON cd.id = ct.phieu_chi_dinh_id
-                JOIN dich_vu dv ON ct.dich_vu_id = dv.id
-                WHERE cd.phieu_kham_id = ?
-            ''', (enc['id'],))
-            enc['can_lam_sang'] = [dict(r) for r in cursor.fetchall()]
-            if approved_only:
-                enc['can_lam_sang'] = published_results(enc['can_lam_sang'])
-            enc['hinh_anh_kham'] = protected_image_value(enc.get('hinh_anh_kham'))
-            for item in enc['can_lam_sang']:
-                item['ket_qua'] = clinical_value(item.get('ket_qua'))
-                item['file_ket_qua'] = protected_image_value(item.get('file_ket_qua'))
+        if not encounters:
+            conn.close()
+            return []
 
-            # Lấy thông tin đơn thuốc và hình thức mua
-            cursor.execute('''
-                SELECT id AS don_thuoc_id, ma_don_thuoc, trang_thai AS trang_thai_don_thuoc, hinh_thuc_mua
-                FROM don_thuoc
-                WHERE phieu_kham_id = ?
-            ''', (enc['id'],))
-            dt_info = cursor.fetchone()
+        pk_ids = [e['id'] for e in encounters]
+        placeholders = ','.join('?' * len(pk_ids))
+
+        # 1. Bulk CLS
+        cursor.execute(f'''
+            SELECT 
+                cd.phieu_kham_id,
+                ct.id AS chi_tiet_id,
+                dv.ten_dich_vu AS ten,
+                dv.loai_dich_vu AS loai,
+                ct.ket_qua,
+                ct.file_ket_qua,
+                ct.ktv_thuc_hien AS bac_si_thuc_hien,
+                ct.trang_thai
+            FROM phieu_chi_dinh cd
+            JOIN chi_tiet_chi_dinh ct ON cd.id = ct.phieu_chi_dinh_id
+            JOIN dich_vu dv ON ct.dich_vu_id = dv.id
+            WHERE cd.phieu_kham_id IN ({placeholders})
+        ''', pk_ids)
+        cls_map = {}
+        for r in cursor.fetchall():
+            item = dict(r)
+            item['ket_qua'] = clinical_value(item.get('ket_qua'))
+            item['file_ket_qua'] = protected_image_value(item.get('file_ket_qua'))
+            cls_map.setdefault(item['phieu_kham_id'], []).append(item)
+
+        # 2. Bulk Prescriptions
+        cursor.execute(f'''
+            SELECT id AS don_thuoc_id, phieu_kham_id, ma_don_thuoc, trang_thai AS trang_thai_don_thuoc, hinh_thuc_mua
+            FROM don_thuoc
+            WHERE phieu_kham_id IN ({placeholders})
+        ''', pk_ids)
+        dt_map = {r['phieu_kham_id']: dict(r) for r in cursor.fetchall()}
+
+        # 3. Bulk Prescription Items
+        cursor.execute(f'''
+            SELECT 
+                dt.phieu_kham_id,
+                t.ten_thuoc AS ten,
+                t.hoat_chat,
+                ct.so_luong,
+                t.don_vi_tinh,
+                ct.cach_dung
+            FROM don_thuoc dt
+            JOIN chi_tiet_don_thuoc ct ON dt.id = ct.don_thuoc_id
+            JOIN thuoc t ON ct.thuoc_id = t.id
+            WHERE dt.phieu_kham_id IN ({placeholders})
+        ''', pk_ids)
+        items_map = {}
+        for r in cursor.fetchall():
+            row = dict(r)
+            row['so_luong'] = f"{row['so_luong']} {row['don_vi_tinh']}"
+            items_map.setdefault(row['phieu_kham_id'], []).append(row)
+
+        for enc in encounters:
+            eid = enc['id']
+            raw_cls = cls_map.get(eid, [])
+            enc['can_lam_sang'] = published_results(raw_cls) if approved_only else raw_cls
+            enc['hinh_anh_kham'] = protected_image_value(enc.get('hinh_anh_kham'))
+
+            dt_info = dt_map.get(eid)
             if dt_info:
                 enc['don_thuoc_id'] = dt_info['don_thuoc_id']
                 enc['ma_don_thuoc'] = dt_info['ma_don_thuoc']
@@ -236,23 +285,7 @@ class PatientModel:
                 enc['trang_thai_don_thuoc'] = None
                 enc['hinh_thuc_mua'] = None
 
-            # Lấy chi tiết các loại thuốc trong đơn
-            cursor.execute('''
-                SELECT 
-                    t.ten_thuoc AS ten,
-                    t.hoat_chat,
-                    ct.so_luong,
-                    t.don_vi_tinh,
-                    ct.cach_dung
-                FROM don_thuoc dt
-                JOIN chi_tiet_don_thuoc ct ON dt.id = ct.don_thuoc_id
-                JOIN thuoc t ON ct.thuoc_id = t.id
-                WHERE dt.phieu_kham_id = ?
-            ''', (enc['id'],))
-            dt_rows = [dict(r) for r in cursor.fetchall()]
-            for dt_row in dt_rows:
-                dt_row['so_luong'] = f"{dt_row['so_luong']} {dt_row['don_vi_tinh']}"
-            enc['don_thuoc'] = dt_rows
+            enc['don_thuoc'] = items_map.get(eid, [])
 
             if enc.get('ngay_tai_kham'):
                 try:

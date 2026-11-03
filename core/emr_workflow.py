@@ -97,7 +97,7 @@ def resolve(cursor, patient_id, doctor_id=None, room_id=None, appointment_id=Non
         if appointment['trang_thai'] not in OPEN_APPOINTMENTS:
             raise CalendarError('Lịch hẹn chưa tiếp nhận hoặc đã kết thúc/hủy.')
         if str(appointment['ngay_hen'])[:10] > date.today().isoformat():
-            raise CalendarError('Chưa đến ngày khám của lịch hẹn.')
+            raise CalendarError(f"Lịch hẹn chưa đến ngày khám (Ngày hẹn: {str(appointment['ngay_hen'])[:10]}). Không thể thực hiện khám trước ngày!")
         if doctor_id and str(doctor_id) != str(appointment['bac_si_id']):
             raise CalendarError('Bác sĩ không khớp lịch hẹn.')
         if room_id and str(room_id) != str(appointment['phong_kham_id']):

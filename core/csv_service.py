@@ -378,6 +378,22 @@ class CSVService:
 
         try:
             if module == 'medicines':
+                import hashlib
+                from datetime import datetime
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                csv_checksum = hashlib.md5(decoded.strip().encode('utf-8')).hexdigest()[:12]
+                
+                # Kiểm tra chống nhập trùng: nếu cùng file CSV này đã được nhập trong ngày hôm nay
+                cursor.execute('''
+                    SELECT TOP 1 id, performed_at FROM audit_log 
+                    WHERE table_name = 'thuoc' AND action = 'STOCK_IN'
+                      AND reason LIKE ? AND CAST(performed_at AS DATE) = CAST(GETDATE() AS DATE)
+                ''', (f"%[{csv_checksum}]%",))
+                dup_log = cursor.fetchone()
+                if dup_log:
+                    conn.close()
+                    return False, f"⚠️ Tệp CSV này đã được nhập vào kho thuốc trong ngày hôm nay ({today_str})! Hệ thống tự động chặn nhập trùng để tránh cộng dồn sai lệch tồn kho.", 0, 0
+
                 for r in data_rows:
                     if not r or not any(field.strip() for field in r):
                         continue
@@ -418,7 +434,7 @@ class CSVService:
                                 huong_dan_su_dung = COALESCE(NULLIF(?, ''), huong_dan_su_dung)
                             WHERE id = ?
                         ''', (new_ton, final_price, hoat_chat, ham_luong, dvt, hang, nuoc, hdsd, existing['id']))
-                        journal(cursor, existing['id'], qty, existing['so_luong_ton'], new_ton, current_user, 'CSV receipt')
+                        journal(cursor, existing['id'], qty, existing['so_luong_ton'], new_ton, current_user, f'CSV receipt [{csv_checksum}]')
                         updated_count += 1
                     else:
                         # Tạo mã thuốc nếu chưa có
@@ -431,7 +447,7 @@ class CSVService:
                             INSERT INTO thuoc (ma_thuoc, ten_thuoc, hoat_chat, ham_luong, don_vi_tinh, don_gia, so_luong_ton, hang_san_xuat, nuoc_san_xuat, huong_dan_su_dung, trang_thai)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
                         ''', (ma, ten, hoat_chat, ham_luong, dvt, don_gia, qty, hang, nuoc, hdsd))
-                        journal(cursor, cursor.lastrowid, qty, 0, qty, current_user, 'CSV initial stock')
+                        journal(cursor, cursor.lastrowid, qty, 0, qty, current_user, f'CSV initial stock [{csv_checksum}]')
                         inserted_count += 1
 
             elif module == 'services':

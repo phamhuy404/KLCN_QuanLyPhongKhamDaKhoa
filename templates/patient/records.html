@@ -192,7 +192,7 @@
                                 <i class="fa-solid fa-pills text-medical-600"></i> Toa thuốc điều trị ({{ enc.don_thuoc|length }} loại thuốc)
                             </h4>
                             <div>
-                                {% if enc.hinh_thuc_mua == 'Mua tại bệnh viện' %}
+                                {% if enc.hinh_thuc_mua in ['Mua tại bệnh viện', 'BENH_VIEN'] %}
                                     {% if enc.trang_thai_don_thuoc == 'Chờ duyệt' %}
                                         <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200 inline-flex items-center gap-1">
                                             <i class="fa-solid fa-clock"></i> Mua tại viện: Chờ duyệt
@@ -210,7 +210,7 @@
                                         <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-300 inline-flex items-center gap-1">
                                             <i class="fa-solid fa-box-open text-amber-600"></i> Đã thanh toán - Chờ nhận thuốc tại quầy
                                         </span>
-                                    {% elif enc.trang_thai_don_thuoc == 'Đã nhận thuốc' or enc.trang_thai_don_thuoc == 'Đã cấp thuốc' %}
+                                    {% elif enc.trang_thai_don_thuoc in ['Đã nhận thuốc', 'Đã cấp thuốc'] %}
                                         <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 inline-flex items-center gap-1">
                                             <i class="fa-solid fa-circle-check"></i> Đã nhận thuốc thành công
                                         </span>
@@ -223,7 +223,7 @@
                                             <i class="fa-solid fa-hospital"></i> {{ enc.trang_thai_don_thuoc or 'Mua tại bệnh viện' }}
                                         </span>
                                     {% endif %}
-                                {% elif enc.hinh_thuc_mua == 'Tự mua ngoài' %}
+                                {% elif enc.hinh_thuc_mua in ['Tự mua ngoài', 'NGOAI'] %}
                                     <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 inline-flex items-center gap-1">
                                         <i class="fa-solid fa-store"></i> Mua ngoài
                                     </span>

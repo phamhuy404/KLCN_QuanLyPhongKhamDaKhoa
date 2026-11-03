@@ -455,7 +455,7 @@
                 doctorCell = `
                     <span class="font-semibold text-slate-800 block">${app.bac_si}</span>
                     ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') && app.trang_thai !== 'cancelled' && app.trang_thai !== 'completed' ? `
-                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
+                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
                                 class="text-[10px] text-medical-600 hover:text-medical-800 hover:underline inline-flex items-center gap-1 font-semibold mt-0.5">
                             <i class="fa-solid fa-pen-to-square"></i> Đổi bác sĩ
                         </button>
@@ -468,17 +468,11 @@
                     </span>
                     <div>
                     ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') ? `
-                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
+                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
                                 class="px-2 py-1 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-[10px] inline-flex items-center gap-1 border border-medical-200 transition-colors">
                             <i class="fa-solid fa-user-plus text-[9px]"></i> Phân công
                         </button>
-                    ` : ''}
-                    ${currentUserRole === 'BACSI' ? `
-                        <button type="button" onclick="claimAppointment(${app.id}, '${app.ma_hen}')" 
-                                class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] inline-flex items-center gap-1 border border-emerald-200 transition-colors">
-                            <i class="fa-solid fa-hand-holding-medical text-[9px]"></i> Nhận khám
-                        </button>
-                    ` : ''}
+                    ` : '<span class="text-[10px] text-slate-400 italic">Chờ tiếp tân phân công</span>'}
                     </div>
                 `;
             }
@@ -509,41 +503,50 @@
                 </td>
                 <td class="py-3 px-4 text-center">
                     <div class="flex items-center justify-center gap-1.5">
-                        ${(!app.bac_si_id && currentUserRole === 'BACSI') ? `
-                        <button type="button" onclick="claimAppointment(${app.id}, '${app.ma_hen}')" 
-                                class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Nhận ca khám này">
-                            <i class="fa-solid fa-hand-holding-medical text-xs"></i>
-                            <span>Nhận</span>
-                        </button>
-                        ` : ''}
-                        ${(!app.bac_si_id && (currentUserRole === 'ADMIN' || currentUserRole === 'LETAN')) ? `
-                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\'")}')" 
-                                class="px-2 py-1 rounded-lg bg-medical-600 hover:bg-medical-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Phân công bác sĩ">
-                            <i class="fa-solid fa-user-plus text-xs"></i>
-                            <span>Phân công</span>
-                        </button>
-                        ` : ''}
-                        ${app.trang_thai === 'waiting' ? `
-                        <button type="button" onclick="acceptAppointment(${app.id}, '${app.ma_hen}')" 
-                                class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition-all" title="Lễ tân/Admin xác nhận tiếp nhận lịch">
-                            <i class="fa-solid fa-check"></i>
-                            <span>Tiếp nhận</span>
-                        </button>
-                        ` : ''}
-                        <a href="/admin/emr?patient_id=${app.patient_id}&appointment_id=${app.id}"
-                           class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Bắt đầu khám (EMR)">
-                            <i class="fa-solid fa-stethoscope text-xs"></i>
-                        </a>
-                        ${app.trang_thai !== 'cancelled' ? `
-                        <button type="button" onclick="cycleAppointmentStatus(${app.id}, '${app.trang_thai}')" 
-                                class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Chuyển trạng thái kế tiếp">
-                            <i class="fa-solid fa-rotate text-xs"></i>
-                        </button>
-                        <button type="button" onclick="cancelAppointment(${app.id}, '${app.ma_hen}')" 
-                                class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors" title="Hủy lịch hẹn">
-                            <i class="fa-solid fa-ban text-xs"></i>
-                        </button>
-                        ` : ''}
+                        ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') ? `
+                            ${(!app.bac_si_id) ? `
+                            <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
+                                    class="px-2 py-1 rounded-lg bg-medical-600 hover:bg-medical-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Phân công bác sĩ">
+                                <i class="fa-solid fa-user-plus text-xs"></i>
+                                <span>Phân công</span>
+                            </button>
+                            ` : ''}
+                            ${app.trang_thai === 'waiting' ? `
+                            <button type="button" onclick="acceptAppointment(${app.id}, '${app.ma_hen}')" 
+                                    class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm transition-all" title="Lễ tân/Admin xác nhận tiếp nhận lịch">
+                                <i class="fa-solid fa-check"></i>
+                                <span>Tiếp nhận</span>
+                            </button>
+                            ` : ''}
+                            <button type="button" onclick="startEmrExamination(${app.id}, '${app.ma_hen}', ${app.patient_id}, '${app.ngay_hen}', '${app.gio_hen}', '${(app.benh_nhan || '').replace(/'/g, "\\'")}')"
+                                    class="w-7 h-7 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 flex items-center justify-center transition-colors" title="Xem hồ sơ khám (EMR)">
+                                <i class="fa-solid fa-stethoscope text-xs"></i>
+                            </button>
+                            ${app.trang_thai !== 'cancelled' ? `
+                            <button type="button" onclick="cycleAppointmentStatus(${app.id}, '${app.trang_thai}')" 
+                                    class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors" title="Chuyển trạng thái kế tiếp">
+                                <i class="fa-solid fa-rotate text-xs"></i>
+                            </button>
+                            <button type="button" onclick="cancelAppointment(${app.id}, '${app.ma_hen}')" 
+                                    class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors" title="Hủy lịch hẹn">
+                                <i class="fa-solid fa-ban text-xs"></i>
+                            </button>
+                            ` : ''}
+                        ` : `
+                            ${app.trang_thai === 'waiting' ? `
+                            <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 font-semibold text-[10px] border border-amber-200 inline-flex items-center gap-1">
+                                <i class="fa-solid fa-hourglass-half text-[9px]"></i> Chờ tiếp tân duyệt
+                            </span>
+                            ` : (app.trang_thai === 'cancelled' ? `
+                            <span class="text-[10px] text-slate-400 italic">Đã hủy</span>
+                            ` : `
+                            <button type="button" onclick="startEmrExamination(${app.id}, '${app.ma_hen}', ${app.patient_id}, '${app.ngay_hen}', '${app.gio_hen}', '${(app.benh_nhan || '').replace(/'/g, "\\'")}')"
+                                    class="px-2.5 py-1 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-[10px] flex items-center gap-1.5 shadow-sm transition-all" title="Bắt đầu khám bệnh EMR">
+                                <i class="fa-solid fa-stethoscope text-xs"></i>
+                                <span>Khám EMR</span>
+                            </button>
+                            `)}
+                        `}
                     </div>
                 </td>
             `;
@@ -589,8 +592,40 @@
         renderAppointments(filtered);
     }
 
+    // Bác sĩ bấm bắt đầu khám EMR kèm kiểm tra ràng buộc ngày giờ
+    function startEmrExamination(appId, maHen, patientId, ngayHen, gioHen, benhNhan) {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const appDate = String(ngayHen || '').slice(0, 10);
+
+        if (appDate > todayStr) {
+            alert(`❌ KHÔNG THỂ TIẾN HÀNH KHÁM!\n\nLịch khám #${maHen} chưa đến ngày hẹn (Ngày hẹn: ${ngayHen}).\nBác sĩ không thể thực hiện khám trước ngày hẹn!`);
+            return;
+        }
+
+        let forceParam = '';
+        if (appDate === todayStr) {
+            const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const appTime = String(gioHen || '08:00').slice(0, 5);
+
+            if (appTime > currentHM) {
+                const confirmOut = confirm(`⚠️ XÁC NHẬN KHÁM TRƯỚC LƯỢT / NGOÀI GIỜ:\n\nLịch hẹn #${maHen} của bệnh nhân ${benhNhan} có giờ hẹn là ${gioHen} (Hiện tại là ${currentHM}, chưa tới lượt khám).\n\nBác sĩ có muốn tiếp nhận khám sớm / khám ngoài giờ cho bệnh nhân không?`);
+                if (!confirmOut) {
+                    return;
+                }
+                forceParam = '&force_out_of_turn=1';
+            }
+        }
+
+        window.location.href = `/admin/emr?patient_id=${patientId}&appointment_id=${appId}${forceParam}`;
+    }
+
     // Lễ tân hoặc Admin xác nhận tiếp nhận lịch khám
     async function acceptAppointment(id, maHen) {
+        if (currentUserRole === 'BACSI') {
+            alert('Bác sĩ không có quyền duyệt hoặc tiếp nhận lịch hẹn! Thao tác này chỉ dành cho Lễ tân hoặc Quản trị viên.');
+            return;
+        }
         const app = appointments.find(a => Number(a.id) === Number(id));
         if (app && (!app.bac_si_id || String(app.bac_si_id).trim() === '')) {
             alert(`Lịch hẹn #${maHen} chưa phân công bác sĩ. Vui lòng chọn một bác sĩ để phân công và duyệt đơn khám!`);
@@ -618,6 +653,10 @@
 
     // Chuyển đổi trạng thái hẹn qua API
     async function cycleAppointmentStatus(id, currentStatus) {
+        if (currentUserRole === 'BACSI') {
+            alert('Bác sĩ không có quyền đổi trạng thái lịch hẹn! Thao tác này chỉ dành cho Lễ tân hoặc Quản trị viên.');
+            return;
+        }
         if (currentStatus === 'completed') {
             showToast('Lịch khám này đã hoàn tất khám bệnh, không thể chuyển đổi trạng thái!', 'info');
             return;
@@ -652,6 +691,10 @@
 
     // Hủy lịch hẹn qua API
     async function cancelAppointment(id, maHen) {
+        if (currentUserRole === 'BACSI') {
+            alert('Bác sĩ không có quyền hủy lịch hẹn! Thao tác này chỉ dành cho Lễ tân hoặc Quản trị viên.');
+            return;
+        }
         const reason = prompt(`Nhập lý do hủy lịch hẹn #${maHen}:`, 'Bệnh nhân yêu cầu hủy hẹn');
         if (reason === null) return;
         if (!reason.trim()) {

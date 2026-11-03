@@ -125,7 +125,7 @@ def emr():
     user_role = curr_user.get('vai_tro')
     doc_id = curr_user.get('bac_si_id')
     all_patients = visible_patients(include_history=True)
-    # Ưu tiên đưa bệnh nhân trong hàng đợi tiếp nhận hôm nay của bác sĩ lên đầu
+    # Bác sĩ chỉ xem bệnh nhân thuộc phụ trách (có lịch hẹn hoặc từng khám)
     if user_role == 'BACSI' and doc_id:
         from core.database import get_db
         conn = get_db()
@@ -138,10 +138,18 @@ def emr():
               AND trang_thai IN (N'Đã tiếp nhận', N'Đã duyệt', N'Đã xác nhận', N'Đang khám', N'Chờ kết quả CLS')
         ''', (doc_id, doc_id))
         queue_ids = {r['benh_nhan_id'] for r in cursor.fetchall()}
+
+        cursor.execute('''
+            SELECT DISTINCT benh_nhan_id FROM lich_hen WHERE bac_si_id = ?
+            UNION
+            SELECT DISTINCT benh_nhan_id FROM phieu_kham WHERE bac_si_id = ?
+        ''', (doc_id, doc_id))
+        all_doc_patient_ids = {r['benh_nhan_id'] for r in cursor.fetchall()}
         conn.close()
+
         queue_patients = [p for p in all_patients if p['id'] in queue_ids]
-        other_patients = [p for p in all_patients if p['id'] not in queue_ids]
-        patients_list = queue_patients + other_patients
+        doc_other_patients = [p for p in all_patients if p['id'] in (all_doc_patient_ids - queue_ids)]
+        patients_list = queue_patients + doc_other_patients
     else:
         patients_list = all_patients
     medicines = PharmacyModel.get_all_medicines()
@@ -180,7 +188,8 @@ def pharmacy():
         'can_han_dung': 0,
         'cho_phat': len([p for p in prescriptions if p.get('trang_thai') != 'Đã phát'])
     }
-    return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions, stats=stats)
+    stock_movements = PharmacyModel.get_stock_movements()
+    return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions, stats=stats, stock_movements=stock_movements)
 
 @admin_bp.route('/billing')
 
@@ -332,6 +341,28 @@ def staff():
         staff_list=staff_list,
         doctors=doctors,
         schedules=schedules,
+        lean_schedules=[{
+            'id': s['id'],
+            'ngay_lam': str(s['ngay_lam'])[:10],
+            'ca_lam': s['ca_lam'],
+            'ten_ca': s.get('ten_ca') or f"Ca {s['ca_lam']}",
+            'staff_id': s.get('staff_id'),
+            'nhan_vien_id': s.get('nhan_vien_id'),
+            'bac_si_id': s.get('bac_si_id'),
+            'ten_bac_si': s.get('ten_bac_si') or s.get('ten_nhan_vien') or '',
+            'ten_nhan_vien': s.get('ten_nhan_vien') or s.get('ten_bac_si') or '',
+            'ten_vai_tro': s.get('ten_vai_tro') or '',
+            'ten_khoa': s.get('ten_khoa') or '',
+            'ten_phong': s.get('ten_phong') or '',
+            'vi_tri_tang': s.get('vi_tri_tang') or '',
+            'phong_kham_id': s.get('phong_kham_id'),
+            'trang_thai_duyet': s.get('trang_thai_duyet') or 'DA_DUYET',
+            'is_my_shift': bool(s.get('is_my_shift')),
+            'can_request_cancel': bool(s.get('can_request_cancel')),
+            'is_next_2_weeks': bool(s.get('is_next_2_weeks')),
+            'is_current_week': bool(s.get('is_current_week')),
+            'is_past': bool(s.get('is_past')),
+        } for s in schedules],
         roles=roles,
         departments=departments,
         rooms=rooms,
@@ -349,7 +380,10 @@ def staff():
             current_user=curr_user,
             selected_month=request.args.get('stats_month'),
             scope=request.args.get('stats_scope'),
-            filter_staff_id=request.args.get('stats_staff_id')
+            filter_staff_id=request.args.get('stats_staff_id'),
+            filter_dept_id=request.args.get('stats_dept_id'),
+            filter_role=request.args.get('stats_role'),
+            search_keyword=request.args.get('stats_search')
         )
     )
 

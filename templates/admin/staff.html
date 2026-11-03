@@ -434,31 +434,53 @@
     <div id="tab-schedules" class="tab-pane space-y-4">
         <!-- Chế độ 1: Thời khóa biểu dạng lưới (Grid View - Mặc định) -->
         <div id="schedule-grid-container" class="space-y-4">
-            <!-- Thanh điều hướng tuần và chuyển chế độ xem -->
+            <!-- Thanh điều hướng tuần và chuyển chế độ xem (Hỗ trợ lùi về các tuần quá khứ) -->
             <div class="flex flex-col md:flex-row justify-between items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="navigateTimetableWeek(-1)" class="p-2 border border-slate-200 hover:bg-slate-100 rounded-xl transition text-slate-600" title="Tuần trước">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="navigateTimetableWeek(-1)" class="p-2 border border-slate-200 hover:bg-slate-100 rounded-xl transition text-slate-600" title="Lùi 1 tuần về quá khứ">
                         <i class="fa-solid fa-chevron-left text-xs"></i>
                     </button>
-                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-                        <button type="button" onclick="switchTimetableWeek('current')" id="btn-tt-week-current" class="px-3.5 py-1.5 rounded-lg transition bg-white text-blue-700 shadow-sm">
-                            Tuần hiện tại ({{ week_bounds.current_week[0] }} - {{ week_bounds.current_week[1] }})
+                    
+                    <div class="flex items-center gap-1.5">
+                        <label for="timetable-week-select" class="text-xs text-slate-500 font-medium hidden sm:inline">Tuần:</label>
+                        <select id="timetable-week-select" onchange="switchTimetableWeekOffset(parseInt(this.value))" class="text-xs font-semibold border border-slate-300 rounded-xl px-3 py-1.5 bg-slate-50 text-slate-700 outline-none hover:border-blue-400 focus:border-blue-500 focus:bg-white transition cursor-pointer">
+                            <option value="2">Tuần 47/2026 (16/11/2026 - 22/11/2026) [Kế tiếp]</option>
+                            <option value="1">Tuần 46/2026 (09/11/2026 - 15/11/2026) [Tuần tới]</option>
+                            <option value="0" selected>Tuần 45/2026 (02/11/2026 - 08/11/2026) [Tuần hiện tại]</option>
+                            <option value="-1">Tuần 44/2026 (26/10/2026 - 01/11/2026)</option>
+                            <option value="-2">Tuần 43/2026 (19/10/2026 - 25/10/2026)</option>
+                            <option value="-3">Tuần 42/2026 (12/10/2026 - 18/10/2026)</option>
+                            <option value="-4">Tuần 41/2026 (05/10/2026 - 11/10/2026)</option>
+                            <option value="-5">Tuần 40/2026 (28/09/2026 - 04/10/2026)</option>
+                            <option value="-6">Tuần 39/2026 (21/09/2026 - 27/09/2026)</option>
+                            <option value="-7">Tuần 38/2026 (14/09/2026 - 20/09/2026)</option>
+                            <option value="-8">Tuần 37/2026 (07/09/2026 - 13/09/2026)</option>
+                        </select>
+                    </div>
+
+                    <div class="hidden xl:flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                        <button type="button" onclick="switchTimetableWeekOffset(-1)" id="btn-tt-week-prev1" class="px-2.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                            Tuần trước
                         </button>
-                        <button type="button" onclick="switchTimetableWeek('next1')" id="btn-tt-week-next1" class="px-3.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
-                            Tuần tới ({{ week_bounds.next_week_1[0] }} - {{ week_bounds.next_week_1[1] }})
+                        <button type="button" onclick="switchTimetableWeekOffset(0)" id="btn-tt-week-current" class="px-3 py-1.5 rounded-lg transition bg-white text-blue-700 shadow-sm font-bold">
+                            Tuần này
                         </button>
-                        <button type="button" onclick="switchTimetableWeek('next2')" id="btn-tt-week-next2" class="px-3.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
-                            Tuần kế tiếp ({{ week_bounds.next_week_2[0] }} - {{ week_bounds.next_week_2[1] }})
+                        <button type="button" onclick="switchTimetableWeekOffset(1)" id="btn-tt-week-next1" class="px-2.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                            Tuần tới
+                        </button>
+                        <button type="button" onclick="switchTimetableWeekOffset(2)" id="btn-tt-week-next2" class="px-2.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+                            Tuần +2
                         </button>
                     </div>
-                    <button type="button" onclick="navigateTimetableWeek(1)" class="p-2 border border-slate-200 hover:bg-slate-100 rounded-xl transition text-slate-600" title="Tuần sau">
+
+                    <button type="button" onclick="navigateTimetableWeek(1)" class="p-2 border border-slate-200 hover:bg-slate-100 rounded-xl transition text-slate-600" title="Tiến 1 tuần tới">
                         <i class="fa-solid fa-chevron-right text-xs"></i>
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2.5">
                     <button type="button" onclick="toggleScheduleViewMode('table')" class="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-table-list"></i> Xem dạng bảng chi tiết
+                        <i class="fa-solid fa-table-list"></i> Xem dạng bảng chi tiết (chia ngày)
                     </button>
                 </div>
             </div>
@@ -507,6 +529,26 @@
                         <label class="font-medium">Đến:</label>
                         <input type="date" id="schedule-end-date" onchange="filterSchedulesTable()" class="border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs outline-none bg-white">
                     </div>
+                    <!-- Chọn nhanh cả tuần cho bảng chi tiết -->
+                    <div class="flex items-center gap-1 text-xs">
+                        <select id="schedule-quick-week" onchange="applyWeekFilterToTable(this.value)" class="text-xs border border-blue-200 bg-blue-50/80 text-blue-800 font-semibold rounded-xl px-2.5 py-1.5 outline-none cursor-pointer">
+                            <option value="">-- Chọn tuần trong năm --</option>
+                            <option value="current">Tuần 45/2026 (02/11 - 08/11) [Cả tuần này]</option>
+                            <option value="prev1">Tuần 44/2026 (26/10 - 01/11)</option>
+                            <option value="prev2">Tuần 43/2026 (19/10 - 25/10)</option>
+                            <option value="prev3">Tuần 42/2026 (12/10 - 18/10)</option>
+                            <option value="prev4">Tuần 41/2026 (05/10 - 11/10)</option>
+                            <option value="prev5">Tuần 40/2026 (28/09 - 04/10)</option>
+                            <option value="prev6">Tuần 39/2026 (21/09 - 27/09)</option>
+                            <option value="prev7">Tuần 38/2026 (14/09 - 20/09)</option>
+                            <option value="next1">Tuần 46/2026 (09/11 - 15/11) [Tuần tới]</option>
+                            <option value="next2">Tuần 47/2026 (16/11 - 22/11) [Kế tiếp]</option>
+                            <option value="all">Toàn bộ lịch sử</option>
+                        </select>
+                        <button type="button" onclick="applyWeekFilterToTable('current')" class="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Xem trọn vẹn cả tuần này">
+                            <i class="fa-solid fa-calendar-week"></i> Cả tuần này
+                        </button>
+                    </div>
                     <select id="schedule-ca-filter" onchange="filterSchedulesTable()" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 outline-none bg-white">
                         <option value="">Tất cả ca làm</option>
                         <option value="1">Ca Sáng (07:00 - 11:30)</option>
@@ -536,7 +578,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="schedules-tbody">
-                        {% for sc in schedules %}
+                        {% for sc in schedules[:100] %}
                         <tr class="hover:bg-slate-50/70 transition schedule-row {% if sc.is_my_shift %}bg-blue-50/40 border-l-4 border-l-blue-500{% endif %}"
                             data-date="{{ sc.ngay_lam }}"
                             data-ca="{{ sc.ca_lam }}"
@@ -938,26 +980,59 @@
                 </p>
             </div>
 
-            <!-- Form chọn bộ lọc -->
-            <form method="GET" action="{{ url_for('admin.staff') }}" class="flex flex-wrap items-center gap-2.5">
+            <!-- Form chọn bộ lọc nâng cao -->
+            <form method="GET" action="{{ url_for('admin.staff') }}" class="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="tab" value="workstats">
                 
                 {% if work_stats and work_stats.can_view_all %}
                 <!-- Chọn chế độ xem (Chỉ ADMIN & LỄ TÂN) -->
-                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
-                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Phạm vi:</label>
-                    <select name="stats_scope" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500">
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1">Phạm vi:</label>
+                    <select name="stats_scope" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 outline-none focus:border-blue-500">
                         <option value="all" {% if work_stats.scope == 'all' %}selected{% endif %}>Toàn bộ nhân sự</option>
                         <option value="mine" {% if work_stats.scope == 'mine' %}selected{% endif %}>Chỉ cá nhân tôi</option>
                     </select>
                 </div>
 
                 {% if work_stats.scope == 'all' %}
+                <!-- Lọc theo Khoa / Chuyên khoa -->
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1"><i class="fa-solid fa-hospital text-blue-600 text-[10px]"></i> Khoa:</label>
+                    <select name="stats_dept_id" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 outline-none focus:border-blue-500 max-w-[150px]">
+                        <option value="">Tất cả khoa</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}" {% if work_stats and work_stats.selected_dept_id == d.id|string %}selected{% endif %}>{{ d.ten_khoa }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Lọc theo Vị trí / Vai trò -->
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1"><i class="fa-solid fa-user-doctor text-indigo-600 text-[10px]"></i> Vị trí:</label>
+                    <select name="stats_role" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 outline-none focus:border-blue-500">
+                        <option value="">Tất cả vị trí</option>
+                        <option value="BACSI" {% if work_stats and work_stats.selected_role == 'BACSI' %}selected{% endif %}>Bác sĩ</option>
+                        <option value="DUOCSI" {% if work_stats and work_stats.selected_role == 'DUOCSI' %}selected{% endif %}>Dược sĩ</option>
+                        <option value="KTV" {% if work_stats and work_stats.selected_role == 'KTV' %}selected{% endif %}>Kỹ thuật viên</option>
+                        <option value="LETAN" {% if work_stats and work_stats.selected_role == 'LETAN' %}selected{% endif %}>Lễ tân / Thu ngân</option>
+                    </select>
+                </div>
+
+                <!-- Ô tìm kiếm nhân viên -->
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 text-[10px] pl-1.5"></i>
+                    <input type="text" name="stats_search" value="{{ work_stats.search_keyword if work_stats else '' }}" placeholder="Tìm tên, mã NV..." 
+                           class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-blue-500 w-32">
+                    <button type="submit" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition">
+                        Lọc
+                    </button>
+                </div>
+
                 <!-- Lọc theo nhân viên cụ thể -->
-                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
-                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Nhân viên:</label>
-                    <select name="stats_staff_id" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500 max-w-[180px]">
-                        <option value="">Tất cả nhân viên</option>
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1">Nhân viên:</label>
+                    <select name="stats_staff_id" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 outline-none focus:border-blue-500 max-w-[150px]">
+                        <option value="">Tất cả</option>
                         {% for s in staff_list %}
                         <option value="{{ s.id }}" {% if request.args.get('stats_staff_id') == s.id|string %}selected{% endif %}>
                             {{ s.ho_ten }} ({{ s.vai_tro }})
@@ -969,9 +1044,9 @@
                 {% endif %}
 
                 <!-- Lọc theo tháng -->
-                <div class="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200">
-                    <label class="text-[11px] font-bold text-slate-500 px-1.5">Kỳ tháng:</label>
-                    <select name="stats_month" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 outline-none focus:border-blue-500">
+                <div class="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                    <label class="text-[11px] font-bold text-slate-500 px-1">Kỳ tháng:</label>
+                    <select name="stats_month" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700 outline-none focus:border-blue-500">
                         <option value="all" {% if work_stats and work_stats.selected_month == 'all' %}selected{% endif %}>Tất cả các tháng</option>
                         {% if work_stats and work_stats.available_months %}
                         {% for m in work_stats.available_months %}
@@ -981,7 +1056,7 @@
                     </select>
                 </div>
 
-                <a href="{{ url_for('admin.staff', tab='workstats') }}" class="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg font-semibold transition" title="Đặt lại bộ lọc">
+                <a href="{{ url_for('admin.staff', tab='workstats') }}" class="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg font-semibold transition" title="Đặt lại bộ lọc">
                     <i class="fa-solid fa-arrow-rotate-left"></i>
                 </a>
             </form>
@@ -2140,7 +2215,7 @@ async function handleCancelRegisteredShift(id, dateStr, status) {
 </script>
 <script id="staff-data-json" type="application/json">{{ staff_list|tojson|safe }}</script>
 <script id="all-rooms-data-json" type="application/json">{{ (all_rooms or rooms)|tojson|safe }}</script>
-<script id="schedules-data-json" type="application/json">{{ schedules|tojson|safe }}</script>
+<script id="schedules-data-json" type="application/json">{{ (lean_schedules or schedules)|tojson|safe }}</script>
 <script id="current-week-days-json" type="application/json">{{ current_week_days|tojson|safe }}</script>
 <script id="next-week-1-days-json" type="application/json">{{ next_week_1_days|tojson|safe }}</script>
 <script id="next-week-2-days-json" type="application/json">{{ next_week_2_days|tojson|safe }}</script>
@@ -2157,15 +2232,60 @@ window.nextWeek2Days = JSON.parse(document.getElementById('next-week-2-days-json
 window.shiftsInfo = JSON.parse(document.getElementById('shifts-info-json')?.textContent || '[]');
 window.currentUser = JSON.parse(document.getElementById('current-user-json')?.textContent || '{}');
 
+let currentTimetableWeekOffset = 0;
 let currentTimetableWeekType = 'current';
 let currentRegisterWeekType = 'next1';
 let registerSelectedShifts = new Set();
 
-function getWeekDaysArray(type) {
-    if (type === 'current') return window.currentWeekDays || [];
-    if (type === 'next1') return window.nextWeek1Days || [];
-    if (type === 'next2') return window.nextWeek2Days || [];
-    return window.currentWeekDays || [];
+// Tinh toan 7 ngay cua tuan linh hoat tu bat ky do lech tuan nao (ke ca qua khu)
+function getWeekDaysForOffset(offset) {
+    if (offset === 0 && window.currentWeekDays && window.currentWeekDays.length === 7) {
+        return window.currentWeekDays;
+    }
+    if (offset === 1 && window.nextWeek1Days && window.nextWeek1Days.length === 7) {
+        return window.nextWeek1Days;
+    }
+    if (offset === 2 && window.nextWeek2Days && window.nextWeek2Days.length === 7) {
+        return window.nextWeek2Days;
+    }
+    
+    let baseDateStr = window.currentWeekDays && window.currentWeekDays[0] ? window.currentWeekDays[0].date_str : '2026-11-02';
+    const baseParts = baseDateStr.split('-');
+    const baseMonday = new Date(parseInt(baseParts[0]), parseInt(baseParts[1]) - 1, parseInt(baseParts[2]));
+    baseMonday.setDate(baseMonday.getDate() + offset * 7);
+
+    const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(baseMonday);
+        d.setDate(d.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dStr = `${y}-${m}-${day}`;
+        days.push({
+            date_str: dStr,
+            day_name: dayNames[i],
+            display_date: `${day}/${m}`,
+            is_today: dStr === todayStr
+        });
+    }
+    return days;
+}
+
+function getWeekDaysArray(typeOrOffset) {
+    if (typeof typeOrOffset === 'number') {
+        return getWeekDaysForOffset(typeOrOffset);
+    }
+    if (typeOrOffset === 'current') return getWeekDaysForOffset(0);
+    if (typeOrOffset === 'next1') return getWeekDaysForOffset(1);
+    if (typeOrOffset === 'next2') return getWeekDaysForOffset(2);
+    if (typeOrOffset === 'prev1') return getWeekDaysForOffset(-1);
+    if (!isNaN(parseInt(typeOrOffset))) return getWeekDaysForOffset(parseInt(typeOrOffset));
+    return getWeekDaysForOffset(0);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2268,29 +2388,82 @@ function filterShiftHistoryTable() {
     });
 }
 
-// Chuyển tuần trong Thời khóa biểu (Tab 2)
-function switchTimetableWeek(weekType) {
-    currentTimetableWeekType = weekType;
-    ['current', 'next1', 'next2'].forEach(w => {
-        const btn = document.getElementById(`btn-tt-week-${w}`);
+// Chuyen tuan trong Thoi khoa bieu (Tab 2) voi do lech tuan bat ky
+function switchTimetableWeekOffset(offset) {
+    currentTimetableWeekOffset = offset;
+    currentTimetableWeekType = offset === 0 ? 'current' : (offset === 1 ? 'next1' : (offset === 2 ? 'next2' : String(offset)));
+
+    const selectEl = document.getElementById('timetable-week-select');
+    if (selectEl) selectEl.value = String(offset);
+
+    ['prev1', 'current', 'next1', 'next2'].forEach(key => {
+        const btn = document.getElementById(`btn-tt-week-${key}`);
         if (!btn) return;
-        if (w === weekType) {
-            btn.className = "px-3.5 py-1.5 rounded-lg transition bg-white text-blue-700 shadow-sm font-bold";
+        let match = false;
+        if (key === 'current' && offset === 0) match = true;
+        else if (key === 'next1' && offset === 1) match = true;
+        else if (key === 'next2' && offset === 2) match = true;
+        else if (key === 'prev1' && offset === -1) match = true;
+
+        if (match) {
+            btn.className = "px-3 py-1.5 rounded-lg transition bg-white text-blue-700 shadow-sm font-bold";
         } else {
-            btn.className = "px-3.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900";
+            btn.className = "px-2.5 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900";
         }
     });
-    renderTimetableGrid(weekType);
+
+    renderTimetableGrid(offset);
+}
+
+function switchTimetableWeek(weekType) {
+    let offset = 0;
+    if (weekType === 'current') offset = 0;
+    else if (weekType === 'next1') offset = 1;
+    else if (weekType === 'next2') offset = 2;
+    else if (weekType === 'prev1') offset = -1;
+    else if (!isNaN(parseInt(weekType))) offset = parseInt(weekType);
+    switchTimetableWeekOffset(offset);
 }
 
 function navigateTimetableWeek(direction) {
-    const order = ['current', 'next1', 'next2'];
-    let idx = order.indexOf(currentTimetableWeekType);
-    if (idx === -1) idx = 0;
-    idx += direction;
-    if (idx < 0) idx = 0;
-    if (idx >= order.length) idx = order.length - 1;
-    switchTimetableWeek(order[idx]);
+    let newOffset = currentTimetableWeekOffset + direction;
+    if (newOffset < -10) newOffset = -10;
+    if (newOffset > 3) newOffset = 3;
+    switchTimetableWeekOffset(newOffset);
+}
+
+// Chuyen che do xem bang chi tiet va loc theo ngay duoc chon tu luoi
+function viewDayDetailsInTable(dateStr) {
+    toggleScheduleViewMode('table');
+    const startInput = document.getElementById('schedule-start-date');
+    const endInput = document.getElementById('schedule-end-date');
+    if (startInput) startInput.value = dateStr;
+    if (endInput) endInput.value = dateStr;
+    filterSchedulesTable();
+}
+
+// Ap dung chon ca tuan nhanh cho bang danh sach chi tiet
+function applyWeekFilterToTable(weekKey) {
+    const startInput = document.getElementById('schedule-start-date');
+    const endInput = document.getElementById('schedule-end-date');
+    if (!weekKey || weekKey === 'all') {
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+        filterSchedulesTable();
+        return;
+    }
+    let offset = 0;
+    if (weekKey === 'current') offset = 0;
+    else if (weekKey.startsWith('prev')) offset = -parseInt(weekKey.replace('prev', ''));
+    else if (weekKey.startsWith('next')) offset = parseInt(weekKey.replace('next', ''));
+    else if (!isNaN(parseInt(weekKey))) offset = parseInt(weekKey);
+
+    const days = getWeekDaysForOffset(offset);
+    if (days && days.length === 7) {
+        if (startInput) startInput.value = days[0].date_str;
+        if (endInput) endInput.value = days[6].date_str;
+        filterSchedulesTable();
+    }
 }
 
 function toggleScheduleViewMode(mode) {
@@ -2332,9 +2505,12 @@ function renderTimetableGrid(weekType) {
     days.forEach(d => {
         const todayBadge = d.is_today ? `<span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] bg-amber-400 text-amber-950 font-bold uppercase shadow-xs">Hôm nay</span>` : '';
         html += `
-                <th class="py-3 px-2 border-r border-sky-500 last:border-r-0 text-center">
+                <th class="py-2.5 px-2 border-r border-sky-500 last:border-r-0 text-center">
                     <div class="text-xs uppercase font-extrabold">${d.day_name}</div>
                     <div class="text-[11px] font-normal text-sky-100">${d.display_date} ${todayBadge}</div>
+                    <button type="button" onclick="viewDayDetailsInTable('${d.date_str}')" class="mt-1 text-[10px] text-sky-100 hover:text-white bg-sky-700/60 hover:bg-sky-800 px-1.5 py-0.5 rounded transition inline-flex items-center gap-1 shadow-2xs" title="Xem danh sách chi tiết các ca của ngày này">
+                        <i class="fa-solid fa-list-ul text-[9px]"></i> Chi tiết ngày
+                    </button>
                 </th>`;
     });
 
@@ -3202,30 +3378,137 @@ function filterSchedulesTable() {
     const end = document.getElementById('schedule-end-date')?.value || '';
     const ca = document.getElementById('schedule-ca-filter')?.value || '';
     const onlyMine = document.getElementById('schedule-mine-filter')?.checked || false;
+    const tbody = document.getElementById('schedules-tbody');
+    if (!tbody || !window.schedulesData) return;
 
-    const rows = document.querySelectorAll('.schedule-row');
-    let visible = 0;
+    const allData = window.schedulesData || [];
+    const filtered = allData.filter(s => {
+        const rDate = s.ngay_lam || '';
+        const rCa = String(s.ca_lam || '');
+        const rMine = Boolean(s.is_my_shift);
 
-    rows.forEach(r => {
-        const rDate = r.getAttribute('data-date') || '';
-        const rCa = r.getAttribute('data-ca') || '';
-        const rMine = r.getAttribute('data-mine') === '1';
-
-        const matchStart = !start || rDate >= start;
-        const matchEnd = !end || rDate <= end;
-        const matchCa = !ca || rCa === ca;
-        const matchMine = !onlyMine || rMine;
-
-        if (matchStart && matchEnd && matchCa && matchMine) {
-            r.classList.remove('hidden');
-            visible++;
-        } else {
-            r.classList.add('hidden');
-        }
+        if (start && rDate < start) return false;
+        if (end && rDate > end) return false;
+        if (ca && rCa !== ca) return false;
+        if (onlyMine && !rMine) return false;
+        return true;
     });
 
     const counter = document.getElementById('schedules-visible-count');
-    if (counter) counter.innerText = visible;
+    if (counter) counter.innerText = filtered.length;
+
+    const displayList = filtered.slice(0, 100);
+    const dayOfWeekNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
+    let html = '';
+    let lastDate = null;
+
+    displayList.forEach(sc => {
+        const rDate = sc.ngay_lam || '';
+        if (rDate !== lastDate) {
+            lastDate = rDate;
+            const dObj = new Date(rDate + 'T00:00:00');
+            const dayOfWeek = isNaN(dObj.getDay()) ? '' : dayOfWeekNames[dObj.getDay()];
+            const parts = rDate.split('-');
+            const fmtDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : rDate;
+            const countForDay = filtered.filter(x => x.ngay_lam === rDate).length;
+
+            html += `
+            <tr class="schedule-day-group-header bg-gradient-to-r from-sky-50 via-slate-50 to-indigo-50/40 border-y-2 border-sky-200 text-sky-900 font-bold">
+                <td colspan="6" class="px-5 py-2">
+                    <div class="flex items-center justify-between">
+                        <span class="flex items-center gap-2 text-xs">
+                            <i class="fa-solid fa-calendar-day text-sky-600"></i>
+                            <span class="font-extrabold text-slate-800">${dayOfWeek}</span> • Ngày <span class="text-sky-700 font-extrabold">${fmtDate}</span>
+                        </span>
+                        <span class="day-shift-badge text-[11px] font-semibold text-sky-700 bg-white px-2 py-0.5 rounded-md border border-sky-200 shadow-2xs">
+                            ${countForDay} ca trực
+                        </span>
+                    </div>
+                </td>
+            </tr>`;
+        }
+
+        const caBadge = sc.ca_lam == 1
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : (sc.ca_lam == 2 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200');
+
+        let statusBadge = '';
+        const stt = sc.trang_thai_duyet || 'DA_DUYET';
+        if (stt === 'DA_DUYET') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-circle-check mr-0.5"></i> Đã duyệt</span>';
+        } else if (stt === 'CHO_DUYET') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-200"><i class="fa-solid fa-hourglass-half mr-0.5"></i> Chờ duyệt</span>';
+        } else if (stt === 'CHO_HUY') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-orange-50 text-orange-700 border border-orange-200"><i class="fa-solid fa-circle-exclamation mr-0.5"></i> Đang xin hủy ca</span>';
+        } else if (stt === 'DA_HUY') {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-500 border border-slate-200"><i class="fa-solid fa-ban mr-0.5"></i> Đã hủy ca</span>';
+        } else {
+            statusBadge = '<span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark mr-0.5"></i> Từ chối</span>';
+        }
+
+        const canManage = (window.currentUser && window.currentUser.vai_tro === 'ADMIN');
+        let actionBtns = '';
+        if (sc.can_request_cancel) {
+            actionBtns += `<button onclick="openCancelRequestModal('${sc.id}', '${sc.ngay_lam}', '${sc.ten_ca}')" class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-sm"><i class="fa-solid fa-paper-plane text-[10px]"></i> Xin hủy ca</button>`;
+        }
+        if (sc.is_my_shift && sc.is_next_2_weeks) {
+            actionBtns += `<button onclick="deleteSchedule('${sc.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 border border-rose-200"><i class="fa-solid fa-trash-can text-[10px]"></i> Hủy lịch</button>`;
+        }
+        if (canManage && !sc.is_past) {
+            actionBtns += `<button type="button" onclick="openAssignRoomModal(${sc.nhan_vien_id || sc.staff_id}, '${(sc.ten_bac_si || '').replace(/'/g, "\\'")}', ${sc.phong_kham_id || 'null'}, '${sc.ngay_lam}', ${sc.ca_lam})" class="px-2 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 border border-sky-200" title="Phân phòng khám"><i class="fa-solid fa-door-open text-[10px]"></i> Phân phòng</button>`;
+            actionBtns += `<button onclick="editScheduleById('${sc.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa ca"><i class="fa-solid fa-pen text-xs"></i></button>`;
+            actionBtns += `<button onclick="deleteSchedule('${sc.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Xóa ca"><i class="fa-solid fa-trash-can text-xs"></i></button>`;
+        }
+
+        html += `
+        <tr class="hover:bg-slate-50/70 transition schedule-row ${sc.is_my_shift ? 'bg-blue-50/40 border-l-4 border-l-blue-500' : ''}" data-date="${sc.ngay_lam}" data-ca="${sc.ca_lam}" data-mine="${sc.is_my_shift ? '1' : '0'}">
+            <td class="px-5 py-3.5">
+                <div class="font-bold text-slate-800">${sc.ngay_lam}</div>
+                <div class="text-[11px] text-slate-400">
+                    ${sc.is_current_week ? '<span class="text-amber-600 font-semibold"><i class="fa-solid fa-lock text-[10px] mr-0.5"></i> Tuần hiện tại</span>' : (sc.is_next_2_weeks ? '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-calendar-check text-[10px] mr-0.5"></i> 2 tuần tới (Mở)</span>' : '<span class="text-slate-400">Đã qua</span>')}
+                </div>
+            </td>
+            <td class="px-5 py-3.5">
+                <div class="font-semibold text-slate-800 flex items-center gap-1.5">
+                    <span>${sc.ten_bac_si || sc.ten_nhan_vien}</span>
+                    ${sc.is_my_shift ? '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">Lịch của bạn</span>' : ''}
+                </div>
+                <div class="text-[11px] text-slate-500">${sc.ten_vai_tro || 'Nhân viên y tế'} • ${sc.ten_khoa || 'Toàn viện'}</div>
+            </td>
+            <td class="px-5 py-3.5">
+                <span class="px-2 py-1 text-[11px] font-semibold rounded-lg ${caBadge}">${sc.ten_ca || ('Ca ' + sc.ca_lam)}</span>
+            </td>
+            <td class="px-5 py-3.5">
+                <div class="font-medium text-slate-700">${sc.ten_phong || 'Khu vực tiếp đón / Khoa'}</div>
+                ${sc.vi_tri_tang ? `<div class="text-[11px] text-slate-400">${sc.vi_tri_tang}</div>` : ''}
+            </td>
+            <td class="px-5 py-3.5">${statusBadge}</td>
+            <td class="px-5 py-3.5 text-right"><div class="flex items-center justify-end gap-1.5">${actionBtns}</div></td>
+        </tr>`;
+    });
+
+    if (filtered.length > 100) {
+        html += `
+        <tr>
+            <td colspan="6" class="px-5 py-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200 font-medium">
+                <i class="fa-solid fa-circle-info text-blue-500 mr-1.5"></i>
+                Đang hiển thị 100 ca trực đầu tiên (Tổng tìm thấy: <strong>${filtered.length}</strong> ca). Vui lòng chọn lọc theo ngày hoặc ca cụ thể để xem chi tiết.
+            </td>
+        </tr>`;
+    }
+
+    if (filtered.length === 0) {
+        html = `
+        <tr>
+            <td colspan="6" class="px-5 py-10 text-center text-slate-400">
+                <i class="fa-solid fa-calendar-xmark text-2xl block mb-2"></i>
+                Không tìm thấy ca làm việc nào phù hợp với bộ lọc
+            </td>
+        </tr>`;
+    }
+
+    tbody.innerHTML = html;
 }
 
 // Phân ca trực (Admin)

@@ -70,7 +70,7 @@ def book_appointment():
     return jsonify({'success': False, 'message': result}), 400
 
 @api_bp.route('/appointment/assign-doctor', methods=['POST'])
-@roles_required('ADMIN', 'BACSI', 'LETAN')
+@roles_required('ADMIN', 'LETAN')
 def assign_doctor():
     """API phân công bác sĩ phụ trách lịch hẹn hoặc bác sĩ tự nhận ca khám."""
     data = request.get_json() or {}
@@ -141,7 +141,7 @@ def appointment_time_slots():
     return jsonify(data)
 
 @api_bp.route('/appointment/update-status', methods=['POST'])
-@roles_required('ADMIN', 'BACSI', 'LETAN')
+@roles_required('ADMIN', 'LETAN')
 def update_appointment_status():
     """API cập nhật trạng thái lịch hẹn khám."""
     data = request.get_json() or {}
@@ -167,8 +167,8 @@ def reschedule_appointment():
     ly_do = data.get('ly_do') or data.get('reason')
     new_doc_id = data.get('bac_si_id') or data.get('doctor_id')
     user = session.get('user')
-    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI'):
-        deny()
+    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN'):
+        deny(403, 'Chỉ bệnh nhân hoặc tiếp tân/quản trị viên mới có quyền hủy lịch hẹn!')
     appointment = AppointmentModel.get_by_id(appointment_id) if appointment_id else None
     if appointment_id and not appointment:
         deny(404, 'Appointment not found')
@@ -192,8 +192,8 @@ def cancel_appointment():
     appointment_id = data.get('appointment_id') or data.get('id') or data.get('ma_lich_hen')
     reason = data.get('reason') or data.get('ly_do') or data.get('ly_do_huy')
     user = session.get('user')
-    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI'):
-        deny()
+    if user['vai_tro'] not in ('BENHNHAN', 'ADMIN', 'LETAN'):
+        deny(403, 'Chỉ bệnh nhân hoặc tiếp tân/quản trị viên mới có quyền hủy lịch hẹn!')
     appointment = AppointmentModel.get_by_id(appointment_id) if appointment_id else None
     if appointment_id and not appointment:
         deny(404, 'Appointment not found')
@@ -377,6 +377,15 @@ def save_emr_examination():
     if not patient_id:
         return jsonify({'success': False, 'message': 'Thiếu ID bệnh nhân!'}), 400
 
+    if reexam_date and str(reexam_date).strip():
+        from datetime import timedelta
+        min_reexam = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
+        if str(reexam_date)[:10] < min_reexam:
+            return jsonify(success=False, message=f'Ngày hẹn tái khám phải cách ít nhất 2 ngày so với ngày hiện tại (sớm nhất từ ngày {min_reexam})!'), 400
+    else:
+        reexam_date = None
+        reexam_time = None
+
     success, result = MedicalRecordModel.save_examination(
         patient_id=patient_id,
         doctor_id=doctor_id,
@@ -495,6 +504,15 @@ def finish_emr_examination():
 
     if not record_id:
         return jsonify({'success': False, 'message': 'Thiếu ID phiếu khám bệnh cần hoàn tất!'}), 400
+
+    if reexam_date and str(reexam_date).strip():
+        from datetime import timedelta
+        min_reexam = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
+        if str(reexam_date)[:10] < min_reexam:
+            return jsonify(success=False, message=f'Ngày hẹn tái khám phải cách ít nhất 2 ngày so với ngày hiện tại (sớm nhất từ ngày {min_reexam})!'), 400
+    else:
+        reexam_date = None
+        reexam_time = None
 
     user = session.get('user')
     success, msg = MedicalRecordModel.finish_examination(
@@ -1734,7 +1752,7 @@ def account_change_role_alias():
 
 
 @api_bp.route('/appointment/status', methods=['POST'])
-@roles_required('ADMIN', 'BACSI', 'LETAN')
+@roles_required('ADMIN', 'LETAN')
 def appointment_status_alias():
     """Alias: /api/appointment/status → cập nhật trạng thái lịch hẹn từ admin UI."""
     data = request.get_json() or {}

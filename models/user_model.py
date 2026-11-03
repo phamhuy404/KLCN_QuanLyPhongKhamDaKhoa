@@ -114,7 +114,7 @@ class UserModel:
 
                 SELECT nv.id AS staff_id, nv.ma_nhan_vien, nv.ho_ten, nv.chuc_vu, nv.email, nv.trang_thai AS staff_status,
 
-                       bs.id AS bac_si_id, bs.hoc_vi
+                       bs.id AS bac_si_id, bs.hoc_vi, bs.chuyen_khoa_id, bs.phong_kham_chinh_id
 
                 FROM nhan_vien nv
 
@@ -146,7 +146,11 @@ class UserModel:
 
                     'bac_si_id': staff_row['bac_si_id'],
 
-                    'hoc_vi': staff_row['hoc_vi']
+                    'hoc_vi': staff_row['hoc_vi'],
+
+                    'chuyen_khoa_id': staff_row.get('chuyen_khoa_id'),
+
+                    'phong_kham_chinh_id': staff_row.get('phong_kham_chinh_id')
 
                 })
 
