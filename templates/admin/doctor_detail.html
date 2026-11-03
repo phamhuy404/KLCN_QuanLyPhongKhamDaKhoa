@@ -131,8 +131,8 @@
                         {{ "{:,.0f}".format(doctor.gia_kham_goc or doctor.gia_kham or 150000) }} đ
                     </div>
                     <div class="text-[10px] space-y-0.5 mt-0.5">
-                        <span class="text-teal-700 block font-medium">BHYT trả (80%): -{{ "{:,.0f}".format(doctor.bhyt_ho_tro or (doctor.gia_kham or 150000)*0.8) }} đ</span>
-                        <span class="text-emerald-700 block font-bold">BN trả (20%): {{ "{:,.0f}".format(doctor.gia_kham_bhyt or (doctor.gia_kham or 150000)*0.2) }} đ</span>
+                        <span class="text-teal-700 block font-medium">Giảm BHYT mô phỏng: -{{ "{:,.0f}".format([doctor.gia_kham or 0, insurance_reduction]|min) }} đ</span>
+                        <span class="text-emerald-700 block font-bold">BN phải trả: {{ "{:,.0f}".format([0, (doctor.gia_kham or 0)-insurance_reduction]|max) }} đ</span>
                     </div>
                 </div>
                 <div class="w-px h-10 bg-slate-200 mx-1"></div>
@@ -687,23 +687,22 @@
 
                 <div class="grid grid-cols-2 gap-2.5 pt-1">
                     <div class="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-800">
-                        <span class="text-[11px] text-teal-700 block font-semibold">BHYT hỗ trợ (80%)</span>
+                        <span class="text-[11px] text-teal-700 block font-semibold">Giảm BHYT mô phỏng</span>
                         <span class="font-mono font-bold text-sm text-teal-800" id="doctor_price_bhyt_support">
-                            - {{ "{:,.0f}".format(doctor.bhyt_ho_tro or (doctor.gia_kham or 150000)*0.8) }} đ
+                            - {{ "{:,.0f}".format([doctor.gia_kham or 0, insurance_reduction]|min) }} đ
                         </span>
                     </div>
 
                     <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-                        <span class="text-[11px] text-emerald-700 block font-semibold">Bệnh nhân trả (20%)</span>
+                        <span class="text-[11px] text-emerald-700 block font-semibold">Bệnh nhân phải trả</span>
                         <span class="font-mono font-bold text-sm text-emerald-700" id="doctor_price_copay">
-                            {{ "{:,.0f}".format(doctor.gia_kham_bhyt or (doctor.gia_kham or 150000)*0.2) }} đ
+                            {{ "{:,.0f}".format([0, (doctor.gia_kham or 0)-insurance_reduction]|max) }} đ
                         </span>
                     </div>
                 </div>
 
                 <p class="text-[11px] text-slate-500 italic leading-relaxed">
-                    Bệnh nhân không có BHYT sẽ thanh toán 100% giá gốc. Bệnh nhân có thẻ BHYT hợp lệ được quỹ BHYT chi trả 80% và chỉ đồng chi trả 20%.
-                </p>
+                    BHYT là mức giảm mô phỏng cố định do Admin cấu hình, áp dụng một lần trên tổng hóa đơn. Không có BHYT trả giá gốc.</p>
             </div>
 
             <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2.5">
@@ -733,8 +732,8 @@ function closeEditDoctorPriceModal() {
 }
 function recalcDoctorPriceModal(val) {
     const v = parseFloat(val) || 0;
-    const support = v * 0.8;
-    const copay = v * 0.2;
+    const support = Math.min(v, {{ insurance_reduction|float|tojson }});
+    const copay = Math.max(0, v - support);
     const sEl = document.getElementById('doctor_price_bhyt_support');
     const cEl = document.getElementById('doctor_price_copay');
     if (sEl) sEl.innerText = '- ' + support.toLocaleString('vi-VN') + ' đ';

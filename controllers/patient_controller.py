@@ -19,6 +19,16 @@ from models.user_model import UserModel
 patient_bp = Blueprint('patient', __name__, url_prefix='/patient')
 
 
+@patient_bp.route('/invoices/<int:invoice_id>/preview')
+@login_required
+def invoice_preview(invoice_id):
+    from flask import abort
+    invoice = BillingModel.get_invoice(invoice_id)
+    if not invoice or invoice['benh_nhan_id'] != current_patient_id():
+        abort(404)
+    return render_template('invoice_preview.html', invoice=invoice)
+
+
 
 @patient_bp.before_request
 
@@ -211,9 +221,13 @@ def booking():
         gio_hen = request.form.get('gio_hen')
 
         ly_do = request.form.get('ly_do', '')
-        exam_service_name = request.form.get('exam_service_name', '').strip()
-        if exam_service_name and f"[Loại khám: {exam_service_name}]" not in ly_do:
-            ly_do = f"[Loại khám: {exam_service_name}] {ly_do}".strip()
+        from core.exam_services import appointment_reason
+        from core.scheduling import CalendarError
+        try:
+            ly_do = appointment_reason(request.form.get('exam_service_id'), chuyen_khoa_id, ly_do)
+        except CalendarError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('patient.booking'))
 
 
 

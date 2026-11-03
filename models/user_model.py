@@ -5,6 +5,7 @@ from core.database import get_db
 from core.security import hash_password, verify_password
 
 from core.audit import AuditLogger
+from core.billing_policy import invoice_totals
 
 from core.scheduling import serialized
 
@@ -2559,9 +2560,9 @@ class UserModel:
 
         doctor['gia_kham_goc'] = gia_goc
 
-        doctor['bhyt_ho_tro'] = gia_goc * 0.8
+        doctor['bhyt_ho_tro'] = float(invoice_totals(gia_goc, True)['tien_bhyt'])
 
-        doctor['gia_kham_bhyt'] = gia_goc * 0.2
+        doctor['gia_kham_bhyt'] = float(invoice_totals(gia_goc, True)['thanh_tien'])
 
 
 
@@ -2877,9 +2878,9 @@ class UserModel:
 
         res['gia_kham_goc'] = gia_goc
 
-        res['bhyt_ho_tro'] = gia_goc * 0.8
+        res['bhyt_ho_tro'] = float(invoice_totals(gia_goc, True)['tien_bhyt'])
 
-        res['gia_kham_bhyt'] = gia_goc * 0.2
+        res['gia_kham_bhyt'] = float(invoice_totals(gia_goc, True)['thanh_tien'])
 
         return res
 

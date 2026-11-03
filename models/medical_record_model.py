@@ -5,7 +5,7 @@ from core.emr_workflow import resolve, ensure_results_ready, validated_medicines
 from core.clinical_data import clinical_value, published_results
 from core.medical_media import protected_image_value
 from core.audit import AuditLogger
-from core.billing_policy import consultation_price, exam_insurance_percent, money
+from core.billing_policy import consultation_price, invoice_totals, money
 
 CLINICAL_DIRECT_SERVICE_TYPES = ('Khám bệnh', 'Khám chuyên khoa', 'Thủ thuật')
 
@@ -601,14 +601,18 @@ class MedicalRecordModel:
                 raise CalendarError('Chỉ định CLS bị trùng.')
 
             selected_services = []
+            cursor.execute('SELECT chuyen_khoa_id FROM bac_si WHERE id=?', (valid_doctor_id,))
+            service_department = cursor.fetchone()['chuyen_khoa_id']
             for identifier in lab_service_ids:
-                cursor.execute('SELECT id, ten_dich_vu, loai_dich_vu, don_gia, bhyt_chi_tra_pt FROM dich_vu WHERE id=?', (identifier,))
+                cursor.execute('SELECT id, chuyen_khoa_id, ten_dich_vu, loai_dich_vu, don_gia FROM dich_vu WHERE id=? AND trang_thai=1', (identifier,))
                 dv_row = cursor.fetchone()
                 if not dv_row:
                     raise CalendarError('Dịch vụ CLS không tồn tại.')
+                if dv_row['loai_dich_vu'] in CLINICAL_DIRECT_SERVICE_TYPES and dv_row['chuyen_khoa_id'] not in (None, service_department):
+                    raise CalendarError('Dịch vụ khám/thủ thuật không thuộc khoa đang khám. Vui lòng chuyển đến khoa phù hợp.')
                 selected_services.append(dict(dv_row))
 
-            has_cls = len(selected_services) > 0
+            has_cls = any(s['loai_dich_vu'] not in CLINICAL_DIRECT_SERVICE_TYPES for s in selected_services)
             initial_pk_status = 'Chờ kết quả CLS' if has_cls else 'Hoàn thành'
             appt_status = 'Chờ kết quả CLS' if has_cls else 'Đã khám'
 
@@ -634,10 +638,16 @@ class MedicalRecordModel:
             p_check = cursor.fetchone()
             has_bhyt = bool(p_check and p_check.get('bhyt') and str(p_check.get('bhyt')).strip())
 
-            tong_tien_kham = consultation_price(cursor, valid_doctor_id)
-            tien_bhyt = (tong_tien_kham * exam_insurance_percent()).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) if has_bhyt else Decimal(0)
+            from core.exam_services import visit_exam
+            primary_exam = visit_exam(cursor, phieu_kham_id, valid_doctor_id)
+            if primary_exam and primary_exam['id'] in lab_service_ids:
+                raise CalendarError('Dịch vụ khám chính đã có trong lịch hẹn; không được tính phí hai lần.')
+            tong_tien_kham = money(primary_exam['don_gia']) if primary_exam else consultation_price(cursor, valid_doctor_id)
+            tien_bhyt = Decimal(0)
+            exam_label = primary_exam['ten_dich_vu'] if primary_exam else 'Khám Chuyên Khoa Ngoại Trú'
+            exam_label = exam_label[:230] + (' [Có BHYT]' if has_bhyt else ' [Không BHYT]')
             invoice_items = [
-                ('Khám bệnh', 'Khám Chuyên Khoa Ngoại Trú', phieu_kham_id, 1, tong_tien_kham, tong_tien_kham)
+                ('Khám bệnh', exam_label, phieu_kham_id, 1, tong_tien_kham, tong_tien_kham)
             ]
 
             if selected_services:
@@ -657,21 +667,17 @@ class MedicalRecordModel:
                 for dv_row in selected_services:
                     s_id = dv_row['id']
                     dg = money(dv_row['don_gia'])
-                    bh_percent = money(dv_row['bhyt_chi_tra_pt'])
-                    if bh_percent > 100:
-                        raise CalendarError('Ty le BHYT dich vu khong hop le.')
-                    bh_pt = bh_percent / Decimal(100) if has_bhyt else Decimal(0)
                     tong_tien_kham += dg
-                    tien_bhyt += (dg * bh_pt).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                     raw_loai = dv_row.get('loai_dich_vu') or 'Cận lâm sàng'
                     item_kind = raw_loai if raw_loai != 'Khám bệnh' else 'Khám chuyên khoa'
                     invoice_items.append((item_kind, dv_row['ten_dich_vu'], s_id, 1, dg, dg))
 
                     assigned_cls_names.append(dv_row['ten_dich_vu'])
+                    is_direct = dv_row['loai_dich_vu'] in CLINICAL_DIRECT_SERVICE_TYPES
                     cursor.execute('''
                         INSERT INTO chi_tiet_chi_dinh (phieu_chi_dinh_id, dich_vu_id, ket_qua, trang_thai)
-                        VALUES (?, ?, NULL, ?)
-                    ''', (chi_dinh_id, s_id, 'Chờ thực hiện'))
+                        VALUES (?, ?, ?, ?)
+                    ''', (chi_dinh_id, s_id, 'Đã thực hiện tại phòng khám' if is_direct else None, 'Đã duyệt' if is_direct else 'Chờ thực hiện'))
 
                 if has_cls:
                     cursor.execute('SELECT tai_khoan_id, ho_ten FROM benh_nhan WHERE id = ?', (patient_id,))
@@ -714,7 +720,8 @@ class MedicalRecordModel:
             cursor.execute('SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM hoa_don')
             hd_next = cursor.fetchone()['next_id']
             ma_hd = f"HD2609{str(hd_next).zfill(3)}"
-            thanh_tien = tong_tien_kham - tien_bhyt
+            totals = invoice_totals(tong_tien_kham, has_bhyt)
+            tien_bhyt, thanh_tien = totals['tien_bhyt'], totals['thanh_tien']
             cursor.execute('''
                 INSERT INTO hoa_don (ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, thanh_tien, trang_thai)
                 VALUES (?, ?, ?, ?, ?, ?, ?)

@@ -36,7 +36,12 @@ def fetch_invoice(cursor, identifier, lock=False):
     return dict(rows[0]) if rows else None
 
 
-def consultation_price(cursor, doctor_id):
+def consultation_price(cursor, doctor_id, record_id=None):
+    if record_id is not None:
+        from core.exam_services import visit_exam
+        service = visit_exam(cursor, record_id, doctor_id)
+        if service:
+            return money(service['don_gia'])
     cursor.execute('''SELECT bs.gia_kham, ck.gia_kham_mac_dinh
         FROM bac_si bs JOIN chuyen_khoa ck ON ck.id=bs.chuyen_khoa_id WHERE bs.id=?''', (doctor_id,))
     row = cursor.fetchone()
@@ -45,12 +50,29 @@ def consultation_price(cursor, doctor_id):
     return money(row['gia_kham'] if row['gia_kham'] is not None else row['gia_kham_mac_dinh'])
 
 
-def exam_insurance_percent():
-    import config
-    percent = money(config.EXAM_INSURANCE_PERCENT)
-    if percent > 100:
-        raise CalendarError('Tỷ lệ BHYT khám phải từ 0 đến 100.')
-    return percent / Decimal(100)
+def insurance_reduction():
+    """Fixed VND simulation, configured by Admin; never a coverage percentage."""
+    from models.system_setting_model import SystemSettingModel
+    return money(SystemSettingModel.get_settings().get('insurance_fixed_reduction', 50000))
+
+
+def invoice_totals(gross, has_insurance, reduction=None):
+    gross = money(gross)
+    configured = insurance_reduction() if reduction is None else money(reduction)
+    applied = min(gross, configured) if has_insurance else Decimal(0)
+    return {'tong_tien': gross, 'tien_bhyt': applied, 'thanh_tien': gross - applied}
+
+
+def invoice_has_insurance(items, legacy_card='', insurance=0):
+    """New exam lines preserve the billed patient type, including a zero reduction."""
+    for item in items:
+        if item.get('loai_khoan_thu') == 'Khám bệnh':
+            name = str(item.get('ten_khoan_thu') or '')
+            if name.endswith(' [Có BHYT]'):
+                return True
+            if name.endswith(' [Không BHYT]'):
+                return False
+    return bool(str(legacy_card or '').strip() or money(insurance) > 0)
 
 
 def validate_invoice(cursor, bill, check_sources=True):
@@ -85,7 +107,7 @@ def validate_invoice(cursor, bill, check_sources=True):
         elif kind == 'Khám bệnh':
             if reference != bill['phieu_kham_id'] or qty != 1:
                 raise CalendarError('Khoản khám không thuộc phiếu khám hoặc bị nhân số lượng.')
-            configured = consultation_price(cursor, visit['bac_si_id'])
+            configured = consultation_price(cursor, visit['bac_si_id'], bill['phieu_kham_id'])
         else:
             cursor.execute('SELECT don_gia FROM dich_vu WHERE id=?', (reference,))
             source = cursor.fetchone()

@@ -2,7 +2,7 @@ from datetime import datetime
 from core.database import get_db
 from core.scheduling import serialized, CalendarError, integer
 from core.pharmacy_safety import invoices, check_bill, APPROVED, HOSPITAL
-from core.billing_policy import fetch_invoice, validate_invoice, money, CASHIER_ROLES, PAYMENT_METHODS, PAID, UNPAID
+from core.billing_policy import fetch_invoice, validate_invoice, money, invoice_has_insurance, CASHIER_ROLES, PAYMENT_METHODS, PAID, UNPAID
 from flask import has_request_context
 from core.security import refresh_session_user
 
@@ -44,9 +44,9 @@ class BillingModel:
                 bill['tong'] = tong
                 bill['bhyt_chi_tra'] = bhyt
                 bill['thuc_thu'] = thuc_thu
-                bill['bhyt_percent'] = round((bhyt / tong) * 100) if tong > 0 and bhyt > 0 else 0
+
                 bill['ma_the_bhyt'] = str(bn.get('bhyt') or '').strip() if bn else ''
-                bill['has_bhyt'] = bool(bill['ma_the_bhyt'] and bhyt > 0)
+                bill['has_bhyt'] = invoice_has_insurance(bill['chi_tiet'], bill['ma_the_bhyt'], bhyt)
             return bill
         except CalendarError:
             return None
@@ -124,12 +124,12 @@ class BillingModel:
             # Gán sẵn các biến số phục vụ hiển thị trực tiếp mà không cần FrontEnd tính toán lại
             the_bhyt = str(inv.get('bhyt') or '').strip()
             inv['ma_the_bhyt'] = the_bhyt
-            inv['has_bhyt'] = bool(the_bhyt and inv['tien_bhyt'] > 0)
+            inv['has_bhyt'] = bool(the_bhyt or inv['tien_bhyt'] > 0)
             inv['tong'] = inv['tong_tien']
             inv['bhyt'] = inv['tien_bhyt']
             inv['thuc_thu'] = inv['thanh_tien']
             inv['patient_id'] = inv['benh_nhan_id']
-            inv['bhyt_percent'] = round((inv['tien_bhyt'] / inv['tong_tien']) * 100) if inv['tong_tien'] > 0 and inv['tien_bhyt'] > 0 else 0
+
             inv['phuong_thuc'] = inv.get('hinh_thuc_thanh_toan') or 'Tiền mặt'
             inv['status'] = {'Đã thanh toán':'paid', 'Chưa thanh toán':'pending', 'Đã hủy':'canceled'}.get(inv['trang_thai'], 'unknown')
 
@@ -144,6 +144,7 @@ class BillingModel:
                 item['don_gia'] = float(item['don_gia'] or 0)
                 item['thanh_tien'] = float(item['thanh_tien'] or 0)
             inv['chi_tiet'] = cts
+            inv['has_bhyt'] = invoice_has_insurance(cts, the_bhyt, inv['tien_bhyt'])
 
             if cts:
                 items_str = []

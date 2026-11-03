@@ -207,17 +207,16 @@
                                                class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 font-mono font-bold text-slate-800">
                                     </div>
                                     <div class="p-2.5 rounded-xl bg-teal-50/70 border border-teal-200 text-teal-800">
-                                        <span class="text-[11px] text-teal-700 block font-semibold">BHYT hỗ trợ (80%)</span>
-                                        <span class="font-mono font-bold text-sm text-teal-800" id="profile_bhyt_support">- {{ "{:,.0f}".format(staff.bhyt_ho_tro or 120000) }} đ</span>
+                                        <span class="text-[11px] text-teal-700 block font-semibold">Giảm BHYT mô phỏng</span>
+                                        <span class="font-mono font-bold text-sm text-teal-800" id="profile_bhyt_support">- {{ "{:,.0f}".format([staff.gia_kham_goc or 0, insurance_reduction]|min) }} đ</span>
                                     </div>
                                     <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-800">
-                                        <span class="text-[11px] text-emerald-700 block font-semibold">Bệnh nhân BHYT trả (20%)</span>
-                                        <span class="font-mono font-bold text-sm text-emerald-700" id="profile_copay">{{ "{:,.0f}".format(staff.gia_kham_bhyt or 30000) }} đ</span>
+                                        <span class="text-[11px] text-emerald-700 block font-semibold">Bệnh nhân BHYT phải trả</span>
+                                        <span class="font-mono font-bold text-sm text-emerald-700" id="profile_copay">{{ "{:,.0f}".format([0, (staff.gia_kham_goc or 0)-insurance_reduction]|max) }} đ</span>
                                     </div>
                                 </div>
                                 <p class="text-[11px] text-slate-500 italic mt-1">
-                                    Bệnh nhân không có thẻ BHYT sẽ thanh toán 100% giá gốc niêm yết. Bệnh nhân có thẻ BHYT hợp lệ được quỹ BHYT chi trả 80%, chỉ đồng chi trả 20%.
-                                </p>
+                                    BHYT là mức giảm mô phỏng cố định do Admin cấu hình, áp dụng một lần trên tổng hóa đơn. Không có BHYT trả giá gốc.</p>
                             </div>
                         </div>
                     </div>
@@ -273,8 +272,8 @@
 <script>
 function recalcProfileBhyt(val) {
     const v = parseFloat(val) || 0;
-    const support = v * 0.8;
-    const copay = v * 0.2;
+    const support = Math.min(v, {{ insurance_reduction|float|tojson }});
+    const copay = Math.max(0, v - support);
     const sEl = document.getElementById('profile_bhyt_support');
     const cEl = document.getElementById('profile_copay');
     if (sEl) sEl.innerText = '- ' + support.toLocaleString('vi-VN') + ' đ';

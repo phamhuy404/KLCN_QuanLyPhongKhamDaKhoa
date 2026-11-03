@@ -28,7 +28,7 @@
                 Quản Lý Viện Phí, BHYT và Thu Ngân Phòng Khám
             </h2>
             <p class="text-xs text-slate-500 mt-1">
-                Thanh toán viện phí, quyết toán chi phí khám chữa bệnh BHYT, xuất hóa đơn điện tử và xác nhận thu tiền thủ công sau khi đối soát.
+                Thanh toán viện phí, giảm BHYT mô phỏng, xem/in tạm tính và hóa đơn và xác nhận thu tiền thủ công sau khi đối soát.
             </p>
         </div>
 
@@ -56,7 +56,7 @@
                 <i class="fa-solid fa-id-card"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">BHYT quyết toán</span>
+                <span class="text-xs text-slate-400 font-medium">Giảm BHYT mô phỏng</span>
                 <h4 class="text-xl font-bold text-slate-900 mt-0.5">{{ "{:,.0f}".format(stats.tong_bhyt if stats else 0) }} <span class="text-xs font-normal text-teal-600 font-semibold">đ</span></h4>
             </div>
         </div>
@@ -126,7 +126,7 @@
                         <th class="py-3 px-4">Bệnh Nhân</th>
                         <th class="py-3 px-4">Khoản Mục Chi Phí (Khám + Cận lâm sàng + Thuốc)</th>
                         <th class="py-3 px-4 text-right">Tổng Chi Phí<br><span class="text-[10px] text-slate-400 font-normal">(Chưa trừ BHYT)</span></th>
-                        <th class="py-3 px-4 text-right">BHYT Hoàn Trả<br><span class="text-[10px] text-emerald-600 font-bold">(Được giảm trừ)</span></th>
+                        <th class="py-3 px-4 text-right">Giảm BHYT mô phỏng<br><span class="text-[10px] text-emerald-600 font-bold">(Được giảm trừ)</span></th>
                         <th class="py-3 px-4 text-right">Người Bệnh Trả<br><span class="text-[10px] text-slate-900 font-bold">(Thực thu)</span></th>
                         <th class="py-3 px-4">Hình Thức</th>
                         <th class="py-3 px-4 text-center">Trạng Thái</th>
@@ -182,7 +182,7 @@
                 </div>
                 <div class="flex justify-between items-center text-emerald-700" id="pay-bhyt-row">
                     <span class="font-semibold flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-heart text-emerald-600 text-xs"></i> 2. Quỹ BHYT hoàn trả / chi trả:
+                        <i class="fa-solid fa-shield-heart text-emerald-600 text-xs"></i> 2. Giảm BHYT mô phỏng (một lần):
                     </span>
                     <span class="font-mono font-bold text-sm" id="pay-bhyt">—</span>
                 </div>
@@ -375,144 +375,7 @@
     }
 
     function printInvoiceReceipt() {
-        if (!activeInvoiceId) return;
-        const inv = invoices.find(x => x.id === activeInvoiceId);
-        if (!inv) return;
-
-        let rowsHtml = '';
-        if (inv.chi_tiet && inv.chi_tiet.length > 0) {
-            inv.chi_tiet.forEach((item, idx) => {
-                rowsHtml += `
-                    <tr>
-                        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">${idx + 1}</td>
-                        <td style="border:1px solid #cbd5e1;padding:6px;">${item.ten_khoan_thu}</td>
-                        <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">${item.so_luong}</td>
-                        <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;">${(item.don_gia || 0).toLocaleString('vi-VN')} đ</td>
-                        <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-weight:bold;">${item.thanh_tien.toLocaleString('vi-VN')} đ</td>
-                    </tr>
-                `;
-            });
-        } else {
-            rowsHtml = `
-                <tr>
-                    <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">1</td>
-                    <td style="border:1px solid #cbd5e1;padding:6px;">${inv.khoan_muc || 'Chi phí khám chữa bệnh trọn gói'}</td>
-                    <td style="border:1px solid #cbd5e1;padding:6px;text-align:center;">1</td>
-                    <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;">${inv.tong.toLocaleString('vi-VN')} đ</td>
-                    <td style="border:1px solid #cbd5e1;padding:6px;text-align:right;font-weight:bold;">${inv.tong.toLocaleString('vi-VN')} đ</td>
-                </tr>
-            `;
-        }
-
-        const printWindow = window.open('', '_blank');
-        const printContent = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <title>Hóa Đơn Viện Phí - ${inv.ma_hd}</title>
-                <style>
-                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; color: #1e293b; padding: 25px; line-height: 1.5; }
-                    .header-table { width: 100%; margin-bottom: 20px; border-bottom: 2px solid #0d9488; padding-bottom: 15px; }
-                    .title { text-align: center; font-size: 18px; font-weight: 800; text-transform: uppercase; margin: 15px 0 5px 0; color: #0f172a; }
-                    .sub-title { text-align: center; font-size: 12px; color: #64748b; margin-bottom: 20px; }
-                    table.items { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                    table.items th { background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; }
-                    .summary-box { width: 340px; margin-left: auto; margin-top: 15px; font-size: 13px; }
-                    .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
-                    .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-top: 2px solid #0f172a; font-size: 15px; font-weight: 800; color: #e11d48; margin-top: 4px; }
-                    .signatures { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
-                    .sig-block { width: 200px; }
-                </style>
-            </head>
-            <body>
-                <table class="header-table">
-                    <tr>
-                        <td style="vertical-align:top;">
-                            <strong style="font-size:14px;color:#0d9488;">PHÒNG KHÁM ĐA KHOA QUỐC TẾ H2T HEALTHCARE</strong><br>
-                            Địa chỉ: 140 Lê Trọng Tấn, P. Tây Thạnh, Q. Tân Phú, TP.HCM<br>
-                            Hotline Cấp cứu: 1900 xxxx - Email: contact@h2thealthcare.vn
-                        </td>
-                        <td style="text-align:right;vertical-align:top;">
-                            <strong>Mã Hóa Đơn: <span style="font-family:monospace;color:#0d9488;">${inv.ma_hd}</span></strong><br>
-                            Ngày lập: ${inv.thoi_gian_thanh_toan || new Date().toLocaleString('vi-VN')}<br>
-                            Thu ngân: ${inv.nhan_vien || 'Quầy thu ngân viện phí'}
-                        </td>
-                    </tr>
-                </table>
-
-                <div class="title">BẢNG KÊ CHI PHÍ VÀ BIÊN LAI THU VIỆN PHÍ</div>
-                <div class="sub-title">(Bảo hiểm Y tế và Viện phí khám chữa bệnh ngoại trú)</div>
-
-                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:15px;">
-                    <table style="width:100%;">
-                        <tr>
-                            <td style="width:55%;">Họ tên người bệnh: <strong>${inv.benh_nhan}</strong></td>
-                            <td>Mã người bệnh: <strong style="font-family:monospace;">${inv.ma_bn}</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Mã BHYT: <strong style="font-family:monospace;color:#0f766e;">${inv.bhyt || 'Không áp dụng'}</strong></td>
-                            <td>Điện thoại: <strong>${inv.sdt || 'Chưa cập nhật'}</strong></td>
-                        </tr>
-                        <tr>
-                            <td colspan="2">Phương thức thanh toán: <strong>${inv.phuong_thuc || 'Tiền mặt'}</strong> (Trạng thái: <strong>${inv.status === 'paid' ? 'Đã thu tiền' : 'Chưa thu tiền'}</strong>)</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <table class="items">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;">STT</th>
-                            <th>Khoản Mục / Tên Kỹ Thuật / Thuốc</th>
-                            <th style="width:60px;">SL</th>
-                            <th style="width:110px;text-align:right;">Đơn Giá Gốc</th>
-                            <th style="width:120px;text-align:right;">Thành Tiền</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
-
-                <div class="summary-box">
-                    <div class="summary-row">
-                        <span>1. Tổng chi phí KCB (Giá gốc):</span>
-                        <strong style="font-family:monospace;">${inv.tong.toLocaleString('vi-VN')} đ</strong>
-                    </div>
-                    ${(inv.has_bhyt || (inv.ma_the_bhyt && inv.bhyt > 0)) ? `
-                    <div class="summary-row" style="color:#0f766e;">
-                        <span>2. Quỹ BHYT chi trả / hoàn trả:</span>
-                        <strong style="font-family:monospace;">-${inv.bhyt.toLocaleString('vi-VN')} đ</strong>
-                    </div>` : ''}
-                    ${inv.giam_gia > 0 ? `
-                    <div class="summary-row" style="color:#d97706;">
-                        <span>3. Miễn giảm / Ưu đãi:</span>
-                        <strong style="font-family:monospace;">-${inv.giam_gia.toLocaleString('vi-VN')} đ</strong>
-                    </div>` : ''}
-                    <div class="total-row">
-                        <span>BỆNH NHÂN THANH TOÁN:</span>
-                        <span style="font-family:monospace;">${inv.thuc_thu.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                </div>
-
-                <div class="signatures">
-                    <div class="sig-block">
-                        <strong>Người Bệnh / Người Nhà</strong><br>
-                        <span style="font-size:11px;color:#94a3b8;">(Ký và ghi rõ họ tên)</span>
-                    </div>
-                    <div class="sig-block">
-                        <strong>Người Lập Phiếu / Thu Ngân</strong><br>
-                        <span style="font-size:11px;color:#94a3b8;">(Ký, đóng dấu thu tiền)</span>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); }, 300);
+        if (activeInvoiceId) window.open(`/admin/billing/${activeInvoiceId}/preview`, '_blank', 'noopener');
     }
 
     function closePaymentModal() {

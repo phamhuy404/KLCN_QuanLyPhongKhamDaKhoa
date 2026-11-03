@@ -102,7 +102,7 @@
 
             <div class="sm:col-span-3">
                 <label class="block font-semibold text-slate-700 mb-1">Phòng khám chuyên khoa <span class="text-rose-500">*</span></label>
-                <select id="reception-room-select" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
+                <select id="reception-room-select" onchange="filterReceptionServices()" required class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500">
                     {% for r in rooms %}
                     <option value="{{ r.ten_phong }}" data-dept-id="{{ r.chuyen_khoa_id }}">{{ r.ten_phong }} - {{ r.ten_khoa }}</option>
                     {% endfor %}
@@ -126,7 +126,7 @@
                 <select id="reception-service-select" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:border-medical-500 font-medium">
                     <option value="">-- Khám chuyên khoa tiêu chuẩn --</option>
                     {% for srv in exam_services %}
-                    <option value="{{ srv.ten_dich_vu }}">{{ srv.ten_dich_vu }} ({{ srv.ten_khoa }})</option>
+                    <option value="{{ srv.id }}" data-dept-id="{{ srv.chuyen_khoa_id }}">{{ srv.ten_dich_vu }} ({{ srv.ten_khoa }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -384,7 +384,7 @@
         const roomSelect = document.getElementById('reception-room-select');
         const deptId = roomSelect.options[roomSelect.selectedIndex]?.dataset?.deptId || 1;
         const srvChoice = document.getElementById('reception-service-select')?.value || '';
-        const reasonStr = srvChoice ? `[${srvChoice}] Tiếp nhận tại quầy: ${room} (${type})` : `Tiếp nhận tại quầy: ${room} (${type})`;
+        const reasonStr = `Tiếp nhận tại quầy: ${room} (${type})`;
 
         fetch('/api/appointment/create', {
             method: 'POST',
@@ -394,6 +394,7 @@
                 chuyen_khoa_id: parseInt(deptId),
                 ngay_kham: dateStr,
                 gio_kham: timeStr,
+                exam_service_id: srvChoice ? Number(srvChoice) : null,
                 ly_do: reasonStr,
                 walk_in: true,
                 initial_status: 'Đã tiếp nhận'
@@ -448,7 +449,19 @@
         }
     }
 
+    function filterReceptionServices() {
+        const room = document.getElementById('reception-room-select');
+        const dept = room?.selectedOptions[0]?.dataset.deptId;
+        const select = document.getElementById('reception-service-select');
+        if (!select) return;
+        Array.from(select.options).forEach(option => {
+            option.hidden = Boolean(option.value && option.dataset.deptId !== dept);
+            option.disabled = option.hidden;
+        });
+        if (select.selectedOptions[0]?.disabled) select.value = '';
+    }
     document.addEventListener('DOMContentLoaded', () => {
+        filterReceptionServices();
         renderQueue();
     });
 </script>

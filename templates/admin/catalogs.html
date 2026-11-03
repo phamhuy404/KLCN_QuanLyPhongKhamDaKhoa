@@ -24,6 +24,7 @@
             </p>
         </div>
         <div class="flex items-center flex-wrap gap-2">
+            <button type="button" onclick="addSpecialtyTemplates(this)" class="px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl font-bold text-xs">Bổ sung 8 khoa chuyên sâu</button>
             <button onclick="openCreateModalCurrentTab()" class="px-4 py-2.5 bg-white text-medical-800 rounded-xl font-bold text-xs shadow-lg hover:bg-teal-50 transition-all flex items-center gap-2 hover:scale-[1.02]">
                 <i class="fa-solid fa-plus text-medical-600"></i>
                 <span id="btn-add-label">Thêm Chuyên Khoa Mới</span>
@@ -218,7 +219,7 @@
                             {{ "{:,.0f}".format(s.don_gia or 0) }} đ
                         </td>
                         <td class="px-6 py-4 font-semibold text-teal-600">
-                            {{ s.bhyt_chi_tra_pt or 0 }} %
+                            Giảm một lần/hóa đơn
                         </td>
                         <td class="px-6 py-4">
                             <button data-id="{{ s.id }}" onclick="toggleServiceStatus(this.dataset.id)" class="cursor-pointer">
@@ -381,8 +382,8 @@
                     <input type="text" id="service-ma" required class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono font-bold uppercase" placeholder="DV_ECG">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">BHYT Chi Trả (%):</label>
-                    <input type="number" id="service-bhyt" min="0" max="100" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-teal-700" value="80">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">BHYT mô phỏng: cấu hình tại Sao lưu & Bảo trì</label>
+                    <input type="number" id="service-bhyt" hidden disabled min="0" max="100" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold text-teal-700" value="80">
                 </div>
             </div>
             <div>
@@ -417,6 +418,16 @@
 <script id="room-data-json" type="application/json">{{ rooms|tojson|safe }}</script>
 <script id="service-data-json" type="application/json">{{ services|tojson|safe }}</script>
 <script>
+async function addSpecialtyTemplates(button) {
+    button.disabled = true;
+    try {
+        const response = await fetch('/api/catalog/specialties/add-templates', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || 'Không thể bổ sung danh mục.');
+        alert(result.message);
+        location.reload();
+    } catch (error) { alert(error.message); button.disabled = false; }
+}
 window.departmentData = JSON.parse(document.getElementById('dept-data-json')?.textContent || '[]');
 window.roomData = JSON.parse(document.getElementById('room-data-json')?.textContent || '[]');
 window.serviceData = JSON.parse(document.getElementById('service-data-json')?.textContent || '[]');
@@ -698,7 +709,7 @@ async function handleSaveService(e) {
         ten_dich_vu: document.getElementById('service-ten').value.trim(),
         loai_dich_vu: document.getElementById('service-loai').value,
         don_gia: parseFloat(document.getElementById('service-gia').value),
-        bhyt_chi_tra_pt: parseInt(document.getElementById('service-bhyt').value || 0),
+        bhyt_chi_tra_pt: 0,
         mo_ta: document.getElementById('service-mota').value.trim(),
         trang_thai: parseInt(document.getElementById('service-status').value || 1)
     };

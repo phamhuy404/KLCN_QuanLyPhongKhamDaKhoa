@@ -234,7 +234,7 @@
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
                         <i class="fa-solid fa-shield-heart text-emerald-600 shrink-0"></i>
-                        <span>Giảm nếu có BHYT: Sẽ tự động trừ trên hóa đơn viện phí nếu người bệnh có đăng ký thẻ BHYT hợp lệ.</span>
+                        <span>Giảm nếu có BHYT: mức giảm mô phỏng {{ "{:,.0f}".format(insurance_reduction) }} VNĐ, trừ một lần trên tổng hóa đơn, tối đa bằng tổng tiền.</span>
                     </div>
                     <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán tại quầy tiếp đón khi đến nơi.</p>
                 </div>
@@ -718,6 +718,7 @@
                 bac_si_id: selectedDoctorId ? parseInt(selectedDoctorId) : null,
                 ngay_hen: dateInput,
                 gio_hen: selectedTime,
+                exam_service_id: selectedServiceId || null,
                 ly_do: finalReason
             };
 

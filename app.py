@@ -192,7 +192,8 @@ def create_app(test_config=None):
                 request.path.startswith('/booking') or
                 request.path in ('/register', '/auth/register') or
                 request.path.startswith('/api/patient') or
-                request.path.startswith('/api/v1/mobile/patient')
+                request.path.startswith('/api/v1/mobile/patient') or
+                (role == 'BENHNHAN' and request.path.startswith('/api/'))
             )
             if is_patient_area:
                 if request.is_json or request.path.startswith('/api/'):
@@ -210,7 +211,8 @@ def create_app(test_config=None):
                 request.path.startswith('/admin') or
                 request.path.startswith('/api/emr') or
                 request.path.startswith('/api/schedule') or
-                request.path.startswith('/api/doctor')
+                request.path.startswith('/api/doctor') or
+                (request.path.startswith('/api/') and role != 'BENHNHAN' and not request.path.startswith('/api/v1/mobile/'))
             )
             if is_staff_area:
                 if request.is_json or request.path.startswith('/api/'):
@@ -229,6 +231,7 @@ def create_app(test_config=None):
     @app.context_processor
     def inject_globals():
         from core.catalog import get_all_catalogs
+        from core.billing_policy import insurance_reduction
         def smart_url_for(endpoint, **values):
             target = alias_map.get(endpoint, endpoint)
             try:
@@ -253,6 +256,7 @@ def create_app(test_config=None):
             current_user=session.get('user'),
             curr_user=session.get('user') or {},
             catalogs=get_all_catalogs(),
+            insurance_reduction=insurance_reduction(),
             clinic_info=clinic_info,
             url_for=smart_url_for,
             str=str
@@ -288,7 +292,7 @@ if __name__ == '__main__':
     from models.backup_model import BackupModel
 
     # Tu dong phuc hoi ban sao luu moi nhat khi khoi dong (chay mot lan trong tien trinh khoi dong chinh)
-    should_restore = getattr(config, 'AUTO_RESTORE_ON_STARTUP', True) or ('--restore-latest' in sys.argv)
+    should_restore = getattr(config, 'AUTO_RESTORE_ON_STARTUP', False) or ('--restore-latest' in sys.argv)
     is_main_startup = (os.environ.get('WERKZEUG_RUN_MAIN') is None) or (not getattr(config, 'DEBUG', False))
 
     if should_restore and is_main_startup:

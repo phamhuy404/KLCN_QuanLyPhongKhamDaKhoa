@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from datetime import datetime
 from core.database import get_db
 
@@ -7,9 +8,12 @@ class SystemSettingModel:
     """Model quản lý cấu hình và trạng thái bảo trì toàn hệ thống."""
 
     _cache = None
+    _cache_mtime = None
+    _loaded_at = 0
     _CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'system_settings.json')
 
     DEFAULT_SETTINGS = {
+        'insurance_fixed_reduction': 50000,
         'maintenance_patient': False,
         'maintenance_staff': False,
         'maintenance_message_patient': 'Cổng Dịch vụ Bệnh nhân H2T Care+ đang được nâng cấp tính năng và bảo trì định kỳ. Quý khách vui lòng quay lại sau.',
@@ -63,15 +67,20 @@ class SystemSettingModel:
         """Ghi cài đặt ra tệp JSON dự phòng để đọc tức thì không nghẽn CSDL."""
         try:
             os.makedirs(os.path.dirname(cls._CACHE_FILE), exist_ok=True)
-            with open(cls._CACHE_FILE, 'w', encoding='utf-8') as f:
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=os.path.dirname(cls._CACHE_FILE), delete=False) as f:
+                temporary = f.name
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(temporary, cls._CACHE_FILE)
+            cls._cache_mtime = os.stat(cls._CACHE_FILE).st_mtime_ns
         except Exception:
             pass
 
     @classmethod
     def get_settings(cls, force_reload=False):
         """Lấy toàn bộ cấu hình hệ thống từ bộ nhớ đệm hoặc CSDL."""
-        if cls._cache and not force_reload:
+        mtime = os.stat(cls._CACHE_FILE).st_mtime_ns if os.path.exists(cls._CACHE_FILE) else None
+        if cls._cache and not force_reload and mtime == cls._cache_mtime and time.monotonic() - cls._loaded_at < 5:
             return cls._cache.copy()
 
         settings = cls.DEFAULT_SETTINGS.copy()
@@ -98,6 +107,8 @@ class SystemSettingModel:
             pass
 
         cls._cache = settings.copy()
+        cls._cache_mtime = mtime
+        cls._loaded_at = time.monotonic()
         return settings
 
     @classmethod
@@ -109,6 +120,7 @@ class SystemSettingModel:
         current['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         current['updated_by'] = user_name
 
+        conn = None
         try:
             conn = get_db()
             cur = conn.cursor()
@@ -117,7 +129,7 @@ class SystemSettingModel:
             for k, v in current.items():
                 if k in ('updated_at', 'updated_by'):
                     continue
-                str_val = '1' if v is True else ('0' if v is False else str(v or ''))
+                str_val = '1' if v is True else ('0' if v is False else str(v if v is not None else ''))
                 cur.execute("""
                     IF EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = ?)
                         UPDATE cai_dat_he_thong 
@@ -128,12 +140,17 @@ class SystemSettingModel:
                         VALUES (?, ?, ?, ?)
                 """, (k, str_val, now_str, user_name, k, k, str_val, now_str, user_name))
             conn.commit()
-            conn.close()
         except Exception as e:
-            print("[SystemSettingModel] Cảnh báo lỗi lưu CSDL:", e)
+            if conn is not None:
+                conn.rollback()
+            return False, 'Không thể lưu cấu hình vào CSDL. Vui lòng kiểm tra kết nối và thử lại.'
+        finally:
+            if conn is not None:
+                conn.close()
 
         cls._write_file_cache(current)
         cls._cache = current.copy()
+        cls._loaded_at = time.monotonic()
         return True, "Cập nhật cấu hình hệ thống thành công!"
 
     @classmethod

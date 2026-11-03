@@ -506,7 +506,7 @@
                                     <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs">
                                         <div class="flex items-center gap-2">
                                             <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
-                                            {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
+                                            {% if insurance_reduction > 0 %}
                                                 <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
                                             {% endif %}
                                         </div>
@@ -546,7 +546,7 @@
                                     <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-xs">
                                         <div class="flex items-center gap-2">
                                             <span class="font-bold text-slate-900 font-mono text-xs sm:text-sm">{{ "{:,.0f}".format(s.don_gia or 0) }} đ</span>
-                                            {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
+                                            {% if insurance_reduction > 0 %}
                                                 <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
                                             {% endif %}
                                         </div>

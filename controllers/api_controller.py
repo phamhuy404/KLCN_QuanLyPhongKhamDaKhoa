@@ -17,6 +17,14 @@ from core.emr_workflow import atomic_emr_request
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
+
+@api_bp.route('/catalog/specialties/add-templates', methods=['POST'])
+@roles_required('ADMIN')
+def add_specialty_templates_api():
+    from core.specialty_catalog import add_specialty_templates
+    count = add_specialty_templates()
+    return jsonify(success=True, message=f'Đã bổ sung {count} khoa. Hãy bố trí bác sĩ, phòng và bật hoạt động trước khi nhận đặt lịch.')
+
 @api_bp.route('/appointment/book', methods=['POST'])
 @roles_required('BENHNHAN', 'ADMIN', 'LETAN', 'BACSI')
 def book_appointment():
@@ -41,6 +49,13 @@ def book_appointment():
     ngay_hen = data.get('ngay_hen') or data.get('ngay_kham')
     gio_hen = data.get('gio_hen') or data.get('gio_kham')
     ly_do = data.get('ly_do') or data.get('ly_do_kham') or 'Khám theo yêu cầu'
+
+    from core.exam_services import appointment_reason
+    from core.scheduling import CalendarError
+    try:
+        ly_do = appointment_reason(data.get('exam_service_id'), chuyen_khoa_id, ly_do)
+    except CalendarError as exc:
+        return jsonify(success=False, message=str(exc)), 400
 
     if not ngay_hen or not gio_hen:
         return jsonify({'success': False, 'message': 'Vui lòng chọn ngày và giờ khám!'}), 400
@@ -1778,6 +1793,13 @@ def appointment_create_alias():
     chuyen_khoa_id = data.get('chuyen_khoa_id', 1)
     user = session.get('user')
 
+    from core.exam_services import appointment_reason
+    from core.scheduling import CalendarError
+    try:
+        ly_do = appointment_reason(data.get('exam_service_id'), chuyen_khoa_id, ly_do)
+    except CalendarError as exc:
+        return jsonify(success=False, message=str(exc)), 400
+
     if not patient_id or not ngay_kham or not gio_kham:
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp bệnh nhân, ngày và giờ khám!'}), 400
 
@@ -1972,6 +1994,8 @@ def toggle_maintenance_api():
     data = request.get_json() or {}
     target = data.get('target', 'patient')
     enabled = data.get('enabled')
+    if target not in ('patient', 'staff') or (enabled is not None and not isinstance(enabled, bool)):
+        return jsonify(success=False, message='Đối tượng hoặc trạng thái bảo trì không hợp lệ.'), 400
     user_name = session.get('user', {}).get('ho_ten', 'admin')
 
     ok, msg = SystemSettingModel.toggle_maintenance(target=target, enabled=enabled, user_name=user_name)
@@ -1992,6 +2016,19 @@ def update_maintenance_api():
     user_name = session.get('user', {}).get('ho_ten', 'admin')
 
     update_payload = {}
+    for key in ('maintenance_patient', 'maintenance_staff'):
+        if key in data and not isinstance(data[key], bool):
+            return jsonify(success=False, message='Trạng thái bảo trì phải là boolean.'), 400
+    if 'insurance_fixed_reduction' in data:
+        from core.billing_policy import money
+        from core.scheduling import CalendarError
+        try:
+            amount = money(data['insurance_fixed_reduction'])
+            if isinstance(data['insurance_fixed_reduction'], bool) or amount != amount.to_integral_value():
+                raise CalendarError('Mức giảm phải là số nguyên VNĐ không âm.')
+            update_payload['insurance_fixed_reduction'] = int(amount)
+        except CalendarError as exc:
+            return jsonify(success=False, message=str(exc)), 400
     if 'maintenance_patient' in data:
         update_payload['maintenance_patient'] = bool(data['maintenance_patient'])
     if 'maintenance_staff' in data:

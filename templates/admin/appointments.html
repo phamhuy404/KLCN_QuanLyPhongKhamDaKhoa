@@ -261,7 +261,7 @@
                 <select id="app-specialized-service" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500 font-medium">
                     <option value="">-- Khám chuyên khoa tiêu chuẩn --</option>
                     {% for srv in exam_services %}
-                    <option value="{{ srv.ten_dich_vu }}">{{ srv.ten_dich_vu }} ({{ srv.ten_khoa }})</option>
+                    <option value="{{ srv.id }}" data-dept-id="{{ srv.chuyen_khoa_id }}">{{ srv.ten_dich_vu }} ({{ srv.ten_khoa }})</option>
                     {% endfor %}
                 </select>
             </div>
@@ -862,6 +862,15 @@
     }
 
     async function refreshAdminTimeSlots() {
+        const serviceSelect = document.getElementById('app-specialized-service');
+        const department = document.getElementById('app-dept')?.value;
+        if (serviceSelect) {
+            Array.from(serviceSelect.options).forEach(option => {
+                option.hidden = Boolean(option.value && option.dataset.deptId !== department);
+                option.disabled = option.hidden;
+            });
+            if (serviceSelect.selectedOptions[0]?.disabled) serviceSelect.value = '';
+        }
         const dateInput = document.getElementById('app-date')?.value;
         const deptId = document.getElementById('app-dept')?.value;
         const docId = document.getElementById('app-doctor')?.value;
@@ -961,6 +970,7 @@
                     doctor_id: doctorId,
                     ngay_kham: date,
                     gio_kham: time,
+                    exam_service_id: Number(document.getElementById('app-specialized-service').value) || null,
                     ly_do_kham: reason || 'Khám theo yêu cầu'
                 })
             });

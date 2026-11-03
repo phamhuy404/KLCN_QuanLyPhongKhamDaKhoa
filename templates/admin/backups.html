@@ -242,7 +242,7 @@
                 <div class="mt-4 flex justify-end">
                     <button type="button" onclick="handleSaveMaintenanceSettings()" id="btn-save-maint" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/25 flex items-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99]">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Lưu Cập Nhật Cấu Hình Bảo Trì</span>
+                        <span>Lưu cấu hình BHYT & Bảo trì</span>
                     </button>
                 </div>
             </div>
@@ -430,6 +430,11 @@
     </div>
 </div>
 
+<div class="bg-white border border-slate-200 rounded-2xl p-5 my-4">
+<label for="insurance-fixed-reduction" class="font-bold">Mức giảm BHYT mô phỏng (VNĐ/hóa đơn)</label>
+<input id="insurance-fixed-reduction" type="number" min="0" step="1" value="{{ insurance_reduction }}" class="border rounded-xl p-2 ml-3">
+<p class="text-sm text-slate-500">Giảm một lần trên tổng hóa đơn, tối đa bằng tổng tiền. Lưu bằng nút Lưu cấu hình bảo trì.</p>
+</div>
 <script>
 let currentRestoreFile = '';
 
@@ -558,6 +563,7 @@ async function handleSaveMaintenanceSettings() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
 
     const payload = {
+        insurance_fixed_reduction: document.getElementById('insurance-fixed-reduction').value,
         maintenance_eta: document.getElementById('maint-input-eta').value,
         maintenance_hotline: document.getElementById('maint-input-hotline').value,
         maintenance_message_patient: document.getElementById('maint-input-msg-patient').value,
@@ -572,7 +578,7 @@ async function handleSaveMaintenanceSettings() {
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Đã lưu cấu hình bảo trì thành công!', 'success');
+            showToast('Đã lưu cấu hình BHYT và bảo trì thành công!', 'success');
         } else {
             showToast(data.message || 'Lỗi khi lưu cấu hình bảo trì!', 'error');
         }

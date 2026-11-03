@@ -2429,7 +2429,12 @@ class AppointmentModel:
 
 
 
-            new_ly_do = ly_do if ly_do else appt.get('ly_do_kham')
+            from core.exam_services import SERVICE_MARKER
+            previous = appt.get('ly_do_kham') or ''
+            marker = SERVICE_MARKER.search(previous)
+            new_ly_do = SERVICE_MARKER.sub('', str(ly_do)).strip() if ly_do else SERVICE_MARKER.sub('', previous).strip()
+            if marker:
+                new_ly_do = marker.group(0) + ' ' + new_ly_do
 
 
             cursor.execute('''

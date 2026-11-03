@@ -245,13 +245,12 @@ def create_appointment():
     reason = str(data.get('ly_do') or '').strip()
     if len(reason) > 2000:
         fail('VALIDATION_ERROR', 'Lý do khám quá dài.', 400)
-    if data.get('exam_service_id'):
-        service_id = identifier(data['exam_service_id'])
-        service = next((s for s in ClinicModel.get_exam_services(active_only=True)
-            if s['id'] == service_id and s.get('chuyen_khoa_id') in (None, department)), None)
-        if not service:
-            fail('VALIDATION_ERROR', 'Loại khám không thuộc chuyên khoa hoặc đã ngừng hoạt động.', 400)
-        reason = f"[Loại khám: {service['ten_dich_vu']}] {reason}".strip()
+    from core.exam_services import appointment_reason
+    from core.scheduling import CalendarError
+    try:
+        reason = appointment_reason(data.get('exam_service_id'), department, reason)
+    except CalendarError as exc:
+        fail('VALIDATION_ERROR', str(exc), 400)
     result = result_or_fail(AppointmentModel.create(patient_id(), department, doctor,
         data.get('ngay_hen') or data.get('date'), data.get('gio_hen') or data.get('time'), reason,
         audit_user=g.mobile_patient, return_details=True), 'BOOKING_CONFLICT')

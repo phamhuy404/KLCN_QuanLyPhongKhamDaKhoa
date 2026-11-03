@@ -323,7 +323,7 @@ class ClinicModel:
         '''
         params = []
         if active_only:
-            sql += ' AND dv.trang_thai = 1'
+            sql += ' AND dv.trang_thai = 1 AND (dv.chuyen_khoa_id IS NULL OR ck.trang_thai = 1)'
         if category and category != 'ALL':
             sql += ' AND dv.loai_dich_vu = ?'
             params.append(category)
@@ -345,7 +345,10 @@ class ClinicModel:
             LEFT JOIN chuyen_khoa ck ON dv.chuyen_khoa_id = ck.id
         '''
         if active_only:
-            sql += ' WHERE dv.trang_thai = 1'
+            sql += ' WHERE dv.trang_thai = 1 AND ck.trang_thai = 1'
+        else:
+            sql += ' WHERE 1=1'
+        sql += " AND dv.loai_dich_vu IN (N'Khám bệnh', N'Khám chuyên khoa')"
         sql += " ORDER BY COALESCE(dv.chuyen_khoa_id, 999) ASC, CASE WHEN dv.loai_dich_vu = N'Khám bệnh' THEN 0 WHEN dv.loai_dich_vu = N'Khám chuyên khoa' THEN 1 WHEN dv.loai_dich_vu = N'Thủ thuật' THEN 2 ELSE 3 END ASC, dv.id ASC"
         cursor.execute(sql)
         rows = [dict(r) for r in cursor.fetchall()]

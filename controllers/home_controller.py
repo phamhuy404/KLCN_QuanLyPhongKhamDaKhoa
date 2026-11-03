@@ -231,7 +231,7 @@ def pricing():
                ck.ten_khoa, ck.icon, ck.ma_khoa
         FROM dich_vu dv
         LEFT JOIN chuyen_khoa ck ON dv.chuyen_khoa_id = ck.id
-        WHERE dv.trang_thai = 1
+        WHERE dv.trang_thai = 1 AND (dv.chuyen_khoa_id IS NULL OR ck.trang_thai = 1)
         ORDER BY COALESCE(ck.id, 999), dv.loai_dich_vu, dv.id
     """)
     services = [dict(r) for r in cursor.fetchall()]
@@ -242,13 +242,14 @@ def pricing():
     departments_map = {}
     for s in services:
         don_gia = float(s.get('don_gia') or 0)
-        bhyt_pt = int(s.get('bhyt_chi_tra_pt') or 0)
-        tien_bhyt = don_gia * (bhyt_pt / 100.0)
-        gia_sau_bhyt = don_gia - tien_bhyt
+        from core.billing_policy import invoice_totals
+        totals = invoice_totals(don_gia, True)
+        tien_bhyt = float(totals['tien_bhyt'])
+        gia_sau_bhyt = float(totals['thanh_tien'])
         s['don_gia_val'] = don_gia
         s['tien_bhyt_val'] = tien_bhyt
         s['gia_sau_bhyt_val'] = gia_sau_bhyt
-        s['has_bhyt'] = bhyt_pt > 0
+        s['has_bhyt'] = True
 
         ck_id = s.get('chuyen_khoa_id') or 0
         ck_name = s.get('ten_khoa') or 'Dịch Vụ Đa Khoa & Cận Lâm Sàng'

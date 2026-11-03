@@ -178,7 +178,7 @@
                 </h2>
 
                 <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    H2T Healthcare cam kết công khai, minh bạch toàn bộ biểu giá dịch vụ kỹ thuật y tế, viện phí khám bệnh và mức hỗ trợ thanh toán Bảo hiểm Y tế (BHYT) đúng tuyến / trái tuyến theo quy định hiện hành.
+                    H2T Healthcare cam kết công khai, minh bạch toàn bộ biểu giá dịch vụ kỹ thuật y tế, viện phí khám bệnh và mức giảm BHYT mô phỏng cố định do Admin cấu hình.
                 </p>
 
                 <!-- 3 Feature Highlights -->
@@ -189,7 +189,7 @@
                         </div>
                         <div>
                             <h4 class="font-bold text-xs text-white">BHYT Toàn Quốc</h4>
-                            <p class="text-[11px] text-slate-300">Hỗ trợ 50% - 80% chi phí trong danh mục</p>
+                            <p class="text-[11px] text-slate-300">Giảm cố định một lần trên tổng hóa đơn</p>
                         </div>
                     </div>
 
@@ -287,7 +287,7 @@
                                     <tr class="bg-slate-50/80 text-slate-500 font-semibold border-y border-slate-200/80">
                                         <th class="py-3 px-4">Tên Dịch Vụ / Kỹ Thuật</th>
                                         <th class="py-3 px-4 text-right">Giá Gốc<br><span class="text-[10px] text-slate-400 font-normal">(Chưa BHYT)</span></th>
-                                        <th class="py-3 px-4 text-right">Giá Nếu Có BHYT<br><span class="text-[10px] text-teal-600 font-bold">(Đúng tuyến)</span></th>
+                                        <th class="py-3 px-4 text-right">Giá Nếu Có BHYT<br><span class="text-[10px] text-teal-600 font-bold">(Mô phỏng, hóa đơn 1 dịch vụ)</span></th>
                                         <th class="py-3 px-4 text-center w-28">Đặt Lịch</th>
                                     </tr>
                                 </thead>
@@ -312,7 +312,7 @@
                                                 {{ "{:,.0f}".format(s.gia_sau_bhyt_val) }} đ
                                             </div>
                                             <div class="text-[10px] text-emerald-600 font-medium flex items-center justify-end gap-1">
-                                                <i class="fa-solid fa-shield-heart text-[9px]"></i> Giảm -{{ s.bhyt_chi_tra_pt }}% (-{{ "{:,.0f}".format(s.tien_bhyt_val) }} đ)
+                                                <i class="fa-solid fa-shield-heart text-[9px]"></i> Giảm mô phỏng tối đa {{ "{:,.0f}".format(insurance_reduction) }} đ/hóa đơn
                                             </div>
                                             {% else %}
                                             <div class="text-xs font-semibold text-slate-600 font-mono">
@@ -340,48 +340,11 @@
             {% endfor %}
         </div>
 
-        <!-- Hướng dẫn thủ tục hưởng BHYT -->
-        <div class="bg-gradient-to-r from-teal-50 to-medical-50 rounded-3xl p-6 sm:p-8 border border-teal-100/80 space-y-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shadow-sm">
-                    <i class="fa-solid fa-notes-medical"></i>
-                </div>
-                <div>
-                    <h3 class="font-bold text-slate-900 text-base">Hướng Dẫn Quyền Lợi & Thủ Tục Thanh Toán BHYT</h3>
-                    <p class="text-xs text-slate-500">Người bệnh cần chuẩn bị các giấy tờ sau khi đến đăng ký khám chữa bệnh</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 pt-2">
-                <div class="bg-white p-4 rounded-2xl border border-teal-100 shadow-2xs space-y-1.5">
-                    <div class="font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-id-card text-teal-600"></i> Giấy tờ tùy thân
-                    </div>
-                    <p class="text-slate-500 text-[11px] leading-relaxed">
-                        Căn cước công dân gắn chip hoặc ứng dụng <strong>VNeID mức 2</strong> đã tích hợp thẻ BHYT, hoặc ứng dụng <strong>VssID</strong> của BHXH Việt Nam.
-                    </p>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-teal-100 shadow-2xs space-y-1.5">
-                    <div class="font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-share-nodes text-teal-600"></i> Đúng tuyến / Chuyển tuyến
-                    </div>
-                    <p class="text-slate-500 text-[11px] leading-relaxed">
-                        Áp dụng BHYT thông tuyến cấp quận/huyện trên toàn quốc. Giấy chuyển tuyến y tế nếu đăng ký KCB ban đầu tại bệnh viện tuyến tỉnh/trung ương.
-                    </p>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-teal-100 shadow-2xs space-y-1.5">
-                    <div class="font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-check text-teal-600"></i> Tái khám miễn phí
-                    </div>
-                    <p class="text-slate-500 text-[11px] leading-relaxed">
-                        Bệnh nhân mang theo <strong>Giấy hẹn tái khám</strong> do bác sĩ cấp trong vòng 10 ngày làm việc để được tái khám theo đúng chế độ BHYT.
-                    </p>
-                </div>
-            </div>
-        </div>
-
+        <aside class="bg-teal-50 rounded-2xl p-6 border border-teal-100 text-sm text-slate-700">
+<strong>BHYT — mức giảm mô phỏng của hệ thống</strong>
+<p>Có BHYT: giảm cố định {{ "{:,.0f}".format(insurance_reduction) }} VNĐ một lần trên tổng hóa đơn, tối đa bằng tổng tiền. Không có BHYT: trả giá gốc.</p>
+<p>Cột giá có BHYT minh họa hóa đơn chỉ gồm một dịch vụ. Khi chọn nhiều dịch vụ, cộng giá gốc rồi trừ một lần; không cộng các giá đã giảm.</p>
+</aside>
     </main>
 
     <!-- Footer chung hệ thống -->

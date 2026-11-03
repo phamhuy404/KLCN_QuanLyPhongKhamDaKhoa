@@ -11,6 +11,18 @@ from models.clinic_model import ClinicModel
 from models.user_model import UserModel
 from core.database import get_db
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+@admin_bp.route('/billing/<int:invoice_id>/preview')
+@roles_required('ADMIN', 'LETAN', 'BACSI', 'DUOCSI')
+def invoice_preview(invoice_id):
+    invoice = BillingModel.get_invoice(invoice_id)
+    if not invoice:
+        abort(404)
+    require_patient_access(invoice['benh_nhan_id'])
+    return render_template('invoice_preview.html', invoice=invoice)
+
+
 @admin_bp.before_request
 @roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
 
