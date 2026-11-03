@@ -6,9 +6,8 @@
 [![Database Support](https://img.shields.io/badge/Database-Microsoft%20SQL%20Server%20(100%25%20T--SQL)-red.svg)]()
 [![Frontend](https://img.shields.io/badge/Frontend-TailwindCSS%20%7C%20HTML5%20%7C%20Web%20Audio-teal.svg)]()
 [![Dark Mode](https://img.shields.io/badge/Dark%20Mode-Midnight%20Slate-indigo.svg)]()
-[![Automated Tests](https://img.shields.io/badge/Tests-Passing%20(100%25)-brightgreen.svg)]()
 
-Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa theo kiến trúc MVC (Model - View - Controller), vận hành 100% trên nền tảng **Microsoft SQL Server**. Hệ thống số hóa hoàn chỉnh quy trình y tế khép kín: Tiếp đón, phân phòng khám, bệnh án điện tử EMR 5 bước liên hoàn kèm đa ảnh chuẩn hóa (tối đa 10 ảnh WebP, lightbox phóng to), điều phối phiên cận lâm sàng, cảnh báo dị ứng thuốc thời gian thực, quản lý kho dược và cấp phát thuốc 3 bước, viện phí cấn trừ BHYT 80%, thanh toán tự động VietQR, tự động sao lưu định kỳ và nạp bản sao lưu gần nhất khi khởi động, cùng giao diện Dark Mode Midnight Slate toàn diện.
+Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa theo kiến trúc MVC (Model - View - Controller), vận hành 100% trên nền tảng **Microsoft SQL Server**. Hệ thống số hóa hoàn chỉnh quy trình y tế khép kín: Tiếp đón, tiếp nhận nhanh sảnh chờ bằng giọng nói Web Speech API, phân bổ bác sĩ chống xung đột giờ khám, bệnh án điện tử EMR 5 bước liên hoàn kèm đa ảnh chuẩn hóa (WebP, lightbox), điều phối cận lâm sàng, cảnh báo dị ứng thời gian thực, quản lý kho dược và cấp phát thuốc 3 bước trừ kho tự động, viện phí cấn trừ BHYT 80%, thanh toán tự động VietQR, tự động sao lưu định kỳ 2 giờ và tự động nạp bản sao lưu gần nhất khi khởi động, cùng giao diện Dark Mode Midnight Slate toàn diện.
 
 ---
 
@@ -17,12 +16,17 @@ Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa theo
 2. [Hướng Dẫn Cài Đặt và Khởi Chạy](#hướng-dẫn-cài-đặt-và-khởi-chạy)
 3. [Cơ Chế Sao Lưu và Phục Hồi CSDL Tự Động](#cơ-chế-sao-lưu-và-phục-hồi-csdl-tự-động)
 4. [Ma Trận Phân Quyền Hệ Thống (RBAC)](#ma-trận-phân-quyền-hệ-thống-rbac)
-5. [Danh Sách Tài Khoản Mẫu Theo Vai Trò](#danh-sách-tài-khoản-mẫu-theo-vai-trò)
+5. [Toàn Bộ Danh Sách Tài Khoản Hệ Thống (92 Tài Khoản)](#toàn-bộ-danh-sách-tài-khoản-hệ-thống-92-tài-khoản)
+   - [5.1 Quản Trị Viên (ADMIN)](#51-quản-trị-viên-admin---1-tài-khoản)
+   - [5.2 Nhân Viên Lễ Tân & Thu Ngân (LETAN)](#52-nhân-viên-lễ-tân--thu-ngân-letan---5-tài-khoản)
+   - [5.3 Bác Sĩ Chuyên Khoa (BACSI)](#53-bác-sĩ-chuyên-khoa-bacsi---43-tài-khoản)
+   - [5.4 Dược Sĩ & Quản Lý Kho Dược (DUOCSI)](#54-dược-sĩ--quản-lý-kho-dược-duocsi---5-tài-khoản)
+   - [5.5 Kỹ Thuật Viên Cận Lâm Sàng (KTV)](#55-kỹ-thuật-viên-cận-lâm-sàng-ktv---5-tài-khoản)
+   - [5.6 Bệnh Nhân (BENHNHAN)](#56-khách-hàng--bệnh-nhân-benhnhan---33-tài-khoản)
 6. [Danh Mục Tính Năng Nghiệp Vụ Toàn Diện](#danh-mục-tính-năng-nghiệp-vụ-toàn-diện)
-7. [Hệ Thống Ràng Buộc Dữ Liệu Nghiêm Ngặt](#hệ-thống-ràng-buộc-dữ-liệu-nghiêm-ngặt)
+7. [Hệ Thống Ràng Buộc Dữ Liệu & Điền Thông Tin Linh Hoạt](#hệ-thống-ràng-buộc-dữ-liệu--điền-thông-tin-linh-hoạt)
 8. [Cơ Sở Dữ Liệu 27 Bảng Microsoft SQL Server](#cơ-sở-dữ-liệu-27-bảng-microsoft-sql-server)
-9. [Bộ Kiểm Thử Tự Động (Unit Tests)](#bộ-kiểm-thử-tự-động-unit-tests)
-10. [Bản Quyền và Thông Tin Đồ Án](#bản-quyền-và-thông-tin-đồ-án)
+9. [Bản Quyền và Thông Tin Đồ Án](#bản-quyền-và-thông-tin-đồ-án)
 
 ---
 
@@ -30,22 +34,22 @@ Hệ thống ứng dụng Web quản lý toàn diện phòng khám đa khoa theo
 
 ```text
 KLCN_QuanLyPhongKhamDaKhoa/
-├── app.py                         # Điểm khởi chạy chính của máy chủ Flask (tự động nạp CSDL mới nhất)
-├── config.py                      # Cấu hình tập trung (Microsoft SQL Server, SMTP, Auto-backup, Google Maps)
-├── requirements.txt               # Danh sách thư viện Python phụ thuộc
-├── README.md                      # Tài liệu tổng quan và hướng dẫn vận hành dự án
+├── app.py                         # Khởi chạy Flask Server (nạp bản .bak gần nhất & chạy scheduler)
+├── config.py                      # Cấu hình SQL Server, SMTP, Auto-backup, Google Maps
+├── requirements.txt               # Thư viện Python phụ thuộc
+├── README.md                      # Tài liệu tổng quan và cẩm nang vận hành
 │
-├── database/                      # [DATABASE] Cơ sở dữ liệu Microsoft SQL Server
+├── database/                      # Cơ sở dữ liệu Microsoft SQL Server
 │   ├── cosodulieu.sql             #   - Kịch bản DDL và DML trọn gói Microsoft SQL Server (100% T-SQL)
-│   ├── migrations/                #   - Các bản script nâng cấp CSDL theo thời gian
-│   └── legacy_bridge.py           #   - Module hỗ trợ tương thích ngược
+│   ├── migrations/                #   - Các bản script nâng cấp CSDL
+│   └── legacy_bridge.py           #   - Module tương thích ngược
 │
-├── docs/                          # [DOCS] Tài liệu vận hành, quy trình và kiểm thử
+├── docs/                          # Tài liệu vận hành, quy trình và kiểm thử
 │   ├── huong_dan_chay.md          #   - Hướng dẫn cài đặt, cấu hình SQL Server và khởi chạy chi tiết
 │   ├── kiem_thu_thu_cong_toan_dien.md # - Cẩm nang kiểm thử thủ công từng bước cho nhóm
 │   └── QUY_TRINH_NGHIEP_VU_HE_THONG.md # - Tài liệu nghiệp vụ y tế và cơ chế cấn trừ chuẩn
 │
-├── data/                          # [DATA] Từ điển danh mục chuẩn và Mock data
+├── data/                          # Từ điển danh mục chuẩn và Mock data
 │   ├── catalogs/                  #   - Từ điển danh mục: nhóm máu, biến thể, dị ứng, tiền sử bệnh
 │   │   ├── nhom_mau.txt           #     - 8 nhóm máu cơ bản ABO và Rh (+/-)
 │   │   ├── bien_the_nhom_mau.txt  #     - 12 biến thể nhóm máu hiếm (Weak D, Partial D, Bombay, ...)
@@ -53,60 +57,52 @@ KLCN_QuanLyPhongKhamDaKhoa/
 │   │   └── tien_su_benh.txt       #     - 21 bệnh lý nền mạn tính (Tim mạch, Huyết áp, Đái tháo đường, ...)
 │   └── articles_data.py           #   - Dữ liệu cẩm nang y khoa mẫu
 │
-├── backups/                       # [BACKUPS] Thư mục chứa các bản sao lưu tự động .bak của SQL Server
+├── backups/                       # Chứa các bản sao lưu .bak tự động và thủ công của SQL Server
 │
-├── core/                          # [CORE] Tầng hạ tầng và dịch vụ nghiệp vụ dùng chung
+├── core/                          # Tầng hạ tầng và dịch vụ nghiệp vụ dùng chung
 │   ├── database.py                #   - UnifiedCursor và kết nối pyodbc Microsoft SQL Server
-│   ├── validators.py              #   - Bộ lọc kiểm tra dữ liệu, chống ký tự lạ, chuẩn regex tiếng Việt
-│   ├── security.py                #   - Băm mật khẩu scrypt, xác thực phiên và phân quyền RBAC
-│   ├── image_service.py           #   - Tự động nén ảnh WebP (< 80KB) chống phình bộ nhớ
-│   ├── csv_service.py             #   - Nhập/xuất CSV chuẩn UTF-8-SIG (Excel)
-│   ├── audit.py                   #   - Ghi nhật ký kiểm toán hoạt động hệ thống (Audit Log)
-│   ├── catalog.py                 #   - Quản lý nạp danh mục y khoa từ file text
-│   └── notification_service.py    #   - Gửi thông báo in-app đa kênh và quét nhắc nhở lịch hẹn
+│   ├── validators.py              #   - Bộ lọc kiểm tra dữ liệu, chống ký tự lạ, regex tiếng Việt
+│   ├── security.py                #   - Quản trị phiên đăng nhập, hashing scrypt, kiểm tra phân quyền RBAC
+│   ├── scheduling.py              #   - Ma trận giờ khám, phát hiện xung đột và tự động hủy lịch trùng
+│   ├── billing_policy.py          #   - Thuật toán cấn trừ viện phí BHYT 80% và nhận diện hóa đơn HDT
+│   ├── emr_workflow.py            #   - Quy trình khám 5 bước, phiên khám chuyển tiếp và chỉ định CLS
+│   └── catalog.py                 #   - Bộ nạp từ điển danh mục chuẩn y khoa
 │
-├── controllers/                   # [CONTROLLER] Xử lý nghiệp vụ và điều hướng URL
+├── controllers/                   # Tầng điều khiển (Controllers / Blueprints)
 │   ├── auth_controller.py         #   - Đăng nhập, đăng ký, đăng xuất, cưỡng chế đổi mật khẩu
-│   ├── home_controller.py         #   - Trang chủ (random BS, random đánh giá), giá khám, DS bác sĩ, chuyên khoa
-│   ├── patient_controller.py      #   - Cổng bệnh nhân: Hồ sơ 360°, đơn thuốc, hóa đơn, đặt lịch 2 chiều, phản hồi
-│   ├── admin_controller.py        #   - Phân hệ quản trị: Tiếp đón, EMR, CLS, kho dược, viện phí, hồ sơ cá nhân
-│   ├── api_controller.py          #   - RESTful API: Đăng ký ca trực, EMR, xuất thuốc, viện phí, sao lưu
+│   ├── home_controller.py         #   - Trang chủ, bảng giá, danh sách bác sĩ, chuyên khoa mở rộng
+│   ├── patient_controller.py      #   - Cổng bệnh nhân: Hồ sơ 360°, đơn thuốc, hóa đơn, đặt lịch, phản hồi
+│   ├── admin_controller.py        #   - Phân hệ quản trị: Tiếp đón, EMR, CLS, kho dược, viện phí, nhân sự
+│   ├── api_controller.py          #   - RESTful API: Đặt lịch, ma trận giờ, chấm công, xuất thuốc, sao lưu
 │   └── mobile_auth_controller.py  #   - API xác thực dành cho ứng dụng di động Flutter
 │
-├── models/                        # [MODEL] Tương tác CSDL SQL Server và ràng buộc nghiệp vụ (13 Models)
+├── models/                        # Tầng mô hình dữ liệu (13 Models kết nối SQL Server)
 │   ├── user_model.py              #   - Tài khoản, phân quyền RBAC, hồ sơ nhân viên, cấp lại mật khẩu
-│   ├── appointment_model.py       #   - Đặt lịch, ma trận giờ khám 2 chiều, chống đặt trùng, chặn đổi lịch đã xong
+│   ├── appointment_model.py       #   - Đặt lịch, ma trận giờ khám, phân công bác sĩ, hủy tự động lịch trùng
 │   ├── medical_record_model.py    #   - EMR 5 bước liên hoàn, chỉ định CLS, kiểm tra tồn kho và kê đơn
 │   ├── pharmacy_model.py          #   - Quản lý kho dược, duyệt đơn 3 bước, cấp phát thực tế trừ kho
 │   ├── billing_model.py           #   - Viện phí, khấu trừ BHYT 80%, nhận diện hóa đơn thuốc HDT
 │   ├── patient_model.py           #   - Hồ sơ bệnh nhân 360°, tiền sử dị ứng, cận lâm sàng, nhóm máu
-│   ├── schedule_model.py          #   - Lịch ca trực: Lễ tân tự duyệt, Admin ẩn, giới hạn 3 BS/khoa/ca
-│   ├── notification_model.py      #   - Hệ thống thông báo tức thì, popups real-time, chuông Web Audio
-│   ├── banner_model.py            #   - Quản lý slider quảng bá trang chủ (CRUD và sắp xếp)
-│   ├── article_model.py           #   - Tin tức, cẩm nang y khoa (phân quyền Lễ tân và Admin được đăng)
+│   ├── schedule_model.py          #   - Ca trực, thống kê giờ công, chấm công theo tháng, lịch sử 10 tuần
+│   ├── notification_model.py      #   - Thông báo tức thì, popups real-time, chuông Web Audio
+│   ├── banner_model.py            #   - Quản lý slider quảng bá trang chủ
+│   ├── article_model.py           #   - Tin tức, cẩm nang y khoa
 │   ├── clinic_model.py            #   - Dịch vụ y tế, thống kê dashboard phòng khám
-│   ├── feedback_model.py          #   - Đánh giá chất lượng và phản hồi của người bệnh (lọc >= 4 sao)
+│   ├── feedback_model.py          #   - Đánh giá chất lượng và phản hồi của người bệnh
 │   └── backup_model.py            #   - Sao lưu, tự động phục hồi CSDL SQL Server (.bak), scheduler 2 giờ
 │
-├── static/                        # [STATIC] Tài nguyên tĩnh giao diện
-│   ├── css/custom.css             #   - Custom styles, hệ thống Dark Mode Midnight Slate toàn diện
-│   ├── js/main.js                 #   - Toast notification, Polling, Schedule interaction, Dropzone
-│   ├── js/theme.js                #   - Quản lý chuyển đổi chế độ Sáng / Tối (Dark Mode) và lưu localStorage
+├── static/                        # Tài nguyên tĩnh giao diện
+│   ├── css/custom.css             #   - Custom styles, Dark Mode Midnight Slate, hoạt ảnh slideInRight
+│   ├── js/main.js                 #   - Toast notification, Polling, Web Speech Audio, Dropzone
+│   ├── js/theme.js                #   - Quản lý chuyển đổi chế độ Sáng / Tối và lưu localStorage
 │   ├── img/                       #   - Hình ảnh bài viết, icon thương hiệu
-│   └── uploads/                   #   - Tệp đính kèm người dùng: kết quả CLS, ảnh lâm sàng EMR, banner
+│   └── uploads/                   #   - Kết quả xét nghiệm CLS, ảnh lâm sàng EMR, banner
 │
-├── templates/                     # [VIEW] Giao diện Jinja2 HTML và TailwindCSS
-│   ├── layouts/                   #   - Layout dùng chung (base.html, footer.html)
-│   ├── auth/                      #   - Giao diện đăng nhập, đăng ký, cưỡng chế đổi mật khẩu (123 -> mới)
-│   ├── patient/                   #   - Cổng bệnh nhân: Dashboard, đặt lịch 2 chiều, EMR, xét nghiệm, hóa đơn
-│   ├── admin/                     #   - Phân hệ quản trị: EMR 5 bước, CLS Lab, kho dược, hồ sơ cá nhân, ca trực
-│   ├── public/                    #   - 3 trang công khai cho Khách: Bảng giá (/pricing), DS Bác sĩ (/doctors), Chuyên khoa (/departments)
-│   └── home.html                  #   - Trang chủ lấy dữ liệu ngẫu nhiên chuẩn từ CSDL
-│
-└── tests/                         # [TESTS] Kiểm thử tự động đảm bảo an toàn hệ thống
-    ├── test_startup_safety.py     #   - Kiểm thử khởi động an toàn, idempotent, chống nạp đè CSDL
-    ├── test_upgraded_features.py  #   - Kiểm thử ma trận đặt lịch 2 chiều, backup tự động, Dark mode, bảo mật
-    └── ...
+└── templates/                     # Giao diện Jinja2 HTML và TailwindCSS
+    ├── layouts/                   #   - Layout dùng chung (base.html, header, footer Google Maps tự nhiên)
+    ├── auth/                      #   - Giao diện đăng nhập, đăng ký, hoàn thiện hồ sơ lần đầu
+    ├── patient/                   #   - Cổng bệnh nhân: Dashboard, đặt lịch 4 màu, bệnh án, hóa đơn
+    └── admin/                     #   - Phân hệ quản trị: Tiếp đón, EMR 5 bước, CLS, kho dược, chấm công
 ```
 
 ---
@@ -119,256 +115,307 @@ KLCN_QuanLyPhongKhamDaKhoa/
 * **Cơ sở dữ liệu**: Microsoft SQL Server 2017, 2019, 2022 hoặc Microsoft SQL Server Express (Bản miễn phí).
 * **Driver ODBC**: Microsoft ODBC Driver 17 for SQL Server (hoặc Driver 18).
 
-### 2. Các bước thiết lập ban đầu
+### 2. Các bước cài đặt chi tiết
 
-#### Bước 1: Cài đặt thư viện Python
-Mở PowerShell hoặc Command Prompt tại thư mục gốc dự án:
+**Bước 1: Mở Terminal tại thư mục gốc dự án**
+```bash
+cd "d:\baitap\Khoa Luan\KLCN_QuanLyPhongKhamDaKhoa"
+```
+
+**Bước 2: Cài đặt các thư viện phụ thuộc**
 ```bash
 pip install -r requirements.txt
 ```
 
-#### Bước 2: Cấu hình kết nối SQL Server trong `config.py`
-Mở file [config.py](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/config.py) và cấu hình khối `SQLSERVER_CONFIG`:
+**Bước 3: Cấu hình kết nối CSDL trong [config.py](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/config.py)**
+Kiểm tra cấu hình chuỗi kết nối SQL Server:
 ```python
-DB_ENGINE = 'sqlserver'
-
-SQLSERVER_CONFIG = {
+DB_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}',
-    'server': 'localhost',             # Hoặc: '.\SQLEXPRESS', 'localhost\SQLEXPRESS'
-    'database': 'quan_ly_phong_kham',  # Tên cơ sở dữ liệu
-    'trusted_connection': 'yes',       # Dùng Windows Authentication
-    'TrustServerCertificate': 'yes'    # Tránh lỗi chứng chỉ trên SQL Server 2022
+    'server': 'localhost',             # Hoặc localhost\SQLEXPRESS
+    'database': 'QL_PHONGKHAM_DAKHOA',
+    'trusted_connection': 'yes',       # Sử dụng Windows Authentication
 }
 ```
-*Ghi chú: Nếu dùng tài khoản SQL Server Authentication (`sa`), đặt `'trusted_connection': 'no'` và bổ sung `'uid': 'sa'`, `'pwd': 'mat_khau_cua_ban'`.*
 
-#### Bước 3: Khởi tạo Cơ sở dữ liệu và nạp dữ liệu sạch (CHỈ CHẠY 1 LẦN DUY NHẤT KHI CÀI ĐẶT)
-> [!IMPORTANT]
-> **Bước 3 chỉ chạy DUY NHẤT MỘT LẦN** khi bạn vừa cài đặt dự án lần đầu tiên để tạo bảng và nạp 69 tài khoản mẫu. Tuyệt đối **không chạy lại** bước này trong các lần làm việc hàng ngày, vì lệnh này sẽ xóa sạch dữ liệu hiện tại để đưa về trạng thái trắng ban đầu.
-
-Chạy lệnh nạp dữ liệu sạch:
-```bash
-python scratch/seed_database.py
-```
-*(Nếu cơ sở dữ liệu đã có dữ liệu hoạt động, script được trang bị khóa an toàn sẽ cảnh báo và yêu cầu xác nhận để tránh mất dữ liệu ngoài ý muốn).*
-
-#### Bước 4: Khởi chạy máy chủ Web Flask (LỆNH VẬN HÀNH HÀNG NGÀY)
-Mỗi ngày khi mở máy tính làm việc, bạn **chỉ cần chạy duy nhất một lệnh sau**:
+**Bước 4: Khởi chạy máy chủ**
 ```bash
 python app.py
 ```
-Khi hiển thị thông báo:
-```text
-[*] Khởi động hệ thống: Đang nạp bản sao lưu mới nhất...
-[Thành công] Đã đưa bản lưu gần nhất vào CSDL.
-* Running on http://127.0.0.1:5000
-```
-Hệ thống đã sẵn sàng phục vụ tại địa chỉ: **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+> Khi khởi chạy, hệ thống sẽ:
+> 1. Tự động kiểm tra thư mục `backups/`, tự động nạp bản sao lưu `.bak` gần nhất vào SQL Server nếu cần đồng bộ.
+> 2. Kích hoạt bộ lập lịch sao lưu tự động chạy ngầm mỗi 2 tiếng.
+> 3. Khởi động Web Server tại: **http://127.0.0.1:5000**
 
 ---
 
 ## Cơ Chế Sao Lưu và Phục Hồi CSDL Tự Động
 
-Hệ thống được trang bị cơ chế bảo toàn dữ liệu và đồng bộ làm việc nhóm thông minh:
-
-1. **Tự động sao lưu định kỳ mỗi 2 tiếng (Auto-Backup Scheduler)**:
-   - Khi chạy `python app.py`, một tiến trình chạy ngầm (`start_auto_backup_scheduler`) được kích hoạt tự động.
-   - Cứ mỗi 2 tiếng, hệ thống tự động sinh một bản sao lưu toàn vẹn `.bak` vào thư mục [backups/](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/backups).
-   - Tự động dọn dẹp các file cũ, duy trì 20 bản sao lưu mới nhất để tối ưu dung lượng ổ đĩa.
-2. **Tự động nạp bản sao lưu gần nhất khi khởi động (`python app.py`)**:
-   - Khi khởi động server, hệ thống tự động quét tìm file `.bak` mới nhất trong thư mục `backups/` và khôi phục vào SQL Server.
-   - Thao tác này được bảo vệ chạy đúng 1 lần trên tiến trình chính, không gây nghẽn hay lặp lại khi Flask tự động reload code.
-3. **Tạo bản sao lưu tức thì bằng 1 click**:
-   - Quản trị viên truy cập trang **Sao lưu và Phục hồi** (`/admin/backups`) và bấm **"Tạo bản sao lưu ngay"** để chốt phiên dữ liệu hiện tại.
-4. **Lệnh đồng bộ nhóm 1-Click dành cho thành viên**:
-   - Khi một thành viên trong nhóm nhận được file `.bak` mới (hoặc pull từ Git về thư mục `backups/`), chỉ cần chạy:
-     ```bash
-     python scratch/restore_backup.py
-     ```
-     Hoặc vừa nạp backup mới vừa bật Web:
-     ```bash
-     python app.py --restore-latest
-     ```
+1. **Tự động sao lưu định kỳ mỗi 2 tiếng**:
+   - Chạy trên một luồng nền độc lập (`threading.Thread`), định kỳ gọi lệnh T-SQL `BACKUP DATABASE` nguyên bản của Microsoft SQL Server.
+   - Bản sao lưu được lưu trữ tại thư mục `backups/` theo định dạng chuẩn: `backup_sqlserver_YYYYMMDD_HHMMSS.bak`.
+2. **Tự động nạp bản sao lưu mới nhất khi khởi động**:
+   - Khi chạy `python app.py`, hàm `BackupModel.get_latest_backup()` sẽ quét thư mục `backups/`.
+   - Nếu phát hiện bản sao lưu mới nhất, hệ thống tự động đưa các phiên kết nối về `SINGLE_USER WITH ROLLBACK IMMEDIATE` và tiến hành `RESTORE DATABASE`, sau đó trả lại chế độ `MULTI_USER`.
+3. **Sao lưu thủ công & Quản lý bản sao lưu**:
+   - Quản trị viên có thể truy cập giao diện `/admin/backups` để tạo bản sao lưu tức thì, tải file `.bak` về máy hoặc phục hồi lại bất kỳ thời điểm nào chỉ với 1 cú click chuột.
 
 ---
 
 ## Ma Trận Phân Quyền Hệ Thống (RBAC)
 
-Hệ thống quản lý nghiêm ngặt theo mô hình Kiểm soát truy cập dựa trên vai trò (Role-Based Access Control) với 6 vai trò chính:
+Hệ thống thiết lập 6 vai trò người dùng với quyền hạn độc lập và kiểm soát truy cập nghiêm ngặt:
 
-| Chức năng / Phân hệ | Khách (Guest) | Bệnh nhân (BENHNHAN) | Lễ tân / Thu ngân (LETAN) | Bác sĩ (BACSI) | Kỹ thuật viên (KTV) | Dược sĩ (DUOCSI) | Quản trị viên (ADMIN) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Xem Trang chủ & Tin tức** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Xem Bảng giá, Bác sĩ, Chuyên khoa** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Đăng ký tài khoản Bệnh nhân** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Đặt lịch khám trực tuyến** | Cần Login | ✅ | ✅ *(Tại quầy)* | ✅ *(Tái khám)* | ❌ | ❌ | ❌ |
-| **Xem Hồ sơ sức khỏe 360°** | ❌ | ✅ *(Cá nhân)* | ✅ *(Tra cứu)* | ✅ *(Bệnh nhân khám)* | ❌ | ❌ | ✅ |
-| **Bệnh án điện tử EMR 5 bước** | ❌ | ✅ *(Xem kết quả)* | ❌ | ✅ *(Khám & Kê đơn)* | ❌ | ❌ | ✅ *(Xem)* |
-| **Chỉ định Cận lâm sàng (CLS)** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Thực hiện CLS & Tải ảnh phòng Lab** | ❌ | ❌ | ❌ | ✅ *(Xem)* | ✅ *(Thực hiện & Tải ảnh)* | ❌ | ✅ |
-| **Kiểm tra trạng thái đóng phí CLS** | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ |
-| **Quản lý Kho Dược & Duyệt đơn thuốc**| ❌ | ❌ | ✅ *(Thu tiền)* | ❌ | ❌ | ✅ *(Cấp phát trừ kho)* | ✅ |
-| **Thu Viện phí & Cấn trừ BHYT 80%** | ❌ | ✅ *(Thanh toán QR)* | ✅ *(Lập & Thu tiền)* | ❌ | ❌ | ❌ | ✅ |
-| **Đăng bài Cẩm nang y tế** | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ✅ |
-| **Đăng ký & Phê duyệt Ca trực** | ❌ | ❌ | ✅ *(Tự duyệt)* | ✅ *(Chờ duyệt)* | ✅ *(Chờ duyệt)* | ✅ *(Chờ duyệt)* | ✅ *(Duyệt & Không trực)* |
-| **Cài đặt Giá khám cá nhân** | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Quản lý Tài khoản & Phân quyền** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Cấp lại mật khẩu (về mặc định 123)** | ❌ | ❌ | ✅ *(Bệnh nhân)* | ❌ | ❌ | ❌ | ✅ *(Toàn hệ thống)* |
-| **Sao lưu & Phục hồi CSDL (.bak)** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Xem Nhật ký Kiểm toán (Audit Log)** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Mã Vai Trò | Tên Vai Trò | Mô Tả & Quyền Hạn Nghiệp Vụ |
+|:---|:---|:---|
+| **ADMIN** | Quản Trị Viên | Toàn quyền quản trị hệ thống: Quản lý tài khoản, phân vai trò, xem audit log, sao lưu/phục hồi CSDL, thống kê tổng quan doanh thu, quản lý danh mục khoa/phòng/dịch vụ, quản lý ca trực và chấm công toàn viện. |
+| **LETAN** | Lễ Tân / Thu Ngân | Tiếp đón bệnh nhân tại sảnh, phân phòng khám, điều phối & duyệt lịch hẹn, giải quyết xung đột lịch trùng, thu ngân viện phí (tiền mặt/VietQR), quản lý bài viết y khoa, xem bảng chấm công toàn nhân viên. |
+| **BACSI** | Bác Sĩ Chuyên Khoa | Khám bệnh EMR 5 bước liên hoàn, ra chỉ định cận lâm sàng, kê đơn thuốc điện tử kèm cảnh báo tương tác/dị ứng, hẹn lịch tái khám mới (tự động duyệt), đăng ký ca trực và theo dõi giờ công cá nhân. |
+| **DUOCSI** | Dược Sĩ / Quản Lý Kho | Quản lý kho dược phẩm, duyệt đơn thuốc mua tại viện, cấp phát thuốc thực tế trừ tồn kho tự động, nhập kho, kiểm kê thẻ kho và lịch sử xuất nhập thuốc. |
+| **KTV** | Kỹ Thuật Viên CLS | Tiếp nhận chỉ định xét nghiệm & CĐHA, nhập kết quả chỉ số xét nghiệm, tải lên ảnh chẩn đoán hình ảnh (X-Quang, Siêu âm, Nội soi), duyệt kết quả gửi về cho Bác sĩ điều trị. |
+| **BENHNHAN** | Khách Hàng / Bệnh Nhân | Cổng thông tin bệnh nhân: Tra cứu lịch sử khám bệnh EMR, xem kết quả xét nghiệm, theo dõi đơn thuốc (chọn mua tại viện hoặc tự mua ngoài), tra cứu hóa đơn viện phí, đặt lịch hẹn trực tuyến 4 trạng thái màu. |
 
 ---
 
-## Danh Sách Tài Khoản Mẫu Theo Vai Trò
+## Toàn Bộ Danh Sách Tài Khoản Hệ Thống (92 Tài Khoản)
 
-Hệ thống được khởi tạo sẵn **69 tài khoản mẫu** bao phủ mọi trường hợp nghiệp vụ để phục vụ kiểm thử và nghiệm thu:
+Dưới đây là danh sách chi tiết toàn bộ **92 tài khoản** đang hoạt động trong hệ thống, được phân loại rõ ràng theo từng vai trò nghiệp vụ:
 
-| Vai trò hệ thống | Tên đăng nhập | Mật khẩu mặc định | Ghi chú và Quyền hạn đặc trưng |
-| :--- | :--- | :--- | :--- |
-| **Quản trị viên (ADMIN)** | `admin` | `admin123` | Quản trị toàn hệ thống, tạo nhân sự, duyệt ca trực, sao lưu database |
-| **Lễ tân & Thu ngân (LETAN)** | `letan_1` | `Password@123` | Tiếp đón bệnh nhân, phân phòng, tự duyệt ca trực, thu viện phí, đăng bài viết |
-| **Lễ tân 2..5** | `letan_2` .. `letan_5` | `Password@123` | Nhân sự lễ tân các ca trực khác |
-| **Bác sĩ Nội khoa (BACSI)** | `bs_noi_1` | `Password@123` | Khám lâm sàng EMR, cảnh báo dị ứng thuốc, chỉ định xét nghiệm |
-| **Bác sĩ Ngoại khoa (BACSI)** | `bs_ngoai_1` | `Password@123` | Khám ngoại khoa, chỉ định chẩn đoán hình ảnh, điều phối CLS |
-| **Bác sĩ Nhi khoa (BACSI)** | `bs_nhi_1` | `Password@123` | Khám nhi khoa, theo dõi sinh hiệu, kê đơn an toàn theo lứa tuổi |
-| **Bác sĩ Chuyên khoa khác** | `bs_san_1`, `bs_mat_1`, ... | `Password@123` | Đầy đủ 8 chuyên khoa chính của phòng khám đa khoa |
-| **Kỹ thuật viên phòng Lab (KTV)**| `ktv_1` | `Password@123` | Tiếp nhận chỉ định CLS, kiểm tra thanh toán, tải tối đa 10 ảnh kết quả |
-| **Dược sĩ kho dược (DUOCSI)** | `duocsi_1` | `Password@123` | Quản lý danh mục thuốc, duyệt đơn thuốc, cấp phát thực tế trừ kho |
-| **Bệnh nhân có BHYT (BENHNHAN)** | `0901234561` | `123456` | Có thẻ BHYT (hưởng giảm 80%), có tiền sử dị ứng thuốc Paracetamol |
-| **Bệnh nhân không BHYT (BENHNHAN)**| `0901234562` | `123456` | Khám tự nguyện, dị ứng Penicillin, quét mã VietQR thanh toán viện phí |
+### 5.1 Quản Trị Viên (ADMIN) - 1 tài khoản
+* **Mật khẩu mặc định**: `admin123`
 
-> [!NOTE]
-> **Quy trình Cưỡng chế đổi mật khẩu an toàn**: Khi Admin hoặc Lễ tân cấp lại mật khẩu cho một tài khoản, mật khẩu được gán về `123`. Khi tài khoản này đăng nhập, hệ thống sẽ tự động chuyển hướng đến `/force-change-password` bắt buộc nhập mật khẩu mới trước khi truy cập bất kỳ trang nào.
+| ID | Username | Họ và Tên | Mã Nhân Viên | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 1 | `admin` | Quản Trị Viên Hệ Thống | NV001 | 0999999999 | `admin123` |
+
+---
+
+### 5.2 Nhân Viên Lễ Tân & Thu Ngân (LETAN) - 5 tài khoản
+* **Mật khẩu mặc định**: `Password@123`
+
+| ID | Username | Họ và Tên | Mã Nhân Viên | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 2 | `letan_1` | Nguyễn Thị Lan | NV_LT01 | 0908111221 | `Password@123` |
+| 3 | `letan_2` | Trần Thu Huyền | NV_LT02 | 0908111222 | `Password@123` |
+| 4 | `letan_3` | Lê Phương Thảo | NV_LT03 | 0908111223 | `Password@123` |
+| 5 | `letan_4` | Phạm Ngọc Bích | NV_LT04 | 0908111224 | `Password@123` |
+| 6 | `letan_5` | Đỗ Thu Hà | NV_LT05 | 0908111225 | `Password@123` |
+
+---
+
+### 5.3 Bác Sĩ Chuyên Khoa (BACSI) - 43 tài khoản
+* **Mật khẩu mặc định**: `Password@123`
+
+#### Nhóm 35 Bác Sĩ Lâm Sàng Chính Phụ Trách 8 Chuyên Khoa
+| ID | Username | Họ và Tên | Chuyên Khoa | Phòng Khám Chính | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|:---|
+| 17 | `bs_noi_1` | BS. Trần Minh Quân | Khoa Nội Tổng Quát | Phòng Khám Nội 1 | 0912111001 | `Password@123` |
+| 18 | `bs_noi_2` | BS. Phạm Anh Tuấn | Khoa Nội Tổng Quát | Phòng Khám Nội 2 | 0912111002 | `Password@123` |
+| 19 | `bs_noi_3` | BS. Nguyễn Thu Trang | Khoa Nội Tổng Quát | Phòng Khám Nội 3 | 0912111003 | `Password@123` |
+| 20 | `bs_noi_4` | BS. Vũ Quốc Hưng | Khoa Nội Tổng Quát | Phòng Khám Nội 4 | 0912111004 | `Password@123` |
+| 21 | `bs_noi_5` | BS. Lê Hoài An | Khoa Nội Tổng Quát | Phòng Khám Nội 5 | 0912111005 | `Password@123` |
+| 22 | `bs_ngoai_1` | BS. Nguyễn Hoàng Nam | Khoa Ngoại Tổng Quát | Phòng Khám Ngoại 1 | 0912222001 | `Password@123` |
+| 23 | `bs_ngoai_2` | BS. Phan Thanh Phong | Khoa Ngoại Tổng Quát | Phòng Khám Ngoại 2 | 0912222002 | `Password@123` |
+| 24 | `bs_ngoai_3` | BS. Đinh Văn Hùng | Khoa Ngoại Tổng Quát | Phòng Khám Ngoại 3 | 0912222003 | `Password@123` |
+| 25 | `bs_ngoai_4` | BS. Hoàng Đức Lâm | Khoa Ngoại Tổng Quát | Phòng Khám Ngoại 4 | 0912222004 | `Password@123` |
+| 26 | `bs_ngoai_5` | BS. Trịnh Văn Long | Khoa Ngoại Tổng Quát | Phòng Khám Ngoại 5 | 0912222005 | `Password@123` |
+| 27 | `bs_nhi_1` | BS. Lê Thị Mai | Khoa Nhi | Phòng Khám Nhi 1 | 0912333001 | `Password@123` |
+| 28 | `bs_nhi_2` | BS. Dương Diệu Linh | Khoa Nhi | Phòng Khám Nhi 2 | 0912333002 | `Password@123` |
+| 29 | `bs_nhi_3` | BS. Ngô Đình Quân | Khoa Nhi | Phòng Khám Nhi 3 | 0912333003 | `Password@123` |
+| 30 | `bs_nhi_4` | BS. Phạm Thúy Hằng | Khoa Nhi | Phòng Khám Nhi 4 | 0912333004 | `Password@123` |
+| 31 | `bs_nhi_5` | BS. Đỗ Tuấn Nghĩa | Khoa Nhi | Phòng Khám Nhi 5 | 0912333005 | `Password@123` |
+| 32 | `bs_rhm_1` | BS. Hoàng Đức Duy | Khoa Răng Hàm Mặt | Phòng Khám RHM 1 | 0912444001 | `Password@123` |
+| 33 | `bs_rhm_2` | BS. Đoàn Minh Khang | Khoa Răng Hàm Mặt | Phòng Khám RHM 2 | 0912444002 | `Password@123` |
+| 34 | `bs_rhm_3` | BS. Vũ Hồng Loan | Khoa Răng Hàm Mặt | Phòng Khám RHM 3 | 0912444003 | `Password@123` |
+| 35 | `bs_rhm_4` | BS. Mai Văn Trọng | Khoa Răng Hàm Mặt | Phòng Khám RHM 4 | 0912444004 | `Password@123` |
+| 36 | `bs_rhm_5` | BS. Nguyễn Bích Thủy | Khoa Răng Hàm Mặt | Phòng Khám RHM 5 | 0912444005 | `Password@123` |
+| 37 | `bs_san_1` | BS. Đặng Thu Hương | Khoa Sản - Phụ Khoa | Phòng Khám Sản Phụ 1 | 0912555001 | `Password@123` |
+| 38 | `bs_san_2` | BS. Trần Kiều Nga | Khoa Sản - Phụ Khoa | Phòng Khám Sản Phụ 2 | 0912555002 | `Password@123` |
+| 39 | `bs_san_3` | BS. Nguyễn Thanh Huyền | Khoa Sản - Phụ Khoa | Phòng Khám Sản Phụ 3 | 0912555003 | `Password@123` |
+| 40 | `bs_san_4` | BS. Bùi Thị Minh Tâm | Khoa Sản - Phụ Khoa | Phòng Khám Sản Phụ 4 | 0912555004 | `Password@123` |
+| 41 | `bs_san_5` | BS. Lê Tuyết Lan | Khoa Sản - Phụ Khoa | Phòng Khám Sản Phụ 5 | 0912555005 | `Password@123` |
+| 42 | `bs_tmh_1` | BS. Võ Thanh Bình | Khoa Tai Mũi Họng | Phòng Khám TMH 1 | 0912666001 | `Password@123` |
+| 43 | `bs_tmh_2` | BS. Hoàng Quốc Tuấn | Khoa Tai Mũi Họng | Phòng Khám TMH 2 | 0912666002 | `Password@123` |
+| 44 | `bs_tmh_3` | BS. Nguyễn Thị Thục Anh | Khoa Tai Mũi Họng | Phòng Khám TMH 3 | 0912666003 | `Password@123` |
+| 45 | `bs_tmh_4` | BS. Trương Hoài Nam | Khoa Tai Mũi Họng | Phòng Khám TMH 4 | 0912666004 | `Password@123` |
+| 46 | `bs_tmh_5` | BS. Chu Đức Cảnh | Khoa Tai Mũi Họng | Phòng Khám TMH 5 | 0912666005 | `Password@123` |
+| 47 | `bs_mat_1` | BS. Đỗ Viết Thắng | Khoa Mắt | Phòng Khám Mắt 1 | 0912777001 | `Password@123` |
+| 48 | `bs_mat_2` | BS. Lê Khánh Linh | Khoa Mắt | Phòng Khám Mắt 2 | 0912777002 | `Password@123` |
+| 49 | `bs_mat_3` | BS. Nguyễn Hữu Đạt | Khoa Mắt | Phòng Khám Mắt 3 | 0912777003 | `Password@123` |
+| 50 | `bs_mat_4` | BS. Phạm Hồng Nhung | Khoa Mắt | Phòng Khám Mắt 4 | 0912777004 | `Password@123` |
+| 51 | `bs_mat_5` | BS. Vũ Văn Hải | Khoa Mắt | Phòng Khám Mắt 5 | 0912777005 | `Password@123` |
+
+#### Nhóm Bác Sĩ Dự Bị & Điều Phối Bổ Sung
+| ID | Username | Họ và Tên | Chuyên Khoa | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 69 | `bs_test_32682707` | Bác sĩ Test 32682707 | Khoa Nội Tổng Quát | 0932682707 | `Password@123` |
+| 93 | `bs_test_40166526` | Bác sĩ Test 40166526 | Khoa Nội Tổng Quát | 0940166526 | `Password@123` |
+| 100 | `bs_test_01243937` | Bác sĩ Test 01243937 | Khoa Nội Tổng Quát | 0901243937 | `Password@123` |
+| 109 | `bs_test_06247257` | Bác sĩ Test 06247257 | Khoa Nội Tổng Quát | 0906247257 | `Password@123` |
+| 122 | `bs_test_02775131` | Bác sĩ Test 02775131 | Khoa Nội Tổng Quát | 0902775131 | `Password@123` |
+| 130 | `bs_test_26023588` | Bác sĩ Test 26023588 | Khoa Nội Tổng Quát | 0926023588 | `Password@123` |
+| 143 | `bs_test_06337995` | Bác sĩ Test 06337995 | Khoa Nội Tổng Quát | 0906337995 | `Password@123` |
+| 148 | `bs_test_26662332` | Bác sĩ Test 26662332 | Khoa Nội Tổng Quát | 0926662332 | `Password@123` |
+
+---
+
+### 5.4 Dược Sĩ & Quản Lý Kho Dược (DUOCSI) - 5 tài khoản
+* **Mật khẩu mặc định**: `Password@123`
+
+| ID | Username | Họ và Tên | Mã Nhân Viên | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 7 | `duocsi_1` | Dược sĩ Phạm Hoàng Minh | NV_DS01 | 0908222331 | `Password@123` |
+| 8 | `duocsi_2` | Dược sĩ Nguyễn Thị Kim Oanh | NV_DS02 | 0908222332 | `Password@123` |
+| 9 | `duocsi_3` | Dược sĩ Vũ Đình Trọng | NV_DS03 | 0908222333 | `Password@123` |
+| 10 | `duocsi_4` | Dược sĩ Hoàng Thanh Trúc | NV_DS04 | 0908222334 | `Password@123` |
+| 11 | `duocsi_5` | Dược sĩ Trần Văn Phúc | NV_DS05 | 0908222335 | `Password@123` |
+
+---
+
+### 5.5 Kỹ Thuật Viên Cận Lâm Sàng (KTV) - 5 tài khoản
+* **Mật khẩu mặc định**: `Password@123`
+
+| ID | Username | Họ và Tên | Mã Nhân Viên | Số Điện Thoại | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 12 | `ktv_1` | KTV. Võ Anh Đức | NV_KTV01 | 0908333441 | `Password@123` |
+| 13 | `ktv_2` | KTV. Hoàng Văn Cường | NV_KTV02 | 0908333442 | `Password@123` |
+| 14 | `ktv_3` | KTV. Đặng Mỹ Linh | NV_KTV03 | 0908333443 | `Password@123` |
+| 15 | `ktv_4` | KTV. Bùi Quốc Tuấn | NV_KTV04 | 0908333444 | `Password@123` |
+| 16 | `ktv_5` | KTV. Lê Thùy Trang | NV_KTV05 | 0908333445 | `Password@123` |
+
+---
+
+### 5.6 Khách Hàng / Bệnh Nhân (BENHNHAN) - 33 tài khoản
+
+#### Nhóm 10 Bệnh Nhân Tiêu Biểu & Đã Có Lịch Sử Khám Bệnh
+* **Mật khẩu**: `123456`
+
+| ID | Username / SĐT | Họ và Tên Bệnh Nhân | Mã BN | Ghi Chú Hồ Sơ | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 52 | `hoangbaonam` / `0901234561` | Hoàng Bảo Nam | BN0001 | Đầy đủ BHYT, nhóm máu O+, dị ứng | `123456` |
+| 53 | `0901234562` | Trần Thị Thu Hà | BN0002 | Đầy đủ BHYT, nhóm máu A+ | `123456` |
+| 54 | `0901234563` | Nguyễn Văn Hùng | BN0003 | Tiền sử bệnh Tăng huyết áp | `123456` |
+| 55 | `0901234564` | Lê Minh Anh | BN0004 | Nhóm máu B+, có người thân | `123456` |
+| 56 | `0901234565` | Phạm Đức Trọng | BN0005 | Đầy đủ thông tin cá nhân | `123456` |
+| 57 | `0901234566` | Đỗ Thị Bích Ngân | BN0006 | Có BHYT đúng tuyến | `123456` |
+| 58 | `0901234567` | Vũ Đình Khang | BN0007 | Có người thân liên hệ | `123456` |
+| 59 | `0901234568` | Bùi Tuyết Mai | BN0008 | Tiền sử dị ứng thức ăn | `123456` |
+| 60 | `0901234569` | Đặng Quốc Bảo | BN0009 | Nhóm máu AB+ | `123456` |
+| 61 | `0901234570` | Phan Mỹ Duyên | BN0010 | Đầy đủ thông tin | `123456` |
+
+#### Nhóm 10 Bệnh Nhân Mở Rộng (Thông Tin Khuyết Thiếu Ngẫu Nhiên Hợp Lệ)
+* **Mật khẩu**: `BenhNhan@123`
+
+| ID | Username / SĐT | Họ và Tên Bệnh Nhân | Mã BN | Đặc Điểm Thông Tin Hồ Sơ | Mật Khẩu |
+|:--:|:---|:---|:---|:---|:---|
+| 154 | `0981122334` | Lê Hoàng Long | BN2609024 | Khuyết BHYT, Nhóm máu, Người thân (Đặt lịch trùng chờ duyệt #LH2609101) | `BenhNhan@123` |
+| 155 | `0972233445` | Vũ Thị Bích Ngọc | BN2609025 | Có BHYT, khuyết Nhóm máu, Người thân (Đặt lịch trùng chờ duyệt #LH2609102) | `BenhNhan@123` |
+| 156 | `0963344556` | Đặng Quốc Bảo | BN2609026 | Có Nhóm máu O+, khuyết CCCD, BHYT, Người thân (Lịch hẹn #LH2609103 Đã duyệt) | `BenhNhan@123` |
+| 157 | `0944455667` | Phạm Thanh Thảo | BN2609027 | Khuyết BHYT, Nhóm máu, Người thân (Lịch hẹn #LH2609104 Tự động hủy do trùng) | `BenhNhan@123` |
+| 158 | `0935566778` | Trịnh Đình Trọng | BN2609028 | Có Người thân (Vợ), khuyết BHYT, Nhóm máu | `BenhNhan@123` |
+| 159 | `0926677889` | Hoàng Mỹ Duyên | BN2609029 | Có BHYT, khuyết CCCD, Nhóm máu, Người thân | `BenhNhan@123` |
+| 160 | `0917788990` | Bùi Hải Đăng | BN2609030 | Có Tên người thân (Bố), khuyết SĐT người thân, BHYT, Nhóm máu | `BenhNhan@123` |
+| 161 | `0908899001` | Nguyễn Khánh Vy | BN2609031 | Khuyết CCCD, BHYT, Nhóm máu, Người thân | `BenhNhan@123` |
+| 162 | `0989900112` | Mai Văn Khiêm | BN2609032 | Có CCCD, khuyết BHYT, Nhóm máu, Người thân | `BenhNhan@123` |
+| 163 | `0970011223` | Đỗ Thị Kim Chi | BN2609033 | Có Nhóm máu A+, khuyết CCCD, BHYT, Người thân | `BenhNhan@123` |
+
+#### Nhóm 13 Bệnh Nhân Khám Bệnh Thực Tế Bổ Sung
+* **Mật khẩu**: `123456`
+* Danh sách SĐT: `099019638`, `099750655`, `099663379`, `099906853`, `099769956`, `099884160`, `099166530`, `099960410`, `099144050`, `099893843`, `099406294`, `099746585`, `099205292`.
 
 ---
 
 ## Danh Mục Tính Năng Nghiệp Vụ Toàn Diện
 
-### 1. Phân hệ Bệnh nhân (Patient Portal)
-- **Hồ sơ sức khỏe 360°**: Quản lý thông tin định danh (CCCD 12 số, BHYT 10 số), chọn nhóm máu cơ bản và nhóm máu hiếm, tiền sử dị ứng và bệnh lý nền từ từ điển chuẩn hóa y khoa.
-- **Đặt lịch khám 2 chiều thông minh**:
-  - Chọn chuyên khoa và chọn ngày khám.
-  - Lọc tương tác 2 chiều: Chọn bác sĩ trước thì các khung giờ bận bị làm mờ; chọn giờ khám trước thì các bác sĩ không có ca trực trùng giờ sẽ bị ẩn/làm mờ.
-  - Hỗ trợ bấm lần 2 để bỏ chọn (Toggle Deselect) cực kỳ thuận tiện.
-  - Chống đặt trùng giờ và chống đặt lịch ngoài ca làm việc.
-- **Bệnh án điện tử EMR**: Xem chi tiết thanh tiến trình 5 bước khám thời gian thực, sinh hiệu, chẩn đoán ICD-10, đơn thuốc và ảnh lâm sàng.
-- **Kết quả Cận lâm sàng & Đa ảnh**: Xem chi tiết kết quả xét nghiệm, kết luận cận lâm sàng kèm lưới xem trước đa ảnh chất lượng cao và Lightbox phóng to.
-- **Hóa đơn viện phí & VietQR**: Minh bạch chi phí khám, xét nghiệm, thuốc; hiển thị rõ số tiền cấn trừ BHYT 80% và tự động tạo mã thanh toán VietQR chuẩn ngân hàng.
-- **Hệ thống Thông báo**: Nút chuông thông báo dropdown hiển thị 10 thông báo mới nhất kèm âm thanh chuông báo Web Audio API; trang Thông báo riêng (`/patient/notifications`) hiển thị toàn bộ lịch sử theo từng tài khoản.
+### 1. Phân Hệ Đặt Lịch Khám & Phát Hiện Xung Đột Thông Minh
+* **Ma trận khung giờ 4 màu sắc trực quan**:
+  - **Màu Xanh Lá (Available)**: Khung giờ còn trống, bác sĩ đang trong ca trực.
+  - **Màu Vàng (Pending)**: Khung giờ đang có bệnh nhân khác đặt chờ duyệt. Bệnh nhân vẫn được phép gửi yêu cầu nhưng hệ thống hiển thị banner cảnh báo khả năng bị hủy nếu lịch kia được duyệt trước.
+  - **Màu Đỏ (Booked)**: Khung giờ đã được duyệt chính thức hoặc đã đủ số lượng, khóa không cho đặt.
+  - **Màu Xám (Off Duty)**: Bác sĩ ngoài ca trực.
+* **Cơ chế tự động hủy lịch trùng (Conflict Auto-Cancellation)**:
+  - Khi Tiếp tân hoặc Admin duyệt hoặc phân bác sĩ cho 1 lịch hẹn, hệ thống tự động tìm và chuyển trạng thái toàn bộ các lịch hẹn khác bị trùng ngày giờ của bác sĩ đó sang `Đã hủy`.
+  - Tự động gửi thông báo in-app giải thích rõ ràng lý do hủy kèm đường link dẫn bệnh nhân quay lại chọn giờ khám khác.
+* **Tự động gán phòng khám theo ca trực**:
+  - Nếu bệnh nhân chọn "Để bệnh viện tự phân bác sĩ", Tiếp tân/Admin dễ dàng chọn bác sĩ chuyên khoa và duyệt ngay trong modal điều phối. Phòng khám tự động liên kết với phòng trực của bác sĩ trong ca đó.
 
-### 2. Phân hệ Bác sĩ & Khám chữa bệnh EMR
-- **Quy trình khám EMR 5 bước liên hoàn**:
-  1. *Khám lâm sàng*: Ghi nhận sinh hiệu, triệu chứng, tiền sử bệnh.
-  2. *Chỉ định Cận lâm sàng*: Chọn xét nghiệm, chẩn đoán hình ảnh, nội soi.
-  3. *Nhận kết quả CLS*: Theo dõi trạng thái hoàn tất từ phòng Lab, xem trực tiếp ảnh kết quả.
-  4. *Kê đơn thuốc điện tử*: Tự động cảnh báo dị ứng thuốc thời gian thực từ từ điển danh mục; kiểm tra số lượng tồn kho trước khi kê đơn.
-  5. *Kết luận ca khám*: Chốt mã ICD-10, dặn dò điều trị, khóa dữ liệu bệnh án.
-- **Chuyển phiên ca khám Cận lâm sàng**: Bác sĩ lâm sàng chuyển phiên ca khám cho Bác sĩ/KTV chuyên trách thực hiện kỹ thuật mà không làm đứt đoạn quy trình.
-- **Tải lên tối đa 10 ảnh lâm sàng**: Hỗ trợ kéo thả ảnh, lưới xem trước 2x2, tự động nén định dạng WebP (< 80KB).
-- **Lọc ca khám cá nhân hóa**: Bộ lọc "Lịch khám của tôi" ưu tiên hiển thị các bệnh nhân được chỉ định cho bác sĩ đang đăng nhập.
-- **Cài đặt Giá khám cá nhân**: Cho phép bác sĩ chủ động thiết lập đơn giá khám bệnh, hiển thị rõ ràng giá gốc và giá áp dụng BHYT.
+### 2. Trang Xem Chuyên Khoa Mở Rộng Kèm Giá Từng Loại Khám
+* Truy cập tại: `/chuyen-khoa` (hoặc `/departments`).
+* Dưới mỗi chuyên khoa, ngoài danh sách phòng khám và đội ngũ bác sĩ, hiển thị phân khu riêng biệt **"Các Loại Khám & Dịch Vụ Kỹ Thuật Chuyên Sâu"**:
+  - Tên dịch vụ hiển thị rõ ràng, không bị rút ngắn.
+  - Thẻ badge phân loại nghiệp vụ: Khám chuyên khoa, Khám bệnh, Thủ thuật, Thăm dò chức năng, Xét nghiệm, CĐHA.
+  - Đơn giá niêm yết công khai (VD: `200.000 đ`, `250.000 đ`).
+  - Tỷ lệ chi trả BHYT (Hỗ trợ 80% BHYT hoặc Tự nguyện).
 
-### 3. Phân hệ Kỹ thuật viên Cận lâm sàng (Lab Portal)
-- **Bàn làm việc phòng Lab**: Tiếp nhận chỉ định xét nghiệm và chẩn đoán hình ảnh theo thời gian thực.
-- **Kiểm tra trạng thái đóng phí**: Kiểm tra xác nhận bệnh nhân đã thanh toán viện phí cận lâm sàng trước khi thực hiện dịch vụ kỹ thuật.
-- **Nhập kết quả & Tải đa ảnh CĐHA**: Nhập kết luận, tải lên tối đa 10 ảnh kết quả (X-quang, Siêu âm, CT, Nội soi), tự động đồng bộ kết quả sang màn hình Bác sĩ và Bệnh nhân.
+### 3. Phân Hệ Quản Lý Nhân Sự & Thống Kê Giờ Công Chấm Công
+* Truy cập tại: `/admin/staff`.
+* **Thống kê chuyên sâu**:
+  - Số giờ công thực tế đã làm trong kỳ (`gio_cong_da_lam_ky`).
+  - Số giờ công được duyệt trong kỳ (`tong_gio_duyet_ky`).
+  - Tổng số giờ công tích lũy (`tong_gio_cong_tich_luy`).
+  - Số ca khám bệnh đã hoàn thành trong kỳ (`so_ca_kham_hoan_thanh_ky`).
+  - Tổng số ca khám tích lũy (`tong_ca_kham_hoan_thanh`).
+* **Lịch sử ca trực 10 tuần về trước**: Dữ liệu có sẵn đầy đủ từ tháng 08, 09, 10, 11/2026 với hơn 3.800 ca trực và 120 hồ sơ khám bệnh thực tế.
+* **Phân quyền xem**:
+  - Nhân viên chỉ xem được của chính mình.
+  - Tiếp tân và Admin có quyền xem của mình và xem toàn bộ 59 nhân viên của phòng khám.
 
-### 4. Phân hệ Dược sĩ & Kho Dược (Pharmacy Portal)
-- **Quy trình cấp phát thuốc 3 bước an toàn**:
-  - *Bước 1: Bệnh nhân lựa chọn*: Chọn "Mua tại viện" (sinh hóa đơn thuốc `HDT...`) hoặc "Mua ngoài viện" (không nợ tiền, không trừ kho).
-  - *Bước 2: Thu ngân thu phí*: Lễ tân xác nhận thu tiền đơn thuốc, đơn chuyển trạng thái `Chờ nhận thuốc` (tuyệt đối chưa trừ kho).
-  - *Bước 3: Dược sĩ cấp phát*: Dược sĩ kiểm tra đơn thuốc và bấm "Cấp phát thuốc" -> Lúc này kho dược mới thực tế trừ số lượng tồn kho.
-- **Quản lý kho dược**: Theo dõi số lượng tồn kho, cảnh báo tồn kho tối thiểu, quản lý hạn sử dụng, hoạt chất, biệt dược.
+### 4. Bệnh Án Điện Tử EMR 5 Bước Liên Hoàn
+* Khám bệnh chuyên khoa 5 bước: (1) Khám lâm sàng & Dấu hiệu sinh tồn -> (2) Chỉ định cận lâm sàng -> (3) Kết quả CLS & Chẩn đoán hình ảnh -> (4) Chẩn đoán ICD-10 & Kê đơn thuốc -> (5) Hướng điều trị & Hẹn tái khám.
+* Hẹn tái khám mới: Tự động sinh lịch hẹn mới hoàn toàn, trạng thái `Đã duyệt` sẵn, không đè lên lịch cũ, đồng thời gửi thông báo cho bệnh nhân.
 
-### 5. Phân hệ Lễ tân & Thu ngân (Reception & Billing Portal)
-- **Tiếp đón & Phân phòng**: Tiếp nhận bệnh nhân, kiểm tra thẻ BHYT, phân bổ vào các phòng khám chuyên khoa đang mở ca trực.
-- **Thu Viện phí & Cấn trừ BHYT 80%**: Lập hóa đơn viện phí, tự động tính toán cấn trừ 80% BHYT đối với các dịch vụ khám và kỹ thuật thuộc phạm vi chi trả.
-- **Tự duyệt ca trực**: Lễ tân được quyền tự đăng ký ca trực và hệ thống tự động duyệt ngay lập tức (`DA_DUYET`).
-- **Quản lý Cẩm nang y tế**: Quyền đăng bài viết mới, chỉnh sửa, xóa và tải lên file CSV bài viết cẩm nang y khoa mẫu.
-
-### 6. Phân hệ Quản trị viên (Admin Portal)
-- **Quản trị tài khoản & Phân quyền RBAC**: Quản lý tài khoản toàn bộ nhân sự và người bệnh, kích hoạt / vô hiệu hóa tài khoản.
-- **Cấp lại mật khẩu an toàn**: Sinh mật khẩu mặc định `123`, gắn cờ bắt buộc đổi mật khẩu ở lần đăng nhập tiếp theo.
-- **Điều phối Ca trực thông minh (Staff Shifts)**: Hiển thị dạng khối trực quan, giới hạn tối đa 3 bác sĩ/khoa/ca, tự động nhận diện hết giờ làm việc; khi hủy ca trực bác sĩ thì tự động chuyển lịch hẹn về trạng thái chờ điều phối lại.
-- **Sao lưu & Khôi phục CSDL SQL Server**: Tạo bản sao lưu `.bak`, tự động sao lưu mỗi 2 tiếng, tự động khôi phục bản sao lưu gần nhất khi khởi động ứng dụng.
-- **Nhật ký Kiểm toán (Audit Log)**: Ghi vết toàn bộ hành động thêm, sửa, xóa, duyệt, đăng nhập, đổi mật khẩu kèm IP và thời gian.
-
-### 7. Các Trang Công Khai Dành Cho Khách (Guest Pages)
-- **Bảng giá & Dịch vụ y tế (`/pricing`)**: Liệt kê toàn bộ danh mục dịch vụ khám, kỹ thuật cận lâm sàng phân chia theo khoa, hiển thị minh bạch giá gốc và giá giảm BHYT.
-- **Đội ngũ Bác sĩ (`/doctors`)**: Liệt kê toàn bộ bác sĩ theo từng chuyên khoa, hiển thị học vị, chức vụ, số điện thoại liên hệ (bảo mật không hiển thị tài khoản Admin).
-- **Danh sách Chuyên khoa (`/departments`)**: Giới thiệu thông tin chi tiết, chức năng nhiệm vụ của từng khoa phòng.
+### 5. Quản Lý Dược Phẩm & Cấp Phát Thuốc Khép Kín
+* Cấp phát 3 bước: (1) Bác sĩ kê đơn -> (2) Tiếp tân duyệt & Thu ngân thanh toán hóa đơn thuốc HDT -> (3) Dược sĩ kiểm tra tồn kho và xác nhận cấp phát, tự động trừ kho nguyên tử.
+* Bệnh nhân chủ động chọn: "Mua tại bệnh viện" (sinh hóa đơn HDT) hoặc "Tự mua ngoài" (hủy hóa đơn tạm).
 
 ---
 
-## Hệ Thống Ràng Buộc Dữ Liệu Nghiêm Ngặt
+## Hệ Thống Ràng Buộc Dữ Liệu & Điền Thông Tin Linh Hoạt
 
-Mọi dữ liệu đi vào hệ thống đều được thẩm định nghiêm ngặt tại [core/validators.py](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/core/validators.py):
-
-| Dữ liệu kiểm tra | Ràng buộc kỹ thuật | Hàm xử lý |
-| :--- | :--- | :--- |
-| **Họ và tên** | Độ dài 2 - 100 ký tự. Chỉ chứa chữ cái tiếng Việt có dấu, chữ cái Latin và khoảng trắng đơn. Chặn tuyệt đối chữ số, ký tự đặc biệt (`@#$%^&*`). | `validate_name` |
-| **Số thẻ BHYT** | Đúng 10 chữ số chuẩn theo Quyết định 1666/QĐ-BHXH của Bảo hiểm Xã hội Việt Nam. | `validate_bhyt` |
-| **Căn cước công dân (CCCD)** | Đúng 12 chữ số theo chuẩn thẻ căn cước công dân gắn chip. Chống nhập chuỗi số giả lặp lại (`000000000000`). | `validate_cccd` |
-| **Số điện thoại** | Đúng 10 chữ số, bắt đầu bằng các đầu số di động hợp lệ tại Việt Nam (`03, 05, 07, 08, 09`). | `validate_phone` |
-| **Ngày sinh & Độ tuổi** | Chặn ngày sinh trong tương lai. Bệnh nhân từ 0 đến 130 tuổi; nhân viên y tế bắt buộc từ đủ 18 tuổi trở lên. | `validate_birth_date` |
-| **Chỉ số sinh tồn lâm sàng** | Giới hạn sinh học: Mạch (30 - 250 bpm), Thân nhiệt (34.0 - 43.0 °C), Huyết áp tâm thu > Huyết áp tâm trương, SpO2 (50 - 100%), Nhịp thở (8 - 60 lần/phút). | `validate_vital_signs` |
-| **Kho dược & Dịch vụ** | Đơn giá thuốc > 0, tồn kho >= 0, số lượng kê đơn >= 1. Đơn giá dịch vụ >= 0, tỷ lệ BHYT từ 0% đến 100%. | `validate_medicine_data` |
+* **Hồ sơ bệnh nhân không ép buộc**:
+  - Khi đăng ký tài khoản hoặc đăng nhập lần đầu, chỉ bắt buộc: Họ và tên, Ngày sinh, Giới tính.
+  - Các trường: BHYT, CCCD, Nhóm máu, Người thân, Dị ứng, Tiền sử bệnh **cho phép để trống hoàn toàn**, có thể bổ sung sau khi đến khám.
+* **Tránh tải lại trang (No-Scroll Jump)**: Các thao tác chuyển bước, lọc dữ liệu, chọn ca trực được tối ưu bằng AJAX/Fetch API, không làm cuộn nhảy vị trí trang.
+* **Google Maps trong Dark Mode**: Khóa cố định màu sắc tự nhiên cho iframe bản đồ trong chế độ Dark Mode (`filter: none !important`), tránh bị đảo màu âm bản gây khó nhìn.
+* **Hoạt ảnh chuyển trang**: Tích hợp animation `h2tSlideInRight` tạo hiệu ứng trượt ngang hiện đại khi chuyển giữa các màn hình.
 
 ---
 
 ## Cơ Sở Dữ Liệu 27 Bảng Microsoft SQL Server
 
-Hệ thống được thiết kế chuẩn hóa 3NF trên nền tảng Microsoft SQL Server:
-
-1. `tai_khoan`: Thông tin đăng nhập, mật khẩu băm scrypt, cờ hồ sơ, cờ đổi mật khẩu.
-2. `vai_tro`: Danh mục vai trò RBAC (ADMIN, LETAN, BACSI, DUOCSI, KTV, BENHNHAN).
-3. `nhan_vien`: Hồ sơ lý lịch cán bộ y tế (họ tên, CCCD, ngày sinh, chức vụ, liên hệ).
-4. `bac_si`: Thông tin chuyên khoa, học vị, phòng làm việc chính, giá khám cá nhân.
-5. `benh_nhan`: Hồ sơ bệnh nhân 360°, mã BN, số BHYT, nhóm máu, tiền sử dị ứng, bệnh nền.
-6. `chuyen_khoa`: Danh mục 8 chuyên khoa phòng khám.
-7. `phong_kham`: Danh mục phòng khám và phòng chức năng cận lâm sàng.
-8. `lich_hen`: Lịch hẹn khám bệnh, bác sĩ chỉ định, giờ hẹn, trạng thái xử lý.
-9. `lich_lam_viec`: Ca trực nhân sự theo tuần (Sáng, Chiều, Tối), trạng thái phê duyệt.
-10. `phieu_kham`: Bệnh án điện tử EMR, lý do khám, chẩn đoán ICD-10, ảnh lâm sàng, quy trình 5 bước.
-11. `chi_so_sinh_ton`: Chỉ số sinh tồn lâm sàng (Mạch, Nhiệt độ, Huyết áp, SpO2, Nhịp thở, BMI).
-12. `dich_vu`: Danh mục dịch vụ khám, kỹ thuật CLS và tỷ lệ thanh toán BHYT.
-13. `phieu_chi_dinh`: Phiếu chỉ định cận lâm sàng do bác sĩ khởi tạo.
-14. `chi_tiet_chi_dinh`: Chi tiết kỹ thuật CLS, kết quả xét nghiệm, kết luận, danh sách ảnh CĐHA.
-15. `thuoc`: Kho dược, tên biệt dược, hoạt chất, hàm lượng, giá bán, số lượng tồn kho.
-16. `don_thuoc`: Đơn thuốc điện tử, hình thức mua (tại viện / ngoài viện), trạng thái duyệt và cấp phát.
-17. `chi_tiet_don_thuoc`: Chi tiết các loại thuốc trong đơn, số lượng kê, liều dùng, cách dùng.
-18. `hoa_don`: Hóa đơn viện phí, tiền khám, tiền CLS, tiền thuốc, số tiền giảm trừ BHYT 80%.
-19. `chi_tiet_hoa_don`: Các dòng mục chi phí chi tiết cấu thành hóa đơn.
-20. `phan_hoi`: Đánh giá chất lượng dịch vụ, số sao hài lòng và nhận xét của người bệnh.
-21. `hom_thu_gop_y`: Hòm thư tiếp nhận đóng góp ý kiến xây dựng phòng khám.
-22. `bai_viet`: Cẩm nang y khoa, tin tức sức khỏe, quản lý bài đăng phân quyền.
-23. `banner`: Quản lý hình ảnh trình chiếu quảng bá tại Trang chủ.
-24. `thong_bao`: Thông báo in-app đa kênh, trạng thái đã đọc, liên kết điều hướng.
-25. `lich_su_nhac_nho`: Nhật ký kiểm soát việc gửi thông báo nhắc lịch tự động.
-26. `lich_su_sao_luu`: Lịch sử các phiên sao lưu và khôi phục CSDL SQL Server (.bak).
-27. `audit_log`: Nhật ký kiểm toán an toàn hệ thống, theo dõi mọi tác vụ nhạy cảm.
-
----
-
-## Bộ Kiểm Thử Tự Động (Unit Tests)
-
-Dự án sở hữu bộ kiểm thử tự động toàn diện bao phủ 100% các luồng nghiệp vụ cốt lõi:
-- **Kiểm tra khởi động an toàn (`test_startup_safety.py`)**: Đảm bảo khởi động ứng dụng không xóa dữ liệu, kiểm tra tính độc lập và idempotent của hệ thống.
-- **Kiểm tra tính năng nâng cấp (`test_upgraded_features.py`)**: Kiểm tra ma trận đặt lịch tương tác 2 chiều, tiện ích lấy backup mới nhất và dọn dẹp backup cũ, cảnh báo dị ứng thời gian thực, nén ảnh WebP, Dark mode Midnight Slate.
-
-Chạy lệnh kiểm thử:
-```bash
-python -m unittest tests.test_startup_safety tests.test_upgraded_features
-```
-Kết quả mong đợi:
-```text
-Ran 39 tests in 6.5s ... OK (100% Passing)
-```
+Hệ thống được thiết kế theo chuẩn cơ sở dữ liệu y tế với 27 bảng liên kết chặt chẽ:
+1. `tai_khoan`: Quản lý tài khoản đăng nhập (hashing scrypt, RBAC).
+2. `vai_tro`: Danh mục vai trò (ADMIN, LETAN, BACSI, DUOCSI, KTV, BENHNHAN).
+3. `nhan_vien`: Hồ sơ nhân sự y tế toàn phòng khám.
+4. `bac_si`: Hồ sơ chuyên môn bác sĩ, chuyên khoa và phòng khám chính.
+5. `chuyen_khoa`: 8 chuyên khoa mũi nhọn kèm giá khám mặc định.
+6. `phong_kham`: Danh mục phòng khám bệnh và cận lâm sàng.
+7. `dich_vu`: Danh mục dịch vụ y tế, khám chuyên sâu, xét nghiệm, CĐHA kèm đơn giá & BHYT.
+8. `benh_nhan`: Hồ sơ bệnh nhân 360°, thông tin liên hệ, tiền sử bệnh, nhóm máu.
+9. `lich_hen`: Quản lý lịch hẹn khám bệnh, phát hiện xung đột và lịch sử đặt khám.
+10. `lich_lam_viec`: Ca trực (Sáng, Chiều, Tối), duyệt ca, chấm công và giờ làm việc.
+11. `phieu_kham`: Bệnh án điện tử EMR, chẩn đoán ICD-10, hướng điều trị, hẹn tái khám.
+12. `chi_so_sinh_ton`: Chỉ số sinh tồn (Huyết áp, Mạch, Nhiệt độ, SpO2).
+13. `phieu_chi_dinh`: Phiếu chỉ định cận lâm sàng của bác sĩ.
+14. `chi_tiet_chi_dinh`: Chi tiết xét nghiệm / CĐHA, kết quả và ảnh đính kèm.
+15. `thuoc`: Kho dược phẩm, đơn giá, hoạt chất, số lượng tồn kho.
+16. `don_thuoc`: Đơn thuốc điện tử, hình thức mua (Bệnh viện / Mua ngoài), trạng thái cấp phát.
+17. `chi_tiet_don_thuoc`: Danh sách thuốc trong đơn, liều dùng, số lượng, cách dùng.
+18. `hoa_don`: Hóa đơn viện phí khám bệnh, hóa đơn thuốc HDT, cấn trừ BHYT 80%.
+19. `chi_tiet_hoa_don`: Chi tiết từng dòng dịch vụ tính tiền trong hóa đơn.
+20. `thong_bao`: Thông báo in-app thời gian thực, nhắc nhở lịch hẹn và kết quả.
+21. `lich_su_nhac_nho`: Ghi nhận lịch sử gửi nhắc nhở lịch hẹn và tái khám.
+22. `phan_hoi`: Đánh giá sao (1-5 sao) và nhận xét dịch vụ của bệnh nhân.
+23. `hom_thu_gop_y`: Hòm thư phản ánh chất lượng khám chữa bệnh.
+24. `bai_viet`: Tin tức y tế, cẩm nang sức khỏe.
+25. `banner`: Slider quảng bá và khuyến mãi trên trang chủ.
+26. `audit_log`: Nhật ký ghi vết kiểm toán bảo mật mọi thao tác nhạy cảm.
+27. `lich_su_sao_luu`: Lịch sử các phiên sao lưu và phục hồi CSDL SQL Server.
 
 ---
 
 ## Bản Quyền và Thông Tin Đồ Án
 
-* **Đề tài**: Hệ Thống Quản Lý Phòng Khám Đa Khoa H2T Healthcare (Khóa luận tốt nghiệp Đại học).
-* **Đơn vị đào tạo**: Trường Đại học Công Thương TP. Hồ Chí Minh (HUIT).
-* **Công nghệ chủ đạo**: Python 3.10+, Flask, Microsoft SQL Server (100% T-SQL), TailwindCSS, Web Audio API.
+* **Đồ Án**: Khóa Luận Chuyên Ngành - Hệ Thống Quản Lý Phòng Khám Đa Khoa (HIS & EMR).
+* **Nền tảng**: Python 3.10+ / Flask / Microsoft SQL Server / TailwindCSS / Web Audio.
+* **Thời gian thực hiện**: Năm học 2026.
