@@ -19,105 +19,45 @@ Mở cửa sổ dòng lệnh (PowerShell hoặc Command Prompt) tại thư mục
 pip install -r requirements.txt
 ```
 
-Danh sách các thư viện chính:
-- `flask`: Framework kiến trúc MVC cho ứng dụng Web.
-- `pyodbc`: Driver kết nối và thực thi T-SQL trực tiếp với Microsoft SQL Server.
-- `pillow`: Thư viện xử lý hình ảnh và nén tự động định dạng WebP (< 80KB).
+### Bước 2: Thiết lập Cơ sở dữ liệu Microsoft SQL Server
+1. Mở SQL Server Management Studio (SSMS) và kết nối tới SQL Server instance của bạn (`localhost` hoặc `.\SQLEXPRESS`).
+2. Mở file script SQL `database/cosodulieu.sql`.
+3. Bấm **Execute** (hoặc nhấn phím **F5**). Script sẽ tự động tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 28 bảng và nạp đầy đủ dữ liệu mẫu chuẩn y khoa.
 
-### Bước 2: Cấu hình kết nối Microsoft SQL Server trong `config.py`
-Mở tệp [config.py](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/config.py) và kiểm tra khối cấu hình `SQLSERVER_CONFIG`:
+### Bước 3: Kiểm tra cấu hình kết nối trong config.py
+Mở file `config.py` tại thư mục gốc và kiểm tra cấu hình kết nối CSDL:
 ```python
-DB_ENGINE = 'sqlserver'
-
 SQLSERVER_CONFIG = {
-    'server': 'localhost',             # Hoặc: '.\SQLEXPRESS', 'localhost\SQLEXPRESS'
-    'database': 'quan_ly_phong_kham',  # Tên cơ sở dữ liệu
-    'driver': 'ODBC Driver 17 for SQL Server',
-    'trusted_connection': 'yes',       # Dùng Windows Authentication
-    'TrustServerCertificate': 'yes'    # Tránh lỗi chứng chỉ bảo mật trên bản 2022
+    'driver': '{ODBC Driver 17 for SQL Server}',
+    'server': os.environ.get('SQL_SERVER_NAME', 'localhost'),
+    'database': 'quan_ly_phong_kham',
+    'trusted_connection': 'yes',
+    'uid': 'sa',
+    'pwd': 'your_password'
 }
 ```
-*Lưu ý: Nếu sử dụng tài khoản `sa` của SQL Server Authentication, cấu hình `'trusted_connection': 'no'` và bổ sung thêm `'uid': 'sa'`, `'pwd': 'mat_khau_cua_ban'`.*
 
-### Bước 3: Khởi tạo Cơ sở dữ liệu và nạp dữ liệu sạch (CHỈ CHẠY 1 LẦN KHI CÀI ĐẶT ĐẦU TIÊN)
-
-> **LƯU Ý ĐẶC BIỆT**:
-> - Bước 3 chỉ thực hiện duy nhất một lần khi thiết lập hệ thống lần đầu.
-> - **Khi khởi động lại hệ thống ở các lần làm việc tiếp theo, BỎ QUA Bước 3 và CHỈ CẦN CHẠY Bước 4 (`python app.py`)** để bảo toàn nguyên vẹn mọi dữ liệu bạn đã chỉnh sửa (như thông tin admin, lịch hẹn, hồ sơ bệnh nhân,...).
-> - Nếu chạy lại Bước 3, hệ thống sẽ xóa toàn bộ dữ liệu hiện thời và nạp lại dữ liệu mẫu gốc ban đầu.
-
-Chọn một trong hai cách dưới đây khi cài đặt lần đầu:
-
-**Cách 1: Khởi tạo tự động bằng Script Python (Khuyến nghị)**
-Chạy lệnh sau tại thư mục gốc:
-```bash
-python scratch/seed_database.py
-```
-Script sẽ tự động kết nối SQL Server, khởi tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 27 bảng dữ liệu, chỉ mục và nạp đầy đủ danh mục thuốc, dịch vụ y tế, 69 tài khoản mẫu chuẩn hóa. (Nếu CSDL đã có dữ liệu, script sẽ hiển thị cảnh báo bảo vệ).
-
-**Cách 2: Khởi tạo thủ công bằng SQL Server Management Studio (SSMS)**
-1. Mở SSMS và kết nối đến SQL Server Instance của máy tính.
-2. Mở file [database/cosodulieu.sql](file:///d:/baitap/Khoa%20Luan/KLCN_QuanLyPhongKhamDaKhoa/database/cosodulieu.sql).
-3. Nhấn **Execute (F5)** để thực thi toàn bộ kịch bản DDL và DML.
-
-### Bước 4: Khởi chạy máy chủ Web Flask (Lệnh vận hành hàng ngày)
-Chạy lệnh:
+### Bước 4: Khởi chạy Ứng dụng Web
+Tại thư mục gốc dự án, thực thi lệnh:
 ```bash
 python app.py
 ```
-Khi hiển thị thông báo:
-```text
-* Running on http://127.0.0.1:5000
-* Restarting with stat
-```
-Hệ thống đã khởi chạy thành công!
+Mở trình duyệt web bất kỳ và truy cập địa chỉ:
+👉 **`http://localhost:5000`** hoặc **`http://127.0.0.1:5000`**
 
-*(Mẹo cho nhóm: Khi nhận được file `.bak` mới từ thành viên khác, bạn có thể nạp ngay bản sao lưu mới nhất bằng lệnh `python scratch/restore_backup.py` hoặc `python app.py --restore-latest`).*
+## III. TÀI KHOẢN MẪU HỆ THỐNG (71 TÀI KHOẢN)
 
-### Bước 5: Truy cập các phân hệ trên trình duyệt
-- **Trang chủ và Đặt lịch trực tuyến**: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
-- **Đăng nhập**: [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login)
-- **Đăng ký tài khoản bệnh nhân**: [http://127.0.0.1:5000/register](http://127.0.0.1:5000/register)
-- **Cổng thông tin Bệnh nhân**: [http://127.0.0.1:5000/patient](http://127.0.0.1:5000/patient)
-- **Phân hệ Quản trị và Bác sĩ**: [http://127.0.0.1:5000/admin](http://127.0.0.1:5000/admin)
-- **Hồ sơ cá nhân và Giá khám**: [http://127.0.0.1:5000/admin/my-profile](http://127.0.0.1:5000/admin/my-profile)
+Đăng nhập bằng **Tên đăng nhập** hoặc **Số điện thoại**:
+- **Quản trị viên (`ADMIN`)**: `admin` / `123456` (SĐT: `0999999999`).
+- **Lễ tân & Thu ngân (`LETAN`)**: `letan_1` đến `letan_5` / Mật khẩu: `123`.
+- **Bác sĩ chuyên khoa (`BACSI`)**: `bs_noi_1` đến `bs_noi_5` (Khoa Nội), `bs_ngoai_1` đến `bs_ngoai_5` (Khoa Ngoại), `bs_nhi_1` đến `bs_nhi_5` (Khoa Nhi)... / Mật khẩu: `123`.
+- **Dược sĩ (`DUOCSI`)**: `duocsi_1` đến `duocsi_5` / Mật khẩu: `123`.
+- **Kỹ thuật viên (`KTV`)**: `ktv_1` đến `ktv_5` / Mật khẩu: `123`.
+- **Bệnh nhân (`BENHNHAN`)**: `hoangbaonam` (SĐT: `0901234561`, có thẻ BHYT), `0989900112` (chưa có thẻ BHYT) / Mật khẩu: `123`.
 
-## III. CHẠY BỘ KIỂM THỬ TỰ ĐỘNG (UNIT TESTS)
-
-Để kiểm tra toàn diện và xác nhận độ tin cậy của toàn bộ hệ thống, chạy lệnh:
+## IV. BỘ KIỂM THỬ TỰ ĐỘNG
+Chạy toàn bộ 33 unit tests hồi quy:
 ```bash
-python -m unittest discover -s tests
+python -m unittest discover tests
 ```
-Hệ thống sẽ thực thi toàn bộ **57 bài kiểm thử tự động** bao phủ các nghiệp vụ:
-1. Ràng buộc dữ liệu (họ tên tiếng Việt không ký tự lạ, BHYT 10 số, CCCD 12 số, SĐT, sinh hiệu EMR).
-2. Quy trình cấp lại mật khẩu mặc định `123` và cưỡng chế đổi mật khẩu lần đầu tại `/force-change-password`.
-3. Đặt lịch khám, chống đặt trùng giờ, cấn trừ BHYT 80%, chặn hủy lịch đã khám.
-4. Bệnh án điện tử EMR 5 bước liên hoàn, tải tối đa 10 ảnh, lưới 2x2, phóng to Lightbox.
-5. Cảnh báo dị ứng thuốc thời gian thực từ từ điển danh mục chuẩn.
-6. Quy trình cấp phát thuốc 3 bước: bệnh nhân chọn mua, tiếp tân duyệt, dược sĩ cấp phát trừ kho.
-7. Phân công ca trực: Lễ tân tự duyệt, Bác sĩ chờ duyệt, nhận diện hết giờ làm việc.
-8. Giao diện Dark Mode Midnight Slate toàn diện và lưu bền vững vào `localStorage`.
-
-Kết quả mong đợi: `Ran 57 tests ... OK` (100% Passing).
-
-## IV. BẢNG TRA CỨU TÀI KHOẢN MẪU HỆ THỐNG
-
-Hệ thống cung cấp sẵn 69 tài khoản mẫu phục vụ kiểm thử và nghiệm thu:
-
-| STT | Phân hệ / Vai trò | Tên đăng nhập | Mật khẩu mặc định | Quyền hạn và Chức năng chính |
-| :---: | :--- | :--- | :--- | :--- |
-| **1** | **Quản trị viên (ADMIN)** | `admin` | `admin123` | Quản trị tài khoản, cấp lại mật khẩu 123, duyệt lịch trực, đăng bài viết cẩm nang, sao lưu CSDL (.bak) |
-| **2** | **Lễ tân và Thu ngân (LETAN)** | `letan_1` | `Password@123` | Tiếp đón, phân buồng khám, tự đăng ký và tự duyệt ca trực, đăng bài viết cẩm nang, thu viện phí |
-| **3** | **Kỹ thuật viên phòng Lab (KTV)** | `ktv_1` | `Password@123` | Xem chỉ định CLS, kiểm tra trạng thái đóng phí, nhập kết quả, tải tối đa 10 ảnh CĐHA |
-| **4** | **Dược sĩ kho dược (DUOCSI)** | `duocsi_1` | `Password@123` | Quản lý kho thuốc, duyệt đơn thuốc, bấm cấp phát thuốc thực tế trừ kho |
-| **5** | **Bác sĩ Nội khoa (BACSI)** | `bs_noi_1` | `Password@123` | Khám EMR 5 bước, tải tối đa 10 ảnh, ra chỉ định CLS, cảnh báo dị ứng, xem kết quả CLS, cài đặt giá khám |
-| **6** | **Bác sĩ Ngoại khoa (BACSI)** | `bs_ngoai_1` | `Password@123` | Khám lâm sàng ngoại khoa, ra chỉ định chụp chiếu, lọc lịch khám cá nhân |
-| **7** | **Bác sĩ Nhi khoa (BACSI)** | `bs_nhi_1` | `Password@123` | Khám bệnh nhi khoa, ghi nhận sinh hiệu trẻ em, kê đơn điện tử |
-| **8** | **Bác sĩ Răng Hàm Mặt (BACSI)** | `bs_rhm_1` | `Password@123` | Khám răng hàm mặt, chỉ định X-quang răng, kê đơn điều trị |
-| **9** | **Bác sĩ Sản - Phụ Khoa (BACSI)**| `bs_san_1` | `Password@123` | Khám sản phụ khoa, chỉ định siêu âm Doppler, hội chẩn |
-| **10**| **Bác sĩ Tai Mũi Họng (BACSI)** | `bs_tmh_1` | `Password@123` | Khám tai mũi họng, nội soi ống mềm, chẩn đoán ICD |
-| **11**| **Bác sĩ Mắt (BACSI)** | `bs_mat_1` | `Password@123` | Đo khúc xạ, khám chuyên khoa mắt, lập hồ sơ điều trị |
-| **12**| **Bệnh nhân có BHYT (BENHNHAN)** | `0901234561` | `123456` | Có thẻ BHYT (khấu trừ 80%), dị ứng Paracetamol, lịch sử khám, thanh toán |
-| **13**| **Bệnh nhân không BHYT (BENHNHAN)**| `0901234562` | `123456` | Không có thẻ BHYT, dị ứng Penicillin, lịch sử khám, thanh toán VietQR |
-
-*Lưu ý cơ chế cấp lại mật khẩu: Khi Admin hoặc Lễ tân cấp lại mật khẩu cho tài khoản, mật khẩu tự động đưa về `123`. Lần đầu đăng nhập, tài khoản sẽ được yêu cầu đổi mật khẩu mới trước khi truy cập bất kỳ trang nào.*
+Chi tiết kịch bản kiểm thử quy trình y tế khép kín vui lòng tham khảo file [`HUONGDAN.md`](../HUONGDAN.md).

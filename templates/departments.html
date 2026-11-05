@@ -390,11 +390,11 @@
                                                 {{ "{:,.0f}".format(s.don_gia or 0) }} đ
                                             </span>
                                         </div>
-                                        {% if insurance_reduction > 0 %}
+                                        {% if s.bhyt_chi_tra_pt and s.bhyt_chi_tra_pt > 0 %}
                                         <div class="text-right">
-                                            <span class="text-[10px] text-teal-600 font-semibold block">Có BHYT còn:</span>
+                                            <span class="text-[10px] text-teal-600 font-semibold block">Có BHYT (-{{ s.bhyt_chi_tra_pt }}%):</span>
                                             <span class="text-xs font-bold text-teal-700 font-mono">
-                                                {{ "{:,.0f}".format([0, (s.don_gia or 0) - insurance_reduction] | max) }} đ
+                                                {{ "{:,.0f}".format((s.don_gia or 0) * (1 - (s.bhyt_chi_tra_pt or 80) / 100.0)) }} đ
                                             </span>
                                         </div>
                                         {% endif %}
