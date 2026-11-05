@@ -106,7 +106,10 @@ class BackupModel:
             err_detail = ""
 
             try:
-                cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{target_sql_path}' WITH INIT, FORMAT")
+                try:
+                    cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{target_sql_path}' WITH INIT, FORMAT, COMPRESSION")
+                except Exception:
+                    cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{target_sql_path}' WITH INIT, FORMAT")
                 while cursor.nextset():
                     pass
                 backup_success = True
@@ -115,7 +118,10 @@ class BackupModel:
                 if default_backup_dir:
                     alt_path = os.path.join(default_backup_dir, backup_filename)
                     try:
-                        cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{alt_path}' WITH INIT, FORMAT")
+                        try:
+                            cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{alt_path}' WITH INIT, FORMAT, COMPRESSION")
+                        except Exception:
+                            cursor.execute(f"BACKUP DATABASE [{db_name}] TO DISK = '{alt_path}' WITH INIT, FORMAT")
                         while cursor.nextset():
                             pass
                         if os.path.exists(alt_path):
@@ -130,7 +136,9 @@ class BackupModel:
             if backup_success and (os.path.exists(target_sql_path) or (default_backup_dir and os.path.exists(os.path.join(default_backup_dir, backup_filename)))):
                 final_path = target_sql_path if os.path.exists(target_sql_path) else os.path.join(default_backup_dir, backup_filename)
                 size = os.path.getsize(final_path)
-                BackupModel._log_history('BACKUP', backup_filename, final_path, 'sqlserver', size, user_name, 'SUCCESS', 'Sao lưu SQL Server thành công.')
+                BackupModel._log_history('BACKUP', backup_filename, final_path, 'sqlserver', size, user_name, 'SUCCESS', 'Sao lưu SQL Server thành công (nén).')
+                max_keep = getattr(config, 'AUTO_BACKUP_MAX_KEEP', 5)
+                BackupModel.cleanup_old_backups(keep=max_keep)
                 return True, f"Sao lưu SQL Server thành công: {backup_filename}"
             else:
                 msg = f"SQL Server không thể tạo file sao lưu: {err_detail}. Vui lòng cấp quyền ghi cho dịch vụ SQL Server vào thư mục: {backup_dir}"
@@ -158,7 +166,7 @@ class BackupModel:
         return bak_files[0]
 
     @staticmethod
-    def cleanup_old_backups(keep=20):
+    def cleanup_old_backups(keep=5):
         """Giữ lại tối đa N bản sao lưu gần nhất để tiết kiệm dung lượng đĩa."""
         backup_dir = BackupModel.get_backup_dir()
         if not os.path.exists(backup_dir):
