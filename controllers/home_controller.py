@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, jsonify
+from datetime import date, datetime, time
+from decimal import Decimal
 from models.article_model import ArticleModel
 from models.clinic_model import ClinicModel
 from models.banner_model import BannerModel
@@ -306,3 +308,140 @@ def maintenance_staff():
     is_preview = request.args.get('preview') == '1'
     is_admin = session.get('user', {}).get('vai_tro') == 'ADMIN'
     return render_template('maintenance/staff.html', settings=settings, is_preview=is_preview, is_admin=is_admin)
+
+
+def _json_safe(value):
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, (date, datetime, time)):
+        return str(value)
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+
+
+def _query_public_pricing():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT dv.id, dv.chuyen_khoa_id, dv.ma_dich_vu, dv.ten_dich_vu, dv.loai_dich_vu,
+               dv.don_gia, dv.bhyt_chi_tra_pt, dv.mo_ta, dv.trang_thai,
+               ck.ten_khoa, ck.icon, ck.ma_khoa
+        FROM dich_vu dv
+        LEFT JOIN chuyen_khoa ck ON dv.chuyen_khoa_id = ck.id
+        WHERE dv.trang_thai = 1 AND (dv.chuyen_khoa_id IS NULL OR ck.trang_thai = 1)
+        ORDER BY COALESCE(ck.id, 999), dv.loai_dich_vu, dv.id
+    """)
+    services = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    from core.billing_policy import invoice_totals, insurance_reduction
+    departments_pricing = []
+    departments_map = {}
+    for s in services:
+        don_gia = float(s.get('don_gia') or 0)
+        totals = invoice_totals(don_gia, True)
+        s['don_gia_val'] = don_gia
+        s['tien_bhyt_val'] = float(totals['tien_bhyt'])
+        s['gia_sau_bhyt_val'] = float(totals['thanh_tien'])
+        s['has_bhyt'] = True
+
+        ck_id = s.get('chuyen_khoa_id') or 0
+        ck_name = s.get('ten_khoa') or 'Dịch Vụ Đa Khoa và Cận Lâm Sàng'
+        ck_icon = s.get('icon') or 'fa-stethoscope'
+        ck_ma = s.get('ma_khoa') or 'CHUNG'
+        s['ten_khoa_hien_thi'] = ck_name
+
+        if ck_id not in departments_map:
+            dept_obj = {
+                'id': ck_id,
+                'ten_khoa': ck_name,
+                'ma_khoa': ck_ma,
+                'icon': ck_icon,
+                'groups': {},
+                'services': [],
+                'services_count': 0
+            }
+            departments_map[ck_id] = dept_obj
+            departments_pricing.append(dept_obj)
+
+        dept_obj = departments_map[ck_id]
+        dept_obj['services_count'] += 1
+        dept_obj['services'].append(s)
+        loai = s.get('loai_dich_vu') or 'Khám bệnh'
+        dept_obj['groups'].setdefault(loai, []).append(s)
+
+    return {
+        'services': services,
+        'departments_pricing': departments_pricing,
+        'total_services': len(services),
+        'dept_count': len(departments_pricing),
+        'insurance_reduction': float(insurance_reduction()),
+    }
+
+
+@home_bp.route('/api/v1/mobile/public/home', methods=['GET'])
+def mobile_public_home():
+    """API công khai cung cấp dữ liệu Trang chủ tinh gọn, Bảng giá và Tin tức y khoa cho ứng dụng di động."""
+    articles = ArticleModel.get_all(limit=6)
+    handbooks = ArticleModel.get_handbooks(limit=4, random_order=False)
+    categories = ArticleModel.get_categories()
+    banners = list(BannerModel.get_active() or [])
+    departments = list(ClinicModel.get_all_departments(active_only=True) or [])
+    doctors = list(UserModel.get_all_doctors() or [])[:8]
+    pricing_data = _query_public_pricing()
+    return jsonify(_json_safe({
+        'success': True,
+        'banners': banners,
+        'departments': departments,
+        'doctors': doctors,
+        'articles': articles,
+        'handbooks': handbooks,
+        'categories': categories,
+        'pricing_preview': pricing_data['services'][:8],
+        'departments_pricing': pricing_data['departments_pricing'],
+        'total_services': pricing_data['total_services'],
+        'insurance_reduction': pricing_data['insurance_reduction'],
+    }))
+
+
+@home_bp.route('/api/v1/mobile/public/pricing', methods=['GET'])
+def mobile_public_pricing():
+    """API công khai tra cứu bảng giá dịch vụ và viện phí có tính mức giảm BHYT."""
+    pricing_data = _query_public_pricing()
+    return jsonify(_json_safe({
+        'success': True,
+        **pricing_data,
+    }))
+
+
+@home_bp.route('/api/v1/mobile/public/articles', methods=['GET'])
+def mobile_public_articles():
+    """API công khai lấy danh sách tin tức và cẩm nang y khoa có lọc chuyên mục và tìm kiếm."""
+    category = (request.args.get('category') or '').strip() or None
+    search = (request.args.get('search') or '').strip() or None
+    items = ArticleModel.get_all(category=category, search=search)
+    categories = ArticleModel.get_categories()
+    return jsonify(_json_safe({
+        'success': True,
+        'articles': items,
+        'categories': categories,
+        'total': len(items),
+    }))
+
+
+@home_bp.route('/api/v1/mobile/public/articles/<slug>', methods=['GET'])
+def mobile_public_article_detail(slug):
+    """API công khai đọc chi tiết một bài viết y khoa theo slug và tăng lượt xem."""
+    article = ArticleModel.get_by_slug(slug)
+    if not article:
+        return jsonify({'success': False, 'message': 'Không tìm thấy bài viết.'}), 404
+    all_arts = ArticleModel.get_all(limit=6)
+    related = [a for a in all_arts if a.get('id') != article.get('id')][:4]
+    return jsonify(_json_safe({
+        'success': True,
+        'article': article,
+        'related_articles': related,
+    }))

@@ -279,21 +279,29 @@ class BackupModel:
             return None
 
         def _worker():
-            print(f"[BackupScheduler] Tiến trình tự động sao lưu đã kích hoạt (chu kỳ {interval_hours} tiếng).")
+            def _safe_log(msg):
+                try:
+                    print(msg)
+                except Exception:
+                    try:
+                        print(msg.encode('ascii', 'replace').decode('ascii'))
+                    except Exception:
+                        pass
+            _safe_log(f"[BackupScheduler] Tien trinh tu dong sao luu da kich hoat (chu ky {interval_hours} tieng).")
             while True:
                 time.sleep(interval_hours * 3600)
                 try:
                     ok, msg = BackupModel.create_backup(user_name='auto_scheduler_2h')
                     if ok:
-                        print(f"[BackupScheduler] Đã tự động tạo bản sao lưu: {msg}")
+                        _safe_log(f"[BackupScheduler] Da tu dong tao ban sao luu: {msg}")
                         max_keep = getattr(config, 'AUTO_BACKUP_MAX_KEEP', 20)
                         del_cnt = BackupModel.cleanup_old_backups(keep=max_keep)
                         if del_cnt > 0:
-                            print(f"[BackupScheduler] Đã dọn dẹp {del_cnt} bản sao lưu cũ.")
+                            _safe_log(f"[BackupScheduler] Da don dep {del_cnt} ban sao luu cu.")
                     else:
-                        print(f"[BackupScheduler] Tự động sao lưu thất bại: {msg}")
+                        _safe_log(f"[BackupScheduler] Tu dong sao luu that bai: {msg}")
                 except Exception as e:
-                    print(f"[BackupScheduler] Lỗi trong tiến trình sao lưu ngầm: {e}")
+                    _safe_log(f"[BackupScheduler] Loi trong tien trinh sao luu ngam: {e}")
 
         t = threading.Thread(target=_worker, daemon=True)
         t.start()

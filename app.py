@@ -1,4 +1,4 @@
-from flask import Flask, session, url_for as flask_url_for, redirect, request
+from flask import Flask, session, url_for as flask_url_for, redirect, request, make_response
 import config
 import secrets
 
@@ -39,21 +39,38 @@ def create_app(test_config=None):
     app.config.setdefault('MOBILE_ALLOWED_ORIGINS', tuple(
         value.strip() for value in os.environ.get('MOBILE_ALLOWED_ORIGINS', '').split(',') if value.strip()))
 
+    import re
+
+    def _is_allowed_mobile_origin(origin):
+        if not origin:
+            return True
+        if origin in app.config.get('MOBILE_ALLOWED_ORIGINS', ()):
+            return True
+        if re.match(r'^https?://(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?$', origin):
+            return True
+        return False
+
     @app.before_request
     def mobile_preflight():
         if request.path.startswith('/api/v1/mobile/') and request.method == 'OPTIONS':
-            if request.headers.get('Origin') not in app.config['MOBILE_ALLOWED_ORIGINS']:
+            origin = request.headers.get('Origin')
+            if not _is_allowed_mobile_origin(origin):
                 return '', 403
-            return '', 204
+            resp = make_response('', 204)
+            if origin:
+                resp.headers['Access-Control-Allow-Origin'] = origin
+                resp.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+                resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            return resp
 
     @app.after_request
     def mobile_cors(response):
         if request.path.startswith('/api/v1/mobile/'):
             origin = request.headers.get('Origin')
-            if origin and origin in app.config['MOBILE_ALLOWED_ORIGINS']:
+            if origin and _is_allowed_mobile_origin(origin):
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
-                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
                 response.vary.add('Origin')
         return response
 
