@@ -208,12 +208,20 @@
 
             <!-- Heading -->
             <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight max-w-xl mx-auto">
+                {% if request.args.get('name') %}
+                Chức Năng "{{ request.args.get('name') }}" Đang Tạm Dừng Để Nâng Cấp
+                {% else %}
                 Cổng Dịch Vụ Bệnh Nhân Đang Tạm Dừng Để Nâng Cấp
+                {% endif %}
             </h2>
 
             <!-- Message -->
             <p class="mt-3.5 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                {% if request.args.get('name') %}
+                Chức năng <strong>{{ request.args.get('name') }}</strong> hiện đang được bảo trì nâng cấp để tối ưu trải nghiệm và độ ổn định. Quý khách vui lòng quay lại sau ít phút hoặc tra cứu các thông tin khác trên trang chủ.
+                {% else %}
                 {{ settings.maintenance_message_patient or 'Hệ thống đang được nâng cấp máy chủ và cải tiến tính năng khám chữa bệnh trực tuyến nhằm phục vụ quý bệnh nhân tốt hơn. Quý khách vẫn có thể tra cứu thông tin và cẩm nang sức khỏe trên trang chủ.' }}
+                {% endif %}
             </p>
 
             <!-- ETA Box -->

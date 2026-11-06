@@ -460,7 +460,7 @@
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-white border border-slate-300 inline-block shadow-2xs"></span> Còn trống</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-amber-100 border border-amber-400 inline-block"></span> Có người chờ duyệt (Có thể chọn)</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-rose-100 border border-rose-300 inline-block"></span> Đã duyệt / Kín lịch (Khóa)</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-200 inline-block"></span> Ngoài ca trực</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-200 inline-block"></span> Đã qua giờ / Ngoài ca</span>
                 </div>
                 <div id="pending-conflict-alert" class="hidden mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs transition-all">
                     <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
@@ -521,6 +521,13 @@
         function applyInteractiveFilter() {
             if (!matrixData) return;
 
+            // Kiểm tra thời gian thực để khóa giờ đã qua trong ngày
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const isToday = (selectedDate === todayStr);
+            const isPastDate = (selectedDate < todayStr);
+
             // 1. Lọc Khung giờ khám theo Bác sĩ đã chọn kèm trạng thái chi tiết (Đang chờ duyệt, Đã duyệt, Còn trống)
             const doctorStatesMap = matrixData.doctor_slot_states || {};
             const slotSummaryMap = matrixData.slot_summary || {};
@@ -540,6 +547,11 @@
                 const isSelected = (selectedTime === t);
                 const statusSpan = btn.querySelector('.slot-status-text');
 
+                // Kiểm tra khung giờ đã qua trong ngày hôm nay
+                const [slotH, slotM] = t.split(':').map(Number);
+                const slotTotalMinutes = slotH * 60 + slotM;
+                const isPastTime = isPastDate || (isToday && slotTotalMinutes <= currentMinutes);
+
                 // Lấy thông tin trạng thái khung giờ
                 let slotInfo = null;
                 if (selectedDoctorId) {
@@ -549,7 +561,10 @@
                     slotInfo = slotSummaryMap[t];
                 }
 
-                const status = slotInfo ? slotInfo.status : (allowedSlots.includes(t) ? 'available' : 'off_duty');
+                let status = slotInfo ? slotInfo.status : (allowedSlots.includes(t) ? 'available' : 'off_duty');
+                if (isPastTime) {
+                    status = 'past';
+                }
 
                 btn.classList.remove(
                     'opacity-35', 'bg-slate-100', 'text-slate-400', 'cursor-not-allowed', 'pointer-events-none',
@@ -560,7 +575,14 @@
                     'bg-medical-500', 'text-white', 'border-medical-600', 'shadow-sm', 'ring-2', 'ring-medical-500/30', 'cursor-pointer'
                 );
 
-                if (status === 'booked') {
+                if (status === 'past') {
+                    // Giờ đã qua: Khóa và làm mờ
+                    btn.classList.add('opacity-35', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
+                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-[8px] mr-0.5"></i> Đã qua';
+                    if (isSelected) {
+                        selectedTime = null;
+                    }
+                } else if (status === 'booked') {
                     // Đã duyệt / kín lịch: Đỏ/xám, bị khóa không thể chọn
                     btn.classList.add('opacity-65', 'bg-rose-50', 'text-rose-500', 'border-rose-200', 'cursor-not-allowed', 'pointer-events-none');
                     if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-lock text-[8px] mr-0.5"></i> Đã duyệt';
@@ -688,6 +710,16 @@
         }
 
         function onTimeSlotClick(time) {
+            // Chặn người dùng chọn giờ đã qua trong ngày
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const [slotH, slotM] = time.split(':').map(Number);
+            const slotTotalMinutes = slotH * 60 + slotM;
+            if (selectedDate < todayStr || (selectedDate === todayStr && slotTotalMinutes <= currentMinutes)) {
+                return;
+            }
+
             if (selectedTime === time) {
                 // Nhấp lại vào khung giờ đang chọn để bỏ chọn giờ
                 selectedTime = null;

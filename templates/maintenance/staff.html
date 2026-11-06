@@ -189,12 +189,20 @@
 
             <!-- Heading -->
             <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight max-w-xl mx-auto">
+                {% if request.args.get('name') %}
+                Phân Hệ "{{ request.args.get('name') }}" Đang Tạm Dừng Để Nâng Cấp
+                {% else %}
                 Phân Hệ Quản Trị Lâm Sàng Đang Tạm Dừng Để Nâng Cấp
+                {% endif %}
             </h2>
 
             <!-- Message -->
             <p class="mt-3.5 text-slate-600 dark:text-slate-300 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                {% if request.args.get('name') %}
+                Phân hệ <strong>{{ request.args.get('name') }}</strong> đang được quản trị viên tạm khóa để nâng cấp và bảo trì máy chủ. Các phân hệ nghiệp vụ khác không bị ảnh hưởng.
+                {% else %}
                 {{ settings.maintenance_message_staff or 'Hệ thống Quản lý Y tế Nội bộ đang tạm dừng để bảo trì nâng cấp máy chủ, tối ưu tốc độ EMR và đồng bộ cơ sở dữ liệu.' }}
+                {% endif %}
             </p>
 
             <!-- ETA Box -->

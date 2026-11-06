@@ -180,7 +180,7 @@
                             <tr class="queue-row hover:bg-slate-50/80 transition-all" data-room-id="{{ appt.phong_kham_id or '' }}" data-room-name="{{ (appt.ten_phong or '') | lower }}" data-dept-name="{{ (appt.ten_khoa or '') | lower }}">
                                 <td class="py-3.5 px-4 font-bold text-medical-600">#{{ "%02d"|format(loop.index) }}</td>
                                 <td class="py-3.5 px-4">
-                                    <div class="font-medium text-slate-800">{{ appt.ho_ten_benh_nhan }}</div>
+                                    <div class="font-medium text-slate-800">{{ appt.ten_benh_nhan or appt.ho_ten_benh_nhan or appt.benh_nhan or "Bệnh nhân" }}</div>
                                     <div class="text-xs text-slate-400">{{ appt.ma_benh_nhan }} • Giờ hẹn: {{ appt.gio_hen }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 text-slate-600">{{ appt.ten_phong or appt.ten_khoa }}</td>
@@ -219,14 +219,14 @@
                 </div>
                 <div class="space-y-4">
                     {% if appointments %}
-                        {% for appt in appointments[:4] %}
+                        {% for appt in appointments[:8] %}
                         <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-medical-50 text-medical-600 flex items-center justify-center font-bold text-xs font-mono">
                                     {{ appt.gio_hen }}
                                 </div>
                                 <div>
-                                    <h4 class="font-medium text-sm text-slate-800">{{ appt.ho_ten_benh_nhan }}</h4>
+                                    <h4 class="font-medium text-sm text-slate-800">{{ appt.ten_benh_nhan or appt.ho_ten_benh_nhan or appt.benh_nhan or "Bệnh nhân" }}</h4>
                                     <span class="text-xs text-slate-400">{{ appt.ten_khoa or appt.ly_do_kham }}</span>
                                 </div>
                             </div>
@@ -257,7 +257,7 @@ function filterDashboardQueue() {
         const deptName = (r.getAttribute('data-dept-name') || '').toLowerCase().trim();
         let match = false;
         if (!selectedVal) {
-            match = (visible < 6);
+            match = (visible < 25);
         } else {
             if (roomId && String(roomId) === String(selectedVal)) {
                 match = true;

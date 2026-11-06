@@ -402,7 +402,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
                 <!-- Điều hướng cuối Bước 1 (Lưu tự động và chuyển bước) -->
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
@@ -621,21 +620,50 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                         <div class="sm:col-span-6">
-                            <label class="block font-semibold text-slate-600 mb-1">Chọn loại thuốc từ kho dược</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="font-semibold text-slate-600 text-xs flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pills text-teal-600"></i> Chọn thuốc từ kho dược
+                                </label>
+                                <span class="text-[10px] text-slate-400">Tồn kho cập nhật thời gian thực</span>
+                            </div>
+                            
+                            <!-- Ô tìm kiếm nhanh thuốc -->
+                            <div class="relative mb-1.5">
+                                <input type="text" id="filter-medicine-keyword" onkeyup="filterMedicineOptions()" 
+                                       placeholder="🔍 Gõ tìm nhanh tên thuốc, hoạt chất..." 
+                                       class="w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
+                                <span id="medicine-search-count" class="absolute right-2.5 top-1.5 text-[10px] text-slate-400 font-mono"></span>
+                            </div>
+
                             <select id="select-medicine" onchange="onMedicineSelected()" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-medical-500">
-                                <option value="">-- Chọn thuốc --</option>
+                                <option value="">-- Chọn thuốc kê đơn --</option>
                                 {% for m in medicines %}
+                                {% set ton_kho = m.so_luong_ton or 0 %}
+                                {% set ton_min = m.ton_kho_toi_thieu or 20 %}
                                 <option value="{{ m.id }}" 
                                         data-name="{{ m.ten_thuoc }}" 
-                                        data-ton="{{ m.so_luong_ton }}" 
-                                        data-min="{{ m.ton_kho_toi_thieu or 20 }}" 
+                                        data-ton="{{ ton_kho }}" 
+                                        data-min="{{ ton_min }}" 
                                         data-dvt="{{ m.don_vi_tinh }}" 
                                         data-price="{{ m.don_gia }}"
-                                        data-usage="{{ m.huong_dan_su_dung or 'Uống 1 viên/lần, ngày 2 lần sau ăn' }}">
-                                    {{ m.ten_thuoc }} (Tồn: {{ m.so_luong_ton }} {{ m.don_vi_tinh }})
+                                        data-usage="{{ m.huong_dan_su_dung or 'Uống 1 viên/lần, ngày 2 lần sau ăn' }}"
+                                        {% if ton_kho <= 0 %}disabled style="color: #ef4444; background-color: #fef2f2;"{% elif ton_kho <= ton_min %}style="color: #b45309; background-color: #fffbeb;"{% endif %}>
+                                    {% if ton_kho <= 0 %}
+                                    ❌ [HẾT HÀNG] {{ m.ten_thuoc }} (Tồn: 0 {{ m.don_vi_tinh }})
+                                    {% elif ton_kho <= ton_min %}
+                                    ⚠️ [SẮP HẾT] {{ m.ten_thuoc }} (Còn {{ ton_kho }} {{ m.don_vi_tinh }})
+                                    {% else %}
+                                    ✅ {{ m.ten_thuoc }} (Khả dụng: {{ ton_kho }} {{ m.don_vi_tinh }})
+                                    {% endif %}
                                 </option>
                                 {% endfor %}
                             </select>
+
+                            <!-- Badge thông tin tồn kho tức thì khi chọn thuốc -->
+                            <div id="medicine-stock-status-badge" class="hidden mt-1.5 flex items-center justify-between p-2 rounded-lg text-xs bg-slate-50 border border-slate-200">
+                                <span id="stock-badge-info" class="font-medium text-slate-700"></span>
+                                <span id="stock-badge-pill" class="px-2 py-0.5 rounded-full font-bold text-[10px]"></span>
+                            </div>
                         </div>
 
                         <div class="sm:col-span-2">
@@ -1746,8 +1774,73 @@ Xác nhận lưu chỉ định?`;
     }
 
 
+    // Lọc nhanh danh sách thuốc theo từ khóa
+    function filterMedicineOptions() {
+        const input = document.getElementById('filter-medicine-keyword');
+        const filter = (input ? input.value : '').toLowerCase().trim();
+        const sel = document.getElementById('select-medicine');
+        const countSpan = document.getElementById('medicine-search-count');
+        let matched = 0;
+
+        for (let i = 1; i < sel.options.length; i++) {
+            const opt = sel.options[i];
+            const text = (opt.textContent || opt.innerText).toLowerCase();
+            const name = (opt.getAttribute('data-name') || '').toLowerCase();
+            if (!filter || text.includes(filter) || name.includes(filter)) {
+                opt.style.display = '';
+                matched++;
+            } else {
+                opt.style.display = 'none';
+            }
+        }
+        if (countSpan) {
+            countSpan.innerText = filter ? `${matched} kết quả` : '';
+        }
+    }
+
     // Xử lý khi chọn thuốc từ dropdown: Cảnh báo tồn kho ít và Cảnh báo dị ứng thời gian thực
     function onMedicineSelected() {
+        const sel = document.getElementById('select-medicine');
+        const opt = sel.options[sel.selectedIndex];
+        const warningBanner = document.getElementById('stock-warning-banner');
+        const errorBanner = document.getElementById('stock-error-banner');
+        const stockBadge = document.getElementById('medicine-stock-status-badge');
+        const stockBadgeInfo = document.getElementById('stock-badge-info');
+        const stockBadgePill = document.getElementById('stock-badge-pill');
+        errorBanner.classList.add('hidden');
+
+        if (!opt || !opt.value) {
+            warningBanner.classList.add('hidden');
+            if (stockBadge) stockBadge.classList.add('hidden');
+            const allergyBanner = document.getElementById('allergy-danger-banner');
+            if (allergyBanner) allergyBanner.classList.add('hidden');
+            return;
+        }
+
+        const ton = parseInt(opt.getAttribute('data-ton') || 0);
+        const minStock = parseInt(opt.getAttribute('data-min') || 20);
+        const name = opt.getAttribute('data-name');
+        const dvt = opt.getAttribute('data-dvt');
+        const price = parseFloat(opt.getAttribute('data-price') || 0);
+        const defaultUsage = opt.getAttribute('data-usage');
+
+        document.getElementById('input-medicine-usage').value = defaultUsage || 'Uống sau ăn 30 phút';
+
+        // Cập nhật Badge tồn kho tức thì
+        if (stockBadge && stockBadgeInfo && stockBadgePill) {
+            stockBadge.classList.remove('hidden');
+            stockBadgeInfo.innerHTML = `<strong>${name}</strong> • Đơn giá: <span class="font-mono text-emerald-700 font-bold">${price.toLocaleString('vi-VN')} đ</span>`;
+            if (ton <= 0) {
+                stockBadgePill.className = "px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-rose-100 text-rose-700 border border-rose-200";
+                stockBadgePill.innerText = "HẾT HÀNG (0)";
+            } else if (ton <= minStock) {
+                stockBadgePill.className = "px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-800 border border-amber-300";
+                stockBadgePill.innerText = `SẮP HẾT (${ton} ${dvt})`;
+            } else {
+                stockBadgePill.className = "px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300";
+                stockBadgePill.innerText = `KHẢ DỤNG (${ton} ${dvt})`;
+            }
+        }
         const sel = document.getElementById('select-medicine');
         const opt = sel.options[sel.selectedIndex];
         const warningBanner = document.getElementById('stock-warning-banner');

@@ -2007,6 +2007,30 @@ def toggle_maintenance_api():
     })
 
 
+@api_bp.route('/maintenance/toggle-page', methods=['POST'])
+@roles_required('ADMIN')
+def toggle_page_maintenance_api():
+    """API Quản trị viên bật hoặc tắt nhanh chế độ bảo trì cho từng trang nhỏ."""
+    from models.system_setting_model import SystemSettingModel
+    data = request.get_json() or {}
+    page_key = data.get('page_key')
+    enabled = data.get('enabled')
+    if not page_key or page_key not in SystemSettingModel.DEFAULT_MAINTENANCE_PAGES:
+        return jsonify(success=False, message='Mã định danh trang không hợp lệ.'), 400
+    if enabled is not None and not isinstance(enabled, bool):
+        return jsonify(success=False, message='Trạng thái bảo trì phải là boolean.'), 400
+    user_name = session.get('user', {}).get('ho_ten', 'admin')
+
+    ok, msg = SystemSettingModel.toggle_page_maintenance(page_key=page_key, enabled=enabled, user_name=user_name)
+    current = SystemSettingModel.get_settings()
+    return jsonify({
+        'success': ok,
+        'message': msg,
+        'page_key': page_key,
+        'settings': current
+    })
+
+
 @api_bp.route('/maintenance/update', methods=['POST'])
 @roles_required('ADMIN')
 def update_maintenance_api():

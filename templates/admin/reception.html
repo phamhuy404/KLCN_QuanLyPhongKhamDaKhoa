@@ -303,14 +303,14 @@
     let rawAppointments = JSON.parse(document.getElementById('reception-appointments-data').textContent || '[]');
     let receptionQueue = rawAppointments.map((a, idx) => ({
         stt: String(idx + 1).padStart(3, '0'),
-        ma_bn: a.ma_benh_nhan,
-        ho_ten: a.ho_ten_benh_nhan,
+        ma_bn: a.ma_benh_nhan || ('BN' + String(a.benh_nhan_id || (idx + 1)).padStart(4, '0')),
+        ho_ten: a.ho_ten_benh_nhan || a.ten_benh_nhan || a.benh_nhan || a.ho_ten || 'Bệnh nhân',
         id: a.benh_nhan_id,
         appointment_id: a.id,
         gio: (a.gio_hen || '08:00').slice(0, 5),
-        phong: a.ten_phong || a.ten_khoa || 'Phòng Khám Nội',
-        loai: a.ma_lich_hen.includes('WEB') ? 'Đặt trước (Web)' : 'Trực tiếp',
-        status: a.trang_thai === 'Đang khám' ? 'examining' : (a.trang_thai === 'Đã khám' ? 'completed' : 'waiting')
+        phong: a.ten_phong || a.ten_khoa || 'Phòng Khám',
+        loai: (a.ma_lich_hen && a.ma_lich_hen.includes('WEB')) ? 'Đặt trước (Web)' : 'Trực tiếp',
+        status: (a.trang_thai === 'Đang khám' || a.status_code === 'examining') ? 'examining' : ((a.trang_thai === 'Đã khám' || a.status_code === 'completed') ? 'completed' : 'waiting')
     }));
 
     function renderQueue() {

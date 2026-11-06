@@ -202,6 +202,357 @@
 
             </div>
 
+            <!-- Khối Bảo Trì Cho Từng Phân Hệ và Trang Nhỏ Riêng Biệt -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-2">
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-medical-600"></i>
+                            <span>Bảo Trì Từng Trang Nhỏ Riêng Biệt</span>
+                        </h4>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Quản trị viên có thể bật hoặc tắt bảo trì cho một chức năng cụ thể khi nâng cấp, các trang khác vẫn vận hành bình thường.
+                        </p>
+                    </div>
+                    <span class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-semibold self-start sm:self-auto">
+                        <i class="fa-solid fa-shield mr-1"></i> Tác vụ có hiệu lực tức thì
+                    </span>
+                </div>
+
+                {% set maint_pages = system_settings.maintenance_pages or {} %}
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Cột 1: Cổng Bệnh Nhân (6 trang) -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between pb-1">
+                            <span class="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-hospital-user"></i> Trang Dịch Vụ Bệnh Nhân
+                            </span>
+                            <span class="text-[11px] text-slate-400">6 chức năng</span>
+                        </div>
+
+                        <!-- 1. Đặt lịch khám -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Đặt Lịch Khám Bệnh</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/booking</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_booking&name=%C4%90%E1%BA%B7t+L%E1%BB%8Bch+Kh%C3%A1m+B%E1%BB%87nh&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_booking', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_booking') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 2. Hồ sơ bệnh án -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-book-medical"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Lịch Sử Khám Bệnh</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/records</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_records&name=L%E1%BB%8Bch+S%E1%BB%AD+Kh%C3%A1m+B%E1%BB%87nh&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_records', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_records') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 3. Kết quả xét nghiệm -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-flask-vial"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Kết Quả Xét Nghiệm (CLS)</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/lab_results</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_lab&name=K%E1%BA%BFt+Qu%E1%BA%A3+X%C3%A9t+Nghi%E1%BB%87m&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_lab', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_lab') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 4. Tra cứu viện phí -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Tra Cứu Viện Phí và Hóa Đơn</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/billing</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_billing&name=Tra+C%E1%BB%A9u+Vi%E1%BB%87n+Ph%C3%AD&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_billing', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_billing') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. Góp ý phản hồi -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-comments"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Đánh Giá và Góp Ý</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/feedbacks</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_feedbacks&name=%C4%90%C3%A1nh+Gi%C3%A1+D%E1%BB%8Bch+V%E1%BB%A5&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_feedbacks', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_feedbacks') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 6. Hồ sơ cá nhân -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-id-card"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Hồ Sơ Sức Khỏe Cá Nhân</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/patient/profile</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/patient?page=patient_profile&name=H%E1%BB%93+S%C6%A1+C%C3%A1+Nh%C3%A2n&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-teal-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('patient_profile', this.checked)" class="sr-only peer" {% if maint_pages.get('patient_profile') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột 2: Phân Hệ Nhân Viên Y Tế (8 trang) -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between pb-1">
+                            <span class="text-xs font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-doctor"></i> Phân Hệ Nghiệp Vụ Nội Bộ
+                            </span>
+                            <span class="text-[11px] text-slate-400">8 phân hệ</span>
+                        </div>
+
+                        <!-- 1. Bệnh án điện tử EMR -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-stethoscope"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Khám Bệnh và Bệnh Án EMR</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/emr</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_emr&name=Kh%C3%A1m+B%E1%BB%87nh+EMR&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_emr', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_emr') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 2. Tiếp đón Lễ tân -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-bell-concierge"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Tiếp Đón và Lễ Tân</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/reception</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_reception&name=Ti%E1%BA%BFp+%C4%90%C3%B3n+L%E1%BB%85+T%C3%A2n&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_reception', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_reception') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 3. Quản lý lịch hẹn -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-calendar-day"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Quản Lý Lịch Hẹn Khám</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/appointments</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_appointments&name=Qu%E1%BA%A3n+L%C3%BD+L%E1%BB%8Bch+H%E1%BA%B9n&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_appointments', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_appointments') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 4. Xét nghiệm CLS -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-microscope"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Xét Nghiệm và Cận Lâm Sàng</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/lab</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_lab&name=X%C3%A9t+Nghi%E1%BB%87m+CLS&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_lab', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_lab') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. Kho Dược -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-prescription-bottle-medical"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Kho Dược và Nhà Thuốc</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/pharmacy</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_pharmacy&name=Kho+D%C6%B0%E1%BB%A3c&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_pharmacy', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_pharmacy') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 6. Viện phí thu ngân -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-cash-register"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Viện Phí và Thu Ngân</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/billing</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_billing&name=Vi%E1%BB%87n+Ph%C3%AD+Thu+Ng%C3%A2n&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_billing', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_billing') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 7. Báo cáo thống kê -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Báo Cáo và Thống Kê</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/reports</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_reports&name=B%C3%A1o+C%C3%A1o+Th%E1%BB%91ng+K%C3%AA&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_reports', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_reports') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 8. Nhân sự lịch trực -->
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200/90 hover:border-slate-300 bg-slate-50/50 transition-all">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-calendar-week"></i>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-slate-800">Nhân Sự và Lịch Trực</h5>
+                                    <span class="text-[10px] text-slate-400 font-mono">/admin/staff</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <a href="/maintenance/staff?page=admin_staff&name=Nh%C3%A2n+S%E1%BB%B1+L%E1%BB%8Bch+Tr%E1%BB%B1c&preview=1" target="_blank" class="text-[11px] text-slate-500 hover:text-indigo-700" title="Xem trước trang bảo trì">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="handleTogglePageMaintenance('admin_staff', this.checked)" class="sr-only peer" {% if maint_pages.get('admin_staff') %}checked{% endif %}>
+                                    <div class="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600 transition-colors"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
             <!-- Cấu Hình Chi Tiết Thông Điệp & Thời Gian Dự Kiến Hoàn Thành -->
             <div class="bg-slate-50 rounded-2xl border border-slate-200/90 p-5">
                 <div class="flex items-center justify-between mb-4">
@@ -510,6 +861,24 @@ async function executeRestore() {
         showToast('Lỗi mạng hoặc server: ' + err.message, 'error');
         btn.disabled = false;
         btn.innerHTML = originalText;
+    }
+}
+
+async function handleTogglePageMaintenance(pageKey, enabled) {
+    try {
+        const res = await fetch('/api/maintenance/toggle-page', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_key: pageKey, enabled: enabled })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message || 'Lỗi khi cập nhật bảo trì trang con!', 'error');
+        }
+    } catch (err) {
+        showToast('Lỗi kết nối máy chủ: ' + err.message, 'error');
     }
 }
 

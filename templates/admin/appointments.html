@@ -153,18 +153,38 @@
                 <select id="filter-status" onchange="filterAppointments()" 
                         class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all font-medium">
                     <option value="">Tất cả Trạng thái</option>
-                    <option value="waiting">Chờ khám / Đã đến</option>
-                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="waiting">Chờ khám / Đang chờ duyệt</option>
+                    <option value="confirmed">Đã xác nhận / Tiếp nhận</option>
+                    <option value="examining">Đang khám</option>
                     <option value="completed">Đã khám xong</option>
                     <option value="cancelled">Đã hủy hẹn</option>
                 </select>
             </div>
 
             <div class="sm:col-span-2">
-                <input type="date" id="filter-date" value="2026-09-25" onchange="filterAppointments()" 
+                <input type="date" id="filter-date" value="" onchange="onFilterDateChange()" 
                        class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:bg-white focus:outline-none focus:border-medical-500 transition-all">
             </div>
 
+        </div>
+
+        <!-- Thanh nút lọc nhanh ngày -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
+            <div class="flex items-center gap-1.5">
+                <span class="text-slate-500 font-medium mr-1"><i class="fa-solid fa-bolt text-amber-500"></i> Lọc nhanh:</span>
+                <button type="button" id="btn-quick-date-all" onclick="setQuickDateFilter('all')" class="px-3 py-1.5 rounded-lg font-semibold transition-all bg-medical-600 text-white shadow-xs">
+                    Tất cả
+                </button>
+                <button type="button" id="btn-quick-date-today" onclick="setQuickDateFilter('today')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    Hôm nay
+                </button>
+                <button type="button" id="btn-quick-date-tomorrow" onclick="setQuickDateFilter('tomorrow')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200">
+                    Ngày mai
+                </button>
+            </div>
+            <div id="quick-date-label" class="text-[11px] text-slate-400 italic">
+                Hiển thị toàn bộ lịch tiếp nhận
+            </div>
         </div>
     </div>
 
@@ -444,10 +464,14 @@
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-bold text-[10px]">Đang chờ khám</span>';
             } else if (app.trang_thai === 'confirmed') {
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Đã xác nhận</span>';
+            } else if (app.trang_thai === 'examining') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px]">Đang khám</span>';
             } else if (app.trang_thai === 'completed') {
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đã khám xong</span>';
             } else if (app.trang_thai === 'cancelled') {
                 statusBadge = '<span class="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-[10px]">Đã hủy</span>';
+            } else {
+                statusBadge = `<span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">${app.trang_thai_raw || app.trang_thai || 'Chờ khám'}</span>`;
             }
 
             let doctorCell = '';
@@ -554,11 +578,88 @@
         });
     }
 
-    // Lọc lịch hẹn có hỗ trợ tab Lịch của tôi
+    // Các hàm lọc nhanh theo Hôm nay, Ngày mai và Tất cả
+    function setQuickDateFilter(type) {
+        const dateInput = document.getElementById('filter-date');
+        const btnAll = document.getElementById('btn-quick-date-all');
+        const btnToday = document.getElementById('btn-quick-date-today');
+        const btnTomorrow = document.getElementById('btn-quick-date-tomorrow');
+        const label = document.getElementById('quick-date-label');
+
+        const activeClass = "px-3 py-1.5 rounded-lg font-semibold transition-all bg-medical-600 text-white shadow-xs";
+        const inactiveClass = "px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200";
+
+        if (btnAll) btnAll.className = inactiveClass;
+        if (btnToday) btnToday.className = inactiveClass;
+        if (btnTomorrow) btnTomorrow.className = inactiveClass;
+
+        const now = new Date();
+        const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        if (type === 'today') {
+            const todayStr = formatDate(now);
+            dateInput.value = todayStr;
+            if (btnToday) btnToday.className = activeClass;
+            if (label) label.innerText = `Đang lọc lịch khám hôm nay (${todayStr.split('-').reverse().join('/')})`;
+        } else if (type === 'tomorrow') {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(now.getDate() + 1);
+            const tomorrowStr = formatDate(tomorrow);
+            dateInput.value = tomorrowStr;
+            if (btnTomorrow) btnTomorrow.className = activeClass;
+            if (label) label.innerText = `Đang lọc lịch khám ngày mai (${tomorrowStr.split('-').reverse().join('/')})`;
+        } else {
+            dateInput.value = '';
+            if (btnAll) btnAll.className = activeClass;
+            if (label) label.innerText = 'Hiển thị toàn bộ lịch tiếp nhận';
+        }
+
+        filterAppointments();
+    }
+
+    function onFilterDateChange() {
+        const val = document.getElementById('filter-date').value;
+        const btnAll = document.getElementById('btn-quick-date-all');
+        const btnToday = document.getElementById('btn-quick-date-today');
+        const btnTomorrow = document.getElementById('btn-quick-date-tomorrow');
+        const label = document.getElementById('quick-date-label');
+
+        const activeClass = "px-3 py-1.5 rounded-lg font-semibold transition-all bg-medical-600 text-white shadow-xs";
+        const inactiveClass = "px-3 py-1.5 rounded-lg font-medium transition-all bg-slate-100 text-slate-700 hover:bg-slate-200";
+
+        if (btnAll) btnAll.className = inactiveClass;
+        if (btnToday) btnToday.className = inactiveClass;
+        if (btnTomorrow) btnTomorrow.className = inactiveClass;
+
+        const now = new Date();
+        const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const todayStr = formatDate(now);
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        const tomorrowStr = formatDate(tomorrow);
+
+        if (!val) {
+            if (btnAll) btnAll.className = activeClass;
+            if (label) label.innerText = 'Hiển thị toàn bộ lịch tiếp nhận';
+        } else if (val === todayStr) {
+            if (btnToday) btnToday.className = activeClass;
+            if (label) label.innerText = `Đang lọc lịch khám hôm nay (${todayStr.split('-').reverse().join('/')})`;
+        } else if (val === tomorrowStr) {
+            if (btnTomorrow) btnTomorrow.className = activeClass;
+            if (label) label.innerText = `Đang lọc lịch khám ngày mai (${tomorrowStr.split('-').reverse().join('/')})`;
+        } else {
+            if (label) label.innerText = `Đang lọc theo ngày: ${val.split('-').reverse().join('/')}`;
+        }
+
+        filterAppointments();
+    }
+
+    // Lọc lịch hẹn có hỗ trợ tab Lịch của tôi và lọc theo ngày
     function filterAppointments() {
         const query = document.getElementById('search-appointment').value.toLowerCase().trim();
         const docFilter = document.getElementById('filter-doctor').value;
         const statusFilter = document.getElementById('filter-status').value;
+        const dateFilter = (document.getElementById('filter-date')?.value || '').trim();
 
         const filtered = appointments.filter(a => {
             // Lọc theo phạm vi (Scope)
@@ -571,9 +672,9 @@
             const matchQuery = !query || (window.fuzzyMatchRecord
                 ? window.fuzzyMatchRecord(query, [a.ma_hen, a.benh_nhan, a.sdt, a.bac_si, a.khoa, a.ly_do])
                 : (
-                    a.ma_hen.toLowerCase().includes(query) ||
-                    a.benh_nhan.toLowerCase().includes(query) ||
-                    a.sdt.toLowerCase().includes(query)
+                    (a.ma_hen && a.ma_hen.toLowerCase().includes(query)) ||
+                    (a.benh_nhan && a.benh_nhan.toLowerCase().includes(query)) ||
+                    (a.sdt && a.sdt.toLowerCase().includes(query))
                 ));
 
             let matchDoc = true;
@@ -584,8 +685,9 @@
             }
 
             const matchStatus = !statusFilter || a.trang_thai === statusFilter;
+            const matchDate = !dateFilter || (a.ngay_hen && a.ngay_hen.slice(0, 10) === dateFilter);
 
-            return matchQuery && matchDoc && matchStatus;
+            return matchQuery && matchDoc && matchStatus && matchDate;
         });
 
         updateAppointmentStats(filtered);
@@ -891,7 +993,9 @@
             data.shifts.forEach(s => {
                 html += `<optgroup label="${s.name}">`;
                 s.slots.forEach(slot => {
-                    if (slot.status === 'available') {
+                    if (slot.status === 'past') {
+                        html += `<option value="${slot.time}" disabled style="background-color: #f1f5f9; color: #94a3b8;">[ĐÃ QUA] ${slot.time} - Đã qua giờ</option>`;
+                    } else if (slot.status === 'available') {
                         html += `<option value="${slot.time}">${slot.time} - Còn trống</option>`;
                     } else if (slot.status === 'booked') {
                         html += `<option value="${slot.time}" disabled style="background-color: #fef3c7; color: #92400e;">[ĐÃ HẸN] ${slot.time} - Đã có người hẹn</option>`;

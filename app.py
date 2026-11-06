@@ -241,6 +241,56 @@ def create_app(test_config=None):
                     }), 503
                 return redirect('/maintenance/staff')
 
+        # Kiểm tra chế độ bảo trì cho từng trang nhỏ riêng biệt
+        maint_pages = settings.get('maintenance_pages') or {}
+        if isinstance(maint_pages, dict) and any(maint_pages.values()):
+            import urllib.parse
+            page_rules = [
+                # Nhóm Bệnh nhân
+                ('patient_booking', 'Đặt Lịch Khám Bệnh', 'patient',
+                 lambda p: p.startswith('/patient/booking') or p.startswith('/booking') or p.startswith('/api/appointment/book') or p.startswith('/api/appointment/booking-matrix')),
+                ('patient_records', 'Hồ Sơ và Lịch Sử Khám Bệnh', 'patient',
+                 lambda p: p.startswith('/patient/records') or p.startswith('/patient/patient-details')),
+                ('patient_lab', 'Kết Quả Xét Nghiệm và Cận Lâm Sàng', 'patient',
+                 lambda p: p.startswith('/patient/lab_results')),
+                ('patient_billing', 'Tra Cứu Viện Phí và Hóa Đơn', 'patient',
+                 lambda p: p.startswith('/patient/billing') or p.startswith('/patient/invoices')),
+                ('patient_feedbacks', 'Góp Ý và Đánh Giá Dịch Vụ', 'patient',
+                 lambda p: p.startswith('/patient/feedbacks')),
+                ('patient_profile', 'Hồ Sơ Sức Khỏe Cá Nhân', 'patient',
+                 lambda p: p.startswith('/patient/profile')),
+                # Nhóm Nhân viên y tế
+                ('admin_emr', 'Khám Bệnh và Bệnh Án EMR', 'staff',
+                 lambda p: p.startswith('/admin/emr') or p.startswith('/api/emr')),
+                ('admin_reception', 'Tiếp Đón và Lễ Tân', 'staff',
+                 lambda p: p.startswith('/admin/reception')),
+                ('admin_appointments', 'Quản Lý Lịch Hẹn Khám', 'staff',
+                 lambda p: p.startswith('/admin/appointments')),
+                ('admin_lab', 'Phân Hệ Xét Nghiệm và Cận Lâm Sàng', 'staff',
+                 lambda p: p.startswith('/admin/lab') or p.startswith('/api/lab')),
+                ('admin_pharmacy', 'Kho Dược và Quầy Thuốc', 'staff',
+                 lambda p: p.startswith('/admin/pharmacy') or p.startswith('/api/pharmacy')),
+                ('admin_billing', 'Viện Phí và Thu Ngân', 'staff',
+                 lambda p: p.startswith('/admin/billing') or p.startswith('/api/billing')),
+                ('admin_reports', 'Báo Cáo Thống Kê và Doanh Thu', 'staff',
+                 lambda p: p.startswith('/admin/reports')),
+                ('admin_staff', 'Quản Lý Nhân Sự và Lịch Trực', 'staff',
+                 lambda p: p.startswith('/admin/staff') or p.startswith('/api/schedule')),
+            ]
+
+            for page_key, page_name, page_type, match_fn in page_rules:
+                if maint_pages.get(page_key) and match_fn(request.path):
+                    if request.is_json or request.path.startswith('/api/'):
+                        from flask import jsonify
+                        return jsonify({
+                            'success': False,
+                            'maintenance': True,
+                            'page': page_key,
+                            'message': f'Chức năng {page_name} đang tạm dừng để bảo trì nâng cấp.'
+                        }), 503
+                    encoded_name = urllib.parse.quote(page_name)
+                    return redirect(f'/maintenance/{page_type}?page={page_key}&name={encoded_name}')
+
         return None
 
 

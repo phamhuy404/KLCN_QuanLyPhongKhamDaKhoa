@@ -563,7 +563,7 @@ class ClinicModel:
         cursor.execute('SELECT COUNT(*) as total_patients FROM benh_nhan')
         total_patients = cursor.fetchone()['total_patients']
 
-        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai IN (N'Chờ tiếp nhận', N'Chờ xác nhận', N'Chờ khám', 'Chờ tiếp nhận', 'Chờ xác nhận', 'Chờ khám')")
+        cursor.execute("SELECT COUNT(*) as waiting_appointments FROM lich_hen WHERE trang_thai IN (N'Chờ tiếp nhận', N'Chờ xét duyệt', N'Chờ xác nhận', N'Chờ khám', N'Chờ duyệt', 'Chờ tiếp nhận', 'Chờ xét duyệt', 'Chờ xác nhận', 'Chờ khám', 'Chờ duyệt', 'waiting', 'pending')")
         waiting_appointments = cursor.fetchone()['waiting_appointments']
 
         cursor.execute("SELECT COUNT(*) as completed_today FROM phieu_kham WHERE trang_thai IN (N'Hoàn thành', N'Đã hoàn thành', N'Đã khám', 'Hoàn thành', 'Đã khám')")

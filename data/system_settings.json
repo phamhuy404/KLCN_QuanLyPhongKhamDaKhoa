@@ -1,10 +1,27 @@
 {
+  "insurance_fixed_reduction": "50000",
   "maintenance_patient": false,
   "maintenance_staff": false,
+  "maintenance_pages": {
+    "patient_booking": false,
+    "patient_records": false,
+    "patient_lab": false,
+    "patient_billing": false,
+    "patient_feedbacks": false,
+    "patient_profile": false,
+    "admin_emr": false,
+    "admin_reception": false,
+    "admin_appointments": false,
+    "admin_lab": false,
+    "admin_pharmacy": false,
+    "admin_billing": false,
+    "admin_reports": false,
+    "admin_staff": false
+  },
   "maintenance_message_patient": "Cổng Dịch vụ Bệnh nhân H2T Care+ đang được nâng cấp tính năng và bảo trì định kỳ. Quý khách vui lòng quay lại sau.",
   "maintenance_message_staff": "Phân hệ Quản lý Y tế Nội bộ đang tạm dừng để bảo trì nâng cấp máy chủ và đồng bộ cơ sở dữ liệu. Vui lòng thực hiện quy trình giấy khẩn cấp.",
   "maintenance_eta": "23:00 Hôm nay",
   "maintenance_hotline": "1900 1234 - (028) 3810 0000",
-  "updated_at": "2026-11-03 21:35:16",
-  "updated_by": "Quản Trị Viên Hệ Thống"
+  "updated_at": "2026-11-06 13:36:29",
+  "updated_by": "admin"
 }

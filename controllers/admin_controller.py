@@ -257,7 +257,7 @@ def staff():
     week_bounds = ScheduleModel.get_week_bounds()
     cur_start_str = str(week_bounds['current_week'][0])
     cur_end_str = str(week_bounds['current_week'][1])
-    # Tối ưu Lazy Loading & Cache: Ban đầu chỉ nạp tuần hiện tại (246 ca), các tuần khác nạp tức thì qua AJAX & Cache
+    # Tối ưu Lazy Loading và Cache: Ban đầu chỉ nạp tuần hiện tại (246 ca), các tuần khác nạp tức thì qua AJAX và Cache
     schedules = ScheduleModel.get_all(from_date=cur_start_str, to_date=cur_end_str, current_user=curr_user)
     # Bảo mật: Nhân sự không phải ADMIN/LETAN không xem được username của người khác
     if user_role not in ['ADMIN', 'LETAN']:

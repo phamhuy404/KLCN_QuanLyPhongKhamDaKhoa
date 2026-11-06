@@ -12,10 +12,43 @@ class SystemSettingModel:
     _loaded_at = 0
     _CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'system_settings.json')
 
+    DEFAULT_MAINTENANCE_PAGES = {
+        'patient_booking': False,
+        'patient_records': False,
+        'patient_lab': False,
+        'patient_billing': False,
+        'patient_feedbacks': False,
+        'patient_profile': False,
+        'admin_emr': False,
+        'admin_reception': False,
+        'admin_appointments': False,
+        'admin_lab': False,
+        'admin_pharmacy': False,
+        'admin_billing': False,
+        'admin_reports': False,
+        'admin_staff': False
+    }
+
     DEFAULT_SETTINGS = {
         'insurance_fixed_reduction': 50000,
         'maintenance_patient': False,
         'maintenance_staff': False,
+        'maintenance_pages': {
+            'patient_booking': False,
+            'patient_records': False,
+            'patient_lab': False,
+            'patient_billing': False,
+            'patient_feedbacks': False,
+            'patient_profile': False,
+            'admin_emr': False,
+            'admin_reception': False,
+            'admin_appointments': False,
+            'admin_lab': False,
+            'admin_pharmacy': False,
+            'admin_billing': False,
+            'admin_reports': False,
+            'admin_staff': False
+        },
         'maintenance_message_patient': 'Cổng Dịch vụ Bệnh nhân H2T Care+ đang được nâng cấp tính năng và bảo trì định kỳ. Quý khách vui lòng quay lại sau.',
         'maintenance_message_staff': 'Phân hệ Quản lý Y tế Nội bộ đang tạm dừng để bảo trì nâng cấp máy chủ và đồng bộ cơ sở dữ liệu. Vui lòng thực hiện quy trình giấy khẩn cấp.',
         'maintenance_eta': '23:00 Hôm nay',
@@ -100,6 +133,14 @@ class SystemSettingModel:
                 v = row.get('gia_tri')
                 if k in ('maintenance_patient', 'maintenance_staff'):
                     settings[k] = (v == '1' or v.lower() == 'true')
+                elif k == 'maintenance_pages':
+                    try:
+                        parsed_pages = json.loads(v) if isinstance(v, str) else (v or {})
+                        pages_dict = cls.DEFAULT_MAINTENANCE_PAGES.copy()
+                        pages_dict.update(parsed_pages)
+                        settings['maintenance_pages'] = pages_dict
+                    except Exception:
+                        settings['maintenance_pages'] = cls.DEFAULT_MAINTENANCE_PAGES.copy()
                 elif k:
                     settings[k] = v
         except Exception:
@@ -129,7 +170,10 @@ class SystemSettingModel:
             for k, v in current.items():
                 if k in ('updated_at', 'updated_by'):
                     continue
-                str_val = '1' if v is True else ('0' if v is False else str(v if v is not None else ''))
+                if k == 'maintenance_pages' and isinstance(v, dict):
+                    str_val = json.dumps(v, ensure_ascii=False)
+                else:
+                    str_val = '1' if v is True else ('0' if v is False else str(v if v is not None else ''))
                 cur.execute("""
                     IF EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = ?)
                         UPDATE cai_dat_he_thong 
@@ -152,6 +196,26 @@ class SystemSettingModel:
         cls._cache = current.copy()
         cls._loaded_at = time.monotonic()
         return True, "Cập nhật cấu hình hệ thống thành công!"
+
+    @classmethod
+    def toggle_page_maintenance(cls, page_key, enabled=None, user_name='admin'):
+        """Bật hoặc tắt trạng thái bảo trì cho từng trang nhỏ cụ thể."""
+        settings = cls.get_settings()
+        maint_pages = settings.get('maintenance_pages')
+        if not isinstance(maint_pages, dict):
+            maint_pages = cls.DEFAULT_MAINTENANCE_PAGES.copy()
+        else:
+            maint_pages = maint_pages.copy()
+
+        if enabled is None:
+            maint_pages[page_key] = not maint_pages.get(page_key, False)
+        else:
+            maint_pages[page_key] = bool(enabled)
+
+        settings['maintenance_pages'] = maint_pages
+        ok, msg = cls.update_settings(settings, user_name=user_name)
+        status_text = "ĐÃ BẬT" if maint_pages.get(page_key) else "ĐÃ TẮT"
+        return ok, f"{status_text} chế độ bảo trì cho trang '{page_key}' thành công!"
 
     @classmethod
     def toggle_maintenance(cls, target='patient', enabled=None, user_name='admin'):

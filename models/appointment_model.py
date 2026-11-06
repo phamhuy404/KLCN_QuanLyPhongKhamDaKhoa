@@ -369,14 +369,26 @@ class AppointmentModel:
                 departments = [row['id'] for row in cursor.fetchall()]
 
 
+            today_iso = date.today().isoformat()
+            now_dt = datetime.now()
+            current_now_min = now_dt.hour * 60 + now_dt.minute
+            is_past_day = (day < today_iso) if day else False
+            is_today = (day == today_iso) if day else False
+
             for shift, times in slots.items():
-
-
                 items = []
-
-
                 for value in times:
-
+                    v_min = int(str(value)[:2]) * 60 + int(str(value)[3:5])
+                    if is_past_day or (is_today and v_min <= current_now_min):
+                        items.append({
+                            'time': value,
+                            'selectable': False,
+                            'status': 'past',
+                            'color': 'gray',
+                            'label': 'Đã qua giờ',
+                            'reason': 'Khung giờ này đã trôi qua trong ngày hôm nay.'
+                        })
+                        continue
 
                     available = False
 
@@ -565,48 +577,27 @@ class AppointmentModel:
 
 
             raw_tt = item.get('trang_thai') or ''
-
-
-            if raw_tt in ['Đã khám', 'Hoàn thành']:
-
-
+            if raw_tt in ['Đã khám', 'Hoàn thành', 'completed']:
                 status_code = 'completed'
-
-
-            elif raw_tt in ['Đã tiếp nhận', 'Đã duyệt', 'Đã xác nhận']:
-
-
+            elif raw_tt in ['Đã tiếp nhận', 'Đã duyệt', 'Đã xác nhận', 'confirmed']:
                 status_code = 'confirmed'
-
-
-            elif raw_tt == 'Đã hủy':
-
-
+            elif raw_tt in ['Đang khám', 'examining']:
+                status_code = 'examining'
+            elif raw_tt in ['Đã hủy', 'cancelled']:
                 status_code = 'cancelled'
-
-
             else:
-
-
                 status_code = 'waiting'
 
-
-
-
-
             item['status_code'] = status_code
-
-
             item['trang_thai_code'] = status_code
-
-
+            item['trang_thai_raw'] = raw_tt
             item['ma_hen'] = item.get('ma_lich_hen') or f"LH{item['id']}"
-
-
             item['gio_hen_short'] = str(item['gio_hen'])[:5] if item.get('gio_hen') else '08:30'
-
-
-            item['benh_nhan'] = item.get('ten_benh_nhan') or 'Bệnh nhân'
+            patient_name = item.get('ten_benh_nhan') or 'Bệnh nhân'
+            item['benh_nhan'] = patient_name
+            item['ten_benh_nhan'] = patient_name
+            item['ho_ten_benh_nhan'] = patient_name
+            item['ho_ten'] = patient_name
 
 
             item['ma_bn'] = item.get('ma_benh_nhan') or 'BN'
@@ -1254,6 +1245,12 @@ class AppointmentModel:
             confirmed_statuses = {'Đã tiếp nhận', 'Đã xác nhận', 'Đã duyệt', 'Đang khám', 'Đã khám', 'Hoàn thành'}
             pending_statuses = {'Chờ xét duyệt', 'Chờ duyệt', 'waiting', 'Chờ tiếp nhận'}
 
+            today_iso = date.today().isoformat()
+            now_dt = datetime.now()
+            current_now_min = now_dt.hour * 60 + now_dt.minute
+            is_past_day = (day < today_iso)
+            is_today = (day == today_iso)
+
             for shift, times in slots_by_shift.items():
                 for t in times:
                     t_min = minutes(t)
@@ -1261,6 +1258,23 @@ class AppointmentModel:
                     avail_docs = []
                     pending_docs = []
                     booked_docs = []
+
+                    if is_past_day or (is_today and t_min <= current_now_min):
+                        for doc in doctors:
+                            doctor_slot_states[doc['id']][t] = {
+                                'status': 'past',
+                                'color': 'gray',
+                                'label': 'Đã qua giờ',
+                                'is_selectable': False,
+                                'has_pending': False
+                            }
+                        slot_summary[t] = {
+                            'status': 'past',
+                            'available_doc_ids': [],
+                            'pending_doc_ids': [],
+                            'booked_doc_ids': []
+                        }
+                        continue
 
                     for doc in doctors:
                         doc_id = doc['id']
@@ -2934,6 +2948,14 @@ class AppointmentModel:
         if user_info and user_info.get('vai_tro') == 'BACSI':
             return False, 'Bác sĩ không có quyền đổi trạng thái hoặc duyệt lịch hẹn! Thao tác này chỉ dành cho Lễ tân hoặc Quản trị viên.'
 
+        status_aliases = {
+            'waiting': 'Chờ tiếp nhận',
+            'confirmed': 'Đã tiếp nhận',
+            'examining': 'Đang khám',
+            'completed': 'Đã khám',
+            'cancelled': 'Đã hủy'
+        }
+        new_status = status_aliases.get(new_status, new_status)
 
         appt = AppointmentModel.get_by_id(appointment_id)
 
