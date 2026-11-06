@@ -26,14 +26,18 @@ Hệ thống cố định DB_ENGINE = 'sqlserver' và kết nối qua cấu hìn
 - driver: ODBC Driver 17 for SQL Server
 - trusted_connection: yes (xác thực Windows Authentication, hoặc đổi uid/pwd nếu dùng SQL Server Authentication).
 
-2. Khởi tạo Database sạch và nạp 61 tài khoản chuẩn:
-Có 2 phương thức khởi tạo:
-Cách A: Dùng script nạp tự động (khuyến nghị):
-python scratch/seed_database.py
+2. Khởi tạo và Đồng bộ Cơ sở dữ liệu Microsoft SQL Server:
+Có 2 phương thức:
+Cách A: Dùng công cụ đồng bộ tự động 1-Click (Khuyến nghị cao nhất):
+python sync_db.py
+- Chế độ mặc định (Safe Sync): Tự động bảo toàn 100% dữ liệu bạn đã tạo, chỉ tạo thêm bảng và cột mới bị thiếu.
+- Sao chép dữ liệu giữa 2 máy: Bỏ file .bak vào thư mục backups/ và chạy: python sync_db.py --restore
+- Làm mới dữ liệu từ đầu: python sync_db.py --fresh (xóa sạch để về dữ liệu mẫu xuất xưởng).
 
 Cách B: Mở SQL Server Management Studio (SSMS):
 - Mở file database/cosodulieu.sql
 - Nhấn Execute (F5) để tự động tạo cơ sở dữ liệu quan_ly_phong_kham và nạp đầy đủ cấu trúc bảng, danh mục và dữ liệu chuẩn.
+(Lưu ý: Cách B sẽ xóa bảng cũ DROP TABLE và nạp lại dữ liệu gốc, các dữ liệu tự tạo trước đó sẽ bị xóa).
 
 
 III. KHỞI CHẠY HỆ THỐNG VÀ KIỂM THỬ TỰ ĐỘNG

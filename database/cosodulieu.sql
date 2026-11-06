@@ -40,6 +40,7 @@ IF OBJECT_ID('thong_bao', 'U') IS NOT NULL DROP TABLE thong_bao;
 IF OBJECT_ID('lich_su_nhac_nho', 'U') IS NOT NULL DROP TABLE lich_su_nhac_nho;
 IF OBJECT_ID('lich_su_sao_luu', 'U') IS NOT NULL DROP TABLE lich_su_sao_luu;
 IF OBJECT_ID('banner', 'U') IS NOT NULL DROP TABLE banner;
+IF OBJECT_ID('cai_dat_he_thong', 'U') IS NOT NULL DROP TABLE cai_dat_he_thong;
 IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
 IF OBJECT_ID('bai_viet', 'U') IS NOT NULL DROP TABLE bai_viet;
 IF OBJECT_ID('benh_nhan', 'U') IS NOT NULL DROP TABLE benh_nhan;
@@ -450,6 +451,14 @@ CREATE TABLE audit_log (
     reason NVARCHAR(MAX) NULL,
     before_json NVARCHAR(MAX) NULL,
     after_json NVARCHAR(MAX) NULL
+);
+
+CREATE TABLE cai_dat_he_thong (
+    khoa NVARCHAR(100) PRIMARY KEY,
+    gia_tri NVARCHAR(MAX),
+    mo_ta NVARCHAR(255),
+    cap_nhat_luc DATETIME DEFAULT GETDATE(),
+    nguoi_cap_nhat NVARCHAR(100) DEFAULT 'system'
 );
 GO
 

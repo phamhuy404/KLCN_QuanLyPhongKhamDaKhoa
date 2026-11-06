@@ -19,7 +19,19 @@ Mở cửa sổ dòng lệnh (PowerShell hoặc Command Prompt) tại thư mục
 pip install -r requirements.txt
 ```
 
-### Bước 2: Thiết lập Cơ sở dữ liệu Microsoft SQL Server
+### Bước 2: Thiết lập và Đồng bộ Cơ sở dữ liệu Microsoft SQL Server
+
+#### Cách 1: Sử dụng công cụ đồng bộ tự động 1-Click (Khuyến nghị cao nhất)
+Chạy lệnh đồng bộ tự động:
+```bash
+python sync_db.py
+```
+* **Chế độ Safe Sync (Mặc định)**: Tự động bảo toàn 100% dữ liệu bạn đã tạo trước đó, chỉ tạo thêm bảng còn thiếu và bổ sung cột còn thiếu (không xóa bảng, không mất dữ liệu cũ).
+* **Sao chép dữ liệu giữa 2 máy**: Bỏ file `.bak` vào thư mục `backups/` và chạy `python sync_db.py --restore`.
+* **Làm mới dữ liệu từ đầu**: Chạy `python sync_db.py --fresh` (chỉ dùng khi muốn xóa sạch để quay về dữ liệu mẫu xuất xưởng).
+
+#### Cách 2: Sử dụng SQL Server Management Studio (SSMS)
+> **Lưu ý**: Chạy trực tiếp `cosodulieu.sql` sẽ xóa toàn bộ bảng cũ (`DROP TABLE`) và nạp lại dữ liệu mẫu gốc, các dữ liệu tự tạo trước đó sẽ bị xóa.
 1. Mở SQL Server Management Studio (SSMS) và kết nối tới SQL Server instance của bạn (`localhost` hoặc `.\SQLEXPRESS`).
 2. Mở file script SQL `database/cosodulieu.sql`.
 3. Bấm **Execute** (hoặc nhấn phím **F5**). Script sẽ tự động tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 28 bảng và nạp đầy đủ dữ liệu mẫu chuẩn y khoa.
