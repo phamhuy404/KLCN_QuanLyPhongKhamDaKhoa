@@ -43,7 +43,7 @@
         <div class="flex items-center flex-wrap gap-2.5">
             <!-- Nút Mở Modal Thêm Nhân Sự Mới (Chỉ Quản trị viên) -->
             {% if is_admin %}
-            <button type="button" onclick="openCreateStaffModal('{{ current_role if current_role in ['LETAN', 'BACSI', 'DUOCSI', 'KTV'] else 'LETAN' }}')" 
+            <button type="button" data-role="{{ current_role if current_role in ['LETAN', 'BACSI', 'DUOCSI', 'KTV'] else 'LETAN' }}" onclick="openCreateStaffModal(this.dataset.role)"
                     class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold text-xs shadow-md shadow-medical-600/20 transition-all flex items-center gap-2">
                 <i class="fa-solid fa-user-plus"></i>
                 <span>Thêm Nhân Sự Mới</span>
@@ -236,7 +236,7 @@
                 <span>Xem Thẻ Bác Sĩ</span>
             </a>
             {% elif current_role in ['LETAN', 'DUOCSI', 'KTV'] %}
-            <button type="button" onclick="openCreateStaffModal('{{ current_role }}')" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs whitespace-nowrap shadow-sm transition-all flex items-center gap-1.5">
+            <button type="button" data-role="{{ current_role }}" onclick="openCreateStaffModal(this.dataset.role)" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-bold text-xs whitespace-nowrap shadow-sm transition-all flex items-center gap-1.5">
                 <i class="fa-solid fa-plus text-medical-600"></i>
                 <span>Thêm Mới</span>
             </button>
@@ -317,13 +317,13 @@
                                         <i class="fa-solid fa-shield-halved text-rose-500 text-[10px]"></i> Đã bảo vệ
                                     </span>
                                     {% else %}
-                                    <button type="button" onclick="openResetPasswordModal('{{ a.id }}', '{{ a.username }}')" 
+                                    <button type="button" data-account-id="{{ a.id }}" data-username="{{ a.username }}" onclick="openResetPasswordModal(this.dataset.accountId, this.dataset.username)"
                                             class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] inline-flex items-center gap-1" title="Cấp lại mật khẩu mặc định (123)">
                                         <i class="fa-solid fa-key text-[10px]"></i> Cấp lại MK
                                     </button>
                                     {% endif %}
                                     {% if is_admin and a.ma_vai_tro != 'ADMIN' and a.username != 'admin' %}
-                                    <button type="button" onclick="toggleAccount('{{ a.id }}')" 
+                                    <button type="button" data-account-id="{{ a.id }}" onclick="toggleAccount(this.dataset.accountId)"
                                             class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-colors" title="Khóa / Mở khóa tài khoản">
                                         <i class="fa-solid fa-power-off text-xs"></i>
                                     </button>

@@ -97,13 +97,13 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
+            <script type="application/json" id="flash-messages-data">{{ messages | tojson }}</script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
-                    {% for category, message in messages %}
-                        if (typeof showToast === 'function') {
-                            showToast('{{ message }}', '{{ category }}');
-                        }
-                    {% endfor %}
+                    const messages = JSON.parse(document.getElementById('flash-messages-data').textContent || '[]');
+                    if (typeof showToast === 'function') {
+                        messages.forEach(([category, message]) => showToast(message, category));
+                    }
                 });
             </script>
         {% endif %}

@@ -202,7 +202,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <div>
                                         <span class="text-[11px] text-slate-500 block mb-1">Giá khám gốc (VNĐ)</span>
-                                        <input type="number" step="1000" min="10000" name="gia_kham" id="profile_gia_kham" 
+                                        <input type="number" step="1000" min="10000" name="gia_kham" id="profile_gia_kham" data-insurance-reduction="{{ insurance_reduction|float }}"
                                                value="{{ '{:.0f}'.format(staff.gia_kham_goc or 150000) }}" oninput="recalcProfileBhyt(this.value)"
                                                class="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 font-mono font-bold text-slate-800">
                                     </div>
@@ -272,7 +272,7 @@
 <script>
 function recalcProfileBhyt(val) {
     const v = parseFloat(val) || 0;
-    const support = Math.min(v, {{ insurance_reduction|float|tojson }});
+    const support = Math.min(v, Number(document.getElementById('profile_gia_kham').dataset.insuranceReduction) || 0);
     const copay = Math.max(0, v - support);
     const sEl = document.getElementById('profile_bhyt_support');
     const cEl = document.getElementById('profile_copay');

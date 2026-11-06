@@ -677,7 +677,7 @@
                         Giá Khám Gốc Niêm Yết (Chưa trừ BHYT) <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative">
-                        <input type="number" step="1000" min="10000" name="gia_kham" id="doctor_price_input"
+                        <input type="number" step="1000" min="10000" name="gia_kham" id="doctor_price_input" data-insurance-reduction="{{ insurance_reduction|float }}"
                                value="{{ '{:.0f}'.format(doctor.gia_kham_goc or doctor.gia_kham or 150000) }}"
                                oninput="recalcDoctorPriceModal(this.value)"
                                class="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono font-bold text-base text-slate-900 pr-12">
@@ -732,7 +732,7 @@ function closeEditDoctorPriceModal() {
 }
 function recalcDoctorPriceModal(val) {
     const v = parseFloat(val) || 0;
-    const support = Math.min(v, {{ insurance_reduction|float|tojson }});
+    const support = Math.min(v, Number(document.getElementById('doctor_price_input').dataset.insuranceReduction) || 0);
     const copay = Math.max(0, v - support);
     const sEl = document.getElementById('doctor_price_bhyt_support');
     const cEl = document.getElementById('doctor_price_copay');

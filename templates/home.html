@@ -232,7 +232,7 @@
 
                 <div class="relative w-full">
 
-                    <input type="text" name="search" placeholder="Tìm chuyên khoa, bác sĩ, triệu chứng bệnh..." onkeydown="if(event.key==='Enter'&&this.value.trim()){window.location.href='{{ url_for('articles') }}?search='+encodeURIComponent(this.value.trim());}" 
+                    <input type="text" name="search" placeholder="Tìm chuyên khoa, bác sĩ, triệu chứng bệnh..." data-search-url="{{ url_for('articles') }}" onkeydown="if(event.key==='Enter'&&this.value.trim()){window.location.href=this.dataset.searchUrl+'?search='+encodeURIComponent(this.value.trim());}"
 
                         class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-slate-200 rounded-full text-xs focus:outline-none focus:border-medical-500 focus:bg-white focus:ring-2 focus:ring-medical-500/20 transition-all">
 
@@ -422,15 +422,16 @@
 
             <!-- Đường ray trượt ngang -->
 
-            <div id="carousel-track" style="width: {{ banner_count * 100 }}%; transform: translateX(0%);">
+            <div id="carousel-track" data-banner-count="{{ banner_count }}">
 
                 
 
                 {% for b in banner_list %}
 
-                <div class="h-full shrink-0 flex items-center justify-between text-white p-6 sm:p-14 lg:p-20 relative overflow-hidden"
+                <div class="hero-slide h-full shrink-0 flex items-center justify-between text-white p-6 sm:p-14 lg:p-20 relative overflow-hidden">
 
-                     style="width: {{ 100 / banner_count }}%; background: linear-gradient(to right, rgba(4, 120, 87, 0.92), rgba(15, 118, 110, 0.85), rgba(15, 23, 42, 0.75)), url('{{ b.hinh_anh }}') center/cover no-repeat;">
+                    <img src="{{ b.hinh_anh }}" alt="" class="absolute inset-0 w-full h-full object-cover" aria-hidden="true">
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/90 via-teal-800/85 to-slate-900/75" aria-hidden="true"></div>
 
                     <div class="absolute -right-20 -top-20 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
 
@@ -542,7 +543,7 @@
 
             {% for b in banner_list %}
 
-            <button class="carousel-dot {% if loop.first %}w-6 h-3 rounded-full bg-white{% else %}w-3 h-3 rounded-full bg-white/40 hover:bg-white/70{% endif %} transition-all shadow-sm" onclick="setSlide({{ loop.index0 }})"></button>
+            <button class="carousel-dot {% if loop.first %}w-6 h-3 rounded-full bg-white{% else %}w-3 h-3 rounded-full bg-white/40 hover:bg-white/70{% endif %} transition-all shadow-sm" data-slide-index="{{ loop.index0 }}" onclick="setSlide(Number(this.dataset.slideIndex))"></button>
 
             {% endfor %}
 
@@ -742,7 +743,7 @@
 
                                 <div class="text-center">
 
-                                    <img loading="lazy" decoding="async" src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}'" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
+                                    <img loading="lazy" decoding="async" src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" data-fallback-src="{{ url_for('static', filename='images/default-avatar.png') }}" onerror="this.onerror=null;this.src=this.dataset.fallbackSrc" alt="{{ doc.ten_hien_thi or doc.ho_ten }}"
 
                                         class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
 
@@ -1119,7 +1120,7 @@
 
                                     {% if art.image %}
 
-                                    <img loading="lazy" decoding="async" src="{{ art.image }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/articles/cam-cum.jpg') }}'" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
+                                    <img loading="lazy" decoding="async" src="{{ art.image }}" data-fallback-src="{{ url_for('static', filename='img/articles/cam-cum.jpg') }}" onerror="this.onerror=null;this.src=this.dataset.fallbackSrc" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
 
                                     {% else %}
 
@@ -1297,9 +1298,12 @@
 
         let currentSlide = 0;
 
-        const totalSlides = {{ banner_count }};
-
         const track = document.getElementById('carousel-track');
+        const totalSlides = Number(track.dataset.bannerCount) || 1;
+        track.style.width = `${totalSlides * 100}%`;
+        track.querySelectorAll('.hero-slide').forEach(slide => {
+            slide.style.width = `${100 / totalSlides}%`;
+        });
 
         const dots = document.querySelectorAll('.carousel-dot');
 

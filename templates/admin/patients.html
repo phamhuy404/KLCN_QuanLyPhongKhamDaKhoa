@@ -595,7 +595,7 @@
     </div>
 </div>
 
-<script type="application/json" id="admin-patients-data">
+<script type="application/json" id="admin-patients-data" data-can-reset-password="{{ 'true' if can_reset_pwd else 'false' }}">
     {{ patients | tojson | safe }}
 </script>
 <script type="application/json" id="admin-catalogs-allergy-data">
@@ -1173,7 +1173,7 @@
     }
 
     // 7. CHỨC NĂNG CẤP LẠI MẬT KHẨU CHO BỆNH NHÂN (DÀNH CHO ADMIN VÀ TIẾP TÂN)
-    const canResetPassword = {{ 'true' if can_reset_pwd else 'false' }};
+    const canResetPassword = document.getElementById('admin-patients-data').dataset.canResetPassword === 'true';
     let resetTargetPatientId = null;
 
     function openResetPasswordModal(id) {

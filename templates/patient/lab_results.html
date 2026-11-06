@@ -132,7 +132,7 @@
                         </td>
                         <td class="py-3.5 px-5 text-center">
                             {% if item.cls.file_ket_qua %}
-                            <button type="button" onclick='openPatientImageModal({{ item.cls.file_ket_qua|tojson }}, {{ item.cls.ten|tojson }}, {{ item.cls.ket_qua|tojson }})' class="px-3 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm">
+                            <button type="button" data-image-args='{{ [item.cls.file_ket_qua, item.cls.ten, item.cls.ket_qua]|tojson }}' onclick="openPatientImageModal(...JSON.parse(this.dataset.imageArgs))" class="px-3 py-1 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-sm">
                                 <i class="fa-solid fa-image"></i>
                                 <span>Xem ảnh</span>
                             </button>

@@ -87,7 +87,7 @@ class ClinicModel:
             conn.commit()
             dep_id = cursor.lastrowid
             conn.close()
-            cls.clear_cache('departments_')
+            ClinicModel.clear_cache('departments_')
             return True, dep_id
         except Exception as e:
             conn.rollback()

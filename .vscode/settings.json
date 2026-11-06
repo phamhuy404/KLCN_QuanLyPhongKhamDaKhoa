@@ -1,8 +1,10 @@
 {
-    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python.defaultInterpreterPath": "${workspaceFolder}\\..\\.venv\\Scripts\\python.exe",
     "files.associations": {
         "*.html": "jinja-html"
     },
     "html.format.templating": true,
+    "html.validate.scripts": false,
+    "html.validate.styles": false,
     "markdown.validate.enabled": true
 }

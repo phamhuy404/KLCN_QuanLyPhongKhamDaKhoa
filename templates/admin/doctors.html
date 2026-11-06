@@ -668,9 +668,10 @@ document.getElementById('createDoctorForm')?.addEventListener('submit', async fu
             </div>
         </div>
     </div>
+<script type="application/json" id="admin-rooms-data">{{ rooms|tojson|safe }}</script>
 <script>
 // Danh sách phòng toàn viện
-window.allRoomsData = {{ rooms|tojson|safe }};
+window.allRoomsData = JSON.parse(document.getElementById('admin-rooms-data').textContent || '[]');
 let currentAssignDoctorId = null;
 function openAssignRoomModal(doctorId, doctorName, deptId, deptName, currentRoomId) {
     currentAssignDoctorId = doctorId;

@@ -228,7 +228,7 @@
     </div>
 </div>
 
-<script type="application/json" id="billing-invoices-data">
+<script type="application/json" id="billing-invoices-data" data-can-confirm-payment="{{ 'true' if session.get('user', {}).get('vai_tro') in ['ADMIN', 'LETAN'] else 'false' }}">
     {{ invoices | tojson | safe }}
 </script>
 <script>
@@ -236,7 +236,7 @@
     // Toàn bộ dữ liệu, biến số tính toán và bóc tách đã được chuẩn hóa tại BackEnd
     var invoices = rawInvoices;
 
-    const canConfirmPayment = {{ (session.get('user', {}).get('vai_tro') in ['ADMIN', 'LETAN']) | tojson }};
+    const canConfirmPayment = document.getElementById('billing-invoices-data').dataset.canConfirmPayment === 'true';
     let activeInvoiceId = null;
 
     function renderInvoices(dataList) {

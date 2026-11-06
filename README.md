@@ -182,8 +182,15 @@ Chi tiết từng bước cấu hình vui lòng xem tại file [`HUONGDAN.md`](H
 pip install -r requirements.txt
 ```
 
-### Bước 2: Nạp Cơ sở dữ liệu vào SQL Server
-Mở công cụ **SQL Server Management Studio (SSMS)**, kết nối tới SQL Server của bạn (`localhost` hoặc `.\SQLEXPRESS`), mở file `database/cosodulieu.sql` và nhấn **Execute (F5)** để khởi tạo CSDL `quan_ly_phong_kham`.
+### Bước 2: Đồng bộ Cơ sở dữ liệu tự động (1-Click)
+Chạy lệnh đồng bộ tự động để hệ thống tự động phát hiện instance SQL Server, kiểm tra driver ODBC và nạp đầy đủ toàn bộ 28 bảng dữ liệu chuẩn y khoa:
+```powershell
+python sync_db.py
+```
+* **Chế độ mặc định (Safe Sync)**: Tự động bảo toàn 100% dữ liệu bạn đã tạo trước đó trên máy, chỉ tạo mới bảng và bổ sung cột còn thiếu (không xóa bảng, không mất dữ liệu cũ).
+* **Sao chép dữ liệu giữa 2 máy**: Bỏ file `.bak` vào thư mục `backups/` và chạy `python sync_db.py --restore`.
+* **Làm mới dữ liệu từ đầu (Reset)**: Chạy `python sync_db.py --fresh` (chỉ dùng khi muốn xóa sạch để quay về dữ liệu mẫu xuất xưởng).
+*(Lưu ý: Không nên chạy thẳng `database/cosodulieu.sql` trên SSMS nếu muốn giữ lại dữ liệu tự tạo, vì file SQL đó có lệnh DROP TABLE sẽ xóa sạch dữ liệu cũ).*
 
 ### Bước 3: Cấu hình kết nối CSDL trong `config.py`
 Đảm bảo thông số `SQLSERVER_CONFIG` trong `config.py` khớp với máy của bạn (mặc định sử dụng Windows Authentication `trusted_connection: 'yes'`).

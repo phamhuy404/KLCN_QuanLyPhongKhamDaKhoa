@@ -383,21 +383,33 @@
     </div>
 </div>
 
-<script type="application/json" id="admin-appointments-data">
+<script type="application/json" id="admin-appointments-data"
+        data-user-role="{{ session.get('user', {}).get('vai_tro', '') }}"
+        data-doctor-id="{{ session.get('user', {}).get('bac_si_id') or '' }}"
+        data-doctor-dept-id="{{ session.get('user', {}).get('chuyen_khoa_id') or '' }}"
+        data-doctor-name="{{ session.get('user', {}).get('ho_ten', '') }}">
     {{ appointments | tojson | safe }}
 </script>
 <script>
-    const currentUserRole = "{{ session.get('user', {}).get('vai_tro', '') }}";
-    const currentDoctorId = {{ session.get('user', {}).get('bac_si_id') or 'null' }};
-    const currentDoctorDeptId = {{ session.get('user', {}).get('chuyen_khoa_id') or 'null' }};
-    const currentDoctorName = "{{ session.get('user', {}).get('ho_ten', '') }}";
+    const appointmentsDataElement = document.getElementById('admin-appointments-data');
+    const currentUserRole = appointmentsDataElement.dataset.userRole;
+    const currentDoctorId = Number(appointmentsDataElement.dataset.doctorId) || null;
+    const currentDoctorDeptId = Number(appointmentsDataElement.dataset.doctorDeptId) || null;
+    const currentDoctorName = appointmentsDataElement.dataset.doctorName;
     let currentScope = (currentUserRole === 'BACSI') ? 'mine' : 'all';
 
     // Dữ liệu lịch hẹn từ CSDL SQL Server (Đã chuẩn hóa và xử lý biến số từ BackEnd)
-    let rawAppointments = JSON.parse(document.getElementById('admin-appointments-data').textContent || '[]');
+    let rawAppointments = JSON.parse(appointmentsDataElement.textContent || '[]');
     var appointments = (rawAppointments || []).map(a => Object.assign({}, a, {
         trang_thai: a.status_code || 'waiting'
     }));
+
+    document.getElementById('appointment-table-body').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-assign-appointment-id]');
+        if (!button) return;
+        const app = appointments.find(a => String(a.id) === button.dataset.assignAppointmentId);
+        if (app) openAssignDoctorModal(app.id, app.chuyen_khoa_id, app.ngay_hen, app.ma_hen, app.benh_nhan, app.gio_hen, app.khoa);
+    });
 
     // Render bảng danh sách lịch hẹn
     
@@ -479,7 +491,7 @@
                 doctorCell = `
                     <span class="font-semibold text-slate-800 block">${app.bac_si}</span>
                     ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') && app.trang_thai !== 'cancelled' && app.trang_thai !== 'completed' ? `
-                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
+                        <button type="button" data-assign-appointment-id="${app.id}"
                                 class="text-[10px] text-medical-600 hover:text-medical-800 hover:underline inline-flex items-center gap-1 font-semibold mt-0.5">
                             <i class="fa-solid fa-pen-to-square"></i> Đổi bác sĩ
                         </button>
@@ -492,7 +504,7 @@
                     </span>
                     <div>
                     ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') ? `
-                        <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
+                        <button type="button" data-assign-appointment-id="${app.id}"
                                 class="px-2 py-1 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-bold text-[10px] inline-flex items-center gap-1 border border-medical-200 transition-colors">
                             <i class="fa-solid fa-user-plus text-[9px]"></i> Phân công
                         </button>
@@ -529,7 +541,7 @@
                     <div class="flex items-center justify-center gap-1.5">
                         ${(currentUserRole === 'ADMIN' || currentUserRole === 'LETAN') ? `
                             ${(!app.bac_si_id) ? `
-                            <button type="button" onclick="openAssignDoctorModal(${app.id}, ${app.chuyen_khoa_id}, '${app.ngay_hen}', '${app.ma_hen}', '${app.benh_nhan.replace(/'/g, "\\'")}', '${app.gio_hen}', '${app.khoa.replace(/'/g, "\\"')}')" 
+                            <button type="button" data-assign-appointment-id="${app.id}"
                                     class="px-2 py-1 rounded-lg bg-medical-600 hover:bg-medical-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm" title="Phân công bác sĩ">
                                 <i class="fa-solid fa-user-plus text-xs"></i>
                                 <span>Phân công</span>

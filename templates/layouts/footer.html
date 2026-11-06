@@ -1,5 +1,8 @@
 <!-- FOOTER CHUNG HỆ THỐNG PHÒNG KHÁM / BỆNH VIỆN H2T HEALTHCARE -->
-<footer class="bg-white border-t border-slate-200 mt-auto text-slate-600 text-xs">
+<footer id="clinic-footer" class="bg-white border-t border-slate-200 mt-auto text-slate-600 text-xs"
+        data-clinic-lat="{{ clinic_info.lat if clinic_info else 10.806689 }}"
+        data-clinic-lng="{{ clinic_info.lng if clinic_info else 106.628581 }}"
+        data-clinic-address="{{ clinic_info.address if clinic_info else '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh' }}">
     <div class="max-w-7xl mx-auto px-6 py-9">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 items-start">
             
@@ -298,9 +301,10 @@
 
     // Chỉ đường Google Maps từ vị trí hiện tại của người dùng
     function openCurrentLocationRoute() {
-        const destLat = {{ (clinic_info.lat if clinic_info else 10.806689)|tojson }};
-        const destLng = {{ (clinic_info.lng if clinic_info else 106.628581)|tojson }};
-        const destAddress = encodeURIComponent({{ (clinic_info.address if clinic_info else '140 Lê Trọng Tấn, Phường Tây Thạnh, Quận Tân Phú, TP. Hồ Chí Minh')|tojson }});
+        const footer = document.getElementById('clinic-footer');
+        const destLat = Number(footer.dataset.clinicLat) || 10.806689;
+        const destLng = Number(footer.dataset.clinicLng) || 106.628581;
+        const destAddress = encodeURIComponent(footer.dataset.clinicAddress);
         const fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${destAddress}`;
 
         if (navigator.geolocation) {

@@ -52,18 +52,46 @@ Danh mục các thư viện cốt lõi:
 - `pyodbc>=5.3.0`: Driver kết nối và thực thi lệnh T-SQL với Microsoft SQL Server.
 - `pillow>=10.0.0`: Xử lý hình ảnh y tế, nén tối ưu WebP và thumbnail kết quả cận lâm sàng.
 
-### Bước 3: Thiết Lập Cơ Sở Dữ Liệu Microsoft SQL Server
+### Bước 3: Thiết Lập và Đồng Bộ Cơ Sở Dữ Liệu Microsoft SQL Server
 Hệ thống sử dụng cơ sở dữ liệu có tên mặc định là: `quan_ly_phong_kham`.
 
-#### Cách A: Sử dụng SQL Server Management Studio (SSMS) - Khuyến nghị
-1. Mở SSMS, kết nối tới SQL Server instance của bạn (ví dụ: `localhost` hoặc `.\SQLEXPRESS`).
-2. Mở file script SQL có sẵn tại đường dẫn: `database/cosodulieu.sql`.
-3. Bấm nút **Execute** (hoặc phím **F5**). Script sẽ tự động tạo cơ sở dữ liệu `quan_ly_phong_kham`, tạo toàn bộ 28 bảng và nạp đầy đủ dữ liệu mẫu chuẩn y khoa.
+> **Lưu ý quan trọng về việc bảo toàn dữ liệu khi làm việc nhóm (Git Pull)**:
+> * Khi kéo mã nguồn mới về máy, nếu bạn đã từng tạo các bản ghi mới (bệnh nhân, lịch hẹn, đơn thuốc, tài khoản test) trên máy của mình, **tuyệt đối không chạy thẳng tệp `cosodulieu.sql` trên SSMS** vì tệp này chứa lệnh `DROP TABLE` sẽ xóa sạch dữ liệu bạn đã tạo.
+> * Hãy sử dụng công cụ `sync_db.py` với các chế độ phù hợp dưới đây.
 
-#### Cách B: Sử dụng dòng lệnh sqlcmd
+#### Lựa chọn A: Đồng bộ An toàn (Khuyến nghị cao nhất khi Git Pull - Giữ 100% dữ liệu đã tạo)
+Chạy lệnh đồng bộ tự động không kèm tham số:
 ```powershell
-sqlcmd -S localhost -E -i database\cosodulieu.sql
+python sync_db.py
 ```
+* **Cơ chế hoạt động**:
+  * Tự động dò tìm SQL Server instance (`localhost` hoặc `.\SQLEXPRESS`) và driver ODBC 17 hoặc 18.
+  * Tự động tạo CSDL `quan_ly_phong_kham` nếu máy chưa có.
+  * Kích hoạt chế độ **Safe Migration**: Chỉ tạo mới bảng còn thiếu (như `cai_dat_he_thong`) và bổ sung cột mới còn thiếu, **tuyệt đối không xóa bảng (`DROP TABLE`), bảo toàn 100% toàn bộ dữ liệu bạn đã tự tạo trước đó**.
+  * Tự động cập nhật `config.py` nếu phát hiện cấu hình máy khác biệt.
+
+#### Lựa chọn B: Sao chép nguyên xi dữ liệu mới nhất giữa 2 máy tính (Bằng tệp .bak)
+Nếu bạn muốn máy của bạn mình có đầy đủ dữ liệu mới nhất giống hệt máy của bạn:
+1. **Tại máy nguồn (máy có dữ liệu mới)**: Đăng nhập tài khoản Quản trị viên, vào mục **Sao lưu và Bảo trì** (`/admin/backups`) bấm **"Sao lưu CSDL ngay"**. Hệ thống tạo ra tệp `.bak` trong thư mục `backups/`.
+2. **Gửi tệp**: Gửi tệp `.bak` đó cho bạn của bạn (qua Google Drive, Zalo hoặc mạng nội bộ).
+3. **Tại máy đích (máy nhận dữ liệu)**: Đặt tệp `.bak` vào thư mục `backups/` và chạy lệnh:
+   ```powershell
+   python sync_db.py --restore
+   ```
+   *(Hoặc vào trang `/admin/backups` bấm "Phục hồi CSDL")*. CSDL trên máy đích sẽ lập tức chuyển thành bản sao hoàn chỉnh 100% của máy nguồn.
+
+#### Lựa chọn C: Làm mới toàn bộ từ đầu theo dữ liệu mẫu gốc (Fresh Reset)
+Chỉ sử dụng khi bạn muốn xóa sạch mọi dữ liệu thử nghiệm để quay về trạng thái xuất xưởng ban đầu:
+```powershell
+python sync_db.py --fresh
+```
+*(Hệ thống sẽ tự động tạo một bản sao lưu an toàn `.bak` trước khi làm sạch để có thể hoàn tác nếu cần).*
+
+#### Lựa chọn D: Sử dụng công cụ SQL Server Management Studio (SSMS)
+> **Cảnh báo**: Thao tác này sẽ xóa sạch toàn bộ các bảng hiện có và nạp lại dữ liệu mẫu gốc ban đầu:
+1. Mở SSMS, kết nối tới SQL Server instance của bạn (`localhost` hoặc `.\SQLEXPRESS`).
+2. Mở file script SQL có sẵn tại đường dẫn: `database/cosodulieu.sql`.
+3. Bấm nút **Execute** (hoặc phím **F5**). Script sẽ tự động xóa bảng cũ, tạo mới toàn bộ 28 bảng và nạp dữ liệu mẫu ban đầu.
 
 ### Bước 4: Kiểm Tra Cấu Hình Kết Nối Trong `config.py`
 Mở file `config.py` tại thư mục gốc và kiểm tra cấu hình `SQLSERVER_CONFIG`:

@@ -868,17 +868,20 @@
     {{ (catalogs.tien_su_benh if catalogs else []) | tojson | safe }}
 </script>
 
-<script type="application/json" id="emr-patients-data">
+<script type="application/json" id="emr-patients-data"
+        data-user-role="{{ session.get('user', {}).get('vai_tro') or '' }}"
+        data-doctor-id="{{ session.get('user', {}).get('bac_si_id') or '' }}">
     {{ patients | tojson | safe }}
 </script>
+<script type="application/json" id="emr-appointments-data">{{ emr_appointments|default([])|tojson }}</script>
 
 <script>
     let rawPatients = JSON.parse(document.getElementById('emr-patients-data').textContent || '[]');
     let currentSelectedPatientId = rawPatients.length > 0 ? rawPatients[0].id : null;
     let currentActiveEncounterId = null;
-    const emrAppointments = {{ emr_appointments|default([])|tojson }};
+    const emrAppointments = JSON.parse(document.getElementById('emr-appointments-data').textContent || '[]');
     let currentEmrContext = null;
-    const currentUserRole = {{ session.get('user', {}).get('vai_tro')|tojson }};
+    const currentUserRole = document.getElementById('emr-patients-data').dataset.userRole;
     const isReadOnlyViewer = (currentUserRole === 'ADMIN' || currentUserRole === 'LETAN');
 
     function clickEmrStep(targetStep) {
@@ -900,7 +903,7 @@
     function configureEncounterChoices(patient) {
         const select = document.getElementById('emr-encounter-select');
         select.replaceChildren(new Option('Chọn lần khám', ''));
-        const actorDoctor = {{ session.get('user', {}).get('bac_si_id')|tojson }};
+        const actorDoctor = Number(document.getElementById('emr-patients-data').dataset.doctorId) || null;
         const isAdminOrLetan = isReadOnlyViewer;
 
         // Nạp lịch hẹn của bệnh nhân
@@ -1841,27 +1844,6 @@ Xác nhận lưu chỉ định?`;
                 stockBadgePill.innerText = `KHẢ DỤNG (${ton} ${dvt})`;
             }
         }
-        const sel = document.getElementById('select-medicine');
-        const opt = sel.options[sel.selectedIndex];
-        const warningBanner = document.getElementById('stock-warning-banner');
-        const errorBanner = document.getElementById('stock-error-banner');
-        errorBanner.classList.add('hidden');
-
-        if (!opt || !opt.value) {
-            warningBanner.classList.add('hidden');
-            const allergyBanner = document.getElementById('allergy-danger-banner');
-            if (allergyBanner) allergyBanner.classList.add('hidden');
-            return;
-        }
-
-        const ton = parseInt(opt.getAttribute('data-ton') || 0);
-        const minStock = parseInt(opt.getAttribute('data-min') || 20);
-        const name = opt.getAttribute('data-name');
-        const dvt = opt.getAttribute('data-dvt');
-        const defaultUsage = opt.getAttribute('data-usage');
-
-        document.getElementById('input-medicine-usage').value = defaultUsage || 'Uống sau ăn 30 phút';
-
         // 1. CẢNH BÁO TỒN KHO ÍT
         if (ton <= minStock) {
             document.getElementById('warning-med-name').innerText = name;
