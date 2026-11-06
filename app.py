@@ -387,4 +387,4 @@ if __name__ == '__main__':
     auto_backup_hours = getattr(config, 'AUTO_BACKUP_INTERVAL_HOURS', 2)
     BackupModel.start_auto_backup_scheduler(interval_hours=auto_backup_hours)
 
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host=os.environ.get('FLASK_HOST', '127.0.0.1'), port=5000)
