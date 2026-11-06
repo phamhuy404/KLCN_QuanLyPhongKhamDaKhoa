@@ -102,10 +102,9 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                         <i class="fa-regular fa-user"></i>
                     </span>
-                    <input type="text" name="ho_ten" required value="{{ form.ho_ten if form else '' }}" placeholder="Ví dụ: Nguyễn Văn An (chữ cái tiếng Việt)"
+                    <input type="text" name="ho_ten" required value="{{ form.ho_ten if form else '' }}" placeholder="Ví dụ: Nguyễn Văn An"
                         class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                 </div>
-                <p class="text-[11px] text-slate-400 mt-1">Chỉ chứa chữ cái tiếng Việt, không chứa ký tự lạ.</p>
             </div>
 
             <div>
@@ -114,7 +113,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                         <i class="fa-solid fa-phone"></i>
                     </span>
-                    <input type="tel" name="sdt" required maxlength="10" value="{{ form.sdt if form else '' }}" placeholder="0901234567 (10 số, dùng làm tên đăng nhập)"
+                    <input type="tel" name="sdt" required maxlength="10" value="{{ form.sdt if form else '' }}" placeholder="Ví dụ: 0901234567 (10 số di động)"
                         class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                 </div>
             </div>
@@ -125,7 +124,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                         <i class="fa-regular fa-envelope"></i>
                     </span>
-                    <input type="email" name="email" value="{{ form.email if form else '' }}" placeholder="vidu@gmail.com (dùng nhận thông báo lịch khám)"
+                    <input type="email" name="email" value="{{ form.email if form else '' }}" placeholder="Ví dụ: email@gmail.com"
                         class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                 </div>
             </div>
@@ -148,7 +147,7 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                             <i class="fa-solid fa-shield-halved"></i>
                         </span>
-                        <input type="password" name="confirm_password" required minlength="6" placeholder="Nhập lại mật khẩu"
+                        <input type="password" name="confirm_password" required minlength="6" placeholder="Nhập lại chính xác mật khẩu trên"
                             class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20 transition-all">
                     </div>
                 </div>

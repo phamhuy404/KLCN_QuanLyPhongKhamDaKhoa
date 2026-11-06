@@ -64,7 +64,7 @@ def create_app(test_config=None):
             return resp
 
     @app.after_request
-    def mobile_cors(response):
+    def apply_response_headers(response):
         if request.path.startswith('/api/v1/mobile/'):
             origin = request.headers.get('Origin')
             if origin and _is_allowed_mobile_origin(origin):
@@ -72,6 +72,13 @@ def create_app(test_config=None):
                 response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
                 response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
                 response.vary.add('Origin')
+
+        # Bộ nhớ đệm trình duyệt cho tài nguyên tĩnh
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=3600'
+        elif response.mimetype == 'text/html':
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+
         return response
 
     # 2. Đăng ký các Controller (Blueprints)

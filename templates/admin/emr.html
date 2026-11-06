@@ -668,12 +668,12 @@
 
                         <div class="sm:col-span-2">
                             <label class="block font-semibold text-slate-600 mb-1">Số lượng kê</label>
-                            <input type="number" id="input-medicine-qty" min="1" value="10" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono focus:outline-none focus:border-medical-500">
+                            <input type="number" id="input-medicine-qty" min="1" value="10" placeholder="10" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono focus:outline-none focus:border-medical-500">
                         </div>
 
                         <div class="sm:col-span-4">
                             <label class="block font-semibold text-slate-600 mb-1">Liều và Cách dùng</label>
-                            <input type="text" id="input-medicine-usage" value="Uống 1 viên/lần, ngày 2 lần sau ăn" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
+                            <input type="text" id="input-medicine-usage" value="Uống 1 viên/lần, ngày 2 lần sau ăn" placeholder="Ví dụ: Uống 1 viên/lần, ngày 2 lần sau ăn no..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-medical-500">
                         </div>
                     </div>
 
@@ -1184,7 +1184,7 @@
             const card = document.createElement('div');
             card.className = "relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm aspect-video sm:aspect-square flex items-center justify-center";
             card.innerHTML = `
-                <img src="${imgSrc}" alt="Ảnh lâm sàng #${idx+1}" 
+                <img loading="lazy" decoding="async" src="${imgSrc}" alt="Ảnh lâm sàng #${idx+1}" 
                      onclick="openEmrImageModal('${imgSrc}', 'Ảnh khám lâm sàng #${idx+1}', 'Tư liệu khám và hội chẩn')"
                      class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-all duration-200">
                 <span class="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-mono">#${idx+1}</span>
@@ -2176,7 +2176,7 @@ Bạn có CHẮC CHẮN muốn tiếp tục kê loại thuốc này vào đơn?`
             </button>
         </div>
         <div class="p-4 flex-1 overflow-auto flex items-center justify-center bg-slate-950">
-            <img id="emr-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
+            <img loading="lazy" decoding="async" id="emr-image-modal-img" src="" alt="Ảnh Cận lâm sàng" class="max-h-[75vh] w-auto rounded-lg object-contain">
         </div>
         <div class="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
             <span id="emr-image-modal-desc">Hình ảnh chẩn đoán kỹ thuật số chuẩn HD</span>

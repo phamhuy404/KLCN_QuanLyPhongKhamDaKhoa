@@ -266,7 +266,7 @@
                     {% for doc in dept.doctors %}
                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between group hover:border-medical-200">
                         <div class="text-center">
-                            <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" 
+                            <img loading="lazy" decoding="async" src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" 
                                  alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
                                  class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
                             

@@ -204,7 +204,7 @@
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                                         Số CCCD (12 số - Nếu có)
                                     </label>
-                                    <input type="text" name="cccd" maxlength="12" value="{{ form.cccd if form else (patient.cccd if patient else '') }}" placeholder="Có thể bỏ trống điền sau"
+                                    <input type="text" name="cccd" maxlength="12" value="{{ form.cccd if form else (patient.cccd if patient else '') }}" placeholder="Ví dụ: 079098000001 (12 số CCCD)"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('cccd') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
                                 </div>
 
@@ -212,7 +212,7 @@
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                                         Mã số thẻ BHYT (10 số - Nếu có)
                                     </label>
-                                    <input type="text" name="bhyt" maxlength="10" value="{{ form.bhyt if form else (patient.bhyt if patient else '') }}" placeholder="Có thể bỏ trống điền sau"
+                                    <input type="text" name="bhyt" maxlength="10" value="{{ form.bhyt if form else (patient.bhyt if patient else '') }}" placeholder="Ví dụ: GD4797939800001 (Mã thẻ BHYT)"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('bhyt') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono uppercase">
                                 </div>
 
@@ -220,7 +220,7 @@
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                                         Email nhận thông báo (Nếu có)
                                     </label>
-                                    <input type="email" name="email" value="{{ form.email if form else (patient.email if patient else (current_user.email or '')) }}" placeholder="benhnhan@gmail.com"
+                                    <input type="email" name="email" value="{{ form.email if form else (patient.email if patient else (current_user.email or '')) }}" placeholder="Ví dụ: benhnhan@gmail.com"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('email') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
                                 </div>
 
@@ -228,7 +228,7 @@
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                                         Địa chỉ cư trú hiện tại (Nếu có)
                                     </label>
-                                    <input type="text" name="dia_chi" value="{{ form.dia_chi if form else (patient.dia_chi if patient else '') }}" placeholder="Số nhà, Tên đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố (Có thể bổ sung sau)"
+                                    <input type="text" name="dia_chi" value="{{ form.dia_chi if form else (patient.dia_chi if patient else '') }}" placeholder="Ví dụ: 140 Lê Trọng Tấn, P. Tây Thạnh, Q. Tân Phú, TP. HCM"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('dia_chi') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
                                 </div>
                             </div>
@@ -278,7 +278,7 @@
 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tiền sử bệnh gia đình</label>
-                                    <textarea name="tien_su_gia_dinh" rows="2" placeholder="Có thể bỏ trống bổ sung sau..."
+                                    <textarea name="tien_su_gia_dinh" rows="2" placeholder="Ví dụ: Bố có tiền sử tăng huyết áp, mẹ có tiền sử đái tháo đường..."
                                         class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">{{ form.tien_su_gia_dinh if form else (patient.tien_su_gia_dinh if patient else '') }}</textarea>
                                 </div>
                             </div>
@@ -291,19 +291,19 @@
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Họ tên người thân</label>
-                                    <input type="text" name="nguoi_than_ho_ten" value="{{ form.nguoi_than_ho_ten if form else (patient.nguoi_than_ho_ten if patient else '') }}" placeholder="Có thể điền sau"
+                                    <input type="text" name="nguoi_than_ho_ten" value="{{ form.nguoi_than_ho_ten if form else (patient.nguoi_than_ho_ten if patient else '') }}" placeholder="Ví dụ: Nguyễn Văn B (Người thân)"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('nguoi_than_ho_ten') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500">
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Số điện thoại người thân</label>
-                                    <input type="tel" name="nguoi_than_sdt" maxlength="10" value="{{ form.nguoi_than_sdt if form else (patient.nguoi_than_sdt if patient else '') }}" placeholder="Có thể điền sau"
+                                    <input type="tel" name="nguoi_than_sdt" maxlength="10" value="{{ form.nguoi_than_sdt if form else (patient.nguoi_than_sdt if patient else '') }}" placeholder="Ví dụ: 0909123456 (10 số di động)"
                                         class="w-full px-4 py-2.5 bg-slate-50 border {{ 'border-rose-400 bg-rose-50/30' if errors and errors.get('nguoi_than_sdt') else 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:border-medical-500 font-mono">
                                 </div>
 
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">Mối quan hệ</label>
-                                    <input type="text" name="nguoi_than_quan_he" value="{{ form.nguoi_than_quan_he if form else (patient.nguoi_than_quan_he if patient else '') }}" placeholder="Bố, Mẹ, Vợ, Chồng..."
+                                    <input type="text" name="nguoi_than_quan_he" value="{{ form.nguoi_than_quan_he if form else (patient.nguoi_than_quan_he if patient else '') }}" placeholder="Ví dụ: Bố, Mẹ, Vợ, Chồng, Con..."
                                         class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500">
                                 </div>
                             </div>

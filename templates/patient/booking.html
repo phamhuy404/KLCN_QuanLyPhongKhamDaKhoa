@@ -490,7 +490,7 @@
 
                 const avatarHtml = (doc.avatar && doc.avatar.trim())
                     ? `<div class="relative w-11 h-11 shrink-0">
-                         <img src="${doc.avatar}" alt="${cleanName}" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                         <img loading="lazy" decoding="async" src="${doc.avatar}" alt="${cleanName}" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                          <div class="hidden w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs items-center justify-center border border-medical-200/50">${initials}</div>
                        </div>`
                     : `<div class="w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs flex items-center justify-center shrink-0 border border-medical-200/50">${initials}</div>`;
@@ -762,6 +762,7 @@
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
+                    if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
                     const msg = res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở trạng thái Chờ xét duyệt.";
                     showToast(msg, "success");
                     setTimeout(() => {

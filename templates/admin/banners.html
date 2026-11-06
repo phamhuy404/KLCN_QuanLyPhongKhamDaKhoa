@@ -100,7 +100,7 @@
                 <div class="flex items-start sm:items-center gap-4 w-full lg:w-2/3">
                     <!-- Ảnh xem trước -->
                     <div class="relative w-36 sm:w-44 h-24 rounded-xl overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-sm">
-                        <img src="{{ b.hinh_anh }}" alt="{{ b.tieu_de }}" class="w-full h-full object-cover"
+                        <img loading="lazy" decoding="async" src="{{ b.hinh_anh }}" alt="{{ b.tieu_de }}" class="w-full h-full object-cover"
                              onerror="this.src='https://placehold.co/600x400?text=Loi+Anh'">
                         <span class="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white text-[10px] font-bold">
                             #{{ b.thu_tu }}
@@ -254,7 +254,7 @@
 
                 <!-- Khung xem trước ảnh -->
                 <div class="border border-dashed border-slate-300 rounded-xl p-2 bg-white text-center">
-                    <img id="form-image-preview" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600"
+                    <img loading="lazy" decoding="async" id="form-image-preview" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1600"
                          class="w-full h-32 object-cover rounded-lg" onerror="this.src='https://placehold.co/600x300?text=Xem+Truoc+Anh'">
                     <span class="text-[10px] text-slate-400 block mt-1">Ảnh xem trước hiển thị trên slide</span>
                 </div>

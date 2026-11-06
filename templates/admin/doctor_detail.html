@@ -78,7 +78,7 @@
                 <!-- Avatar Bác Sĩ -->
                 <div class="relative group shrink-0">
                     {% if doctor.avatar and doctor.avatar != 'default_doctor.png' %}
-                    <img src="{{ doctor.avatar }}" alt="{{ doctor.ho_ten }}"
+                    <img loading="lazy" decoding="async" src="{{ doctor.avatar }}" alt="{{ doctor.ho_ten }}"
                          class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-teal-200 shadow-md">
                     {% else %}
                     <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-teal-600 to-medical-500 text-white flex items-center justify-center text-3xl sm:text-4xl font-bold shadow-lg shadow-teal-500/20">

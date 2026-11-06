@@ -313,7 +313,7 @@
                                 {% if dep.doctors %}
                                     {% for doc in dep.doctors[:4] %}
                                     <div class="bg-white p-2 rounded-xl border border-slate-100 flex items-center gap-2.5">
-                                        <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" 
+                                        <img loading="lazy" decoding="async" src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" 
                                              alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
                                              class="w-8 h-8 rounded-lg object-cover ring-2 ring-medical-500/20 shrink-0">
                                         <div class="flex-1 min-w-0">
