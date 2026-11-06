@@ -377,7 +377,7 @@ endblock %}
 
                 <div class="border border-dashed border-slate-200 rounded-2xl p-2 bg-slate-50 text-center">
 
-                    <img id="image-preview"
+                    <img loading="lazy" decoding="async" id="image-preview"
 
                         src="{{ article.hinh_anh if article and article.hinh_anh else 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800' }}"
 
@@ -443,7 +443,7 @@ endblock %}
 
                 id="preview-summary"></p>
 
-            <img id="preview-img" class="w-full h-64 object-cover rounded-2xl shadow-sm">
+            <img loading="lazy" decoding="async" id="preview-img" class="w-full h-64 object-cover rounded-2xl shadow-sm">
 
             <div id="preview-body" class="prose max-w-none text-slate-800 text-sm leading-relaxed space-y-3 pt-2"></div>
 

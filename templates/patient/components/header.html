@@ -469,30 +469,43 @@
     // Polling đồng bộ thông báo bệnh nhân thời gian thực (User Scoped và Chống Spam Toast)
 
     const currentPatientUserId = {{ curr_user.get('id', 0) }};
-
     const patientStorageKey = 'h2t_patient_notif_last_id_' + currentPatientUserId;
-
     let patientLastNotifId = parseInt(sessionStorage.getItem(patientStorageKey) || '0');
-
     let isFirstPatientPoll = !sessionStorage.getItem(patientStorageKey);
+    let patientLastUnreadCount = -1;
 
+    // Kênh đồng bộ liên tab thời gian thực cho bệnh nhân
+    const patientNotifChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('h2t_realtime_channel') : null;
+    if (patientNotifChannel) {
+        patientNotifChannel.onmessage = (e) => {
+            if (e.data && e.data.action === 'SYNC_NOTIF') pollPatientNotificationsRealtime(true);
+        };
+    }
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'h2t_notif_sync_ping') pollPatientNotificationsRealtime(true);
+    });
+    window.triggerNotificationSync = function() {
+        if (patientNotifChannel) {
+            try { patientNotifChannel.postMessage({ action: 'SYNC_NOTIF', time: Date.now() }); } catch(err) {}
+        }
+        try { localStorage.setItem('h2t_notif_sync_ping', Date.now().toString()); } catch(err) {}
+        pollPatientNotificationsRealtime(true);
+    };
 
-
-    async function pollPatientNotificationsRealtime() {
-
+    async function pollPatientNotificationsRealtime(force = false) {
         if (!currentPatientUserId) return;
-
         try {
-
             const isInitParam = isFirstPatientPoll ? '&init=1' : '';
-
-            const res = await fetch(`/api/notifications/poll?last_id=${patientLastNotifId}${isInitParam}`);
-
+            const unreadParam = (patientLastUnreadCount >= 0 && !force) ? `&last_unread=${patientLastUnreadCount}` : '';
+            const res = await fetch(`/api/notifications/poll?last_id=${patientLastNotifId}${isInitParam}${unreadParam}`);
             if (!res.ok) return;
-
             const data = await res.json();
-
             if (!data.success) return;
+
+            // Nếu dữ liệu không thay đổi -> giữ nguyên DOM để tăng tốc độ lướt web
+            if (data.no_change && !isFirstPatientPoll && !force) {
+                return;
+            }
 
 
 
@@ -520,7 +533,8 @@
 
             // 2. Render danh sách thông báo Dropdown
 
-            renderPatientNotificationDropdownList(data.recent_list || []);
+            patientLastUnreadCount = data.unread_count;
+            if (data.recent_list) renderPatientNotificationDropdownList(data.recent_list);
 
 
 
@@ -804,19 +818,29 @@
 
 
 
+    let patientPollTimer = null;
+    function schedulePatientPoll(delay = 2500) {
+        if (patientPollTimer) clearTimeout(patientPollTimer);
+        patientPollTimer = setTimeout(async () => {
+            await pollPatientNotificationsRealtime();
+            const nextDelay = document.hidden ? 15000 : 2500;
+            schedulePatientPoll(nextDelay);
+        }, delay);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-
         pollPatientNotificationsRealtime();
-
-        setInterval(pollPatientNotificationsRealtime, 2500);
+        schedulePatientPoll(2500);
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                pollPatientNotificationsRealtime();
+                pollPatientNotificationsRealtime(true);
+                schedulePatientPoll(2500);
+            } else {
+                schedulePatientPoll(15000);
             }
         });
-        window.addEventListener('focus', pollPatientNotificationsRealtime);
-
+        window.addEventListener('focus', () => pollPatientNotificationsRealtime(true));
     });
 
 </script>

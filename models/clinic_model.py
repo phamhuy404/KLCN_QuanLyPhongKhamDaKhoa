@@ -1,12 +1,41 @@
+import time
 from core.database import get_db
 
 class ClinicModel:
     """Model quản lý danh mục chuyên khoa, phòng khám, dịch vụ và thống kê KPI."""
 
+    _CACHE = {}
+    _CACHE_TTL = 60.0
+
+    @classmethod
+    def _get_cache(cls, key):
+        item = cls._CACHE.get(key)
+        if item and (time.monotonic() - item['time'] < cls._CACHE_TTL):
+            return item['data']
+        return None
+
+    @classmethod
+    def _set_cache(cls, key, data):
+        cls._CACHE[key] = {'time': time.monotonic(), 'data': data}
+
+    @classmethod
+    def clear_cache(cls, prefix=None):
+        if prefix:
+            keys_to_del = [k for k in cls._CACHE if k.startswith(prefix)]
+            for k in keys_to_del:
+                cls._CACHE.pop(k, None)
+        else:
+            cls._CACHE.clear()
+
     # 1. QUẢN LÝ CHUYÊN KHOA
-    @staticmethod
-    def get_all_departments(active_only=False):
-        """Lấy toàn bộ danh sách chuyên khoa y tế (hỗ trợ lọc chỉ lấy khoa đang hoạt động)."""
+    @classmethod
+    def get_all_departments(cls, active_only=False):
+        """Lấy toàn bộ danh sách chuyên khoa y tế kèm bộ nhớ đệm tăng tốc độ tải trang."""
+        cache_key = f'departments_{active_only}'
+        cached = cls._get_cache(cache_key)
+        if cached is not None:
+            return [dict(d) for d in cached]
+
         conn = get_db()
         cursor = conn.cursor()
         if active_only:
@@ -15,6 +44,7 @@ class ClinicModel:
             cursor.execute('SELECT * FROM chuyen_khoa ORDER BY id ASC')
         departments = [dict(r) for r in cursor.fetchall()]
         conn.close()
+        cls._set_cache(cache_key, departments)
         return departments
 
     @staticmethod
@@ -57,6 +87,7 @@ class ClinicModel:
             conn.commit()
             dep_id = cursor.lastrowid
             conn.close()
+            cls.clear_cache('departments_')
             return True, dep_id
         except Exception as e:
             conn.rollback()

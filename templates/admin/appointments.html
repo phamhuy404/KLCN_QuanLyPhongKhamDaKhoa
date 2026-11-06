@@ -743,6 +743,7 @@
             });
             const data = await res.json();
             if (data.success) {
+                if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
                 alert(`✅ Đã tiếp nhận thành công lịch khám #${maHen}! Thông báo tiếp nhận đã được gửi cho bệnh nhân và bác sĩ.`);
                 location.reload();
             } else {
@@ -947,6 +948,7 @@
             });
             const data = await res.json();
             if (data.success) {
+                if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
                 alert(data.message || 'Phân công bác sĩ và duyệt đơn thành công!');
                 closeAssignDoctorModal();
                 window.location.reload();
@@ -1080,6 +1082,7 @@
             });
             const data = await res.json();
             if (data.success) {
+                if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
                 alert(data.message || 'Đã tạo lịch hẹn thành công!');
                 closeNewAppointmentModal();
                 window.location.reload();

@@ -844,11 +844,12 @@ def poll_notifications():
     user = session.get('user', {})
     tai_khoan_id = user.get('id')
     if not tai_khoan_id:
-        return jsonify({'success': True, 'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0})
+        return jsonify({'success': True, 'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0, 'no_change': True})
 
     last_id = request.args.get('last_id', 0, type=int)
+    last_unread = request.args.get('last_unread', -1, type=int)
     is_init = request.args.get('init', 0, type=int) == 1
-    data = NotificationModel.get_poll_updates(tai_khoan_id, last_id=last_id, is_init=is_init)
+    data = NotificationModel.get_poll_updates(tai_khoan_id, last_id=last_id, is_init=is_init, last_unread=last_unread)
     return jsonify({'success': True, **data})
 
 @api_bp.route('/notifications/mark-read', methods=['POST'])

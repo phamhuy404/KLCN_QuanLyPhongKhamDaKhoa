@@ -203,7 +203,7 @@
                     <!-- Ảnh bìa -->
                     {% if article.image %}
                     <div class="h-56 sm:h-72 bg-gradient-to-br from-medical-600 to-teal-400 overflow-hidden">
-                        <img src="{{ article.image }}" alt="{{ article.title }}"
+                        <img loading="lazy" decoding="async" src="{{ article.image }}" alt="{{ article.title }}"
                              onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                              class="w-full h-full object-cover">
                     </div>
@@ -338,7 +338,7 @@
                             <a href="{{ url_for('article_detail', slug=rel.slug) }}" class="flex flex-col flex-1">
                                 <div class="h-36 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden shrink-0 relative">
                                     {% if rel.image %}
-                                        <img src="{{ rel.image }}" alt="{{ rel.title }}"
+                                        <img loading="lazy" decoding="async" src="{{ rel.image }}" alt="{{ rel.title }}"
                                             onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                                     {% else %}
@@ -424,7 +424,7 @@
                             class="flex gap-3 p-4 hover:bg-slate-50 transition-colors group">
                             <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-medical-100 to-teal-100 flex-shrink-0 overflow-hidden">
                                 {% if item.image %}
-                                    <img src="{{ item.image }}" alt="{{ item.title }}"
+                                    <img loading="lazy" decoding="async" src="{{ item.image }}" alt="{{ item.title }}"
                                         onerror="this.onerror=null;this.src='/static/img/articles/kham-tong-quat.jpg'"
                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                                 {% else %}

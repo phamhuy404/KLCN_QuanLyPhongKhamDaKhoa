@@ -762,3 +762,61 @@ window.reloadKeepingScroll = function(extraParams) {
     }
 };
 
+// Bộ nhớ đệm Client-Side thông minh (Smart Client Cache)
+window.H2TCache = {
+    _memory: new Map(),
+    get(key) {
+        const item = this._memory.get(key);
+        if (!item) return null;
+        if (Date.now() > item.expiry) {
+            this._memory.delete(key);
+            return null;
+        }
+        return item.data;
+    },
+    set(key, data, ttlMs = 120000) {
+        this._memory.set(key, { data: data, expiry: Date.now() + ttlMs });
+    },
+    delete(key) {
+        this._memory.delete(key);
+    },
+    clear() {
+        this._memory.clear();
+    },
+    async fetchCached(url, options = {}, ttlMs = 120000) {
+        const key = url + JSON.stringify(options);
+        const cached = this.get(key);
+        if (cached) return cached;
+        const res = await fetch(url, options);
+        if (!res.ok) throw new Error('Yêu cầu thất bại với mã lỗi ' + res.status);
+        const data = await res.json();
+        this.set(key, data, ttlMs);
+        return data;
+    }
+};
+
+// Đồng bộ sự kiện thời gian thực liên tab (Cross-Tab Realtime Synchronizer)
+window.H2TSync = {
+    _channel: (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('h2t_realtime_sync') : null,
+    trigger(eventName = 'SYNC') {
+        if (this._channel) {
+            try { this._channel.postMessage({ event: eventName, time: Date.now() }); } catch (e) {}
+        }
+        try { localStorage.setItem('h2t_sync_' + eventName, Date.now().toString()); } catch (e) {}
+        if (typeof window.triggerNotificationSync === 'function') {
+            window.triggerNotificationSync();
+        }
+    },
+    listen(eventName, callback) {
+        if (this._channel) {
+            this._channel.addEventListener('message', (e) => {
+                if (e.data && e.data.event === eventName) callback(e.data);
+            });
+        }
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'h2t_sync_' + eventName) callback({ time: e.newValue });
+        });
+    }
+};
+
+

@@ -455,30 +455,43 @@
 
 
     const currentAdminUserId = {{ curr_user.get('id', 0) }};
-
     const adminStorageKey = 'h2t_admin_notif_last_id_' + currentAdminUserId;
-
     let lastNotificationId = parseInt(sessionStorage.getItem(adminStorageKey) || '0');
-
     let isInitialLoad = !sessionStorage.getItem(adminStorageKey);
+    let adminLastUnreadCount = -1;
 
+    // Kênh đồng bộ liên tab thời gian thực
+    const adminNotifChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('h2t_realtime_channel') : null;
+    if (adminNotifChannel) {
+        adminNotifChannel.onmessage = (e) => {
+            if (e.data && e.data.action === 'SYNC_NOTIF') pollNotificationsRealtime(true);
+        };
+    }
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'h2t_notif_sync_ping') pollNotificationsRealtime(true);
+    });
+    window.triggerNotificationSync = function() {
+        if (adminNotifChannel) {
+            try { adminNotifChannel.postMessage({ action: 'SYNC_NOTIF', time: Date.now() }); } catch(err) {}
+        }
+        try { localStorage.setItem('h2t_notif_sync_ping', Date.now().toString()); } catch(err) {}
+        pollNotificationsRealtime(true);
+    };
 
-
-    async function pollNotificationsRealtime() {
-
+    async function pollNotificationsRealtime(force = false) {
         if (!currentAdminUserId) return;
-
         try {
-
             const isInitParam = isInitialLoad ? '&init=1' : '';
-
-            const res = await fetch(`/api/notifications/poll?last_id=${lastNotificationId}${isInitParam}`);
-
+            const unreadParam = (adminLastUnreadCount >= 0 && !force) ? `&last_unread=${adminLastUnreadCount}` : '';
+            const res = await fetch(`/api/notifications/poll?last_id=${lastNotificationId}${isInitParam}${unreadParam}`);
             if (!res.ok) return;
-
             const data = await res.json();
-
             if (!data.success) return;
+
+            // Nếu dữ liệu không thay đổi -> giữ nguyên DOM để tăng tốc độ lướt web
+            if (data.no_change && !isInitialLoad && !force) {
+                return;
+            }
 
 
 
@@ -506,7 +519,8 @@
 
             // 2. Render danh sách thông báo vào menu Dropdown
 
-            renderNotificationDropdownList(data.recent_list || []);
+            adminLastUnreadCount = data.unread_count;
+            if (data.recent_list) renderNotificationDropdownList(data.recent_list);
 
 
 
@@ -804,19 +818,29 @@
 
 
 
+    let adminPollTimer = null;
+    function scheduleAdminPoll(delay = 2500) {
+        if (adminPollTimer) clearTimeout(adminPollTimer);
+        adminPollTimer = setTimeout(async () => {
+            await pollNotificationsRealtime();
+            const nextDelay = document.hidden ? 15000 : 2500;
+            scheduleAdminPoll(nextDelay);
+        }, delay);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-
         pollNotificationsRealtime();
-
-        setInterval(pollNotificationsRealtime, 2500);
+        scheduleAdminPoll(2500);
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                pollNotificationsRealtime();
+                pollNotificationsRealtime(true);
+                scheduleAdminPoll(2500);
+            } else {
+                scheduleAdminPoll(15000);
             }
         });
-        window.addEventListener('focus', pollNotificationsRealtime);
-
+        window.addEventListener('focus', () => pollNotificationsRealtime(true));
     });
 
 </script>

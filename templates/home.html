@@ -742,7 +742,7 @@
 
                                 <div class="text-center">
 
-                                    <img src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}'" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
+                                    <img loading="lazy" decoding="async" src="{{ doc.avatar or url_for('static', filename='images/default-avatar.png') }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default-avatar.png') }}'" alt="{{ doc.ten_hien_thi or doc.ho_ten }}" 
 
                                         class="w-24 h-24 rounded-2xl object-cover mx-auto ring-4 ring-medical-500/20 shadow-md group-hover:scale-105 transition-transform duration-300">
 
@@ -1119,7 +1119,7 @@
 
                                     {% if art.image %}
 
-                                    <img src="{{ art.image }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/articles/cam-cum.jpg') }}'" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
+                                    <img loading="lazy" decoding="async" src="{{ art.image }}" onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/articles/cam-cum.jpg') }}'" alt="{{ art.title }}" class="w-14 h-14 rounded-lg object-cover shrink-0 ring-1 ring-slate-200/50">
 
                                     {% else %}
 

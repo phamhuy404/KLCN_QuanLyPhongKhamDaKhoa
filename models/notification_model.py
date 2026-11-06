@@ -282,22 +282,37 @@ class NotificationModel:
             return False, str(e)
 
     @staticmethod
-    def get_poll_updates(tai_khoan_id, last_id=0, is_init=False):
-        """Lấy thông báo mới và danh sách gần nhất phục vụ polling realtime có cơ chế chống spam toast."""
+    def get_poll_updates(tai_khoan_id, last_id=0, is_init=False, last_unread=-1):
+        """Lấy thông báo mới và danh sách gần nhất phục vụ polling realtime có cơ chế chống spam toast và tối ưu truy vấn."""
         if not tai_khoan_id:
-            return {'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0}
+            return {'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0, 'no_change': True}
         conn = get_db()
         cursor = conn.cursor()
         try:
-            # 1. Đếm chưa đọc
-            cursor.execute('SELECT COUNT(*) AS cnt FROM thong_bao WHERE tai_khoan_id = ? AND da_doc = 0', (tai_khoan_id,))
-            unread_cnt = cursor.fetchone()['cnt']
+            # Gộp đếm số lượng chưa đọc và tìm ID lớn nhất vào 1 câu lệnh duy nhất
+            cursor.execute('''
+                SELECT 
+                    SUM(CASE WHEN da_doc = 0 THEN 1 ELSE 0 END) AS unread_cnt,
+                    COALESCE(MAX(id), 0) AS max_id
+                FROM thong_bao
+                WHERE tai_khoan_id = ?
+            ''', (tai_khoan_id,))
+            row = cursor.fetchone()
+            unread_cnt = int(row['unread_cnt'] or 0)
+            latest_id = int(row['max_id'] or 0)
 
-            # 2. Lấy ID thông báo lớn nhất hiện tại của người dùng
-            cursor.execute('SELECT COALESCE(MAX(id), 0) AS max_id FROM thong_bao WHERE tai_khoan_id = ?', (tai_khoan_id,))
-            latest_id = cursor.fetchone()['max_id']
+            # Nếu không phải phiên khởi tạo, ID không đổi và số lượng chưa đọc không đổi -> trả về no_change để không cần nạp lại danh sách
+            if not is_init and last_id and int(last_id) >= latest_id and (last_unread == -1 or unread_cnt == last_unread):
+                conn.close()
+                return {
+                    'unread_count': unread_cnt,
+                    'new_notifications': [],
+                    'recent_list': None,
+                    'latest_id': latest_id,
+                    'no_change': True
+                }
 
-            # 3. Lấy thông báo mới hơn last_id (chỉ khi không phải phiên khởi tạo lần đầu và last_id > 0)
+            # Lấy thông báo mới hơn last_id khi có ID mới phát sinh
             new_notifications = []
             if not is_init and last_id and int(last_id) > 0 and int(last_id) < latest_id:
                 cursor.execute('''
@@ -309,7 +324,7 @@ class NotificationModel:
                 ''', (tai_khoan_id, int(last_id)))
                 new_notifications = [dict(r) for r in cursor.fetchall()]
 
-            # 4. Lấy 10 thông báo gần nhất để hiển thị dropdown menu
+            # Lấy 10 thông báo gần nhất để hiển thị dropdown menu
             cursor.execute('''
                 SELECT TOP 10 id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc,
                        CONVERT(VARCHAR(19), thoi_gian_tao, 120) AS thoi_gian_tao
@@ -324,8 +339,9 @@ class NotificationModel:
                 'unread_count': unread_cnt,
                 'new_notifications': new_notifications,
                 'recent_list': recent_list,
-                'latest_id': latest_id
+                'latest_id': latest_id,
+                'no_change': False
             }
         except Exception as e:
             conn.close()
-            return {'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0, 'error': str(e)}
+            return {'unread_count': 0, 'new_notifications': [], 'recent_list': [], 'latest_id': 0, 'error': str(e), 'no_change': True}

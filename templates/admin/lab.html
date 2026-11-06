@@ -364,7 +364,7 @@
             const card = document.createElement('div');
             card.className = "relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm aspect-video flex items-center justify-center";
             card.innerHTML = `
-                <img src="${imgSrc}" alt="Ảnh CLS #${idx+1}" 
+                <img loading="lazy" decoding="async" src="${imgSrc}" alt="Ảnh CLS #${idx+1}" 
                      onclick="openLightbox('${imgSrc}', 'Ảnh chụp Cận lâm sàng #${idx+1}')"
                      class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-all duration-200">
                 <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-mono">#${idx+1}</span>
@@ -619,7 +619,7 @@
         </button>
     </div>
     <div class="max-w-4xl max-h-[80vh] w-full bg-black/50 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10">
-        <img id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
+        <img loading="lazy" decoding="async" id="lightbox-img" src="" alt="Ảnh Cận lâm sàng phóng to" class="max-h-[80vh] max-w-full object-contain">
     </div>
 </div>
 
