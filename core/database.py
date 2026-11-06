@@ -506,6 +506,9 @@ def ensure_schema_updates(conn):
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'nguoi_huy') ALTER TABLE don_thuoc ADD nguoi_huy NVARCHAR(100) NULL;",
 
             "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'thoi_gian_huy') ALTER TABLE don_thuoc ADD thoi_gian_huy DATETIME NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'nguoi_duyet') ALTER TABLE don_thuoc ADD nguoi_duyet NVARCHAR(100) NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'ngay_duyet') ALTER TABLE don_thuoc ADD ngay_duyet DATETIME NULL;",
+            "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('hoa_don') AND name = 'trang_thai_nhan_thuoc') ALTER TABLE hoa_don ADD trang_thai_nhan_thuoc NVARCHAR(50) NULL;",
 
             """
 

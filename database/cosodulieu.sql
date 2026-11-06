@@ -300,6 +300,8 @@ CREATE TABLE don_thuoc (
     loi_dan NVARCHAR(MAX),
     trang_thai NVARCHAR(50) DEFAULT N'Đã cấp thuốc',
     hinh_thuc_mua NVARCHAR(50) DEFAULT N'Chưa chọn',
+    nguoi_duyet NVARCHAR(100) NULL,
+    ngay_duyet DATETIME NULL,
     ly_do_huy NVARCHAR(MAX) NULL,
     nguoi_huy NVARCHAR(100) NULL,
     thoi_gian_huy DATETIME NULL,
@@ -331,6 +333,7 @@ CREATE TABLE hoa_don (
     trang_thai NVARCHAR(50) DEFAULT N'Đã thanh toán',
     thoi_gian_thanh_toan DATETIME DEFAULT GETDATE(),
     nhan_vien_thu NVARCHAR(100),
+    trang_thai_nhan_thuoc NVARCHAR(50) NULL,
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
 );

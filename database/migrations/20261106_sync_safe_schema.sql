@@ -63,3 +63,9 @@ IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lich_hen')
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'hinh_thuc_mua')
     ALTER TABLE don_thuoc ADD hinh_thuc_mua NVARCHAR(50) DEFAULT N'Chưa chọn';
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'nguoi_duyet')
+    ALTER TABLE don_thuoc ADD nguoi_duyet NVARCHAR(100) NULL;
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('don_thuoc') AND name = 'ngay_duyet')
+    ALTER TABLE don_thuoc ADD ngay_duyet DATETIME NULL;
