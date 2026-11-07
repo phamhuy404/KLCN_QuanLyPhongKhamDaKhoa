@@ -1,4 +1,6 @@
-# Hóa đơn và thu tiền thủ công
+# Hóa đơn và thu tiền thủ công (tài liệu trước tích hợp VietQR)
+
+Luồng VietQR hiện tại và cách cấu hình được mô tả trong `docs/vietqr_payment.md`. Các ghi chú dưới đây phản ánh phiên bản chỉ thu thủ công trước khi tích hợp.
 
 ## Phạm vi và quyền
 

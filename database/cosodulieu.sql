@@ -25,6 +25,7 @@ EXEC sp_executesql @sql;
 GO
 
 IF OBJECT_ID('chi_tiet_hoa_don', 'U') IS NOT NULL DROP TABLE chi_tiet_hoa_don;
+IF OBJECT_ID('payment_events', 'U') IS NOT NULL DROP TABLE payment_events;
 IF OBJECT_ID('hoa_don', 'U') IS NOT NULL DROP TABLE hoa_don;
 IF OBJECT_ID('chi_tiet_don_thuoc', 'U') IS NOT NULL DROP TABLE chi_tiet_don_thuoc;
 IF OBJECT_ID('don_thuoc', 'U') IS NOT NULL DROP TABLE don_thuoc;
@@ -46,6 +47,7 @@ IF OBJECT_ID('bai_viet', 'U') IS NOT NULL DROP TABLE bai_viet;
 IF OBJECT_ID('benh_nhan', 'U') IS NOT NULL DROP TABLE benh_nhan;
 IF OBJECT_ID('bac_si', 'U') IS NOT NULL DROP TABLE bac_si;
 IF OBJECT_ID('nhan_vien', 'U') IS NOT NULL DROP TABLE nhan_vien;
+IF OBJECT_ID('password_reset_otp', 'U') IS NOT NULL DROP TABLE password_reset_otp;
 IF OBJECT_ID('tai_khoan', 'U') IS NOT NULL DROP TABLE tai_khoan;
 IF OBJECT_ID('thuoc', 'U') IS NOT NULL DROP TABLE thuoc;
 IF OBJECT_ID('dich_vu', 'U') IS NOT NULL DROP TABLE dich_vu;
@@ -123,6 +125,15 @@ CREATE TABLE tai_khoan (
     ngay_tao DATETIME DEFAULT GETDATE(),
     lan_dang_nhap_cuoi DATETIME NULL,
     FOREIGN KEY (vai_tro_id) REFERENCES vai_tro(id)
+);
+
+CREATE TABLE password_reset_otp (
+    account_id INT NOT NULL PRIMARY KEY REFERENCES tai_khoan(id) ON DELETE CASCADE,
+    otp_hash CHAR(64) NOT NULL,
+    expires_at DATETIME2 NOT NULL,
+    sent_at DATETIME2 NOT NULL,
+    attempts TINYINT NOT NULL DEFAULT 0,
+    verified BIT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE nhan_vien (
@@ -329,9 +340,9 @@ CREATE TABLE hoa_don (
     tien_bhyt DECIMAL(12, 2) DEFAULT 0.00,
     giam_gia DECIMAL(12, 2) DEFAULT 0.00,
     thanh_tien DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    hinh_thuc_thanh_toan NVARCHAR(50) DEFAULT N'Tiền mặt',
-    trang_thai NVARCHAR(50) DEFAULT N'Đã thanh toán',
-    thoi_gian_thanh_toan DATETIME DEFAULT GETDATE(),
+    hinh_thuc_thanh_toan NVARCHAR(50) NULL,
+    trang_thai NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
+    thoi_gian_thanh_toan DATETIME NULL,
     nhan_vien_thu NVARCHAR(100),
     trang_thai_nhan_thuoc NVARCHAR(50) NULL,
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
@@ -348,6 +359,18 @@ CREATE TABLE chi_tiet_hoa_don (
     don_gia DECIMAL(12, 2) DEFAULT 0.00,
     thanh_tien DECIMAL(12, 2) DEFAULT 0.00,
     FOREIGN KEY (hoa_don_id) REFERENCES hoa_don(id) ON DELETE CASCADE
+);
+
+CREATE TABLE payment_events (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    provider NVARCHAR(20) NOT NULL,
+    event_id NVARCHAR(100) NOT NULL,
+    invoice_id INT NOT NULL,
+    amount DECIMAL(18,2) NOT NULL,
+    transfer_content NVARCHAR(1000) NULL,
+    received_at DATETIME NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT UQ_payment_events_provider_event UNIQUE (provider, event_id),
+    FOREIGN KEY (invoice_id) REFERENCES hoa_don(id)
 );
 
 CREATE TABLE thong_bao (
@@ -7167,6 +7190,8 @@ INSERT INTO hoa_don (id, ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tie
 INSERT INTO hoa_don (id, ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, giam_gia, thanh_tien, hinh_thuc_thanh_toan, trang_thai, thoi_gian_thanh_toan, nhan_vien_thu, trang_thai_nhan_thuoc) VALUES (268, N'HD26114478', 31, 172, 650000.00, 0.00, 0.00, 650000.00, N'Chưa thanh toán', N'Chưa thanh toán', N'2026-11-03 10:20:00', N'Thu ngân phòng khám', N'Chờ phát');
 INSERT INTO hoa_don (id, ma_hoa_don, benh_nhan_id, phieu_kham_id, tong_tien, tien_bhyt, giam_gia, thanh_tien, hinh_thuc_thanh_toan, trang_thai, thoi_gian_thanh_toan, nhan_vien_thu, trang_thai_nhan_thuoc) VALUES (269, N'HD26117770', 32, 239, 650000.00, 0.00, 0.00, 650000.00, N'Chưa thanh toán', N'Chưa thanh toán', N'2026-11-03 09:20:00', N'Thu ngân phòng khám', N'Chờ phát');
 SET IDENTITY_INSERT hoa_don OFF;
+UPDATE hoa_don SET thoi_gian_thanh_toan=NULL, hinh_thuc_thanh_toan=NULL
+WHERE trang_thai=N'Chưa thanh toán';
 GO
 
 -- DU LIEU: chi_tiet_hoa_don

@@ -7,8 +7,39 @@ from core.security import verify_password
 from core.validators import validate_name, VN_PHONE_PATTERN, EMAIL_PATTERN
 from core.mobile_auth import contract, mutation, fail, issue, verify, bearer, public_user
 from models.user_model import UserModel
+from core.password_reset import ResetError, send_otp, verify_otp, reset_password
 
 mobile_auth_bp = Blueprint('mobile_auth', __name__, url_prefix='/api/v1/mobile/auth')
+
+
+def _reset_response(action):
+    try:
+        return jsonify(action())
+    except ResetError as exc:
+        return jsonify(success=False, error_code=exc.code, message=exc.message), exc.status
+
+
+@mobile_auth_bp.post('/forgot-password/send-otp')
+@contract
+def forgot_send_otp():
+    data = body()
+    return _reset_response(lambda: send_otp(data.get('email', data.get('identifier'))))
+
+
+@mobile_auth_bp.post('/forgot-password/verify-otp')
+@contract
+def forgot_verify_otp():
+    data = body()
+    return _reset_response(lambda: verify_otp(data.get('email', data.get('identifier')), data.get('otp_code')))
+
+
+@mobile_auth_bp.post('/forgot-password/reset')
+@contract
+def forgot_reset():
+    data = body()
+    return _reset_response(lambda: reset_password(
+        data.get('email', data.get('identifier')), data.get('otp_code'),
+        data.get('new_password'), data.get('confirm_password')))
 
 
 def body():

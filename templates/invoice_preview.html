@@ -1,20 +1,50 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ 'Hóa đơn' if invoice.trang_thai == 'Đã thanh toán' else 'Hóa đơn tạm tính' }} {{ invoice.ma_hoa_don }}</title>
-<style>
-body{font:15px/1.6 system-ui,sans-serif;color:#1e293b;max-width:900px;margin:32px auto;padding:20px}h1{color:#0f766e}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #cbd5e1;text-align:left}.money{text-align:right;white-space:nowrap}.total{font-size:20px;font-weight:700;color:#0f766e}button{padding:10px 18px;border:0;border-radius:10px;background:#0f766e;color:white;cursor:pointer}@media print{button{display:none}body{margin:0;padding:0}}
-</style></head><body>
-<button onclick="window.print()">In / Lưu PDF</button>
-<h1>{{ 'HÓA ĐƠN / BIÊN LAI VIỆN PHÍ' if invoice.trang_thai == 'Đã thanh toán' else 'HÓA ĐƠN TẠM TÍNH — CHƯA THANH TOÁN' }}</h1>
-<p>Mã: <strong>{{ invoice.ma_hoa_don }}</strong> • Trạng thái: {{ invoice.trang_thai }}</p>
-<p>Người bệnh: <strong>{{ invoice.benh_nhan }}</strong> • {{ invoice.ma_benh_nhan }}</p>
-<p>Đối tượng: <strong>{{ 'Có BHYT' if invoice.has_bhyt else 'Không có BHYT' }}</strong></p>
-<table><thead><tr><th>Dịch vụ / Khoản thu</th><th>Số lượng</th><th class="money">Đơn giá gốc</th><th class="money">Thành tiền</th></tr></thead><tbody>
-{% for item in invoice.chi_tiet %}<tr><td>{{ item.ten_khoan_thu }}</td><td>{{ item.so_luong }}</td><td class="money">{{ '{:,.0f}'.format(item.don_gia) }} đ</td><td class="money">{{ '{:,.0f}'.format(item.thanh_tien) }} đ</td></tr>{% endfor %}
-</tbody></table>
-<p class="money">Tổng tiền gốc: <strong>{{ '{:,.0f}'.format(invoice.tong_tien) }} đ</strong></p>
-<p class="money">Giảm BHYT đã ghi nhận (một lần): −{{ '{:,.0f}'.format(invoice.tien_bhyt) }} đ</p>
-{% if invoice.giam_gia %}<p class="money">Giảm khác: −{{ '{:,.0f}'.format(invoice.giam_gia) }} đ</p>{% endif %}
-<p class="money total">Số tiền phải trả: {{ '{:,.0f}'.format(invoice.thanh_tien) }} đ</p>
-<p>BHYT là mức giảm mô phỏng của hệ thống. Hóa đơn lưu số tiền tại thời điểm lập; xem hoặc in không xác nhận thanh toán.</p>
-</body></html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ 'Bill' if invoice.trang_thai == 'Đã thanh toán' else 'Tạm tính' }} {{ invoice.ma_hoa_don }}</title>
+    <style>
+        body{font:15px/1.55 system-ui,sans-serif;color:#1e293b;max-width:850px;margin:28px auto;padding:24px}
+        header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:3px solid #0f766e;padding-bottom:18px}
+        h1{color:#0f766e;font-size:23px;margin:0}h2{font-size:20px;margin:25px 0 8px}
+        .muted{color:#64748b}.stamp{border:2px solid #059669;color:#047857;border-radius:8px;padding:8px 12px;font-weight:800;letter-spacing:.08em;white-space:nowrap}
+        .pending{border-color:#d97706;color:#b45309}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;margin:16px 0}
+        table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #cbd5e1;text-align:left;vertical-align:top}
+        th{background:#f0fdfa}.money{text-align:right;white-space:nowrap}.total{font-size:21px;font-weight:800;color:#0f766e}
+        button{padding:10px 18px;border:0;border-radius:10px;background:#0f766e;color:white;cursor:pointer}
+        .note{font-size:12px;color:#64748b;margin-top:25px}
+        @media(max-width:600px){.grid{grid-template-columns:1fr}header{flex-direction:column}}
+        @media print{button{display:none}body{margin:0;padding:0;max-width:none}table{break-inside:auto}tr{break-inside:avoid}}
+    </style>
+</head>
+<body>
+    <button onclick="window.print()">In hóa đơn / Lưu PDF</button>
+    <header>
+        <div><h1>PHÒNG KHÁM ĐA KHOA H2T CARE</h1><div class="muted">{{ clinic_info.address }}</div><div class="muted">Biên lai thanh toán viện phí điện tử</div></div>
+        <div class="stamp {{ '' if invoice.trang_thai == 'Đã thanh toán' else 'pending' }}">
+            {{ 'ĐÃ THANH TOÁN' if invoice.trang_thai == 'Đã thanh toán' else 'CHƯA THANH TOÁN' }}
+        </div>
+    </header>
+    <h2>{{ 'HÓA ĐƠN / BILL' if invoice.trang_thai == 'Đã thanh toán' else 'BẢNG TẠM TÍNH' }}</h2>
+    <div class="grid">
+        <div>Mã hóa đơn: <strong>{{ invoice.ma_hoa_don }}</strong></div>
+        <div>Người bệnh: <strong>{{ invoice.benh_nhan }}</strong> ({{ invoice.ma_benh_nhan }})</div>
+        <div>Đối tượng: {{ 'Có BHYT' if invoice.has_bhyt else 'Không có BHYT' }}</div>
+        <div>Phương thức: {{ invoice.hinh_thuc_thanh_toan or 'Chưa thanh toán' }}</div>
+        {% if invoice.trang_thai == 'Đã thanh toán' %}
+        <div>Thời gian thanh toán: {{ invoice.thoi_gian_thanh_toan or '—' }}</div>
+        {% endif %}
+    </div>
+    <table>
+        <thead><tr><th>Dịch vụ / Thuốc</th><th>Số lượng</th><th class="money">Đơn giá</th><th class="money">Thành tiền</th></tr></thead>
+        <tbody>{% for item in invoice.chi_tiet %}
+            <tr><td>{{ item.ten_khoan_thu }}</td><td>{{ item.so_luong }}</td><td class="money">{{ '{:,.0f}'.format(item.don_gia) }} đ</td><td class="money">{{ '{:,.0f}'.format(item.thanh_tien) }} đ</td></tr>
+        {% endfor %}</tbody>
+    </table>
+    <p class="money">Tổng chi phí: <strong>{{ '{:,.0f}'.format(invoice.tong_tien) }} đ</strong></p>
+    <p class="money">BHYT giảm trừ: −{{ '{:,.0f}'.format(invoice.tien_bhyt) }} đ</p>
+    {% if invoice.giam_gia %}<p class="money">Giảm khác: −{{ '{:,.0f}'.format(invoice.giam_gia) }} đ</p>{% endif %}
+    <p class="money total">Tổng thực thu: {{ '{:,.0f}'.format(invoice.thanh_tien) }} đ</p>
+    <p class="note">BHYT là mức giảm mô phỏng trong hệ thống. Xem hoặc in bill không thay đổi trạng thái thanh toán.</p>
+</body>
+</html>

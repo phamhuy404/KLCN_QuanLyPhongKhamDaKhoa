@@ -2,8 +2,44 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from models.user_model import UserModel
 from core.security import login_required, refresh_session_user, safe_next_url
 from core.validators import VIETNAMESE_NAME_PATTERN, VN_PHONE_PATTERN, FORBIDDEN_CHARS_PATTERN, sanitize_text
+from core.password_reset import ResetError, send_otp, verify_otp, reset_password
+import secrets
+import time
 
 auth_bp = Blueprint('auth', __name__)
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Three-step recovery page; the server verifies every transition."""
+    if request.method == 'GET':
+        session['password_reset_csrf'] = secrets.token_urlsafe(32)
+        return render_template('auth/forgot_password.html', step=1)
+    token = session.get('password_reset_csrf')
+    if not token or not secrets.compare_digest(token, request.form.get('csrf_token', '')):
+        return render_template('auth/forgot_password.html', step=1, error='Phiên biểu mẫu không hợp lệ. Vui lòng tải lại trang.'), 400
+    step = request.form.get('action')
+    email = request.form.get('email', '').strip().lower()
+    otp = request.form.get('otp_code', '').strip()
+    try:
+        if step in ('send', 'resend'):
+            result = send_otp(email)
+            session['password_reset_deadline'] = time.time() + 300
+            return render_template('auth/forgot_password.html', step=2, email=email, info=result['message'], seconds=300)
+        if step == 'verify':
+            verify_otp(email, otp)
+            return render_template('auth/forgot_password.html', step=3, email=email, otp=otp)
+        if step == 'reset':
+            reset_password(email, otp, request.form.get('new_password'), request.form.get('confirm_password'))
+            session.pop('password_reset_csrf', None)
+            session.pop('password_reset_deadline', None)
+            return render_template('auth/login.html', success='Đặt lại mật khẩu thành công. Vui lòng đăng nhập.')
+        raise ResetError('INVALID_ACTION', 'Bước khôi phục không hợp lệ.')
+    except ResetError as exc:
+        current_step = 1 if step == 'send' else 2 if step in ('verify', 'resend') else 3
+        return render_template('auth/forgot_password.html', step=current_step, email=email, otp=otp,
+                               error=exc.message,
+                               seconds=max(0, int(session.get('password_reset_deadline', 0) - time.time()))), exc.status
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

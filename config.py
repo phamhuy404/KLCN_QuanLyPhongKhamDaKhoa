@@ -4,6 +4,12 @@ import os
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
 
+# VietQR / bank notification. Leave unset until the clinic configures a real account.
+BANK_ID = os.environ.get('BANK_ID', 'MB').strip().upper()
+BANK_ACCOUNT_NO = os.environ.get('BANK_ACCOUNT_NO', '0932743258').strip()
+BANK_ACCOUNT_NAME = os.environ.get('BANK_ACCOUNT_NAME', 'Phòng Khám Đa Khoa H2T Care').strip()
+PAYMENT_WEBHOOK_SECRET = os.environ.get('PAYMENT_WEBHOOK_SECRET', '').strip()
+
 MOBILE_TOKEN_TTL_SECONDS = 3600
 MOBILE_TOKEN_SECRET = os.environ.get('MOBILE_TOKEN_SECRET')
 
@@ -19,7 +25,7 @@ DB_ENGINE = 'sqlserver'
 # Cấu hình kết nối Microsoft SQL Server
 SQLSERVER_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}',
-    'server': os.environ.get('SQL_SERVER_NAME', 'localhost'),
+    'server': os.environ.get('SQL_SERVER_NAME', '.\\SQLEXPRESS'),
     'database': 'quan_ly_phong_kham',
     'trusted_connection': 'yes',
     'uid': 'sa',
@@ -33,7 +39,7 @@ AUTO_BACKUP_INTERVAL_HOURS = int(os.environ.get('AUTO_BACKUP_INTERVAL_HOURS', '2
 AUTO_BACKUP_MAX_KEEP = int(os.environ.get('AUTO_BACKUP_MAX_KEEP', '5'))
 
 # Cấu hình Email SMTP (Bảo mật thông tin gửi mail)
-SMTP_SERVER = os.environ.get('SMTP_SERVER', '')
+SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
 SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
 SMTP_USERNAME = os.environ.get('SMTP_USERNAME', 'phmhuy74@gmail.com')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'cbvu odyp uejx yedn')

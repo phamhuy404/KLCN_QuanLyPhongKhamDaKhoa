@@ -349,7 +349,7 @@ def payment_instructions(invoice_id):
         fail('NOT_FOUND', 'Không tìm thấy hóa đơn của bạn.', 404)
     payment = result_or_fail(BillingModel.payment_instructions(invoice_id, patient_id=patient_id()))
     return respond(payment=payment, payment_confirmed=False,
-        message='Chưa ghi nhận thanh toán. Vui lòng liên hệ quầy thu ngân; chưa tích hợp cổng thanh toán trực tuyến.')
+        message='Quét mã VietQR và chờ hệ thống xác nhận tiền về tài khoản phòng khám.')
 
 
 @mobile_patient_bp.get('/feedbacks')

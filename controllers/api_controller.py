@@ -706,7 +706,7 @@ def request_payment_instructions():
     if not success:
         return jsonify(success=False, message=result), 409
     return jsonify(success=True, payment_confirmed=False, payment=result,
-        message='Chưa ghi nhận thanh toán. Vui lòng liên hệ quầy thu ngân; chưa tích hợp cổng thanh toán trực tuyến.')
+        message='Quét mã VietQR và chờ hệ thống xác nhận tiền về tài khoản phòng khám.')
 
 
 # 1. API SAO LƯU VÀ PHỤC HỒI DỮ LIỆU

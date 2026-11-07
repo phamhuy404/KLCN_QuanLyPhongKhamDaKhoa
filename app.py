@@ -9,6 +9,7 @@ from controllers.admin_controller import admin_bp
 from controllers.api_controller import api_bp
 from controllers.mobile_auth_controller import mobile_auth_bp
 from controllers.mobile_patient_controller import mobile_patient_bp
+from controllers.payment_controller import payment_bp
 
 _DEVELOPMENT_SECRET_KEY = secrets.token_hex(32)
 
@@ -52,7 +53,8 @@ def create_app(test_config=None):
 
     @app.before_request
     def mobile_preflight():
-        if request.path.startswith('/api/v1/mobile/') and request.method == 'OPTIONS':
+        if (request.path.startswith(('/api/v1/mobile/', '/api/payment/status/'))
+                and request.method == 'OPTIONS'):
             origin = request.headers.get('Origin')
             if not _is_allowed_mobile_origin(origin):
                 return '', 403
@@ -65,7 +67,7 @@ def create_app(test_config=None):
 
     @app.after_request
     def apply_response_headers(response):
-        if request.path.startswith('/api/v1/mobile/'):
+        if request.path.startswith(('/api/v1/mobile/', '/api/payment/status/')):
             origin = request.headers.get('Origin')
             if origin and _is_allowed_mobile_origin(origin):
                 response.headers['Access-Control-Allow-Origin'] = origin
@@ -89,6 +91,7 @@ def create_app(test_config=None):
     app.register_blueprint(api_bp)
     app.register_blueprint(mobile_auth_bp)
     app.register_blueprint(mobile_patient_bp)
+    app.register_blueprint(payment_bp)
     from core.medical_media import register_medical_media
     register_medical_media(app)
     from core.clinical_data import display_clinical

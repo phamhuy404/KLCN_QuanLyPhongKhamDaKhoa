@@ -55,7 +55,7 @@ class BillingModel:
 
     @staticmethod
     def payment_instructions(identifier, patient_id=None):
-        """Read-only instructions, not a transfer, receipt or persistent transaction."""
+        """Read-only VietQR details; showing a QR never confirms payment."""
         conn = get_db()
         try:
             cursor = conn.cursor()
@@ -67,9 +67,8 @@ class BillingModel:
             if bill['trang_thai'] != UNPAID:
                 return False, 'Hóa đơn không ở trạng thái chờ thanh toán.'
             validate_invoice(cursor, bill)
-            return True, {'invoice_id': bill['id'], 'ma_hoa_don': bill['ma_hoa_don'],
-                          'amount': bill['thanh_tien'], 'status': bill['trang_thai'],
-                          'gateway_enabled': False, 'payment_confirmed': False}
+            from core.payment import payment_details
+            return True, payment_details(bill)
         except (CalendarError, ValueError) as exc:
             return False, str(exc)
         finally:
@@ -130,7 +129,7 @@ class BillingModel:
             inv['thuc_thu'] = inv['thanh_tien']
             inv['patient_id'] = inv['benh_nhan_id']
 
-            inv['phuong_thuc'] = inv.get('hinh_thuc_thanh_toan') or 'Tiền mặt'
+            inv['phuong_thuc'] = inv.get('hinh_thuc_thanh_toan') or ('Chưa thanh toán' if inv['trang_thai'] == UNPAID else 'Không rõ')
             inv['status'] = {'Đã thanh toán':'paid', 'Chưa thanh toán':'pending', 'Đã hủy':'canceled'}.get(inv['trang_thai'], 'unknown')
 
             # Lấy chi tiết các khoản thu
@@ -177,21 +176,34 @@ class BillingModel:
 
     @staticmethod
     @serialized
-    def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân', audit_user=None, expected_amount=None):
+    def pay_invoice(invoice_id_or_code, payment_method='Tiền mặt', cashier_name='Thu ngân', audit_user=None, expected_amount=None, payment_event=None):
         """Xác nhận thu viện phí và đổi trạng thái hóa đơn thành Đã thanh toán kèm thông báo in-app."""
-        actor = refresh_session_user() if has_request_context() else audit_user
+        actor = ({'id': 'PAYMENT_GATEWAY', 'vai_tro': 'ADMIN', 'ho_ten': 'Cổng VietQR'}
+                 if payment_event else (refresh_session_user() if has_request_context() else audit_user))
         if not actor:
             actor = audit_user or {'id': 1, 'vai_tro': 'ADMIN', 'ho_ten': cashier_name or 'Thu ngân'}
         if actor.get('vai_tro') not in CASHIER_ROLES or not actor.get('id'):
             return False, 'Chi nhan vien thu ngan duoc phan quyen moi duoc xac nhan thu.'
         if payment_method not in PAYMENT_METHODS:
-            return False, 'Chi ho tro thu tien mat hoac chuyen khoan doi soat thu cong.'
+            return False, 'Phương thức thanh toán không hợp lệ.'
+        if (payment_event is None and payment_method != 'Tiền mặt') or (payment_event is not None and payment_method != 'Chuyển khoản VietQR'):
+            return False, 'Tiền mặt do thu ngân xác nhận; chuyển khoản phải qua webhook VietQR.'
         cashier_name = actor.get('ho_ten') or str(actor['id'])
         conn = get_db()
         cursor = conn.cursor()
 
         try:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if payment_event:
+                cursor.execute('''SELECT invoice_id FROM payment_events WITH (UPDLOCK, HOLDLOCK)
+                    WHERE provider=? AND event_id=?''',
+                    (payment_event['provider'], payment_event['event_id']))
+                previous = cursor.fetchone()
+                if previous:
+                    if previous['invoice_id'] == int(invoice_id_or_code):
+                        conn.close()
+                        return True, 'Giao dịch đã được ghi nhận trước đó.'
+                    raise CalendarError('Mã giao dịch đã gắn với hóa đơn khác.')
             hd_row = fetch_invoice(cursor, invoice_id_or_code, lock=True)
             if not hd_row:
                 raise CalendarError('Khong tim thay hoa don.')
@@ -219,6 +231,13 @@ class BillingModel:
                 (PAID, payment_method, cashier_name, now_str, hd_row['id'], UNPAID))
             if not cursor.fetchone():
                 raise CalendarError('Hoa don da thay doi; vui long tai lai.')
+
+            if payment_event:
+                cursor.execute('''INSERT INTO payment_events
+                    (provider, event_id, invoice_id, amount, transfer_content, received_at)
+                    VALUES (?, ?, ?, ?, ?, ?)''',
+                    (payment_event['provider'], payment_event['event_id'], hd_row['id'],
+                     payment_event['amount'], payment_event['content'], now_str))
 
             # Nếu là hóa đơn tiền thuốc (HDT): Cập nhật trạng thái nhận thuốc trên hóa đơn và đơn thuốc
             is_drug_invoice = hd_row and str(hd_row.get('ma_hoa_don', '')).startswith('HDT')

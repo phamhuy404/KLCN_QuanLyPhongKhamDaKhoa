@@ -28,13 +28,13 @@
                 Quản Lý Viện Phí, BHYT và Thu Ngân Phòng Khám
             </h2>
             <p class="text-xs text-slate-500 mt-1">
-                Thanh toán viện phí, giảm BHYT mô phỏng, xem/in tạm tính và hóa đơn và xác nhận thu tiền thủ công sau khi đối soát.
+                Thanh toán VietQR tự động hoặc thu tiền mặt tại quầy; xem và in hóa đơn viện phí.
             </p>
         </div>
 
         <div class="flex items-center gap-2.5">
             <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                <i class="fa-solid fa-qrcode text-emerald-600"></i> Chưa tích hợp cổng thanh toán
+                <i class="fa-solid fa-qrcode text-emerald-600"></i> VietQR và tiền mặt
             </span>
         </div>
     </div>
@@ -98,8 +98,9 @@
             <div class="sm:col-span-3">
                 <select id="filter-invoice-payment" onchange="filterInvoices()" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-medical-500">
                     <option value="">Tất cả Phương thức</option>
-                    <option value="Chuyển khoản">Chuyển khoản (thu thủ công)</option>
-                    <option value="Chuyển khoản QR">Chuyển khoản QR (lịch sử)</option>
+                    <option value="Chuyển khoản">Chuyển khoản</option>
+                    <option value="Chuyển khoản VietQR">Chuyển khoản VietQR</option>
+                    <option value="Chuyển khoản QR Code">Chuyển khoản QR (lịch sử)</option>
                     <option value="Tiền mặt">Tiền mặt</option>
                     <option value="Thẻ POS">Thẻ ngân hàng (POS)</option>
                 </select>
@@ -207,10 +208,19 @@
                 <label class="block text-xs font-semibold text-slate-700">Phương thức thanh toán:</label>
                 <select id="manual-payment-method" class="w-full border border-slate-200 rounded-xl p-2 text-xs focus:outline-none focus:border-medical-500 font-medium">
                     <option value="Tiền mặt">Tiền mặt</option>
-                    <option value="Chuyển khoản">Chuyển khoản (đối soát thủ công)</option>
                 </select>
             </div>
         </div>
+        <div id="admin-vietqr" class="hidden rounded-2xl border border-teal-200 bg-teal-50 p-4 text-center space-y-2 text-xs">
+            <p class="font-bold text-teal-800">Chuyển khoản VietQR tự động</p>
+            <img id="admin-vietqr-image" alt="Mã VietQR thanh toán" class="mx-auto w-48 h-48 rounded-xl bg-white" />
+            <p>Số tiền: <strong id="admin-vietqr-amount"></strong></p>
+            <p>Nội dung chuyển khoản: <strong id="admin-vietqr-reference" class="font-mono"></strong></p>
+            <p id="admin-vietqr-bank" class="text-slate-600"></p>
+            <p id="admin-vietqr-state" class="font-semibold text-teal-800">Đang chờ xác nhận giao dịch...</p>
+            <p>Thời gian chờ: <span id="admin-vietqr-countdown">10:00</span></p>
+        </div>
+        <p id="admin-vietqr-error" class="hidden text-xs text-amber-700"></p>
 
         <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
             <button type="button" onclick="printInvoiceReceipt()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors">
@@ -238,6 +248,66 @@
 
     const canConfirmPayment = document.getElementById('billing-invoices-data').dataset.canConfirmPayment === 'true';
     let activeInvoiceId = null;
+    let adminPaymentTimer = null;
+    let adminPaymentSeconds = 600;
+    let adminPaymentGeneration = 0;
+
+    function stopAdminPaymentPolling() {
+        adminPaymentGeneration++;
+        if (adminPaymentTimer) clearInterval(adminPaymentTimer);
+        adminPaymentTimer = null;
+    }
+
+    async function startAdminVietQR(invoice) {
+        stopAdminPaymentPolling();
+        const generation = adminPaymentGeneration;
+        const panel = document.getElementById('admin-vietqr');
+        const error = document.getElementById('admin-vietqr-error');
+        panel.classList.add('hidden');
+        error.classList.add('hidden');
+        try {
+            const response = await fetch('/api/billing/request', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({invoice_id: invoice.id})
+            });
+            const result = await response.json();
+            if (generation !== adminPaymentGeneration) return;
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không tạo được VietQR.');
+            const payment = result.payment;
+            document.getElementById('admin-vietqr-image').src = payment.qr_url;
+            document.getElementById('admin-vietqr-amount').textContent = Number(payment.amount).toLocaleString('vi-VN') + ' đ';
+            document.getElementById('admin-vietqr-reference').textContent = payment.reference;
+            document.getElementById('admin-vietqr-bank').textContent = `${payment.bank_id} • ${payment.bank_account_no} • ${payment.bank_account_name}`;
+            document.getElementById('admin-vietqr-state').textContent = 'Đang chờ xác nhận giao dịch...';
+            panel.classList.remove('hidden');
+            adminPaymentSeconds = payment.expires_in_seconds || 600;
+            adminPaymentTimer = setInterval(async () => {
+                if (generation !== adminPaymentGeneration) return;
+                adminPaymentSeconds -= 3;
+                document.getElementById('admin-vietqr-countdown').textContent =
+                    `${Math.floor(Math.max(0, adminPaymentSeconds)/60).toString().padStart(2,'0')}:${(Math.max(0, adminPaymentSeconds)%60).toString().padStart(2,'0')}`;
+                if (adminPaymentSeconds <= 0) {
+                    stopAdminPaymentPolling();
+                    document.getElementById('admin-vietqr-state').textContent = 'Hết thời gian chờ trên màn hình. Mở lại hóa đơn để kiểm tra.';
+                    return;
+                }
+                try {
+                    const statusResponse = await fetch(`/api/payment/status/${invoice.id}`, {cache: 'no-store'});
+                    const status = await statusResponse.json();
+                    if (generation !== adminPaymentGeneration) return;
+                    if (statusResponse.ok && status.status === 'PAID') {
+                        closePaymentModal();
+                        alert('Thanh toán thành công!');
+                        window.location.assign(`/admin/billing/${invoice.id}/preview`);
+                    }
+                } catch (_) { document.getElementById('admin-vietqr-state').textContent = 'Đang kết nối lại để kiểm tra giao dịch...'; }
+            }, 3000);
+        } catch (cause) {
+            if (generation !== adminPaymentGeneration) return;
+            error.textContent = cause.message;
+            error.classList.remove('hidden');
+        }
+    }
 
     function renderInvoices(dataList) {
         const tbody = document.getElementById('invoice-table-body');
@@ -306,6 +376,7 @@
     }
 
     function openPaymentModal(id) {
+        stopAdminPaymentPolling();
         const inv = invoices.find(x => x.id === id);
         if (!inv) return;
         activeInvoiceId = id;
@@ -372,6 +443,7 @@
         const actionBox = document.getElementById('payment-action-box');
         if (actionBox) actionBox.style.display = (canConfirmPayment && inv.status === 'pending') ? 'block' : 'none';
         document.getElementById('payment-modal').classList.remove('hidden');
+        if (inv.status === 'pending' && canConfirmPayment) startAdminVietQR(inv);
     }
 
     function printInvoiceReceipt() {
@@ -379,6 +451,7 @@
     }
 
     function closePaymentModal() {
+        stopAdminPaymentPolling();
         document.getElementById('payment-modal').classList.add('hidden');
     }
 
@@ -405,6 +478,7 @@
                 closePaymentModal();
                 filterInvoices();
                 alert(data.message || 'Đã xác nhận thu viện phí thành công và cập nhật CSDL!');
+                window.location.assign(`/admin/billing/${inv.id}/preview`);
             } else {
                 alert('Lỗi thanh toán: ' + (data.message || 'Không thể cập nhật'));
             }
