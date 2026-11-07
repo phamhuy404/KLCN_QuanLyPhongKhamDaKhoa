@@ -10,6 +10,64 @@ class BackupModel:
     """Model quản lý quy trình sao lưu và phục hồi dữ liệu chuyên biệt cho Microsoft SQL Server."""
 
     @staticmethod
+    def _sql_literal(value):
+        return "N'" + str(value).replace("'", "''") + "'"
+
+    @staticmethod
+    def _restore_file_moves(cursor, backup_path, db_name):
+        """Map each file in the backup onto this database's existing file path."""
+        cursor.execute(f"RESTORE FILELISTONLY FROM DISK = {BackupModel._sql_literal(backup_path)}")
+        columns = {column[0]: index for index, column in enumerate(cursor.description)}
+        backup_files = [(row[columns['LogicalName']], row[columns['Type']])
+                        for row in cursor.fetchall()]
+
+        cursor.execute(
+            "SELECT type, physical_name FROM sys.master_files "
+            "WHERE database_id = DB_ID(?) ORDER BY file_id", (db_name,)
+        )
+        destination_files = list(cursor.fetchall())
+        if not destination_files:
+            raise ValueError(f"Không tìm thấy tệp dữ liệu hiện tại của {db_name} trên SQL Server này.")
+
+        # A different file layout needs an explicit DBA decision; never guess a new path.
+        locations = {'D': [], 'L': []}
+        for file_type, physical_name in destination_files:
+            if file_type not in (0, 1):
+                raise ValueError('CSDL đích có loại tệp đặc biệt; cần khôi phục thủ công bằng SSMS.')
+            locations['D' if file_type == 0 else 'L'].append(physical_name)
+
+        moves = []
+        for logical_name, file_type in backup_files:
+            if file_type not in locations or not locations[file_type]:
+                raise ValueError('Số lượng hoặc loại tệp trong bản sao lưu khác CSDL đích; cần khôi phục thủ công bằng SSMS.')
+            destination = locations[file_type].pop(0)
+            moves.append(f"MOVE {BackupModel._sql_literal(logical_name)} TO {BackupModel._sql_literal(destination)}")
+        if not moves or any(locations.values()):
+            raise ValueError('Số lượng tệp trong bản sao lưu khác CSDL đích; cần khôi phục thủ công bằng SSMS.')
+        return moves
+
+    @staticmethod
+    def _connect_master():
+        """Use the SQL Server instance already selected by the application."""
+        cfg = config.SQLSERVER_CONFIG
+        server = cfg['server']
+        try:
+            db_conn = get_db()
+            try:
+                server = getattr(db_conn, 'server', None) or server
+            finally:
+                db_conn.close()
+        except Exception:
+            # Restoring a missing database still needs access to master.
+            pass
+
+        if cfg.get('trusted_connection', 'yes').lower() == 'yes':
+            conn_str = f"DRIVER={cfg['driver']};SERVER={server};DATABASE=master;Trusted_Connection=yes;"
+        else:
+            conn_str = f"DRIVER={cfg['driver']};SERVER={server};DATABASE=master;UID={cfg['uid']};PWD={cfg['pwd']};"
+        return pyodbc.connect(conn_str, autocommit=True, timeout=5)
+
+    @staticmethod
     def _ensure_backup_dir():
         """Đảm bảo thư mục lưu trữ bản sao lưu tồn tại ngoài public/static."""
         backup_dir = getattr(config, 'BACKUP_DIR', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backups'))
@@ -74,22 +132,17 @@ class BackupModel:
         }
 
     @staticmethod
-    def create_backup(user_name='admin'):
+    def create_backup(user_name='admin', cleanup=True):
         """Tạo bản sao lưu cho Microsoft SQL Server (.bak)."""
         backup_dir = BackupModel.get_backup_dir()
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         backup_filename = f"backup_sqlserver_{timestamp}.bak"
         backup_path = os.path.join(backup_dir, backup_filename)
         cfg = config.SQLSERVER_CONFIG
         db_name = cfg.get('database', 'quan_ly_phong_kham')
 
         try:
-            if cfg.get('trusted_connection', 'yes').lower() == 'yes':
-                conn_str = f"DRIVER={cfg['driver']};SERVER={cfg['server']};DATABASE=master;Trusted_Connection=yes;"
-            else:
-                conn_str = f"DRIVER={cfg['driver']};SERVER={cfg['server']};DATABASE=master;UID={cfg['uid']};PWD={cfg['pwd']};"
-
-            conn = pyodbc.connect(conn_str, autocommit=True)
+            conn = BackupModel._connect_master()
             cursor = conn.cursor()
 
             default_backup_dir = None
@@ -138,7 +191,8 @@ class BackupModel:
                 size = os.path.getsize(final_path)
                 BackupModel._log_history('BACKUP', backup_filename, final_path, 'sqlserver', size, user_name, 'SUCCESS', 'Sao lưu SQL Server thành công (nén).')
                 max_keep = getattr(config, 'AUTO_BACKUP_MAX_KEEP', 5)
-                BackupModel.cleanup_old_backups(keep=max_keep)
+                if cleanup:
+                    BackupModel.cleanup_old_backups(keep=max_keep)
                 return True, f"Sao lưu SQL Server thành công: {backup_filename}"
             else:
                 msg = f"SQL Server không thể tạo file sao lưu: {err_detail}. Vui lòng cấp quyền ghi cho dịch vụ SQL Server vào thư mục: {backup_dir}"
@@ -204,29 +258,30 @@ class BackupModel:
         cfg = config.SQLSERVER_CONFIG
         db_name = cfg.get('database', 'quan_ly_phong_kham')
 
+        master_conn = None
+        restore_started = False
         try:
-            if create_safety_copy:
-                BackupModel.create_backup(user_name=f"{user_name}_auto_safety")
-
-            if cfg.get('trusted_connection', 'yes').lower() == 'yes':
-                master_conn_str = f"DRIVER={cfg['driver']};SERVER={cfg['server']};DATABASE=master;Trusted_Connection=yes;"
-            else:
-                master_conn_str = f"DRIVER={cfg['driver']};SERVER={cfg['server']};DATABASE=master;UID={cfg['uid']};PWD={cfg['pwd']};"
-
-            master_conn = pyodbc.connect(master_conn_str, autocommit=True)
+            master_conn = BackupModel._connect_master()
             cur = master_conn.cursor()
 
             target_path = os.path.abspath(backup_path)
+            moves = BackupModel._restore_file_moves(cur, target_path, db_name)
+
+            if create_safety_copy:
+                safety_ok, safety_msg = BackupModel.create_backup(user_name=f"{user_name}_auto_safety", cleanup=False)
+                if not safety_ok:
+                    return False, f"Không thể phục hồi vì bản sao lưu dự phòng thất bại: {safety_msg}"
 
             restore_sql = f"""
             ALTER DATABASE [{db_name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-            RESTORE DATABASE [{db_name}] FROM DISK = '{target_path}' WITH REPLACE;
+            RESTORE DATABASE [{db_name}] FROM DISK = {BackupModel._sql_literal(target_path)}
+            WITH REPLACE, {', '.join(moves)};
             ALTER DATABASE [{db_name}] SET MULTI_USER;
             """
+            restore_started = True
             cur.execute(restore_sql)
             while cur.nextset():
                 pass
-            master_conn.close()
 
             size = os.path.getsize(backup_path)
             BackupModel._log_history('RESTORE', safe_filename, target_path, 'sqlserver', size, user_name, 'SUCCESS', 'Phục hồi SQL Server thành công.')
@@ -234,14 +289,19 @@ class BackupModel:
 
         except Exception as e:
             msg = f"Lỗi khi phục hồi SQL Server: {str(e)}"
-            try:
-                m_conn = pyodbc.connect(master_conn_str, autocommit=True)
-                m_conn.cursor().execute(f"ALTER DATABASE [{db_name}] SET MULTI_USER;")
-                m_conn.close()
-            except Exception:
-                pass
+            if restore_started:
+                try:
+                    recovery_conn = master_conn or BackupModel._connect_master()
+                    recovery_conn.cursor().execute(f"ALTER DATABASE [{db_name}] SET MULTI_USER;")
+                    if recovery_conn is not master_conn:
+                        recovery_conn.close()
+                except Exception:
+                    pass
             BackupModel._log_history('RESTORE', safe_filename, backup_path, 'sqlserver', 0, user_name, 'FAILED', msg)
             return False, msg
+        finally:
+            if master_conn is not None:
+                master_conn.close()
 
     @staticmethod
     def delete_backup(filename, user_name='admin'):

@@ -102,8 +102,17 @@ def update_config_file_if_needed(conn_params):
 
         if current_srv != conn_params['server'] or current_drv != conn_params['driver']:
             print(f"[*] Cap nhat config.py tuong thich: server='{conn_params['server']}', driver='{conn_params['driver']}'")
-            text = re.sub(r"'server':\s*os\.environ\.get\([^)]+\)", f"'server': os.environ.get('SQL_SERVER_NAME', '{conn_params['server']}')", text)
-            text = re.sub(r"'driver':\s*['\"][^'\"]+['\"]", f"'driver': '{conn_params['driver']}'", text)
+            server_default = repr(conn_params['server'])
+            text = re.sub(
+                r"'server':\s*os\.environ\.get\([^)]+\)",
+                lambda _: f"'server': os.environ.get('SQL_SERVER_NAME', {server_default})",
+                text,
+            )
+            text = re.sub(
+                r"'driver':\s*['\"][^'\"]+['\"]",
+                lambda _: f"'driver': '{conn_params['driver']}'",
+                text,
+            )
             with open(cfg_file, 'w', encoding='utf-8') as f:
                 f.write(text)
     except Exception as ex:

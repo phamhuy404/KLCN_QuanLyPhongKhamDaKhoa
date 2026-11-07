@@ -152,11 +152,13 @@ class UnifiedConnection:
 
     """Kết nối cơ sở dữ liệu Microsoft SQL Server với cơ chế chịu lỗi tự động."""
 
-    def __init__(self, raw_conn):
+    def __init__(self, raw_conn, server=None):
 
         self._conn = raw_conn
 
         self._engine = 'sqlserver'
+
+        self.server = server
 
         self._closed = False
 
@@ -319,7 +321,7 @@ def get_db():
                 raw_conn = pyodbc.connect(conn_str, timeout=4)
 
                 _preferred_sql_server = srv
-                conn = UnifiedConnection(raw_conn)
+                conn = UnifiedConnection(raw_conn, server=srv)
 
                 return conn
 
