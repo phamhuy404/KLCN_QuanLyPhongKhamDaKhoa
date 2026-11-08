@@ -113,7 +113,7 @@ def appointments():
     return render_template('admin/appointments.html', active_page='admin_appointments', appointments=appointments_list, patients=patients_list, doctors=doctors, departments=departments, exam_services=exam_services)
 
 @admin_bp.route('/reception')
-
+@roles_required('ADMIN', 'LETAN')
 def reception():
     """Phân hệ tiếp đón lễ tân, check-in và đăng ký người bệnh mới."""
     patients_list = visible_patients()
@@ -127,10 +127,11 @@ def reception():
     }
     rooms = ClinicModel.get_all_rooms(active_only=True)
     exam_services = ClinicModel.get_exam_services(active_only=True)
-    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments, rooms=rooms, exam_services=exam_services, stats=stats)
+    doctors = UserModel.get_all_doctors()
+    return render_template('admin/reception.html', active_page='admin_reception', patients=patients_list, appointments=appointments_list, departments=departments, rooms=rooms, exam_services=exam_services, doctors=doctors, stats=stats)
 
 @admin_bp.route('/emr')
-
+@roles_required('ADMIN', 'BACSI')
 def emr():
     """Phân hệ bác sĩ: Bệnh án điện tử EMR, chẩn đoán ICD và ra y lệnh."""
     curr_user = session.get('user', {})
@@ -169,11 +170,24 @@ def emr():
     departments = ClinicModel.get_all_departments(active_only=True)
     doctors = UserModel.get_all_doctors()
     from core.catalog import get_all_catalogs
+    from core.database import get_db
     catalogs = get_all_catalogs()
-    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, departments=departments, doctors=doctors, catalogs=catalogs, emr_appointments=filter_patient_records(AppointmentModel.get_all()), emr_rooms=ClinicModel.get_all_rooms(active_only=True))
+    conn_ktv = get_db()
+    cur_ktv = conn_ktv.cursor()
+    cur_ktv.execute('''
+        SELECT nv.id, nv.ho_ten, nv.chuyen_mon, nv.phong_kham_id, pk.ten_phong, pk.ma_phong
+        FROM nhan_vien nv
+        JOIN tai_khoan tk ON nv.tai_khoan_id = tk.id
+        LEFT JOIN phong_kham pk ON nv.phong_kham_id = pk.id
+        WHERE tk.vai_tro_id = 5 AND nv.trang_thai = 1
+        ORDER BY pk.ma_phong ASC, nv.ho_ten ASC
+    ''')
+    ktv_list = [dict(r) for r in cur_ktv.fetchall()]
+    conn_ktv.close()
+    return render_template('admin/emr.html', active_page='admin_emr', patients=patients_list, medicines=medicines, services=services, departments=departments, doctors=doctors, catalogs=catalogs, ktv_list=ktv_list, emr_appointments=filter_patient_records(AppointmentModel.get_all()), emr_rooms=ClinicModel.get_all_rooms(active_only=True))
 
 @admin_bp.route('/lab')
-
+@roles_required('ADMIN', 'KTV', 'BACSI')
 def lab():
     """Phân hệ kỹ thuật viên: Thực hiện xét nghiệm và chẩn đoán hình ảnh."""
     patients_list = visible_patients()
@@ -189,7 +203,7 @@ def lab():
     return render_template('admin/lab.html', active_page='admin_lab', patients=patients_list, services=services, lab_orders=lab_orders, stats=stats)
 
 @admin_bp.route('/pharmacy')
-
+@roles_required('ADMIN', 'DUOCSI')
 def pharmacy():
     """Phân hệ dược sĩ: Quản lý kho dược và xuất cấp thuốc theo đơn."""
     medicines = PharmacyModel.get_all_medicines()
@@ -204,7 +218,7 @@ def pharmacy():
     return render_template('admin/pharmacy.html', active_page='admin_pharmacy', medicines=medicines, prescriptions=prescriptions, stats=stats, stock_movements=stock_movements)
 
 @admin_bp.route('/billing')
-
+@roles_required('ADMIN', 'LETAN')
 def billing():
     """Phân hệ thu ngân: Viện phí, chi trả BHYT và xuất hóa đơn điện tử."""
     invoices = filter_patient_records(BillingModel.get_all())
@@ -220,7 +234,7 @@ def billing():
     return render_template('admin/billing.html', active_page='admin_billing', invoices=invoices, stats=stats, patients=patients_list)
 
 @admin_bp.route('/reports')
-
+@roles_required('ADMIN')
 def reports():
     """Báo cáo thống kê doanh thu, lưu lượng bệnh nhân và hiệu suất phòng khám."""
     stats = ClinicModel.get_dashboard_stats()
@@ -229,8 +243,7 @@ def reports():
     return render_template('admin/reports.html', active_page='admin_reports', stats=stats, report_stats=report_stats, invoices=invoices)
 
 @admin_bp.route('/catalogs')
-@roles_required('ADMIN', 'LETAN', 'DUOCSI')
-
+@roles_required('ADMIN')
 def catalogs():
     """Quản lý danh mục y tế: Chuyên khoa, Phòng khám vật lý, Dịch vụ kỹ thuật."""
     departments = ClinicModel.get_all_departments(active_only=False)
@@ -239,8 +252,7 @@ def catalogs():
     return render_template('admin/catalogs.html', active_page='admin_catalogs', departments=departments, rooms=rooms, services=services)
 
 @admin_bp.route('/staff')
-@roles_required('ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV')
-
+@roles_required('ADMIN', 'BACSI', 'DUOCSI', 'KTV')
 def staff():
     """Quản lý nhân sự y tế, bác sĩ chuyên khoa và lịch làm việc / phân ca trực."""
     from models.schedule_model import ScheduleModel
@@ -944,3 +956,36 @@ def notifications():
                            unread_count=unread_count,
                            active_tab=loai,
                            unread_only=unread_only)
+
+
+@admin_bp.route('/prescription/<string:prescription_id>/pdf')
+@roles_required('ADMIN', 'BACSI', 'DUOCSI', 'LETAN')
+def export_prescription_pdf(prescription_id):
+    """Xuất đơn thuốc điện tử chuẩn Bộ Y tế ra file PDF."""
+    from core.pdf_service import generate_prescription_pdf
+    from flask import Response
+    pdf_bytes = generate_prescription_pdf(prescription_id)
+    if not pdf_bytes:
+        flash("Không tìm thấy dữ liệu đơn thuốc để xuất PDF!", "error")
+        return redirect(request.referrer or url_for('admin_pharmacy'))
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'inline; filename=DonThuoc_{prescription_id}.pdf'}
+    )
+
+@admin_bp.route('/lab-order/<string:order_id>/pdf')
+@roles_required('ADMIN', 'BACSI', 'KTV', 'LETAN')
+def export_lab_order_pdf(order_id):
+    """Xuất phiếu chỉ định Cận lâm sàng chuẩn Bộ Y tế ra file PDF."""
+    from core.pdf_service import generate_lab_order_pdf
+    from flask import Response
+    pdf_bytes = generate_lab_order_pdf(order_id)
+    if not pdf_bytes:
+        flash("Không tìm thấy dữ liệu phiếu chỉ định để xuất PDF!", "error")
+        return redirect(request.referrer or url_for('admin_lab'))
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'inline; filename=PhieuChiDinh_{order_id}.pdf'}
+    )

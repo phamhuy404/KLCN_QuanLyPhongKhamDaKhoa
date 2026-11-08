@@ -257,7 +257,16 @@
         ket_qua: o.ket_qua || '',
         file_ket_qua: o.file_ket_qua || '',
         nguoi_nhap: o.nguoi_nhap || '',
-        bac_si_duyet: o.bac_si_duyet || ''
+        bac_si_duyet: o.bac_si_duyet || '',
+        is_panic: o.is_panic || 0,
+        gia_tri_do: o.gia_tri_do,
+        chi_so_binh_thuong: o.chi_so_binh_thuong || '',
+        nguong_nguy_kich_min: o.nguong_nguy_kich_min,
+        nguong_nguy_kich_max: o.nguong_nguy_kich_max,
+        don_vi_do: o.don_vi_do || '',
+        phong_ktv: o.ten_phong_ktv || '',
+        ktv_duoc_chon: o.ten_ktv_duoc_chon || '',
+        ly_do_lam_lai: o.ly_do_lam_lai || ''
     }));
 
     let activeLabOrderId = null;
@@ -388,7 +397,13 @@
 
         dataList.forEach(order => {
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 transition-colors';
+            if (order.is_panic) {
+                tr.className = 'hover:bg-rose-50/80 bg-rose-50/40 border-l-4 border-rose-500 transition-colors';
+            } else if (order.ly_do_lam_lai) {
+                tr.className = 'hover:bg-amber-50/80 bg-amber-50/40 border-l-4 border-amber-500 transition-colors';
+            } else {
+                tr.className = 'hover:bg-slate-50 transition-colors';
+            }
 
             let statusBadge = '';
             if (order.status === 'waiting') {
@@ -418,12 +433,13 @@
 
             // Nút thao tác
             let actionBtn = '';
+            let pdfBtn = `<a href="/admin/lab-order/${order.id}/pdf" target="_blank" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs inline-flex items-center gap-1 ml-1" title="In phiếu chỉ định PDF"><i class="fa-solid fa-file-pdf text-rose-600"></i></a>`;
             if (order.bac_si_duyet && order.status === 'completed') {
-                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs"><i class="fa-solid fa-eye mr-1"></i> Xem</button>`;
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 font-semibold text-xs"><i class="fa-solid fa-eye mr-1"></i> Xem</button>${pdfBtn}`;
             } else if (order.ket_qua && (userRole === 'ADMIN' || userRole === 'BACSI')) {
-                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Duyệt KQ</button>`;
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Duyệt KQ</button>${pdfBtn}`;
             } else {
-                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs"><i class="fa-solid fa-pen-to-square mr-1"></i> Kết Quả</button>`;
+                actionBtn = `<button type="button" onclick="openResultModal(${order.id})" class="px-3 py-1.5 rounded-lg bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs"><i class="fa-solid fa-pen-to-square mr-1"></i> Kết Quả</button>${pdfBtn}`;
             }
 
             tr.innerHTML = `
@@ -435,8 +451,13 @@
                     <span class="text-[10px] text-slate-400 font-mono">${order.ma_bn}</span>
                 </td>
                 <td class="py-3.5 px-4 font-semibold text-slate-800">
-                    ${order.dich_vu}
-                    ${order.ket_qua ? `<span class="block text-[11px] text-teal-700 mt-0.5 font-normal">${order.ket_qua.split('\n')[0]}</span>` : ''}
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span>${order.dich_vu}</span>
+                        ${order.is_panic ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white font-black text-[9px] animate-pulse"><i class="fa-solid fa-triangle-exclamation"></i> NGUY KỊCH</span>' : ''}
+                        ${order.phong_ktv ? `<span class="px-1.5 py-0.2 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[9px] font-medium">${order.phong_ktv}</span>` : ''}
+                    </div>
+                    ${order.ly_do_lam_lai ? `<span class="block text-[10px] text-amber-800 font-bold bg-amber-100/70 px-2 py-0.5 rounded border border-amber-300 mt-1"><i class="fa-solid fa-rotate-left mr-1"></i> Bác sĩ yêu cầu làm lại: ${order.ly_do_lam_lai}</span>` : ''}
+                    ${order.ket_qua ? `<span class="block text-[11px] ${order.is_panic ? 'text-rose-700 font-bold' : 'text-teal-700'} mt-0.5 font-normal">${order.ket_qua.split('\n')[0]}</span>` : ''}
                 </td>
                 <td class="py-3.5 px-4">
                     <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-medium">${order.loai}</span>

@@ -1,7 +1,7 @@
 # Xác thực và quyền sở hữu hồ sơ
 
 > Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
-> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+> Các đoạn In-memory Mock / Test và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
 
 
 ## Thay đổi đã áp dụng
@@ -97,7 +97,7 @@ python -B -m flask --app app:create_test_app run --port 5001 --no-reload --no-de
 Test bảo mật chặn `pyodbc.connect`, SMTP và thread ứng dụng trước khi import.
 DB fixture có tên riêng `file:security_<uuid>?mode=memory&cache=shared`, kiểm
 tra `PRAGMA database_list` ở từng connection để xác minh không có file DB.
-DDL/DML chỉ tạo fixture và kiểm tra dữ liệu trong SQLite RAM, không chạy
+DDL/DML chỉ tạo fixture và kiểm tra dữ liệu trong In-memory Test, không chạy
 migration/seed của ứng dụng. Adapter test chuyển duy nhất `SELECT TOP 1` sang
 `LIMIT 1`; không thay SQL sản xuất hoặc tắt validation/quyền.
 

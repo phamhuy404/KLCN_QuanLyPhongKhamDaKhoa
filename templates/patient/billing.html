@@ -256,14 +256,49 @@
                 </div>
             </div>
 
-            <div id="payment-instructions" class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-900 space-y-1">
-                <div class="font-bold flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-info text-amber-600"></i> Hướng dẫn thanh toán:
+            <!-- Chọn hình thức thanh toán: VietQR hoặc Tiền mặt tại quầy -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-700">Phương thức thanh toán:</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="pay-method-qr-btn" onclick="selectPatientPayMethod('vietqr')" class="py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 border-medical-600 bg-medical-50 text-medical-700">
+                        <i class="fa-solid fa-qrcode"></i> VietQR Chuyển khoản
+                    </button>
+                    <button type="button" id="pay-method-cash-btn" onclick="selectPatientPayMethod('cash')" class="py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+                        <i class="fa-solid fa-money-bill-wave"></i> Tiền mặt tại quầy
+                    </button>
                 </div>
-                <p class="text-[11px] leading-relaxed">Chuyển khoản bằng mã VietQR bên dưới, hoặc đưa tiền mặt tại quầy thu ngân.</p>
             </div>
+
+            <!-- Chỉ dẫn thanh toán tiền mặt tại quầy Tiếp tân -->
+            <div id="patient-cash-guidance" class="hidden rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-3 text-xs">
+                <div class="flex items-center gap-2 text-amber-900 font-bold text-xs sm:text-sm">
+                    <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-hospital-user text-sm"></i>
+                    </span>
+                    <span>Chỉ dẫn nộp viện phí bằng tiền mặt</span>
+                </div>
+                <div class="space-y-1.5 text-slate-700 bg-white p-3 rounded-xl border border-amber-200/60 shadow-xs">
+                    <p class="flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-rose-500"></i>
+                        <span>Địa điểm: <strong>Quầy Tiếp Tân và Thu Ngân (Tầng 1 - Sảnh chính)</strong></span>
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <i class="fa-solid fa-receipt text-medical-600"></i>
+                        <span>Mã hóa đơn: <strong class="font-mono text-medical-700" id="cash-modal-code">HD...</strong></span>
+                    </p>
+                    <p class="flex items-center gap-2">
+                        <i class="fa-solid fa-coins text-amber-600"></i>
+                        <span>Số tiền nộp: <strong class="font-mono text-rose-600 text-sm" id="cash-modal-amount">0 đ</strong></span>
+                    </p>
+                </div>
+                <div class="text-[11px] text-amber-800 leading-relaxed space-y-1">
+                    <p>• Vui lòng di chuyển đến Quầy Tiếp tân và đọc Mã hóa đơn hoặc Tên/SĐT của bạn.</p>
+                    <p>• Sau khi Tiếp tân xác nhận thu tiền mặt, hóa đơn sẽ tự động chuyển sang trạng thái <strong>Đã thanh toán</strong> và đơn thuốc sẽ được duyệt chuyển sang Nhà thuốc.</p>
+                </div>
+            </div>
+
             <div id="patient-vietqr" class="hidden rounded-2xl border border-teal-200 bg-teal-50 p-4 text-center space-y-2 text-xs">
-                <img id="patient-vietqr-image" alt="Mã VietQR thanh toán" class="mx-auto w-52 h-52 bg-white rounded-xl" />
+                <img id="patient-vietqr-image" alt="Mã VietQR thanh toán" class="mx-auto w-52 h-52 bg-white rounded-xl shadow-xs" />
                 <p>Số tiền: <strong id="patient-vietqr-amount"></strong></p>
                 <p>Nội dung chuyển khoản: <strong id="patient-vietqr-reference" class="font-mono"></strong></p>
                 <p id="patient-vietqr-bank" class="text-slate-600"></p>
@@ -285,6 +320,36 @@
 
     <script>
         let currentModalInvoice = null;
+        let selectedPayMethod = 'vietqr';
+
+        function selectPatientPayMethod(method) {
+            selectedPayMethod = method;
+            const qrBtn = document.getElementById('pay-method-qr-btn');
+            const cashBtn = document.getElementById('pay-method-cash-btn');
+            const qrPanel = document.getElementById('patient-vietqr');
+            const cashPanel = document.getElementById('patient-cash-guidance');
+            const error = document.getElementById('patient-vietqr-error');
+
+            if (method === 'cash') {
+                stopPatientPaymentPolling();
+                cashBtn.className = "py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 border-amber-500 bg-amber-50 text-amber-800 shadow-xs";
+                qrBtn.className = "py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 border-slate-200 bg-white text-slate-600 hover:bg-slate-50";
+                qrPanel.classList.add('hidden');
+                error.classList.add('hidden');
+                cashPanel.classList.remove('hidden');
+                if (currentModalInvoice) {
+                    document.getElementById('cash-modal-code').textContent = currentModalInvoice.ma_hoa_don || '—';
+                    document.getElementById('cash-modal-amount').textContent = ((currentModalInvoice.thanh_tien || currentModalInvoice.thuc_thu || 0)).toLocaleString('vi-VN') + ' đ';
+                }
+            } else {
+                qrBtn.className = "py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 border-medical-600 bg-medical-50 text-medical-700 shadow-xs";
+                cashBtn.className = "py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 border-slate-200 bg-white text-slate-600 hover:bg-slate-50";
+                cashPanel.classList.add('hidden');
+                if (currentModalInvoice && currentModalInvoice.trang_thai === 'Chưa thanh toán') {
+                    startPatientVietQR(currentModalInvoice);
+                }
+            }
+        }
         let patientPaymentTimer = null;
         let patientPaymentSeconds = 600;
         let patientPaymentGeneration = 0;

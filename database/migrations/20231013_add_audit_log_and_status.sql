@@ -1,8 +1,7 @@
 -- Migration: Bổ sung bảng audit_log và các trường kiểm toán cho kết quả xét nghiệm, đơn thuốc
--- Tương thích: Microsoft SQL Server, SQLite, MySQL
+-- Tương thích: 100% Microsoft SQL Server (T-SQL)
 
 -- 1. Bảng audit_log
--- SQL Server:
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'audit_log')
 BEGIN
     CREATE TABLE audit_log (

@@ -80,6 +80,7 @@ CREATE TABLE phong_kham (
     ma_phong NVARCHAR(20) NOT NULL UNIQUE,
     ten_phong NVARCHAR(100) NOT NULL,
     vi_tri_tang NVARCHAR(50) DEFAULT N'Tầng 1',
+    loai_phong NVARCHAR(30) DEFAULT N'LAM_SANG',
     trang_thai BIT DEFAULT 1,
     FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
 );
@@ -92,6 +93,12 @@ CREATE TABLE dich_vu (
     loai_dich_vu NVARCHAR(50) DEFAULT N'Khám bệnh',
     don_gia DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     bhyt_chi_tra_pt INT DEFAULT 0,
+    chi_so_binh_thuong NVARCHAR(100) NULL,
+    nguong_binh_thuong_min FLOAT NULL,
+    nguong_binh_thuong_max FLOAT NULL,
+    nguong_nguy_kich_min FLOAT NULL,
+    nguong_nguy_kich_max FLOAT NULL,
+    don_vi_do NVARCHAR(50) NULL,
     mo_ta NVARCHAR(255),
     trang_thai BIT DEFAULT 1,
     FOREIGN KEY (chuyen_khoa_id) REFERENCES chuyen_khoa(id)
@@ -122,6 +129,7 @@ CREATE TABLE tai_khoan (
     sdt NVARCHAR(15),
     trang_thai BIT DEFAULT 1,
     da_hoan_thien_ho_so BIT DEFAULT 0,
+    yeu_cau_doi_mat_khau TINYINT DEFAULT 0,
     ngay_tao DATETIME DEFAULT GETDATE(),
     lan_dang_nhap_cuoi DATETIME NULL,
     FOREIGN KEY (vai_tro_id) REFERENCES vai_tro(id)
@@ -148,6 +156,9 @@ CREATE TABLE nhan_vien (
     cccd NVARCHAR(20) UNIQUE,
     dia_chi NVARCHAR(255),
     chuc_vu NVARCHAR(100) NOT NULL,
+    phong_kham_id INT NULL,
+    chuyen_khoa_id INT NULL,
+    chuyen_mon NVARCHAR(255) NULL,
     ngay_vao_lam DATE DEFAULT CAST(GETDATE() AS DATE),
     trang_thai BIT DEFAULT 1,
     FOREIGN KEY (tai_khoan_id) REFERENCES tai_khoan(id)
@@ -243,6 +254,9 @@ CREATE TABLE lich_hen (
     gio_hen TIME NOT NULL,
     ly_do_kham NVARCHAR(MAX),
     loai_lich_hen TINYINT DEFAULT 1,
+    stt_ngay INT NULL,
+    da_goi_kham BIT DEFAULT 0,
+    thoi_gian_goi DATETIME NULL,
     trang_thai NVARCHAR(50) DEFAULT N'Chờ xác nhận',
     ngay_dat DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id) ON DELETE CASCADE,
@@ -266,6 +280,10 @@ CREATE TABLE phieu_kham (
     huong_dieu_tri NVARCHAR(MAX),
     loi_dan NVARCHAR(MAX),
     ngay_tai_kham DATE NULL,
+    cho_ktv_id INT NULL,
+    phong_ktv_id INT NULL,
+    buoc_hien_tai INT DEFAULT 1,
+    ktv_hoan_thanh BIT DEFAULT 0,
     trang_thai NVARCHAR(50) DEFAULT N'Hoàn thành',
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
     FOREIGN KEY (bac_si_id) REFERENCES bac_si(id),
@@ -298,6 +316,11 @@ CREATE TABLE chi_tiet_chi_dinh (
     thoi_gian_duyet DATETIME NULL,
     ghi_chu_duyet NVARCHAR(MAX) NULL,
     nguoi_nhap NVARCHAR(100) NULL,
+    gia_tri_do FLOAT NULL,
+    is_panic BIT DEFAULT 0,
+    ktv_duoc_chon_id INT NULL,
+    phong_ktv_id INT NULL,
+    ly_do_lam_lai NVARCHAR(500) NULL,
     FOREIGN KEY (phieu_chi_dinh_id) REFERENCES phieu_chi_dinh(id) ON DELETE CASCADE,
     FOREIGN KEY (dich_vu_id) REFERENCES dich_vu(id)
 );
@@ -345,6 +368,8 @@ CREATE TABLE hoa_don (
     thoi_gian_thanh_toan DATETIME NULL,
     nhan_vien_thu NVARCHAR(100),
     trang_thai_nhan_thuoc NVARCHAR(50) NULL,
+    da_khoa BIT DEFAULT 0,
+    phuong_thuc_du_kien NVARCHAR(50) NULL,
     FOREIGN KEY (benh_nhan_id) REFERENCES benh_nhan(id),
     FOREIGN KEY (phieu_kham_id) REFERENCES phieu_kham(id)
 );

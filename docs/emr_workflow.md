@@ -1,7 +1,7 @@
 # Liên kết lịch hẹn và giao dịch phiếu khám EMR
 
 > Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
-> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+> Các đoạn In-memory Mock / Test và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
 
 
 ## Lỗi đã xác minh
@@ -56,7 +56,7 @@ $env:PYTHONPATH = 'tests'
 & C:/laragon/bin/python/python-3.13/python.exe -B -m unittest test_startup_safety test_security_access test_clinical_media tests.test_scheduling_safety -q
 ```
 
-Không chạy discovery toàn repo hoặc các test cũ vì có test dùng DB thật. Test mới dùng `create_test_app`, `TESTING=True`, khóa phiên test và `DATABASE_CONNECTION_FACTORY` SQLite RAM. Mỗi kết nối được xác minh `PRAGMA database_list` không có file. Chặn `pyodbc.connect`, SMTP và thread ứng dụng từ trước khi import. HTTP test chỉ mở thread do test sở hữu trên localhost/cổng ngẫu nhiên và đóng sau test. Các dữ liệu fixture chỉ tồn tại trong RAM của test.
+Không chạy discovery toàn repo hoặc các test cũ vì có test dùng DB thật. Test mới dùng `create_test_app`, `TESTING=True`, khóa phiên test và `DATABASE_CONNECTION_FACTORY` In-memory Test. Mỗi kết nối được xác minh `PRAGMA database_list` không có file. Chặn `pyodbc.connect`, SMTP và thread ứng dụng từ trước khi import. HTTP test chỉ mở thread do test sở hữu trên localhost/cổng ngẫu nhiên và đóng sau test. Các dữ liệu fixture chỉ tồn tại trong RAM của test.
 
 Website vẫn khởi động bằng `python app.py` với cấu hình SQL Server/`SECRET_KEY` hiện có. Lệnh này dùng runtime vận hành, không phải cấu hình test; không được chạy trên cấu hình DB thật trong nhiệm vụ. Không dùng Website cổng 5000 để ghi thử. Chưa cung cấp server test dài hạn; test HTTP tự khởi động/dừng server tạm an toàn.
 
@@ -72,7 +72,7 @@ Website vẫn khởi động bằng `python app.py` với cấu hình SQL Server
 
 ## Chưa kiểm chứng / điều kiện còn thiếu
 
-SQLite chạy SQL đọc/ghi nghiệp vụ thật nhưng adapter dịch một số cú pháp T-SQL và MOCK `sp_getapplock`. Chưa chứng minh T-SQL/ODBC, khóa liên process, deadlock, timeout hoặc hai yêu cầu hoàn tất đồng thời trên SQL Server. Chưa chạy luồng CLS đầy đủ bằng thao tác trình duyệt thật (đã chạy HTTP), chưa thử Flutter và mất kết nối/crash tại commit.
+SQL Server Test Mock chạy SQL đọc/ghi nghiệp vụ thật nhưng adapter dịch một số cú pháp T-SQL và MOCK `sp_getapplock`. Chưa chứng minh T-SQL/ODBC, khóa liên process, deadlock, timeout hoặc hai yêu cầu hoàn tất đồng thời trên SQL Server. Chưa chạy luồng CLS đầy đủ bằng thao tác trình duyệt thật (đã chạy HTTP), chưa thử Flutter và mất kết nối/crash tại commit.
 
 Cần SQL Server test được xác nhận độc lập không phải database vận hành, cấu hình kết nối/factory riêng, tài khoản và dữ liệu test được cho phép, quyền `sp_getapplock` để nghiệm thu thực tế. Khi có môi trường, thử hai process hoàn tất cùng phiếu, lưu/hoàn tất/nhập-duyệt CLS cạnh tranh, commit thất bại, rồi kiểm tra phiếu/lịch/đơn/hóa đơn và rollback. Không tự trỏ vào DB thật hoặc tạo môi trường bằng seed/migration.
 

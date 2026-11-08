@@ -37,7 +37,7 @@ trình hoàn thiện 5 phân hệ tính năng nâng cao cho dự án Khóa luậ
   + Cung cấp nút "Tải File Mẫu" chuẩn cấu trúc cột giúp người quản trị dễ dàng nhập thêm 
     hàng loạt tài khoản mới về sau.
 - Tính năng Đổi mật khẩu và Khóa/Mở tài khoản:
-  + Tích hợp modal cấp lại mật khẩu mới được mã hóa an toàn vào CSDL MySQL.
+  + Tích hợp modal cấp lại mật khẩu mới được mã hóa an toàn vào CSDL Microsoft SQL Server.
   + Nút bật/tắt (Toggle) khóa hoặc kích hoạt tài khoản tức thì mà không cần tải lại trang.
 
 --------------------------------------------------------------------------------

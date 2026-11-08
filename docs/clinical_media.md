@@ -1,7 +1,7 @@
 # Dữ liệu lâm sàng và ảnh bệnh án
 
 > Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
-> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+> Các đoạn In-memory Mock / Test và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
 
 
 Các file thay đổi trong nhiệm vụ này:
@@ -124,7 +124,7 @@ python -B -m unittest discover -s tests -p test_security_access.py -v
 python -B -m unittest discover -s tests -p test_startup_safety.py -v
 ```
 
-Chỉ chạy các file này, không chạy discovery toàn bộ test cũ. Test dùng SQLite
+Chỉ chạy các file này, không chạy discovery toàn bộ test cũ. Test dùng SQL Server Test Mock
 chỉ trong RAM (xác minh từng connection), ảnh trong thư mục tạm, chặn pyodbc,
 SMTP và worker ứng dụng. Network image import dùng mock, không tải Internet.
 Luồng HTTP loopback kiểm tra đăng nhập, trang kết quả, API, file ảnh được phép

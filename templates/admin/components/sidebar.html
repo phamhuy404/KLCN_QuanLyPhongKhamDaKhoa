@@ -142,7 +142,7 @@
         <!-- 1. HOẠT ĐỘNG KHÁM CHỮA BỆNH CHÍNH -->
 
 
-        {% if role in ['ADMIN', 'BACSI'] %}
+        {% if role in ['ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV'] %}
 
 
         <a href="{{ url_for('admin_dashboard') }}"
@@ -496,7 +496,7 @@
 
 
 
-        {% if role in ['ADMIN', 'BACSI', 'LETAN', 'DUOCSI', 'KTV'] %}
+        {% if role == 'ADMIN' %}
 
 
         <a href="{{ url_for('admin_staff') }}"
@@ -532,7 +532,7 @@
         <!-- 3. BÁO CÁO, VẬN HÀNH VÀ QUẢN TRỊ -->
 
 
-        {% if role in ['ADMIN', 'LETAN'] %}
+        {% if role == 'ADMIN' %}
 
 
         <a href="{{ url_for('admin_reports') }}"
@@ -565,7 +565,7 @@
 
 
 
-        {% if role in ['ADMIN', 'LETAN', 'DUOCSI'] %}
+        {% if role == 'ADMIN' %}
 
 
         <a href="{{ url_for('admin_catalogs') }}"

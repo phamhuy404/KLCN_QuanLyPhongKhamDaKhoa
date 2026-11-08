@@ -588,3 +588,50 @@ def notifications():
 
                            unread_only=unread_only)
 
+
+
+@patient_bp.route('/prescription/<string:prescription_id>/pdf')
+@login_required
+def prescription_pdf(prescription_id):
+    """Bệnh nhân xem hoặc tải về đơn thuốc điện tử dạng PDF."""
+    from core.pdf_service import generate_prescription_pdf
+    from models.pharmacy_model import PharmacyModel
+    from flask import Response
+    user = session.get('user', {})
+    pid = _get_current_patient_id()
+    dt = PharmacyModel.get_prescription_detail(prescription_id)
+    if not dt or (user.get('vai_tro') == 'BENHNHAN' and dt.get('benh_nhan_id') != pid):
+        flash("Bạn không có quyền truy cập đơn thuốc này!", "error")
+        return redirect(url_for('patient.prescriptions'))
+    pdf_bytes = generate_prescription_pdf(prescription_id)
+    if not pdf_bytes:
+        flash("Không tìm thấy dữ liệu đơn thuốc!", "error")
+        return redirect(url_for('patient.prescriptions'))
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'inline; filename=DonThuoc_{prescription_id}.pdf'}
+    )
+
+@patient_bp.route('/lab-order/<string:order_id>/pdf')
+@login_required
+def lab_order_pdf(order_id):
+    """Bệnh nhân xem hoặc tải về phiếu chỉ định cận lâm sàng dạng PDF."""
+    from core.pdf_service import generate_lab_order_pdf
+    from models.medical_record_model import MedicalRecordModel
+    from flask import Response
+    user = session.get('user', {})
+    pid = _get_current_patient_id()
+    order = MedicalRecordModel.get_lab_order_detail(order_id)
+    if not order or (user.get('vai_tro') == 'BENHNHAN' and order.get('benh_nhan_id') != pid):
+        flash("Bạn không có quyền truy cập phiếu chỉ định này!", "error")
+        return redirect(url_for('patient.appointments'))
+    pdf_bytes = generate_lab_order_pdf(order_id)
+    if not pdf_bytes:
+        flash("Không tìm thấy dữ liệu phiếu chỉ định!", "error")
+        return redirect(url_for('patient.appointments'))
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'inline; filename=PhieuChiDinh_{order_id}.pdf'}
+    )

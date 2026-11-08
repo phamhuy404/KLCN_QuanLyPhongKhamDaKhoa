@@ -115,7 +115,7 @@ PHẦN II. CÁCH CẤU HÌNH VÀ CHẠY DỰ ÁN
    Mở file config.py, tìm dòng 8-10:
 
    * Cách 1 (Khuyên dùng để test nhanh nhất - Không cần cài SQL Server):
-     DB_ENGINE = 'sqlite'
+     DB_ENGINE = 'sqlserver'
      # DB_ENGINE = 'sqlserver'
      -> Hệ thống sẽ dùng trực tiếp file phongkham.db có sẵn ở thư mục gốc.
 
@@ -337,6 +337,6 @@ TEST CHỨC NĂNG 10: QUẢN LÝ ĐƠN THUỐC, CẤP PHÁT THUỐC VÀ QUÁ TR�
 ================================================================================
 KẾT LUẬN VÀ KHUYẾN NGHỊ:
 - Mọi chức năng đều có thể kiểm thử trực tiếp trên giao diện web hoặc qua các API.
-- Để thuận tiện nhất, hãy đặt DB_ENGINE = 'sqlite' trong config.py để test ngay mà
+- Để thuận tiện nhất, hãy đặt DB_ENGINE = 'sqlserver' trong config.py để test ngay mà
   không phụ thuộc vào dịch vụ SQL Server bên ngoài.
 ================================================================================

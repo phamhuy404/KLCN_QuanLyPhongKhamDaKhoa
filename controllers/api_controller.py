@@ -81,7 +81,29 @@ def book_appointment():
                 'assigned_random': assigned_rnd,
                 'message': msg
             })
-        return jsonify({'success': True, 'ma_lich_hen': result, 'message': 'Đặt lịch thành công!'})
+        cursor = get_db().cursor()
+        cursor.execute('''
+            SELECT lh.id, lh.ma_lich_hen, lh.stt_ngay, pk.ten_phong, bs_nv.ho_ten AS ten_bac_si
+            FROM lich_hen lh
+            LEFT JOIN phong_kham pk ON lh.phong_kham_id = pk.id
+            LEFT JOIN bac_si bs ON lh.bac_si_id = bs.id
+            LEFT JOIN nhan_vien bs_nv ON bs.nhan_vien_id = bs_nv.id
+            WHERE lh.ma_lich_hen = ?
+        ''', (result,))
+        row = cursor.fetchone()
+        stt = row['stt_ngay'] if row and row['stt_ngay'] else 1
+        ten_phong = row['ten_phong'] if row and row['ten_phong'] else 'Phòng khám đa khoa'
+        ten_bac_si = row['ten_bac_si'] if row and row['ten_bac_si'] else ''
+        appt_id = row['id'] if row else None
+        return jsonify({
+            'success': True,
+            'ma_lich_hen': result,
+            'appointment_id': appt_id,
+            'stt': stt,
+            'phong_kham': ten_phong,
+            'ten_bac_si': ten_bac_si,
+            'message': f'Đã tạo và duyệt sẵn lịch hẹn #{result} thành công!'
+        })
     return jsonify({'success': False, 'message': result}), 400
 
 @api_bp.route('/appointment/assign-doctor', methods=['POST'])
@@ -457,6 +479,9 @@ def finish_emr_examination():
     """API bác sĩ kết luận chẩn đoán xác định, tải thêm ảnh và hoàn tất ca khám sau khi có kết quả CLS."""
     import json
     from core.image_service import process_image_input
+    user = session.get('user', {})
+    if user.get('vai_tro') == 'ADMIN' and not user.get('bac_si_id'):
+        return jsonify(success=False, message='Chỉ Bác sĩ điều trị phụ trách ca khám mới có quyền ký duyệt hoàn tất phiếu khám EMR để đảm bảo tính pháp lý của hồ sơ y tế!'), 403
     payload = (request.get_json() or {}) if request.is_json else request.form
     record = MedicalRecordModel.get_examination_by_id(payload.get('record_id'))
     if not record:
@@ -1490,8 +1515,11 @@ def get_lab_orders_api():
     return jsonify({'success': True, 'orders': orders})
 
 @api_bp.route('/lab/result/save', methods=['POST'])
-@roles_required('ADMIN', 'KTV', 'BACSI')
+@roles_required('ADMIN', 'KTV')
 def save_lab_result():
+    user = session.get('user', {})
+    if user.get('vai_tro') == 'BACSI':
+        return jsonify(success=False, message="Bác sĩ không được sửa trực tiếp thông số kỹ thuật do KTV nhập vào. Vui lòng bấm 'Ký duyệt' hoặc 'Yêu cầu làm lại'!"), 403
     import json
     from core.image_service import process_image_input
     from core.medical_media import image_paths
@@ -1503,6 +1531,8 @@ def save_lab_result():
     item = MedicalRecordModel.get_lab_item_by_id(item_id)
     if not item:
         deny(404, 'Lab item not found')
+    if item.get('trang_thai') == 'Đã duyệt':
+        return jsonify(success=False, message="Kết quả cận lâm sàng này đã được Bác sĩ ký duyệt nội bộ, KTV không thể chỉnh sửa nữa!"), 403
     patient_id = require_patient_access(item.get('patient_id'))
     images = data.get('images') or data.get('file_ket_qua') or []
     if isinstance(images, str):
@@ -1525,7 +1555,7 @@ def save_lab_result():
 
 
 @api_bp.route('/lab/result/approve', methods=['POST'])
-@roles_required('ADMIN', 'BACSI', 'KTV')
+@roles_required('ADMIN', 'BACSI')
 def approve_lab_result_api():
     """API bác sĩ duyệt kết quả cận lâm sàng (xác nhận duyệt nội bộ)."""
     data = request.get_json() or {}
@@ -1541,6 +1571,22 @@ def approve_lab_result_api():
     if ok:
         return jsonify({'success': True, 'message': msg})
     return jsonify({'success': False, 'message': msg}), 400
+
+@api_bp.route('/lab/result/request-redo', methods=['POST'])
+@roles_required('ADMIN', 'BACSI')
+def request_redo_lab_result_api():
+    """API bác sĩ yêu cầu kỹ thuật viên làm lại xét nghiệm / chụp chiếu."""
+    data = request.get_json() or {}
+    chi_tiet_id = data.get('chi_tiet_id') or data.get('order_id')
+    reason = data.get('reason') or data.get('ly_do')
+    user = session.get('user')
+    if not chi_tiet_id:
+        return jsonify({'success': False, 'message': 'Thiếu ID chỉ định cận lâm sàng cần yêu cầu làm lại!'}), 400
+    ok, msg = MedicalRecordModel.request_redo_lab_result(chi_tiet_id, reason=reason, audit_user=user)
+    if ok:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
+
 
 @api_bp.route('/lab/result/view/<int:chi_tiet_id>', methods=['GET'])
 @login_required
@@ -2074,3 +2120,11 @@ def update_maintenance_api():
         'message': msg,
         'settings': current
     })
+
+
+@api_bp.route('/queue/auto-call', methods=['GET', 'POST'])
+def auto_call_queue_api():
+    """API tự động quét hàng đợi hôm nay và kích hoạt gọi số khám theo giờ hẹn."""
+    from models.appointment_model import AppointmentModel
+    called_count = AppointmentModel.trigger_auto_call_queue()
+    return jsonify({'success': True, 'called_count': called_count})

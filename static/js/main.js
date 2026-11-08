@@ -820,3 +820,141 @@ window.H2TSync = {
 };
 
 
+
+
+// 8. HỆ THỐNG CHUÔNG BÁO GỌI KHÁM VÀ CẢNH BÁO NGUY KỊCH (WEB AUDIO API)
+let continuousChimeInterval = null;
+let audioContextInstance = null;
+let alertedNotificationIds = new Set();
+
+function playMedicalChimeTone(isPanic = false) {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!audioContextInstance) audioContextInstance = new AudioCtx();
+        if (audioContextInstance.state === 'suspended') {
+            audioContextInstance.resume();
+        }
+        const now = audioContextInstance.currentTime;
+        const osc = audioContextInstance.createOscillator();
+        const gain = audioContextInstance.createGain();
+        osc.connect(gain);
+        gain.connect(audioContextInstance.destination);
+
+        if (isPanic) {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(1100, now);
+            osc.frequency.linearRampToValueAtTime(750, now + 0.25);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+            osc.start(now);
+            osc.stop(now + 0.45);
+        } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.28);
+            osc.frequency.setValueAtTime(554.37, now + 0.56);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            osc.start(now);
+            osc.stop(now + 1.4);
+        }
+    } catch (e) {
+        console.warn('Audio chime notice:', e);
+    }
+}
+
+function startContinuousAlertChime(notif) {
+    if (continuousChimeInterval) return;
+    const isPanic = (notif.loai_thong_bao === 'NguyKich');
+    playMedicalChimeTone(isPanic);
+    continuousChimeInterval = setInterval(() => playMedicalChimeTone(isPanic), isPanic ? 1600 : 2800);
+    showChimeAlertModal(notif);
+}
+
+function stopContinuousAlertChime() {
+    if (continuousChimeInterval) {
+        clearInterval(continuousChimeInterval);
+        continuousChimeInterval = null;
+    }
+    const modal = document.getElementById('h2t-chime-alert-modal');
+    if (modal) modal.remove();
+}
+
+function showChimeAlertModal(notif) {
+    let existing = document.getElementById('h2t-chime-alert-modal');
+    if (existing) existing.remove();
+
+    const isPanic = (notif.loai_thong_bao === 'NguyKich');
+    const modal = document.createElement('div');
+    modal.id = 'h2t-chime-alert-modal';
+    modal.className = 'fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in';
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border-4 ${isPanic ? 'border-rose-500' : 'border-teal-500'}">
+            <div class="w-16 h-16 rounded-2xl ${isPanic ? 'bg-rose-100 text-rose-600' : 'bg-teal-100 text-teal-600'} flex items-center justify-center text-3xl mx-auto animate-bounce">
+                <i class="fa-solid ${isPanic ? 'fa-triangle-exclamation' : 'fa-bell'}"></i>
+            </div>
+            <div>
+                <span class="text-xs uppercase font-extrabold tracking-wider ${isPanic ? 'text-rose-600' : 'text-teal-600'}">
+                    ${isPanic ? 'CẢNH BÁO GIÁ TRỊ NGUY KỊCH' : 'ĐÃ ĐẾN LƯỢT GỌI KHÁM BỆNH'}
+                </span>
+                <h3 class="text-lg font-black text-slate-900 mt-1">${notif.tieu_de || 'Thông báo khám bệnh'}</h3>
+                <p class="text-xs text-slate-600 mt-2 leading-relaxed">${notif.noi_dung || ''}</p>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center justify-center gap-2">
+                <span class="w-2 h-2 rounded-full ${isPanic ? 'bg-rose-500' : 'bg-teal-500'} animate-ping"></span>
+                <span>Chuông reo liên tục cho tới khi bạn nhấn vào thông báo.</span>
+            </div>
+            <button type="button" onclick="handleChimeAlertClick(${notif.id || 0}, '${notif.lien_ket || '/patient/appointments'}')" class="w-full py-3.5 px-6 rounded-2xl text-white font-black text-sm shadow-xl transition-all cursor-pointer ${isPanic ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30' : 'bg-teal-600 hover:bg-teal-700 shadow-teal-600/30'} flex items-center justify-center gap-2">
+                <i class="fa-solid fa-volume-xmark"></i>
+                <span>TẮT CHUÔNG VÀ XEM CHI TIẾT</span>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.handleChimeAlertClick = function(notifId, targetUrl) {
+    stopContinuousAlertChime();
+    if (notifId) {
+        alertedNotificationIds.add(notifId);
+        fetch(`/api/notifications/read/${notifId}`, { method: 'POST' }).catch(() => {});
+    }
+    if (targetUrl) {
+        window.location.href = targetUrl;
+    }
+};
+
+// Polling định kỳ kiểm tra gọi khám tự động và cảnh báo nguy kịch
+function checkRealtimeNotificationsAndQueue() {
+    fetch('/api/queue/auto-call', { method: 'POST' }).catch(() => {});
+    fetch('/api/notifications')
+        .then(res => res.json())
+        .then(data => {
+            const badge = document.getElementById('header-unread-badge');
+            if (badge) {
+                if (data.success && data.unread_count > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+            if (data.success && Array.isArray(data.notifications)) {
+                const urgent = data.notifications.find(n => 
+                    !n.da_doc && !alertedNotificationIds.has(n.id) && 
+                    (n.loai_thong_bao === 'GoiKham' || n.loai_thong_bao === 'NguyKich')
+                );
+                if (urgent) {
+                    startContinuousAlertChime(urgent);
+                }
+            }
+        })
+        .catch(() => {});
+}
+
+// Bắt đầu chu kỳ polling tự động mỗi 10 giây
+setInterval(checkRealtimeNotificationsAndQueue, 10000);
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(checkRealtimeNotificationsAndQueue, 1500);
+});

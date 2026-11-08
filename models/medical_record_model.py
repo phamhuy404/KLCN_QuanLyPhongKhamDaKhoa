@@ -77,6 +77,10 @@ class MedicalRecordModel:
                 dv.id AS dich_vu_id, dv.ten_dich_vu AS dich_vu, dv.loai_dich_vu AS loai, dv.don_gia,
                 ct.id AS chi_tiet_id, ct.ket_qua, ct.file_ket_qua, ct.ktv_thuc_hien, ct.thoi_gian_thuc_hien,
                 ct.trang_thai, ct.bac_si_duyet, ct.thoi_gian_duyet, ct.ghi_chu_duyet,
+                ct.is_panic, ct.gia_tri_do, ct.ktv_duoc_chon_id, ct.phong_ktv_id, ct.ly_do_lam_lai,
+                dv.chi_so_binh_thuong, dv.nguong_binh_thuong_min, dv.nguong_binh_thuong_max,
+                dv.nguong_nguy_kich_min, dv.nguong_nguy_kich_max, dv.don_vi_do,
+                pk_ktv.ten_phong AS ten_phong_ktv, nv_ktv.ho_ten AS ten_ktv_duoc_chon,
                 COALESCE(
                     (SELECT TOP 1 hd.trang_thai 
                      FROM hoa_don hd 
@@ -91,6 +95,8 @@ class MedicalRecordModel:
             LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
             LEFT JOIN chi_tiet_chi_dinh ct ON cd.id = ct.phieu_chi_dinh_id
             LEFT JOIN dich_vu dv ON ct.dich_vu_id = dv.id
+            LEFT JOIN phong_kham pk_ktv ON ct.phong_ktv_id = pk_ktv.id
+            LEFT JOIN nhan_vien nv_ktv ON ct.ktv_duoc_chon_id = nv_ktv.id
             WHERE ct.id IS NOT NULL
             ORDER BY cd.id DESC, ct.id ASC
         ''')
@@ -109,6 +115,67 @@ class MedicalRecordModel:
         if approved_only:
             return published_results(patient_orders)
         return patient_orders
+
+    @staticmethod
+    def get_lab_order_detail(order_id_or_code):
+        """Lấy chi tiết phiếu chỉ định cận lâm sàng và toàn bộ dịch vụ đi kèm."""
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            oid_int = int(order_id_or_code)
+        except (ValueError, TypeError):
+            oid_int = None
+
+        if oid_int is not None:
+            cursor.execute('''
+                SELECT cd.*, pk.ma_phieu, pk.trieu_chung, pk.chan_doan_so_bo, pk.chan_doan_icd,
+                       bn.id AS benh_nhan_id, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan,
+                       bn.gioi_tinh, bn.ngay_sinh, bn.sdt AS sdt_benh_nhan, bn.dia_chi, bn.bhyt AS so_bhyt, bn.cccd,
+                       COALESCE(nv.ho_ten, N'Bác sĩ chuyên khoa') AS ten_bac_si,
+                       pk_room.ten_phong AS phong_kham_bs
+                FROM phieu_chi_dinh cd
+                JOIN phieu_kham pk ON cd.phieu_kham_id = pk.id
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON cd.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham pk_room ON pk.phong_kham_id = pk_room.id
+                WHERE cd.id = ? OR cd.ma_chi_dinh = ?
+            ''', (oid_int, str(order_id_or_code)))
+        else:
+            cursor.execute('''
+                SELECT cd.*, pk.ma_phieu, pk.trieu_chung, pk.chan_doan_so_bo, pk.chan_doan_icd,
+                       bn.id AS benh_nhan_id, bn.ma_benh_nhan, bn.ho_ten AS ten_benh_nhan,
+                       bn.gioi_tinh, bn.ngay_sinh, bn.sdt AS sdt_benh_nhan, bn.dia_chi, bn.bhyt AS so_bhyt, bn.cccd,
+                       COALESCE(nv.ho_ten, N'Bác sĩ chuyên khoa') AS ten_bac_si,
+                       pk_room.ten_phong AS phong_kham_bs
+                FROM phieu_chi_dinh cd
+                JOIN phieu_kham pk ON cd.phieu_kham_id = pk.id
+                JOIN benh_nhan bn ON pk.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON cd.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham pk_room ON pk.phong_kham_id = pk_room.id
+                WHERE cd.ma_chi_dinh = ?
+            ''', (str(order_id_or_code),))
+
+        order = cursor.fetchone()
+        if not order:
+            conn.close()
+            return None
+        res = dict(order)
+        cursor.execute('''
+            SELECT ct.*, dv.ma_dich_vu, dv.ten_dich_vu, dv.loai_dich_vu, dv.don_gia, dv.chi_so_binh_thuong, dv.don_vi_do,
+                   dv.nguong_binh_thuong_min, dv.nguong_binh_thuong_max, dv.nguong_nguy_kich_min, dv.nguong_nguy_kich_max,
+                   pk_ktv.ten_phong AS ten_phong_ktv, nv_ktv.ho_ten AS ten_ktv_thuc_hien
+            FROM chi_tiet_chi_dinh ct
+            JOIN dich_vu dv ON ct.dich_vu_id = dv.id
+            LEFT JOIN phong_kham pk_ktv ON ct.phong_ktv_id = pk_ktv.id
+            LEFT JOIN nhan_vien nv_ktv ON ct.ktv_duoc_chon_id = nv_ktv.id
+            WHERE ct.phieu_chi_dinh_id = ?
+            ORDER BY ct.id ASC
+        ''', (res['id'],))
+        res['items'] = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return res
 
     @staticmethod
     def get_lab_item_by_id(chi_tiet_id):
@@ -138,7 +205,8 @@ class MedicalRecordModel:
     @staticmethod
     @serialized
     def update_lab_result(chi_tiet_id, ket_qua, file_ket_qua=None, ktv_name=None, audit_user=None):
-        """KTV cập nhật kết quả xét nghiệm. Không cho phép sửa nếu kết quả đã được bác sĩ duyệt."""
+        """KTV cập nhật kết quả xét nghiệm. Đo ngưỡng nguy kịch, bôi đỏ và cảnh báo tức thì về EMR bác sĩ."""
+        import re
         item = MedicalRecordModel.get_lab_item_by_id(chi_tiet_id)
         if not item:
             return False, "Không tìm thấy chỉ định xét nghiệm!"
@@ -149,15 +217,76 @@ class MedicalRecordModel:
         try:
             now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             ktv_str = ktv_name or (audit_user.get('ho_ten') if audit_user else 'Kỹ thuật viên')
+            
+            # Trích xuất giá trị số đo đạc để so khớp ngưỡng nguy kịch
+            num_match = re.search(r'[-+]?\d+(?:\.\d+)?', str(ket_qua or ''))
+            gia_tri_do = float(num_match.group(0)) if num_match else None
+            
+            # Lấy thông tin ngưỡng từ dịch vụ
+            cursor.execute('''
+                SELECT nguong_binh_thuong_min, nguong_binh_thuong_max,
+                       nguong_nguy_kich_min, nguong_nguy_kich_max, don_vi_do
+                FROM dich_vu WHERE id = ?
+            ''', (item['dich_vu_id'],))
+            dv_thresholds = cursor.fetchone()
+            
+            is_panic = 0
+            if dv_thresholds and gia_tri_do is not None:
+                nk_min = dv_thresholds.get('nguong_nguy_kich_min')
+                nk_max = dv_thresholds.get('nguong_nguy_kich_max')
+                if (nk_min is not None and gia_tri_do < float(nk_min)) or (nk_max is not None and gia_tri_do > float(nk_max)):
+                    is_panic = 1
+            
             cursor.execute('''
                 UPDATE chi_tiet_chi_dinh
-                SET ket_qua = ?, file_ket_qua = COALESCE(?, file_ket_qua), ktv_thuc_hien = ?, nguoi_nhap = ?,
-                    thoi_gian_thuc_hien = ?, trang_thai = ?
+                SET ket_qua = ?, gia_tri_do = ?, is_panic = ?, file_ket_qua = COALESCE(?, file_ket_qua),
+                    ktv_thuc_hien = ?, nguoi_nhap = ?, thoi_gian_thuc_hien = ?, trang_thai = ?
                 WHERE id = ?
-            ''', (ket_qua, file_ket_qua, ktv_str, ktv_str, now_str, 'Chờ duyệt', chi_tiet_id))
+            ''', (ket_qua, gia_tri_do, is_panic, file_ket_qua, ktv_str, ktv_str, now_str, 'Chờ duyệt', chi_tiet_id))
+            
             cursor.execute('''
                 UPDATE phieu_chi_dinh SET trang_thai = ? WHERE id = ?
             ''', ('Đang thực hiện', item['phieu_chi_dinh_id']))
+            
+            # Nếu vượt ngưỡng nguy kịch (Panic Value), đẩy thông báo khẩn cấp tức thì về màn hình EMR của bác sĩ
+            if is_panic == 1:
+                cursor.execute('''
+                    SELECT bs.id AS bac_si_id, nv.tai_khoan_id, nv.ho_ten AS ten_bac_si
+                    FROM phieu_chi_dinh cd
+                    JOIN phieu_kham pk ON cd.phieu_kham_id = pk.id
+                    LEFT JOIN bac_si bs ON pk.bac_si_id = bs.id
+                    LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                    WHERE cd.id = ?
+                ''', (item['phieu_chi_dinh_id'],))
+                doc_target = cursor.fetchone()
+                if doc_target and doc_target.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'NguyKich', ?, 0, ?)
+                    ''', (
+                        doc_target['tai_khoan_id'],
+                        f"[NGUY KỊCH] Cảnh báo kết quả xét nghiệm {item.get('ten_dich_vu')}",
+                        f"Bệnh nhân {item.get('ten_benh_nhan')} có kết quả {item.get('ten_dich_vu')} = {ket_qua} vượt ngưỡng nguy kịch! KTV {ktv_str} đã cập nhật, đề nghị bác sĩ kiểm tra và xử trí khẩn cấp.",
+                        f"/admin/emr?patient_id={item.get('patient_id')}",
+                        now_str
+                    ))
+            
+            # Kiểm tra xem toàn bộ các mục CLS trong phiếu đã hoàn thành chưa để cập nhật trạng thái phiếu khám
+            cursor.execute('''
+                SELECT COUNT(*) AS total_items,
+                       SUM(CASE WHEN ket_qua IS NOT NULL AND RTRIM(LTRIM(ket_qua)) != '' THEN 1 ELSE 0 END) AS done_items
+                FROM chi_tiet_chi_dinh
+                WHERE phieu_chi_dinh_id = ?
+            ''', (item['phieu_chi_dinh_id'],))
+            prog = cursor.fetchone()
+            if prog and prog['total_items'] == prog['done_items']:
+                cursor.execute("UPDATE phieu_chi_dinh SET trang_thai = N'Chờ duyệt' WHERE id = ?", (item['phieu_chi_dinh_id'],))
+                cursor.execute('''
+                    UPDATE phieu_kham
+                    SET ktv_hoan_thanh = 1, buoc_hien_tai = 3, trang_thai = N'Đã có kết quả CLS'
+                    WHERE id = (SELECT phieu_kham_id FROM phieu_chi_dinh WHERE id = ?)
+                ''', (item['phieu_chi_dinh_id'],))
+            
             conn.commit()
             conn.close()
             AuditLogger.log(
@@ -166,15 +295,76 @@ class MedicalRecordModel:
                 action='UPDATE_LAB_RESULT',
                 performed_by=audit_user.get('id') if audit_user else None,
                 performed_by_name=ktv_str,
-                reason=f"Nhập kết quả xét nghiệm {item.get('ten_dich_vu')}",
+                reason=f"Nhập kết quả xét nghiệm {item.get('ten_dich_vu')}{' [NGUY KỊCH]' if is_panic else ''}",
                 before_data={'ket_qua': item.get('ket_qua'), 'trang_thai': item.get('trang_thai')},
-                after_data={'ket_qua': ket_qua, 'trang_thai': 'Chờ duyệt', 'ktv': ktv_str}
+                after_data={'ket_qua': ket_qua, 'gia_tri_do': gia_tri_do, 'is_panic': is_panic, 'trang_thai': 'Chờ duyệt', 'ktv': ktv_str}
             )
-            return True, "Cập nhật kết quả xét nghiệm thành công và đã chuyển sang trạng thái 'Chờ duyệt'!"
+            panic_msg = " [CẢNH BÁO NGUY KỊCH: Đã kích hoạt chuông cảnh báo tới Bác sĩ điều trị]" if is_panic else ""
+            return True, f"Cập nhật kết quả xét nghiệm thành công và đã chuyển sang trạng thái 'Chờ duyệt'!{panic_msg}"
         except Exception as e:
             conn.rollback()
             conn.close()
             return False, f"Lỗi lưu kết quả: {str(e)}"
+
+    @staticmethod
+    @serialized
+    def request_redo_lab_result(chi_tiet_id, reason=None, audit_user=None):
+        """Bác sĩ yêu cầu kỹ thuật viên làm lại xét nghiệm hoặc chụp chiếu."""
+        item = MedicalRecordModel.get_lab_item_by_id(chi_tiet_id)
+        if not item:
+            return False, "Không tìm thấy chỉ định xét nghiệm!"
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            doc_str = audit_user.get('ho_ten') if audit_user else 'Bác sĩ chuyên khoa'
+            ly_do = reason or 'Bác sĩ yêu cầu đo đạc/chụp lại mẫu xét nghiệm do chưa đạt yêu cầu chuyên môn'
+            cursor.execute('''
+                UPDATE chi_tiet_chi_dinh
+                SET trang_thai = N'Chờ thực hiện', ly_do_lam_lai = ?, ket_qua = NULL, file_ket_qua = NULL,
+                    thoi_gian_duyet = NULL, bac_si_duyet = NULL, is_panic = 0
+                WHERE id = ?
+            ''', (ly_do, chi_tiet_id))
+            cursor.execute("UPDATE phieu_chi_dinh SET trang_thai = N'Đang thực hiện' WHERE id = ?", (item['phieu_chi_dinh_id'],))
+            
+            # Cập nhật phiếu khám quay lại trạng thái chờ KTV
+            cursor.execute('''
+                UPDATE phieu_kham
+                SET ktv_hoan_thanh = 0, buoc_hien_tai = 2, trang_thai = N'Chờ kết quả CLS'
+                WHERE id = (SELECT phieu_kham_id FROM phieu_chi_dinh WHERE id = ?)
+            ''', (item['phieu_chi_dinh_id'],))
+            
+            # Gửi thông báo đến tài khoản KTV phụ trách
+            if item.get('ktv_duoc_chon_id'):
+                cursor.execute('SELECT tai_khoan_id FROM nhan_vien WHERE id = ?', (item['ktv_duoc_chon_id'],))
+                ktv_acc = cursor.fetchone()
+                if ktv_acc and ktv_acc.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'YeuCauLamLai', '/admin/lab', 0, ?)
+                    ''', (
+                        ktv_acc['tai_khoan_id'],
+                        f"Yêu cầu làm lại CLS: {item.get('ten_dich_vu')}",
+                        f"Bác sĩ {doc_str} yêu cầu làm lại xét nghiệm {item.get('ten_dich_vu')} cho bệnh nhân {item.get('ten_benh_nhan')}. Lý do: {ly_do}",
+                        now_str
+                    ))
+            conn.commit()
+            conn.close()
+            AuditLogger.log(
+                table_name='chi_tiet_chi_dinh',
+                row_id=chi_tiet_id,
+                action='REQUEST_REDO_LAB',
+                performed_by=audit_user.get('id') if audit_user else None,
+                performed_by_name=doc_str,
+                reason=ly_do,
+                before_data={'trang_thai': item.get('trang_thai')},
+                after_data={'trang_thai': 'Chờ thực hiện', 'ly_do_lam_lai': ly_do}
+            )
+            return True, f"Đã gửi yêu cầu làm lại kết quả {item.get('ten_dich_vu')} tới Kỹ thuật viên!"
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, f"Lỗi yêu cầu làm lại: {str(e)}"
 
     @staticmethod
     @serialized

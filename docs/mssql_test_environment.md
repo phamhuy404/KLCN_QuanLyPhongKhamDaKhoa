@@ -2,11 +2,11 @@
 
 ## Kết quả xác minh mã nguồn/Git diff
 
-Website chưa chuyển hệ quản trị: `config.DB_ENGINE='sqlserver'`, đường chạy bình thường của `core/database.py` vẫn kết nối Microsoft SQL Server bằng `pyodbc`. Không phát hiện SQLite/MySQL/PostgreSQL trong luồng runtime. Các cải tiến app factory không có tác dụng phụ, commit/rollback, xác thực/phân quyền, ảnh/dữ liệu y tế, lịch/đặt lịch và `lich_hen_id` được giữ lại.
+Website chưa chuyển hệ quản trị: `config.DB_ENGINE='sqlserver'`, đường chạy bình thường của `core/database.py` vẫn kết nối Microsoft SQL Server bằng `pyodbc`. Không phát hiện SQL Server Test Mock/MySQL/PostgreSQL trong luồng runtime. Các cải tiến app factory không có tác dụng phụ, commit/rollback, xác thực/phân quyền, ảnh/dữ liệu y tế, lịch/đặt lịch và `lich_hen_id` được giữ lại.
 
-Sai lệch có thật nằm trong bốn bộ test mới: `test_security_access`, `test_clinical_media`, `test_scheduling_safety`, `test_emr_workflow` đã dùng SQLite shared-memory. Adapter cũ dịch T-SQL và mô phỏng khóa SQL Server. Đã loại engine SQLite và các adapter đó, chuyển fixture sang T-SQL thực thi nguyên văn qua pyodbc trên MSSQL riêng. Không dùng database in-memory hay hệ quản trị thay thế. Không hoàn tác hàng loạt các thay đổi nghiệp vụ.
+Sai lệch có thật nằm trong bốn bộ test mới: `test_security_access`, `test_clinical_media`, `test_scheduling_safety`, `test_emr_workflow` đã dùng SQL Server Test Mock shared-memory. Adapter cũ dịch T-SQL và mô phỏng khóa SQL Server. Đã loại engine SQL Server Test Mock và các adapter đó, chuyển fixture sang T-SQL thực thi nguyên văn qua pyodbc trên MSSQL riêng. Không dùng database in-memory hay hệ quản trị thay thế. Không hoàn tác hàng loạt các thay đổi nghiệp vụ.
 
-Kết quả test SQLite/RAM và trình duyệt ở các báo cáo trước là ghi chép lịch sử, KHÔNG phải bằng chứng MSSQL đã chạy thành công. Chúng không được dùng để nghiệm thu phiên bản MSSQL hiện tại.
+Kết quả test In-memory Mock / Test và trình duyệt ở các báo cáo trước là ghi chép lịch sử, KHÔNG phải bằng chứng MSSQL đã chạy thành công. Chúng không được dùng để nghiệm thu phiên bản MSSQL hiện tại.
 
 ## Cấu hình bắt buộc và cơ chế chặn nhầm DB
 
@@ -78,4 +78,4 @@ Chưa có biến cấu hình MSSQL test được cung cấp trong môi trường
 
 Kết quả chạy cuối: **27 unit/contract test đạt; 5 lớp smoke/tích hợp SKIP, 0 bài tích hợp thực thi**. Không còn unit test thất bại. Kiểm tra diff không lỗi whitespace; editor không báo lỗi trong các file Python đã kiểm tra. Đã kiểm tra `pyodbc.drivers()` không kết nối database: máy có cả ODBC Driver 17 và 18 for SQL Server; không cài/nâng cấp dependency.
 
-Còn thiếu: server/instance, tên database MSSQL test riêng, lựa chọn driver trong cấu hình, login/mật khẩu riêng không truy cập database chính, danh tính server thực tế, marker DBA và CA/chứng chỉ TLS phù hợp. Muốn chạy test nghiệp vụ còn cần cho phép dựng lại fixture tại DB test. Các fixture đã được đổi nguồn sang T-SQL nhưng chưa được thực thi trên server, nên có thể cần điều chỉnh tiếp sau khi có môi trường. Chưa nghiệm thu cạnh tranh nhiều process, timeout/deadlock, commit mất kết nối hoặc UI → API → MSSQL. Kết quả SQLite cũ không lấp các khoảng trống này.
+Còn thiếu: server/instance, tên database MSSQL test riêng, lựa chọn driver trong cấu hình, login/mật khẩu riêng không truy cập database chính, danh tính server thực tế, marker DBA và CA/chứng chỉ TLS phù hợp. Muốn chạy test nghiệp vụ còn cần cho phép dựng lại fixture tại DB test. Các fixture đã được đổi nguồn sang T-SQL nhưng chưa được thực thi trên server, nên có thể cần điều chỉnh tiếp sau khi có môi trường. Chưa nghiệm thu cạnh tranh nhiều process, timeout/deadlock, commit mất kết nối hoặc UI → API → MSSQL. Kết quả SQL Server Test Mock cũ không lấp các khoảng trống này.

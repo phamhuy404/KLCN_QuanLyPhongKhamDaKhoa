@@ -1,7 +1,7 @@
 # Validation và giao dịch lịch
 
 > Cấu hình test hiện tại chỉ dùng MSSQL: xem [môi trường kiểm thử MSSQL](mssql_test_environment.md).
-> Các đoạn SQLite/RAM và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
+> Các đoạn In-memory Mock / Test và số test đạt bên dưới là ghi chép lịch sử trước khi điều chỉnh, không phải hướng dẫn chạy hiện tại hay bằng chứng MSSQL đã chạy thành công.
 
 
 ## Lỗi đã xác minh và hành vi sau sửa
@@ -37,16 +37,16 @@ $env:PYTHONPATH = 'tests'
 
 Chỉ chạy các file trên, không dùng unittest discover/pytest toàn repo vì có test cũ kết nối DB thật.
 
-Test dùng `create_test_app`, `TESTING=True`, khóa phiên test riêng và `DATABASE_CONNECTION_FACTORY` kết nối SQLite shared-memory. Mỗi kết nối được kiểm tra `PRAGMA database_list` không có file. Guard chặn pyodbc.connect, SMTP và thread ứng dụng từ trước khi import. Test HTTP dùng cổng localhost ngẫu nhiên, chỉ mở thread do test sở hữu rồi đóng server sau test. Không dùng Website đang chạy trên cổng 5000.
+Test dùng `create_test_app`, `TESTING=True`, khóa phiên test riêng và `DATABASE_CONNECTION_FACTORY` kết nối SQL Server Test Mock shared-memory. Mỗi kết nối được kiểm tra `PRAGMA database_list` không có file. Guard chặn pyodbc.connect, SMTP và thread ứng dụng từ trước khi import. Test HTTP dùng cổng localhost ngẫu nhiên, chỉ mở thread do test sở hữu rồi đóng server sau test. Không dùng Website đang chạy trên cổng 5000.
 
 Website vẫn chạy bằng `python app.py` với dependency/cấu hình SQL Server và `SECRET_KEY` hiện có; không đổi lệnh khởi động. Lệnh này khởi động dịch vụ runtime thật, vì vậy chưa được chạy trong nhiệm vụ trên cấu hình vận hành. Để kiểm thử an toàn phải dùng factory test ở trên, không trỏ vào cấu hình DB thật. Kiểm tra startup không còn tự sửa schema như mô tả trong `startup_safety.md`.
 
 ## Kiểm chứng và phần chặn
 
 - Kết quả chạy cuối: 24 test lịch đạt; 64 test hồi quy startup/bảo mật/dữ liệu và ảnh đạt; không còn test thất bại. `git diff --check` sạch, editor không báo lỗi trong các module lịch đã kiểm tra. Lỗi audit được cố ý gây ra trong một test để xác nhận rollback, không phải lỗi của lượt chạy kiểm thử.
-- Test mới chạy model và SQL đọc/ghi thật trên SQLite RAM qua adapter T-SQL; không mock các nghiệp vụ đặt/đổi/hủy. Test HTTP đăng nhập → GET trang đặt lịch → API đặt lịch → đổi ca/phòng → hủy, đọc lại database quan sát bộ đếm `1/0 → 0/1 → 0/0`.
+- Test mới chạy model và SQL đọc/ghi thật trên In-memory Test qua adapter T-SQL; không mock các nghiệp vụ đặt/đổi/hủy. Test HTTP đăng nhập → GET trang đặt lịch → API đặt lịch → đổi ca/phòng → hủy, đọc lại database quan sát bộ đếm `1/0 → 0/1 → 0/0`.
 - Kiểm tra ca sai/quá khứ/trùng nhân viên/phòng/sai chuyên khoa, hạn mức nhân sự, sức chứa, ca thiếu/chưa duyệt/tắt, ngoài giờ, trùng bệnh nhân/bác sĩ, tự chọn bác sĩ, đổi cùng ca/khác ca/khác ngày, hủy lặp, phân công lặp, từ chối/tắt/xóa ca có hẹn, nhập CSV, lỗi commit rollback mọi dữ liệu liên quan.
-- Riêng batch `sp_getapplock` được MOCK bằng mã trả về trong adapter. Test âm kiểm tra không ghi nghiệp vụ khi khóa lỗi. SQLite không chứng minh khóa liên process, isolation, T-SQL/ODBC, timeout/deadlock hay cạnh tranh SQL Server.
+- Riêng batch `sp_getapplock` được MOCK bằng mã trả về trong adapter. Test âm kiểm tra không ghi nghiệp vụ khi khóa lỗi. SQL Server Test Mock không chứng minh khóa liên process, isolation, T-SQL/ODBC, timeout/deadlock hay cạnh tranh SQL Server.
 - Chưa có SQL Server test được xác nhận độc lập; chưa chạy Website với SQL Server, chưa thao tác bằng trình duyệt/Flutter thật. Đã render trang và gọi HTTP thật; chưa chạy JavaScript đặt lịch tự động trong trình duyệt.
 
 Để nghiệm thu SQL Server cần bổ sung server/database test được xác nhận độc lập không phải DB thật, tài khoản riêng có quyền dữ liệu test và `sp_getapplock`, kết nối được phép và factory test trỏ duy nhất database đó, các tài khoản/hồ sơ/ca test được cấp phép. Không dùng dữ liệu vận hành, seed hay migration tự động. Sau khi có môi trường: chạy hai kết nối/process đồng thời đặt cùng giờ bác sĩ, cùng bệnh nhân ở hai bác sĩ, khác giờ tranh chỗ cuối ca; mỗi tình huống chỉ một yêu cầu thành công, số hẹn/bộ đếm không vượt sức chứa. Tiếp tục thử hai yêu cầu hủy cùng lịch, đổi cùng ca khi đầy, đổi chéo ca/phòng, sửa/tắt/duyệt/hủy ca cạnh tranh với đặt lịch, timeout khóa và commit thất bại; kiểm tra cả bản ghi, bộ đếm và phòng sau commit/rollback. Phải xác nhận SQL Server thật trước khi tuyên bố đạt nghiệm thu cạnh tranh.

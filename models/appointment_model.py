@@ -14,6 +14,84 @@ from core.audit import AuditLogger
 
 
 class AppointmentModel:
+    @staticmethod
+    def recalculate_daily_stt(cursor, date_str, doctor_id=None, chuyen_khoa_id=None):
+        """Tính toán và gán lại số thứ tự khám (stt_ngay) theo trình tự giờ hẹn trong ngày."""
+        if not date_str:
+            return
+        day_iso = str(date_str)[:10]
+        if doctor_id:
+            cursor.execute('''
+                SELECT id, gio_hen FROM lich_hen
+                WHERE ngay_hen = ? AND bac_si_id = ? AND (trang_thai IS NULL OR trang_thai != N'Đã hủy')
+                ORDER BY gio_hen ASC, id ASC
+            ''', (day_iso, doctor_id))
+        elif chuyen_khoa_id:
+            cursor.execute('''
+                SELECT id, gio_hen FROM lich_hen
+                WHERE ngay_hen = ? AND chuyen_khoa_id = ? AND (trang_thai IS NULL OR trang_thai != N'Đã hủy')
+                ORDER BY gio_hen ASC, id ASC
+            ''', (day_iso, chuyen_khoa_id))
+        else:
+            cursor.execute('''
+                SELECT id, gio_hen FROM lich_hen
+                WHERE ngay_hen = ? AND (trang_thai IS NULL OR trang_thai != N'Đã hủy')
+                ORDER BY gio_hen ASC, id ASC
+            ''', (day_iso,))
+        rows = cursor.fetchall()
+        for idx, r in enumerate(rows, start=1):
+            cursor.execute('UPDATE lich_hen SET stt_ngay = ? WHERE id = ?', (idx, r['id']))
+
+    @staticmethod
+    def trigger_auto_call_queue():
+        """Tự động kiểm tra các lịch hẹn đến giờ khám hôm nay, gọi số và gửi chuông cảnh báo đến bệnh nhân."""
+        from datetime import datetime, date
+        now_time_str = datetime.now().strftime('%H:%M:%S')
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                SELECT lh.id, lh.ma_lich_hen, lh.stt_ngay, lh.gio_hen, lh.benh_nhan_id,
+                       bn.tai_khoan_id, bn.ho_ten AS ten_benh_nhan,
+                       COALESCE(nv.ho_ten, N'Bác sĩ phụ trách') AS ten_bac_si,
+                       COALESCE(pk.ten_phong, N'Phòng khám ban đầu') AS ten_phong
+                FROM lich_hen lh
+                JOIN benh_nhan bn ON lh.benh_nhan_id = bn.id
+                LEFT JOIN bac_si bs ON lh.bac_si_id = bs.id
+                LEFT JOIN nhan_vien nv ON bs.nhan_vien_id = nv.id
+                LEFT JOIN phong_kham pk ON lh.phong_kham_id = pk.id
+                WHERE CAST(lh.ngay_hen AS DATE) = CAST(GETDATE() AS DATE)
+                  AND lh.trang_thai IN (N'Đã duyệt', N'Đã tiếp nhận', N'Đã xác nhận', N'Đang khám')
+                  AND (lh.da_goi_kham IS NULL OR lh.da_goi_kham = 0)
+                  AND lh.gio_hen <= ?
+            ''', (now_time_str,))
+            called = [dict(r) for r in cursor.fetchall()]
+            now_ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            for appt in called:
+                cursor.execute('''
+                    UPDATE lich_hen
+                    SET da_goi_kham = 1, thoi_gian_goi = ?
+                    WHERE id = ?
+                ''', (now_ts, appt['id']))
+                if appt.get('tai_khoan_id'):
+                    cursor.execute('''
+                        INSERT INTO thong_bao (tai_khoan_id, tieu_de, noi_dung, loai_thong_bao, lien_ket, da_doc, thoi_gian_tao)
+                        VALUES (?, ?, ?, N'GoiKham', ?, 0, ?)
+                    ''', (
+                        appt['tai_khoan_id'],
+                        f"ĐÃ ĐẾN LƯỢT KHÁM: SỐ THỨ TỰ #{appt.get('stt_ngay') or 1}",
+                        f"Kính mời Quý khách {appt['ten_benh_nhan']} (STT #{appt.get('stt_ngay') or 1}) vào {appt['ten_phong']} gặp {appt['ten_bac_si']} để khám bệnh!",
+                        f"/patient/appointments?highlight={appt['id']}",
+                        now_ts
+                    ))
+            conn.commit()
+            conn.close()
+            return len(called)
+        except Exception:
+            conn.rollback()
+            conn.close()
+            return 0
+
 
 
     @staticmethod
@@ -233,10 +311,13 @@ class AppointmentModel:
                                if not r.get('trang_thai_duyet') or r.get('trang_thai_duyet') == 'DA_DUYET']
             if approved_shifts:
                 schedule_row = approved_shifts[0]
-                max_cap = int(schedule_row.get('so_luong_kham_toi_da') or 20)
-                cur_cap = int(schedule_row.get('so_luong_da_dang_ky') or 0)
-                if cur_cap >= max_cap:
-                    return False, f"Ca trực ngày {day_iso} của BS. {ten_bac_si} đã đạt tối đa {max_cap} lượt!"
+                cursor.execute('''
+                    UPDATE lich_lam_viec
+                    SET so_luong_da_dang_ky = so_luong_da_dang_ky + 1
+                    WHERE id = ? AND so_luong_da_dang_ky < so_luong_kham_toi_da
+                ''', (schedule_row['id'],))
+                if cursor.rowcount == 0:
+                    return False, f"Ca khám vừa hết chỗ hoặc đã đạt số lượng tối đa!"
                 if schedule_row.get('phong_kham_id'):
                     phong_kham_id = schedule_row['phong_kham_id']
 
@@ -261,6 +342,7 @@ class AppointmentModel:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (ma_lich_hen, patient_id, bac_si_id if bac_si_id else None, chuyen_khoa_id, phong_kham_id, day_iso, work_time_str, clean_reason, status_to_save))
         created_id = cursor.lastrowid
+        AppointmentModel.recalculate_daily_stt(cursor, day_iso, doctor_id=bac_si_id, chuyen_khoa_id=chuyen_khoa_id)
         if schedule_row:
             sync_count(cursor, schedule_row)
 
@@ -513,7 +595,7 @@ class AppointmentModel:
             SELECT 
 
 
-                lh.id, lh.ma_lich_hen, lh.ngay_hen, lh.gio_hen, lh.ly_do_kham, lh.trang_thai, lh.ngay_dat,
+                lh.id, lh.ma_lich_hen, lh.ngay_hen, lh.gio_hen, lh.ly_do_kham, lh.trang_thai, lh.ngay_dat, lh.stt_ngay, lh.da_goi_kham, lh.thoi_gian_goi,
 
 
                 lh.benh_nhan_id,
@@ -1443,8 +1525,12 @@ class AppointmentModel:
             cursor.execute('''
                 UPDATE lich_lam_viec
                 SET so_luong_da_dang_ky = COALESCE(so_luong_da_dang_ky, 0) + 1
-                WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ?
+                WHERE bac_si_id = ? AND ngay_lam = ? AND ca_lam = ? AND so_luong_da_dang_ky < so_luong_kham_toi_da
             ''', (doctor_id, work_date_str, shift))
+            if cursor.rowcount == 0:
+                conn.rollback()
+                conn.close()
+                return False, "Ca trực của bác sĩ mới vừa hết chỗ hoặc đã đạt số lượng tối đa!"
 
             new_status = 'Đã duyệt' if approve_now else 'Đã tiếp nhận'
             cursor.execute('''
@@ -1945,28 +2031,14 @@ class AppointmentModel:
                 if schedule_row:
 
 
-                    if schedule_row['so_luong_da_dang_ky'] >= schedule_row['so_luong_kham_toi_da']:
-
-
-                        conn.close()
-
-
-                        return False, f"Ca khám của bác sĩ {ten_bac_si} ngày {work_date_str} đã hết lượt đăng ký (tối đa {schedule_row['so_luong_kham_toi_da']} lượt)!"
-
-
                     cursor.execute('''
-
-
                         UPDATE lich_lam_viec
-
-
                         SET so_luong_da_dang_ky = so_luong_da_dang_ky + 1
-
-
-                        WHERE id = ?
-
-
+                        WHERE id = ? AND so_luong_da_dang_ky < so_luong_kham_toi_da
                     ''', (schedule_row['id'],))
+                    if cursor.rowcount == 0:
+                        conn.close()
+                        return False, f"Ca khám vừa hết chỗ hoặc đã đạt số lượng tối đa!"
 
 
                     if not phong_kham_id:
@@ -2006,6 +2078,7 @@ class AppointmentModel:
 
 
             created_appt_id = cursor.lastrowid
+            AppointmentModel.recalculate_daily_stt(cursor, work_date_str, doctor_id=bac_si_id, chuyen_khoa_id=chuyen_khoa_id)
 
 
             sync_count(cursor, schedule_row)
