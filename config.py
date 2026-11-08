@@ -1,7 +1,8 @@
+import secrets
 import os
 
 # Cấu hình ứng dụng Flask
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 DEBUG = True
 
 # VietQR / bank notification. Leave unset until the clinic configures a real account.

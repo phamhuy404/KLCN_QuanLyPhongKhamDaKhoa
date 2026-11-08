@@ -189,6 +189,8 @@ def register_medical_media(app):
     app.config.setdefault('MEDICAL_UPLOAD_DIR', str(PROJECT_DIR / 'private_uploads'))
     if Path(app.config['MEDICAL_UPLOAD_DIR']).resolve().is_relative_to(Path(app.static_folder).resolve()):
         raise ValueError('MEDICAL_UPLOAD_DIR must be outside the public static directory')
+    for cat in MEDICAL_CATEGORIES:
+        Path(app.config['MEDICAL_UPLOAD_DIR'], cat).mkdir(parents=True, exist_ok=True)
     app.add_url_rule('/medical-images/legacy/<path:relative>', 'legacy_medical_image',
                      lambda relative: serve_medical_image(relative, legacy=True))
     app.add_url_rule('/medical-images/<path:relative>', 'medical_image', serve_medical_image)

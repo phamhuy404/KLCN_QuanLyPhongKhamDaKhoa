@@ -189,3 +189,26 @@ def validated_medicines(cursor, medicines):
                             don_gia=row['don_gia'],don_vi_tinh=row['don_vi_tinh'],
                             lieu_dung=medicine.get('lieu_dung') or '',cach_dung=medicine.get('cach_dung') or ''))
     return checked
+
+
+def validate_reexam_date(reexam_date, exam_date=None):
+    """Kiểm tra ràng buộc ngày hẹn tái khám phải sau ngày khám hiện tại."""
+    if not reexam_date:
+        return True, None
+    s = str(reexam_date).strip()
+    if not s or s.lower() in ('none', 'null', ''):
+        return True, None
+    from datetime import datetime
+    norm = None
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+        try:
+            norm = datetime.strptime(s[:10], fmt).strftime('%Y-%m-%d')
+            break
+        except ValueError:
+            pass
+    if not norm:
+        return False, 'Ngày hẹn tái khám không đúng định dạng hợp lệ!'
+    ref_date = exam_date.strftime('%Y-%m-%d') if hasattr(exam_date, 'strftime') else (str(exam_date)[:10] if exam_date else datetime.now().strftime('%Y-%m-%d'))
+    if norm <= ref_date:
+        return False, 'Ngày hẹn tái khám phải sau ngày khám hiện tại!'
+    return True, norm

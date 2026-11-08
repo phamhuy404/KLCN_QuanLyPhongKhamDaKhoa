@@ -2056,7 +2056,12 @@ class UserModel:
 
         cursor.execute(sql, tuple(params))
 
-        all_rows = [dict(r) for r in cursor.fetchall()]
+        all_rows = []
+        for r in cursor.fetchall():
+            row_dict = dict(r)
+            row_dict.pop('password', None)
+            row_dict.pop('mat_khau', None)
+            all_rows.append(row_dict)
 
         conn.close()
 
@@ -2143,6 +2148,8 @@ class UserModel:
 
 
         result = dict(acc)
+        result.pop('password', None)
+        result.pop('mat_khau', None)
 
         # Kiểm tra nhân viên liên kết
 

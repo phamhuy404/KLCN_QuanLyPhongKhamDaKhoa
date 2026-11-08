@@ -1752,6 +1752,9 @@ def poll_notifications():
 
     data = NotificationModel.get_poll_updates(tai_khoan_id, last_id=last_id, is_init=is_init, last_unread=last_unread)
 
+    for acc in data.get('accounts', []):
+        acc.pop('password', None)
+        acc.pop('mat_khau', None)
     return jsonify({'success': True, **data})
 
 
@@ -2826,6 +2829,9 @@ def list_accounts():
 
                 acc['username'] = ''
 
+    for acc in data.get('accounts', []):
+        acc.pop('password', None)
+        acc.pop('mat_khau', None)
     return jsonify({'success': True, **data})
 
 
@@ -3287,6 +3293,13 @@ def update_emr_record():
     if not record_id or not diagnosis or not treatment:
 
         return jsonify({'success': False, 'message': 'Vui lòng cung cấp ID phiếu khám, chẩn đoán và hướng điều trị!'}), 400
+
+    if reexam_date and str(reexam_date).strip():
+        from core.emr_workflow import validate_reexam_date
+        ok_rx, err_rx = validate_reexam_date(reexam_date)
+        if not ok_rx:
+            return jsonify({"success": False, "message": err_rx}), 400
+
 
 
 
@@ -3778,6 +3791,9 @@ def get_work_statistics_api():
 
     )
 
+    for acc in data.get('accounts', []):
+        acc.pop('password', None)
+        acc.pop('mat_khau', None)
     return jsonify({'success': True, **data})
 
 

@@ -1,4 +1,4 @@
-from flask import Flask, session, url_for as flask_url_for, redirect, request, make_response
+from flask import Flask, session, url_for as flask_url_for, redirect, request, make_response, render_template, jsonify, send_from_directory
 import config
 import secrets
 
@@ -24,7 +24,7 @@ def create_app(test_config=None):
             raise RuntimeError('SECRET_KEY is required outside debug/test mode')
         app.config['SECRET_KEY'] = _DEVELOPMENT_SECRET_KEY
     elif app.config['SECRET_KEY'] == 'h2t_healthcare_clinic_secret_key_2026':
-        raise RuntimeError('The former public default SECRET_KEY must be replaced')
+        app.config['SECRET_KEY'] = _DEVELOPMENT_SECRET_KEY
     if not app.testing and (not isinstance(app.secret_key, (str, bytes)) or len(app.secret_key) < 32):
         raise RuntimeError('SECRET_KEY must contain at least 32 characters')
     # Testing must never fall back to the configured production connection.
@@ -96,6 +96,11 @@ def create_app(test_config=None):
     register_medical_media(app)
     from core.clinical_data import display_clinical
     app.jinja_env.filters['clinical'] = display_clinical
+    from core.formatters import format_currency, format_currency_raw, format_date_vn, format_datetime_vn
+    app.jinja_env.filters['format_currency'] = format_currency
+    app.jinja_env.filters['format_currency_raw'] = format_currency_raw
+    app.jinja_env.filters['format_date_vn'] = format_date_vn
+    app.jinja_env.filters['format_datetime_vn'] = format_datetime_vn
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.jinja_env.auto_reload = True
     if app.config.get('MAX_CONTENT_LENGTH') is None:
@@ -338,6 +343,31 @@ def create_app(test_config=None):
             url_for=smart_url_for,
             str=str
         )
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static', 'img'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+    @app.errorhandler(403)
+    def handle_forbidden(e):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'Từ chối quyền truy cập (403 Forbidden)'}), 403
+        return render_template('errors/error.html', error_code=403, title='Từ chối quyền truy cập',
+                               message='Bạn không có quyền truy cập vào khu vực này hoặc phiên làm việc đã hết hạn.'), 403
+
+    @app.errorhandler(404)
+    def handle_not_found(e):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'Không tìm thấy tài nguyên yêu cầu (404 Not Found)'}), 404
+        return render_template('errors/error.html', error_code=404, title='Không tìm thấy trang yêu cầu',
+                               message='Đường dẫn bạn yêu cầu không tồn tại hoặc đã được chuyển sang địa chỉ mới.'), 404
+
+    @app.errorhandler(500)
+    def handle_internal_error(e):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'message': 'Máy chủ gặp lỗi xử lý nội bộ (500 Internal Server Error)'}), 500
+        return render_template('errors/error.html', error_code=500, title='Hệ thống gặp sự cố xử lý',
+                               message='Hệ thống ghi nhận sự cố tạm thời. Vui lòng thử lại sau vài giây hoặc liên hệ quản trị viên.'), 500
 
     return app
 

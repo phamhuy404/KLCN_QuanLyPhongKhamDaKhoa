@@ -426,25 +426,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Hệ thống thông báo Toast popup mượt mà
-    window.showToast = (message, type = 'success') => {
+    // 3. Hệ thống thông báo Toast popup với thời gian hiển thị 5 giây và nút đóng chủ động
+    window.showToast = (message, type = 'success', duration = 5000) => {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
             toastContainer.id = 'toast-container';
-            toastContainer.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none';
+            toastContainer.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none';
             document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement('div');
-        const bgColor = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-rose-600' : 'bg-slate-800');
-        const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info');
+        const bgColor = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-rose-600' : (type === 'warning' ? 'bg-amber-600' : 'bg-slate-800'));
+        const icon = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-exclamation' : (type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-info'));
         
-        toast.className = `${bgColor} text-white px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto max-w-md`;
+        toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-4 opacity-0 pointer-events-auto max-w-md border border-white/10`;
         toast.innerHTML = `
-            <i class="fa-solid ${icon} text-lg"></i>
-            <span>${message}</span>
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid ${icon} text-base shrink-0"></i>
+                <span class="leading-snug">${message}</span>
+            </div>
+            <button type="button" class="ml-2 text-white/70 hover:text-white transition-colors cursor-pointer text-base leading-none p-1 rounded hover:bg-white/10" title="Đóng thông báo">&times;</button>
         `;
+
+        const closeBtn = toast.querySelector('button');
+        let removeTimer = null;
+
+        const dismissToast = () => {
+            if (removeTimer) clearTimeout(removeTimer);
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 300);
+        };
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', dismissToast);
+        }
 
         toastContainer.appendChild(toast);
 
@@ -452,10 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toast.classList.remove('translate-y-4', 'opacity-0');
         });
 
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-2');
-            setTimeout(() => toast.remove(), 300);
-        }, 3500);
+        removeTimer = setTimeout(dismissToast, Math.max(4500, duration));
     };
 
     // 4. Khởi tạo bộ chọn thẻ (tag selector) chuẩn hóa từ danh mục y tế
@@ -957,4 +972,43 @@ function checkRealtimeNotificationsAndQueue() {
 setInterval(checkRealtimeNotificationsAndQueue, 10000);
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(checkRealtimeNotificationsAndQueue, 1500);
+});
+
+// Cơ chế ngăn chặn người dùng bấm gửi nhiều lần (Double-Submit Protection)
+window.applyDoubleSubmitProtection = function(btn, loadingText = 'Đang xử lý...') {
+    if (!btn || btn.dataset.submitting === 'true') return false;
+    btn.dataset.submitting = 'true';
+    btn.dataset.originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('opacity-75', 'cursor-not-allowed', 'pointer-events-none');
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i><span>${loadingText}</span>`;
+    setTimeout(() => {
+        window.resetButtonSubmitting(btn);
+    }, 12000);
+    return true;
+};
+
+window.resetButtonSubmitting = function(btn) {
+    if (!btn || btn.dataset.submitting !== 'true') return;
+    btn.dataset.submitting = 'false';
+    btn.disabled = false;
+    btn.classList.remove('opacity-75', 'cursor-not-allowed', 'pointer-events-none');
+    if (btn.dataset.originalHtml) {
+        btn.innerHTML = btn.dataset.originalHtml;
+    }
+};
+
+// Tự động gắn Double-Submit Protection cho toàn bộ biểu mẫu gửi dữ liệu
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (form.tagName === 'FORM') {
+        const submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button:not([type="button"])');
+        if (submitBtn && submitBtn.dataset.submitting === 'true') {
+            e.preventDefault();
+            return false;
+        }
+        if (submitBtn) {
+            window.applyDoubleSubmitProtection(submitBtn, 'Đang gửi dữ liệu...');
+        }
+    }
 });

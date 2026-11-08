@@ -148,7 +148,7 @@
     <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-receipt text-medical-600"></i> Quyết Toán Viện Phí & Xuất Hóa Đơn
+                <i class="fa-solid fa-receipt text-medical-600"></i> Quyết Toán Viện Phí và Xuất Hóa Đơn
             </h3>
             <button onclick="closePaymentModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">
                 <i class="fa-solid fa-xmark text-sm"></i>
@@ -415,7 +415,7 @@
         const isMedInvoice = (inv.ma_hd && inv.ma_hd.startsWith('HDT'));
 
         if (noteEl) {
-            noteEl.innerText = isMedInvoice ? '(Toa thuốc điều trị nội bộ)' : '(Dịch vụ kỹ thuật & Khám)';
+            noteEl.innerText = isMedInvoice ? '(Toa thuốc điều trị nội bộ)' : '(Dịch vụ kỹ thuật và Khám)';
         }
 
         if (detailsContainer) {
