@@ -17,17 +17,26 @@ BEGIN
 END;
 
 DECLARE @constraint_name sysname;
+DECLARE @drop_constraint_sql nvarchar(max);
 SELECT @constraint_name = dc.name FROM sys.default_constraints dc
 JOIN sys.columns c ON c.object_id=dc.parent_object_id AND c.column_id=dc.parent_column_id
 WHERE dc.parent_object_id=OBJECT_ID('dbo.hoa_don') AND c.name='trang_thai';
-IF @constraint_name IS NOT NULL EXEC(N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name));
+IF @constraint_name IS NOT NULL
+BEGIN
+    SET @drop_constraint_sql = N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name);
+    EXEC sys.sp_executesql @drop_constraint_sql;
+END;
 ALTER TABLE dbo.hoa_don ADD CONSTRAINT DF_hoa_don_trang_thai_pending DEFAULT N'Chưa thanh toán' FOR trang_thai;
 
 SET @constraint_name = NULL;
 SELECT @constraint_name = dc.name FROM sys.default_constraints dc
 JOIN sys.columns c ON c.object_id=dc.parent_object_id AND c.column_id=dc.parent_column_id
 WHERE dc.parent_object_id=OBJECT_ID('dbo.hoa_don') AND c.name='thoi_gian_thanh_toan';
-IF @constraint_name IS NOT NULL EXEC(N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name));
+IF @constraint_name IS NOT NULL
+BEGIN
+    SET @drop_constraint_sql = N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name);
+    EXEC sys.sp_executesql @drop_constraint_sql;
+END;
 IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.hoa_don') AND name='idx_hoadon_ngay')
     DROP INDEX idx_hoadon_ngay ON dbo.hoa_don;
 ALTER TABLE dbo.hoa_don ALTER COLUMN thoi_gian_thanh_toan DATETIME NULL;
@@ -38,7 +47,11 @@ SET @constraint_name = NULL;
 SELECT @constraint_name = dc.name FROM sys.default_constraints dc
 JOIN sys.columns c ON c.object_id=dc.parent_object_id AND c.column_id=dc.parent_column_id
 WHERE dc.parent_object_id=OBJECT_ID('dbo.hoa_don') AND c.name='hinh_thuc_thanh_toan';
-IF @constraint_name IS NOT NULL EXEC(N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name));
+IF @constraint_name IS NOT NULL
+BEGIN
+    SET @drop_constraint_sql = N'ALTER TABLE dbo.hoa_don DROP CONSTRAINT ' + QUOTENAME(@constraint_name);
+    EXEC sys.sp_executesql @drop_constraint_sql;
+END;
 ALTER TABLE dbo.hoa_don ALTER COLUMN hinh_thuc_thanh_toan NVARCHAR(50) NULL;
 UPDATE dbo.hoa_don SET hinh_thuc_thanh_toan=NULL WHERE trang_thai=N'Chưa thanh toán';
 COMMIT TRANSACTION;

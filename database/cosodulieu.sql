@@ -44,6 +44,10 @@ IF OBJECT_ID('banner', 'U') IS NOT NULL DROP TABLE banner;
 IF OBJECT_ID('cai_dat_he_thong', 'U') IS NOT NULL DROP TABLE cai_dat_he_thong;
 IF OBJECT_ID('audit_log', 'U') IS NOT NULL DROP TABLE audit_log;
 IF OBJECT_ID('bai_viet', 'U') IS NOT NULL DROP TABLE bai_viet;
+IF OBJECT_ID('benh_nhan_di_ung', 'U') IS NOT NULL DROP TABLE benh_nhan_di_ung;
+IF OBJECT_ID('benh_nhan_tien_su', 'U') IS NOT NULL DROP TABLE benh_nhan_tien_su;
+IF OBJECT_ID('danh_muc_di_ung', 'U') IS NOT NULL DROP TABLE danh_muc_di_ung;
+IF OBJECT_ID('danh_muc_tien_su', 'U') IS NOT NULL DROP TABLE danh_muc_tien_su;
 IF OBJECT_ID('benh_nhan', 'U') IS NOT NULL DROP TABLE benh_nhan;
 IF OBJECT_ID('bac_si', 'U') IS NOT NULL DROP TABLE bac_si;
 IF OBJECT_ID('nhan_vien', 'U') IS NOT NULL DROP TABLE nhan_vien;
@@ -171,6 +175,7 @@ CREATE TABLE bac_si (
     phong_kham_chinh_id INT NULL,
     hoc_vi NVARCHAR(50) DEFAULT N'Bác sĩ',
     kinh_nghiem NVARCHAR(MAX),
+    gioi_thieu NVARCHAR(MAX) NULL,
     avatar NVARCHAR(255) DEFAULT 'default_doctor.png',
     gia_kham DECIMAL(12, 2) DEFAULT 150000.00,
     trang_thai_lam_viec NVARCHAR(50) DEFAULT N'Đang làm việc',
@@ -329,6 +334,7 @@ CREATE TABLE phieu_kham (
     huong_dieu_tri NVARCHAR(MAX),
     loi_dan NVARCHAR(MAX),
     ngay_tai_kham DATE NULL,
+    hinh_anh_kham NVARCHAR(MAX) NULL,
     cho_ktv_id INT NULL,
     phong_ktv_id INT NULL,
     buoc_hien_tai INT DEFAULT 1,
@@ -410,10 +416,10 @@ CREATE TABLE hoa_don (
     phieu_kham_id INT NULL,
     tong_tien DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     tien_bhyt DECIMAL(12, 2) DEFAULT 0.00,
-    giam_gia DECIMAL(12, 2) DEFAULT 0.00,
+    giam_gia DECIMAL(18, 2) DEFAULT 0.00,
     thanh_tien DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     hinh_thuc_thanh_toan NVARCHAR(50) NULL,
-    trang_thai NVARCHAR(50) NOT NULL DEFAULT N'Chưa thanh toán',
+    trang_thai NVARCHAR(50) NOT NULL CONSTRAINT DF_hoa_don_trang_thai_pending DEFAULT N'Chưa thanh toán',
     thoi_gian_thanh_toan DATETIME NULL,
     nhan_vien_thu NVARCHAR(100),
     trang_thai_nhan_thuoc NVARCHAR(50) NULL,
@@ -560,6 +566,40 @@ CREATE TABLE cai_dat_he_thong (
     cap_nhat_luc DATETIME DEFAULT GETDATE(),
     nguoi_cap_nhat NVARCHAR(100) DEFAULT 'system'
 );
+GO
+
+-- DU LIEU MAC DINH: cai_dat_he_thong
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'insurance_fixed_reduction')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'insurance_fixed_reduction', N'50000', N'Mức giảm trừ BHYT cố định', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_patient')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_patient', N'0', N'Bảo trì Cổng Bệnh nhân', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_staff')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_staff', N'0', N'Bảo trì Cổng Nhân viên', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_message_patient')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_message_patient', N'Cổng Dịch vụ Bệnh nhân H2T Care+ đang được nâng cấp tính năng và bảo trì định kỳ. Quý khách vui lòng quay lại sau.', N'Thông báo bảo trì bệnh nhân', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_message_staff')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_message_staff', N'Phân hệ Quản lý Y tế Nội bộ đang tạm dừng để bảo trì nâng cấp máy chủ và đồng bộ cơ sở dữ liệu. Vui lòng quay lại sau.', N'Thông báo bảo trì nhân viên', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_eta')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_eta', N'23:00 Hôm nay', N'Thời gian dự kiến hoàn tất bảo trì', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_hotline')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_hotline', N'1900 1234 - (028) 3810 0000', N'Hotline hỗ trợ', GETDATE(), N'system');
+
+IF NOT EXISTS (SELECT 1 FROM cai_dat_he_thong WHERE khoa = 'maintenance_pages')
+    INSERT INTO cai_dat_he_thong (khoa, gia_tri, mo_ta, cap_nhat_luc, nguoi_cap_nhat)
+    VALUES (N'maintenance_pages', N'{"patient_booking": false, "patient_records": false, "patient_lab": false, "patient_billing": false, "patient_feedbacks": false, "patient_profile": false, "admin_emr": false, "admin_reception": false, "admin_appointments": false, "admin_lab": false, "admin_pharmacy": false, "admin_billing": false, "admin_reports": false, "admin_staff": false}', N'Cài đặt bảo trì từng trang nhỏ', GETDATE(), N'system');
 GO
 
 -- TAO CHI MUC (INDEXES)

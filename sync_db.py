@@ -118,38 +118,49 @@ def update_config_file_if_needed(conn_params):
     except Exception as ex:
         print(f"[Canh bao] Khong the ghi de config.py: {ex}")
 
-def ensure_database_exists(conn_params):
+def ensure_database_exists(conn_params, create=True):
     """Dam bao co so du lieu dich ton tai trong SQL Server."""
     db_name = conn_params.get('database', 'quan_ly_phong_kham')
     master_str = build_connection_string(conn_params, 'master')
     conn = pyodbc.connect(master_str, autocommit=True)
-    cursor = conn.cursor()
-    cursor.execute(f"SELECT 1 FROM sys.databases WHERE name = '{db_name}'")
-    exists = cursor.fetchone() is not None
-    if not exists:
-        print(f"[*] Co so du lieu '{db_name}' chua ton tai. Dang khoi tao moi...")
-        cursor.execute(f"CREATE DATABASE [{db_name}]")
-        print(f"[OK] Da tao thanh cong co so du lieu '{db_name}' tren SQL Server!")
-    else:
-        print(f"[OK] Co so du lieu '{db_name}' da ton tai san sang.")
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM sys.databases WHERE name = ?", (db_name,))
+        exists = cursor.fetchone() is not None
+        if not exists:
+            if not create:
+                print(f"[Loi] Co so du lieu '{db_name}' chua ton tai.")
+                return False
+            print(f"[*] Co so du lieu '{db_name}' chua ton tai. Dang khoi tao moi...")
+            cursor.execute(f"CREATE DATABASE [{db_name.replace(']', ']]')}]")
+            print(f"[OK] Da tao thanh cong co so du lieu '{db_name}' tren SQL Server!")
+        else:
+            print(f"[OK] Co so du lieu '{db_name}' da ton tai san sang.")
+        return True
+    finally:
+        conn.close()
 
 def check_existing_tables(conn_params):
     """Kiem tra so luong bang hien co trong CSDL."""
     db_name = conn_params.get('database', 'quan_ly_phong_kham')
     db_str = build_connection_string(conn_params, db_name)
+    conn = pyodbc.connect(db_str, autocommit=True)
     try:
-        conn = pyodbc.connect(db_str, autocommit=True)
         cursor = conn.cursor()
         cursor.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'")
-        tables = [r[0] for r in cursor.fetchall()]
+        return [r[0] for r in cursor.fetchall()]
+    finally:
         conn.close()
-        return tables
-    except Exception:
-        return []
+
+
+def expected_tables(sql_path):
+    """Lay ten cac bang ma script khoi tao day du phai tao."""
+    with open(sql_path, 'r', encoding='utf-8') as source:
+        return set(re.findall(r'^\s*CREATE\s+TABLE\s+(?:dbo\.)?(\w+)',
+                              source.read(), flags=re.MULTILINE | re.IGNORECASE))
 
 def run_safe_migrations(conn_params):
-    """Dong bo an toan: Chi tao bang thieu va them cot thieu, TUYET DOI KHONG XOA DU LIEU CU."""
+    """Ap dung migrations tren CSDL da co bang, dung ngay neu co loi."""
     db_name = conn_params.get('database', 'quan_ly_phong_kham')
     db_str = build_connection_string(conn_params, db_name)
     migrations_dir = os.path.join(CURRENT_DIR, 'database', 'migrations')
@@ -157,40 +168,42 @@ def run_safe_migrations(conn_params):
     if not os.path.exists(migrations_dir):
         return True
 
-    print("[*] Dang chay cac kich ban dong bo an toan (bao toan 100% du lieu cu)...")
+    print("[*] Dang chay cac kich ban migration tren CSDL hien co...")
     migration_files = sorted([f for f in os.listdir(migrations_dir) if f.endswith('.sql')])
 
     conn = pyodbc.connect(db_str, autocommit=True)
     cursor = conn.cursor()
 
-    for m_file in migration_files:
-        m_path = os.path.join(migrations_dir, m_file)
-        try:
-            with open(m_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
+    try:
+        for m_file in migration_files:
+            m_path = os.path.join(migrations_dir, m_file)
+            try:
+                with open(m_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
 
-            # Bo qua file chi de review
-            if 'REVIEW ONLY' in content:
-                continue
-
-            # Chay cac batch
-            batches = re.split(r'^\s*GO\s*$', content, flags=re.MULTILINE | re.IGNORECASE)
-            for batch in batches:
-                b_str = batch.strip()
-                if not b_str:
+                # Bo qua file chi de review
+                if 'REVIEW ONLY' in content:
                     continue
-                # Bo qua switch use
-                if b_str.upper().startswith('USE '):
-                    b_str = re.sub(r'^\s*USE\s+[^\n;]+;?', '', b_str, flags=re.IGNORECASE).strip()
-                if b_str:
-                    cursor.execute(b_str)
-                    while cursor.nextset():
-                        pass
-            print(f"  [OK] Da ap dung ban cap nhat an toan: {m_file}")
-        except Exception as e:
-            print(f"  [Canh bao khi chay {m_file}]: {str(e)[:120]}")
 
-    conn.close()
+                # Chay cac batch
+                batches = re.split(r'^\s*GO\s*$', content, flags=re.MULTILINE | re.IGNORECASE)
+                for batch in batches:
+                    b_str = batch.strip()
+                    if not b_str:
+                        continue
+                    # Bo qua switch use
+                    if b_str.upper().startswith('USE '):
+                        b_str = re.sub(r'^\s*USE\s+[^\n;]+;?', '', b_str, flags=re.IGNORECASE).strip()
+                    if b_str:
+                        cursor.execute(b_str)
+                        while cursor.nextset():
+                            pass
+                print(f"  [OK] Da ap dung ban cap nhat an toan: {m_file}")
+            except Exception as e:
+                print(f"  [Loi khi chay {m_file}]: {e}")
+                return False
+    finally:
+        conn.close()
     return True
 
 def execute_sql_file(conn_params, sql_path):
@@ -216,30 +229,31 @@ def execute_sql_file(conn_params, sql_path):
     total = len(valid_batches)
     success_count = 0
 
-    for idx, batch in enumerate(valid_batches, 1):
-        lines = [l.strip() for l in batch.splitlines() if l.strip() and not l.strip().startswith('--')]
-        if not lines:
-            continue
-        first = lines[0].upper()
-        if first.startswith('CREATE DATABASE') or first.startswith('IF NOT EXISTS (SELECT * FROM SYS.DATABASES'):
-            continue
-        if first.startswith('USE '):
-            continue
-
-        try:
-            cursor.execute(batch)
-            while cursor.nextset():
-                pass
-            success_count += 1
-            if idx % 5 == 0 or idx == total:
-                print(f"  -> Tien do: [{idx}/{total}] khoi lenh T-SQL da xu ly xong...")
-        except Exception as e:
-            err_msg = str(e)
-            if 'Cannot drop the table' in err_msg or 'does not exist' in err_msg:
+    try:
+        for idx, batch in enumerate(valid_batches, 1):
+            lines = [l.strip() for l in batch.splitlines() if l.strip() and not l.strip().startswith('--')]
+            if not lines:
                 continue
-            print(f"[Canh bao o khoi {idx}]: {err_msg[:120]}")
+            first = lines[0].upper()
+            if first.startswith('CREATE DATABASE') or first.startswith('IF NOT EXISTS (SELECT * FROM SYS.DATABASES'):
+                continue
+            if first.startswith('USE '):
+                continue
 
-    conn.close()
+            try:
+                cursor.execute(batch)
+                while cursor.nextset():
+                    pass
+                success_count += 1
+                if idx % 5 == 0 or idx == total:
+                    print(f"  -> Tien do: [{idx}/{total}] khoi lenh T-SQL da xu ly xong...")
+            except Exception as e:
+                print(f"[Loi o khoi {idx}/{total}]: {e}")
+                print("[Loi] Qua trinh nap SQL da dung. Co so du lieu co the dang o trang thai chua day du.")
+                return False
+    finally:
+        conn.close()
+
     print(f"[OK] Da thuc thi thanh cong {success_count}/{total} khoi lenh T-SQL!")
     return True
 
@@ -248,29 +262,49 @@ def print_summary(conn_params):
     tables = check_existing_tables(conn_params)
     db_name = conn_params.get('database', 'quan_ly_phong_kham')
     db_str = build_connection_string(conn_params, db_name)
+    sql_file = os.path.join(CURRENT_DIR, 'database', 'cosodulieu.sql')
+    required_tables = expected_tables(sql_file)
+    missing = {name.lower() for name in required_tables} - {name.lower() for name in tables}
+    counts = {}
+    count_errors = []
 
     print("\nKet qua dong bo Co so du lieu Microsoft SQL Server:")
     print(f"  Server instance: {conn_params['server']}")
     print(f"  Driver ODBC:     {conn_params['driver']}")
     print(f"  Database:        {db_name}")
-    print(f"  Tong so bang:    {len(tables)}/28 bang chuan y khoa")
+    print(f"  Tong so bang:    {len(tables)} bang (script mau tao {len(required_tables)} bang)")
+    if missing:
+        print(f"  [Loi] Thieu bang: {', '.join(sorted(missing))}")
 
     try:
         conn = pyodbc.connect(db_str, autocommit=True)
-        cur = conn.cursor()
-        for tbl in sorted(tables):
-            try:
-                cur.execute(f"SELECT COUNT(*) AS cnt FROM [{tbl}]")
-                cnt = cur.fetchone()[0]
-                print(f"    + Bang {tbl:22}: {cnt:5d} ban ghi")
-            except Exception:
-                pass
-        conn.close()
-    except Exception:
-        pass
+        try:
+            cur = conn.cursor()
+            for tbl in sorted(tables):
+                try:
+                    cur.execute(f"SELECT COUNT(*) AS cnt FROM [{tbl}]")
+                    cnt = cur.fetchone()[0]
+                    counts[tbl.lower()] = cnt
+                    print(f"    + Bang {tbl:22}: {cnt:5d} ban ghi")
+                except Exception as error:
+                    count_errors.append(f"{tbl}: {error}")
+        finally:
+            conn.close()
+    except Exception as error:
+        count_errors.append(str(error))
 
+    empty_essentials = [name for name in ('vai_tro', 'tai_khoan', 'chuyen_khoa', 'bac_si')
+                        if name in required_tables and counts.get(name) == 0]
+    if count_errors:
+        print(f"  [Loi] Khong doc duoc du lieu: {'; '.join(count_errors)}")
+    if empty_essentials:
+        print(f"  [Loi] Thieu du lieu mau can thiet: {', '.join(empty_essentials)}")
+    if missing or count_errors or empty_essentials:
+        print("\nCo so du lieu chua day du. Khong khoi chay web cho den khi xu ly xong loi SQL.\n")
+        return False
     print("\nHe thong da san sang! Ban co the khoi chay ung dung ngay:")
     print("  python app.py\n")
+    return True
 
 def main():
     print("H2T Care+: Cong cu dong bo Co so du lieu tu dong")
@@ -278,6 +312,9 @@ def main():
     force_fresh = '--fresh' in sys.argv or '--reset' in sys.argv
     check_only = '--check' in sys.argv
     restore_bak = '--restore' in sys.argv
+    if sum((force_fresh, check_only, restore_bak)) > 1:
+        print("[Loi] Chi chon mot trong cac che do --fresh, --check, --restore.")
+        sys.exit(1)
 
     conn_params = detect_working_connection()
     if not conn_params:
@@ -288,14 +325,17 @@ def main():
         print("  3. Mo SQL Server Configuration Manager va bat TCP/IP sang Enabled.")
         sys.exit(1)
 
-    update_config_file_if_needed(conn_params)
-    ensure_database_exists(conn_params)
+    if not check_only:
+        update_config_file_if_needed(conn_params)
+    if not ensure_database_exists(conn_params, create=not check_only):
+        sys.exit(1)
 
     tables = check_existing_tables(conn_params)
     print(f"[*] Hien co trong CSDL: {len(tables)} bang du lieu.")
 
     if check_only:
-        print_summary(conn_params)
+        if not print_summary(conn_params):
+            sys.exit(1)
         return
 
     sql_file = os.path.join(CURRENT_DIR, 'database', 'cosodulieu.sql')
@@ -303,34 +343,44 @@ def main():
     if restore_bak:
         from models.backup_model import BackupModel
         latest = BackupModel.get_latest_backup()
-        if latest:
-            print(f"[*] Dang phuc hoi tu ban sao luu moi nhat: {latest}...")
-            ok, msg = BackupModel.restore_backup(latest, user_name='sync_tool', create_safety_copy=False)
-            if ok:
-                print(f"[OK] {msg}")
-                print_summary(conn_params)
-                return
-            else:
-                print(f"[Canh bao] Phuc hoi .bak that bai: {msg}. Chuyen sang nap tu cosodulieu.sql...")
+        if not latest:
+            print("[Loi] Khong tim thay tep .bak de phuc hoi. Khong nap de du lieu mau.")
+            sys.exit(1)
+        print(f"[*] Dang phuc hoi tu ban sao luu moi nhat: {latest}...")
+        ok, msg = BackupModel.restore_backup(latest, user_name='sync_tool', create_safety_copy=False)
+        if not ok:
+            print(f"[Loi] Phuc hoi that bai: {msg}. Co so du lieu hien tai duoc giu nguyen.")
+            sys.exit(1)
+        print(f"[OK] {msg}")
+        if not print_summary(conn_params):
+            sys.exit(1)
+        return
 
     if force_fresh:
-        print("[*] Che do '--fresh': Dang tu dong tao ban sao luu an toan phong ho...")
-        try:
+        if tables:
+            print("[*] Che do '--fresh': Dang tao ban sao luu truoc khi xoa du lieu...")
             from models.backup_model import BackupModel
-            BackupModel.create_backup(user_name='before_fresh_sync')
-        except Exception:
-            pass
+            try:
+                ok, msg = BackupModel.create_backup(user_name='before_fresh_sync', cleanup=False)
+                if not ok:
+                    print(f"[Canh bao] Khong the sao luu: {msg}. Tiep tuc vi da chon --fresh.")
+            except Exception as error:
+                print(f"[Canh bao] Khong the sao luu: {error}. Tiep tuc vi da chon --fresh.")
         print("[*] Dang lam sach va tao moi toan bo CSDL tu dau theo cosodulieu.sql...")
-        execute_sql_file(conn_params, sql_file)
-    elif len(tables) < 20:
-        print("[*] Phat hien CSDL moi hoac chua co du lieu. Dang khoi tao day du tu cosodulieu.sql...")
-        execute_sql_file(conn_params, sql_file)
+        if not execute_sql_file(conn_params, sql_file):
+            sys.exit(1)
+    elif not tables:
+        print("[*] CSDL trong. Dang khoi tao day du tu cosodulieu.sql...")
+        if not execute_sql_file(conn_params, sql_file):
+            sys.exit(1)
     else:
-        # Che do mac dinh: SAFE MIGRATION - Bao toan 100% du lieu nguoi dung da tao
-        print("[*] Che do AN TOAN (Safe Sync): Giu nguyen toan bo du lieu cu, chi bo sung bang va cot moi...")
-        run_safe_migrations(conn_params)
+        print("[*] CSDL da co bang. Chi ap dung migrations, khong nap lai du lieu mau.")
+        if not run_safe_migrations(conn_params):
+            print("[Loi] Dong bo dung lai. Khong chay --fresh neu con du lieu can giu.")
+            sys.exit(1)
 
-    print_summary(conn_params)
+    if not print_summary(conn_params):
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -26,7 +26,7 @@ DB_ENGINE = 'sqlserver'
 # Cấu hình kết nối Microsoft SQL Server
 SQLSERVER_CONFIG = {
     'driver': '{ODBC Driver 17 for SQL Server}',
-    'server': os.environ.get('SQL_SERVER_NAME', 'localhost'),
+    'server': os.environ.get('SQL_SERVER_NAME', '.\\SQLEXPRESS'),
     'database': 'quan_ly_phong_kham',
     'trusted_connection': 'yes',
     'uid': 'sa',
