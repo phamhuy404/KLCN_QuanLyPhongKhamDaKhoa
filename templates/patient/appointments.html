@@ -132,7 +132,11 @@
                                 {% endif %}
 
                                 <!-- Status Badge -->
-                                {% if app.is_doctor_scheduled %}
+                                {% if app.is_unavailable %}
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                                        <i class="fa-solid fa-clock-rotate-left text-[10px]"></i> Không khả dụng
+                                    </span>
+                                {% elif app.is_doctor_scheduled %}
                                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 shadow-2xs">
                                         <i class="fa-solid fa-user-doctor text-[10px]"></i> Bác sĩ hẹn mới • Đã duyệt
                                     </span>
@@ -403,7 +407,10 @@
 
         const callBadge = document.getElementById('detail-modal-call-badge');
         const callStatus = document.getElementById('detail-modal-call-status');
-        if (app.da_goi_kham) {
+        if (app.is_unavailable) {
+            callBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200";
+            callStatus.innerText = "❌ Lịch hẹn này đã quá thời gian khám và không còn khả dụng";
+        } else if (app.da_goi_kham) {
             callBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse";
             callStatus.innerText = "📢 ĐANG GỌI VÀO PHÒNG KHÁM! (Lúc " + (app.thoi_gian_goi || 'vừa xong') + ")";
         } else if (app.status_code === 'examining') {
@@ -425,7 +432,9 @@
 
         const statusContainer = document.getElementById('detail-modal-status-badge');
         let statusHtml = '';
-        if (app.status_code === 'confirmed') {
+        if (app.is_unavailable) {
+            statusHtml = '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">Không khả dụng (Đã qua giờ hẹn khám)</span>';
+        } else if (app.status_code === 'confirmed') {
             statusHtml = '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Đã tiếp nhận / Duyệt</span>';
         } else if (app.status_code === 'completed') {
             statusHtml = '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Đã khám xong</span>';

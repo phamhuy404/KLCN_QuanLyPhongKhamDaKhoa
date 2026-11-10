@@ -42,7 +42,7 @@
         {% endfor %}</tbody>
     </table>
     <p class="money">Tổng chi phí: <strong>{{ '{:,.0f}'.format(invoice.tong_tien) }} đ</strong></p>
-    <p class="money">BHYT giảm trừ: −{{ '{:,.0f}'.format(invoice.tien_bhyt) }} đ</p>
+    {% if invoice.tien_bhyt and invoice.tien_bhyt > 0 %}<p class="money">BHYT giảm trừ: −{{ '{:,.0f}'.format(invoice.tien_bhyt) }} đ</p>{% endif %}
     {% if invoice.giam_gia %}<p class="money">Giảm khác: −{{ '{:,.0f}'.format(invoice.giam_gia) }} đ</p>{% endif %}
     <p class="money total">Tổng thực thu: {{ '{:,.0f}'.format(invoice.thanh_tien) }} đ</p>
     <p class="note">BHYT là mức giảm mô phỏng trong hệ thống. Xem hoặc in bill không thay đổi trạng thái thanh toán.</p>

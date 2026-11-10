@@ -136,26 +136,26 @@ python run_mobile_auth_test_server.py
 
 ---
 
-## IV. BẢNG TÀI KHOẢN MẪU & MẬT KHẨU MẶC ĐỊNH (71 TÀI KHOẢN)
+## IV. BẢNG TÀI KHOẢN MẪU VÀ MẬT KHẨU MẶC ĐỊNH (80 TÀI KHOẢN)
 
 Hệ thống cho phép đăng nhập linh hoạt bằng:
 - **Tên đăng nhập (Username)**
 - **Số điện thoại (SĐT)**
 - **Mã Bệnh nhân (`BN...`) / Mã Nhân viên (`NV...`)**
 
-### 1. Quản Trị Viên (`ADMIN`) - Mật khẩu: `123456`
+### 1. Quản Trị Viên (`ADMIN`) - Mật khẩu: `123456` hoặc `admin123`
 | STT | Username / Mã | Số điện thoại | Họ và tên | Chức danh |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `admin` | `0999999999` | Quản Trị Viên Hệ Thống | Giám đốc / Trưởng ban CNTT |
+| 1 | `admin` | `0999999999` | Quản Trị Viên Hệ Thống | Giám đốc Điều hành và Quản trị Hệ thống |
 
-### 2. Nhân Viên Lễ Tân & Thu Ngân (`LETAN`) - Mật khẩu: `123`
+### 2. Nhân Viên Lễ Tân và Thu Ngân (`LETAN`) - Mật khẩu: `123`
 | STT | Username / Mã | Số điện thoại | Họ và tên | Vị trí công tác |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `letan_1` | `0908111221` | Nguyễn Thị Lan | Quầy tiếp đón số 1 |
-| 2 | `letan_2` | `0908111222` | Trần Thu Huyền | Quầy tiếp đón số 2 |
-| 3 | `letan_3` | `0908111223` | Lê Phương Thảo | Quầy thu ngân & Viện phí |
-| 4 | `letan_4` | `0908111224` | Phạm Ngọc Bích | Điều phối lịch hẹn |
-| 5 | `letan_5` | `0908111225` | Đỗ Thu Hà | Quầy tiếp đón số 3 |
+| 1 | `letan_1` | `0908111221` | Nguyễn Thị Lan | Lễ tân trưởng - Quầy tiếp đón Tầng 1 |
+| 2 | `letan_2` | `0908111222` | Trần Thu Huyền | Tiếp đón và Điều phối lịch hẹn - Quầy A |
+| 3 | `letan_3` | `0908111223` | Lê Phương Thảo | Thu ngân viện phí và Tiếp nhận BHYT - Quầy B |
+| 4 | `letan_4` | `0908111224` | Phạm Ngọc Bích | Chăm sóc khách hàng và Hướng dẫn khám |
+| 5 | `letan_5` | `0908111225` | Đỗ Thu Hà | Lễ tân ca trực và Điều phối bệnh nhân cấp cứu |
 
 ### 3. Bác Sĩ Chuyên Khoa (`BACSI`) - Mật khẩu: `123`
 Hệ thống gồm 35 bác sĩ phân bổ đều cho 7 chuyên khoa lâm sàng (mỗi khoa 5 bác sĩ):
@@ -173,10 +173,10 @@ Hệ thống gồm 35 bác sĩ phân bổ đều cho 7 chuyên khoa lâm sàng (
 | STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
 | :---: | :--- | :--- | :--- | :--- |
 | 6 | `bs_ngoai_1` | `0912222001` | BS. Nguyễn Hoàng Nam | P.201 Ngoại Tổng Quát |
-| 7 | `bs_ngoai_2` | `0912222002` | BS. Phan Thanh Phong | P.202 Ngoại Chấn Thương |
+| 7 | `bs_ngoai_2` | `0912222002` | BS. Phan Thanh Phong | P.202 Ngoại Xương Khớp |
 | 8 | `bs_ngoai_3` | `0912222003` | BS. Đinh Văn Hùng | P.203 Ngoại Tiết Niệu |
 | 9 | `bs_ngoai_4` | `0912222004` | BS. Hoàng Đức Lâm | P.204 Ngoại Tiêu Hóa |
-| 10 | `bs_ngoai_5` | `0912222005` | BS. Trịnh Văn Long | P.205 Tiểu Phẫu & Thay Băng |
+| 10 | `bs_ngoai_5` | `0912222005` | BS. Trịnh Văn Long | P.205 Tiểu Phẫu và Vết Thương |
 
 #### Khoa Nhi
 | STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
@@ -187,27 +187,70 @@ Hệ thống gồm 35 bác sĩ phân bổ đều cho 7 chuyên khoa lâm sàng (
 | 14 | `bs_nhi_4` | `0912333004` | BS. Phạm Thúy Hằng | P.304 Tiêm Chủng Trẻ Em |
 | 15 | `bs_nhi_5` | `0912333005` | BS. Đỗ Tuấn Nghĩa | P.305 Nhi Sơ Sinh |
 
-*(Các khoa Răng Hàm Mặt: `bs_rhm_1` đến `bs_rhm_5`; Sản Phụ Khoa: `bs_san_1` đến `bs_san_5`; Tai Mũi Họng: `bs_tmh_1` đến `bs_tmh_5`; Mắt: `bs_mat_1` đến `bs_mat_5` đều có mật khẩu mặc định là `123`).*
+#### Khoa Răng Hàm Mặt
+| STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
+| :---: | :--- | :--- | :--- | :--- |
+| 16 | `bs_rhm_1` | `0912444001` | BS. Hoàng Đức Duy | P.401 Nha Khoa Tổng Quát |
+| 17 | `bs_rhm_2` | `0912444002` | BS. Đoàn Minh Khang | P.402 Phục Hình Răng Sứ |
+| 18 | `bs_rhm_3` | `0912444003` | BS. Vũ Hồng Loan | P.403 Chỉnh Nha và Niềng Răng |
+| 19 | `bs_rhm_4` | `0912444004` | BS. Mai Văn Trọng | P.404 Tiểu Phẫu Răng Khôn |
+| 20 | `bs_rhm_5` | `0912444005` | BS. Nguyễn Bích Thủy | P.405 Cấy Ghép Implant |
 
-### 4. Dược Sĩ & Quản Lý Kho Dược (`DUOCSI`) - Mật khẩu: `123`
+#### Khoa Sản - Phụ Khoa
+| STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
+| :---: | :--- | :--- | :--- | :--- |
+| 21 | `bs_san_1` | `0912555001` | BS. Đặng Thu Hương | P.501 Quản Lý Thai Kỳ |
+| 22 | `bs_san_2` | `0912555002` | BS. Trần Kiều Nga | P.502 Khám Phụ Khoa Định Kỳ |
+| 23 | `bs_san_3` | `0912555003` | BS. Nguyễn Thanh Huyền | P.503 Tầm Soát Ung Thư Phụ Khoa |
+| 24 | `bs_san_4` | `0912555004` | BS. Bùi Thị Minh Tâm | P.504 Tư Vấn Tiền Sản |
+| 25 | `bs_san_5` | `0912555005` | BS. Lê Tuyết Lan | P.505 Kế Hoạch Hóa Gia Đình |
+
+#### Khoa Tai Mũi Họng
+| STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
+| :---: | :--- | :--- | :--- | :--- |
+| 26 | `bs_tmh_1` | `0912666001` | BS. Võ Thanh Bình | P.601 Nội Soi Tai Mũi Họng |
+| 27 | `bs_tmh_2` | `0912666002` | BS. Hoàng Quốc Tuấn | P.602 Bệnh Lý Mũi Xoang |
+| 28 | `bs_tmh_3` | `0912666003` | BS. Nguyễn Thị Thục Anh | P.603 Bệnh Lý Họng và Thanh Quản |
+| 29 | `bs_tmh_4` | `0912666004` | BS. Trương Hoài Nam | P.604 Thính Lực và Tiền Đình |
+| 30 | `bs_tmh_5` | `0912666005` | BS. Chu Đức Cảnh | P.605 Khám Tai Mũi Họng Nhi |
+
+#### Khoa Mắt
+| STT | Username | Số điện thoại | Họ và tên bác sĩ | Phòng khám |
+| :---: | :--- | :--- | :--- | :--- |
+| 31 | `bs_mat_1` | `0912777001` | BS. Đỗ Viết Thắng | P.701 Đo Khúc Xạ và Đáy Mắt |
+| 32 | `bs_mat_2` | `0912777002` | BS. Lê Khánh Linh | P.702 Khám Mắt Tổng Quát |
+| 33 | `bs_mat_3` | `0912777003` | BS. Nguyễn Hữu Đạt | P.703 Bệnh Lý Giác Mạc và Thể Thủy Tinh |
+| 34 | `bs_mat_4` | `0912777004` | BS. Phạm Hồng Nhung | P.704 Nhược Thị và Tật Khúc Xạ Học Đường |
+| 35 | `bs_mat_5` | `0912777005` | BS. Vũ Văn Hải | P.705 Glaucoma và Bệnh Nhãn Áp |
+
+### 4. Dược Sĩ và Quản Lý Kho Dược (`DUOCSI`) - Mật khẩu: `123`
 | STT | Username / Mã | Số điện thoại | Họ và tên | Chức năng phụ trách |
 | :---: | :--- | :--- | :--- | :--- |
 | 1 | `duocsi_1` | `0908222331` | Dược sĩ Phạm Hoàng Minh | Quầy phát thuốc BHYT |
 | 2 | `duocsi_2` | `0908222332` | Dược sĩ Nguyễn Thị Kim Oanh | Quầy phát thuốc theo yêu cầu |
 | 3 | `duocsi_3` | `0908222333` | Dược sĩ Vũ Đình Trọng | Quản lý kho chẵn |
-| 4 | `duocsi_4` | `0908222334` | Dược sĩ Hoàng Thanh Trúc | Kiểm nhập thuốc & Hạn dùng |
+| 4 | `duocsi_4` | `0908222334` | Dược sĩ Hoàng Thanh Trúc | Kiểm định hạn dùng |
 | 5 | `duocsi_5` | `0908222335` | Dược sĩ Trần Văn Phúc | Theo dõi xuất nhập tồn |
 
-### 5. Kỹ Thuật Viên Cận Lâm Sàng (`KTV`) - Mật khẩu: `123`
-| STT | Username / Mã | Số điện thoại | Họ và tên | Bộ phận chuyên môn |
+### 5. Kỹ Thuật Viên Cận Lâm Sàng (`KTV`) - 14 Tài khoản (Mật khẩu: `123`)
+| STT | Username / Mã | Số điện thoại | Họ và tên | Bộ phận chuyên môn phụ trách |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `ktv_1` | `0908333441` | KTV. Võ Anh Đức | Phòng Huyết học - Sinh hóa |
-| 2 | `ktv_2` | `0908333442` | KTV. Hoàng Văn Cường | Phòng Chụp X-Quang kỹ thuật số |
-| 3 | `ktv_3` | `0908333443` | KTV. Đặng Mỹ Linh | Phòng Siêu âm màu 4D |
-| 4 | `ktv_4` | `0908333444` | KTV. Bùi Quốc Tuấn | Phòng Đo Điện tim & Thăm dò |
-| 5 | `ktv_5` | `0908333445` | KTV. Lê Thùy Trang | Phòng Xét nghiệm Vi sinh |
+| 1 | `ktv_1` | `0908333441` | KTV. Võ Anh Đức | KTV Trưởng Xét nghiệm Huyết học - Hóa sinh |
+| 2 | `ktv_2` | `0908333442` | KTV. Hoàng Văn Cường | KTV Chẩn đoán hình ảnh - Chụp X-Quang kỹ thuật số |
+| 3 | `ktv_3` | `0908333443` | KTV. Đặng Mỹ Linh | KTV Siêu âm tổng quát và Doppler mạch máu |
+| 4 | `ktv_4` | `0908333444` | KTV. Bùi Quốc Tuấn | KTV Thăm dò chức năng và Điện tâm đồ ECG |
+| 5 | `ktv_5` | `0908333445` | KTV. Lê Thùy Trang | KTV Xét nghiệm Vi sinh - Nước tiểu |
+| 6 | `ktv_6` | `0908333446` | KTV. Nguyễn Minh Khôi | KTV Thủ thuật Ngoại khoa, Bó bột và Chăm sóc vết mổ |
+| 7 | `ktv_7` | `0908333447` | KTV. Phan Thanh Trúc | KTV Siêu âm Cơ xương khớp và Mô mềm Ngoại khoa |
+| 8 | `ktv_8` | `0908333448` | KTV. Trần Bảo Vy | KTV Xét nghiệm Vi mẫu và Phun khí dung Nhi khoa |
+| 9 | `ktv_9` | `0908333449` | KTV. Trương Gia Huy | KTV Thăm dò chức năng và Test dị ứng Nhi khoa |
+| 10 | `ktv_10` | `0908333450` | KTV. Vũ Ngọc Diệp | KTV Chụp X-Quang Răng Panorama toàn cảnh và Cận chóp |
+| 11 | `ktv_11` | `0908333451` | KTV. Lý Hữu Nghĩa | KTV Cạo vôi siêu âm, Lấy dấu chỉnh nha và Scan hàm 3D |
+| 12 | `ktv_12` | `0908333452` | KTV. Huỳnh Mai Phương | KTV Monitoring Sản khoa và Lấy mẫu Pap Smear |
+| 13 | `ktv_13` | `0908333453` | KTV. Đỗ Quang Khải | KTV Đo Thính lực đơn âm và Nội soi Tai Mũi Họng |
+| 14 | `ktv_14` | `0908333454` | KTV. Mai Xuân Nhi | KTV Đo Khúc xạ tự động, Bản đồ Giác mạc và Nhãn áp |
 
-### 6. Khách Hàng / Bệnh Nhân (`BENHNHAN`) - Mật khẩu: `123`
+### 6. Khách Hàng / Bệnh Nhân (`BENHNHAN`) - 20 Tài khoản mẫu (Mật khẩu: `123` hoặc `123456`)
 | STT | Username / Mã BN | Số điện thoại | Họ và tên | Tình trạng thẻ BHYT |
 | :---: | :--- | :--- | :--- | :--- |
 | 1 | `hoangbaonam` | `0901234561` | Hoàng Bảo Nam | **Đã có thẻ BHYT** (`DN4790123456789`) |
@@ -215,6 +258,21 @@ Hệ thống gồm 35 bác sĩ phân bổ đều cho 7 chuyên khoa lâm sàng (
 | 3 | `0989900112` | `0989900112` | Mai Văn Khiêm | **Chưa có thẻ BHYT** (Khám viện phí 100%) |
 | 4 | `0901234562` | `0901234562` | Trần Thị Thu Hà | Đã có thẻ BHYT |
 | 5 | `0901234563` | `0901234563` | Nguyễn Văn Hùng | Đã có thẻ BHYT |
+| 6 | `0901234564` | `0901234564` | Lê Minh Anh | Đã có thẻ BHYT |
+| 7 | `0901234565` | `0901234565` | Phạm Đức Trọng | Đã có thẻ BHYT |
+| 8 | `0901234566` | `0901234566` | Đỗ Thị Bích Ngân | Đã có thẻ BHYT |
+| 9 | `0901234567` | `0901234567` | Vũ Đình Khang | Đã có thẻ BHYT |
+| 10 | `0901234568` | `0901234568` | Bùi Tuyết Mai | Đã có thẻ BHYT |
+| 11 | `0901234569` | `0901234569` | Đặng Quốc Bảo | Đã có thẻ BHYT |
+| 12 | `0901234570` | `0901234570` | Phan Mỹ Duyên | Đã có thẻ BHYT |
+| 13 | `0981122334` | `0981122334` | Lê Hoàng Long | Đã có thẻ BHYT |
+| 14 | `0972233445` | `0972233445` | Vũ Thị Bích Ngọc | Đã có thẻ BHYT |
+| 15 | `0963344556` | `0963344556` | Đặng Quốc Bảo | Đã có thẻ BHYT |
+| 16 | `0944455667` | `0944455667` | Phạm Thanh Thảo | Đã có thẻ BHYT |
+| 17 | `0935566778` | `0935566778` | Trịnh Đình Trọng | Đã có thẻ BHYT |
+| 18 | `0917788990` | `0917788990` | Bùi Hải Đăng | Đã có thẻ BHYT |
+| 19 | `0908899001` | `0908899001` | Nguyễn Khánh Vy | Đã có thẻ BHYT |
+| 20 | `0970011223` | `0970011223` | Đỗ Thị Kim Chi | Đã có thẻ BHYT |
 
 ---
 

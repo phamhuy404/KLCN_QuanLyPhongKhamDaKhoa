@@ -85,7 +85,7 @@ def roles_required(*allowed_roles):
 
 def current_patient_id():
     user = refresh_session_user()
-    if not user or user.get('vai_tro') != 'BENHNHAN':
+    if not user or user.get('vai_tro') not in ('BENHNHAN', 'ADMIN'):
         deny()
     patient_id = positive_id(user.get('patient_id'))
     if patient_id is None:

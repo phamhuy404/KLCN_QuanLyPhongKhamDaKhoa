@@ -1,875 +1,1765 @@
-{% extends "layouts/base.html" %}
-
-{% block title %}Đặt lịch khám bệnh - H2T Healthcare{% endblock %}
-
-{% block sidebar %}
-    {% include "patient/components/sidebar.html" %}
-{% endblock %}
-
-{% block header %}
-    {% include "patient/components/header.html" %}
-{% endblock %}
-
-{% block content %}
-    <!-- Breadcrumb và Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-                <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
-                <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                <span class="text-medical-600 font-medium">Đặt lịch khám</span>
-            </div>
-            <h2 class="text-2xl font-bold text-slate-900">Đặt lịch khám trực tuyến</h2>
-            <p class="text-xs text-slate-400 mt-0.5">Chọn chuyên khoa, thời gian khám và bác sĩ tiếp nhận phù hợp chỉ trong vài bước</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="bg-medical-50 text-medical-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-medical-200/60">
-                <i class="fa-solid fa-shield-halved mr-1"></i> Đặt trước giữ chỗ, Tiếp đón nhanh tại quầy
-            </span>
-        </div>
-    </div>
-
-    <!-- Booking Form và Summary Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        <!-- Form Cột Trái (2 cột) -->
-        <div class="lg:col-span-2 space-y-6">
-            
-            <!-- Bước 1: Chọn Chuyên khoa -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
-                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">1</span>
-                        Chọn chuyên khoa khám
-                    </h3>
-                    <span class="text-xs text-medical-600 font-semibold" id="selected-dept-label">Nội Tổng Quát</span>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch" id="specialty-selector">
-                    {% if departments %}
-                        {% for dep in departments %}
-                        <label class="cursor-pointer specialty-item flex flex-col h-full">
-                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if (preselected_dept_id and dep.id == preselected_dept_id) or (not preselected_dept_id and loop.first) %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
-                            <div class="w-full h-full min-h-[128px] p-3 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center justify-center gap-2">
-                                <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg shrink-0">
-                                    <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
-                                </div>
-                                <span class="text-xs font-semibold text-slate-800 text-center line-clamp-2 min-h-[2.25rem] flex items-center justify-center leading-snug px-1">{{ dep.ten_khoa }}</span>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    {% else %}
-                        <div class="col-span-4 text-center py-4 text-xs text-slate-400">Đang cập nhật danh mục chuyên khoa...</div>
-                    {% endif %}
-                </div>
-
-                <!-- Chọn hình thức khám chuyên ngành theo khoa đã chọn -->
-                <div id="specialized-service-section" class="mt-4 pt-4 border-t border-slate-100">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            <i class="fa-solid fa-list-check text-medical-600"></i>
-                            <span>Hình thức khám chuyên ngành:</span>
-                        </label>
-                        <span class="text-[11px] text-slate-400">Chọn gói khám hoặc nhu cầu chuyên sâu phù hợp</span>
-                    </div>
-                    <div id="specialized-service-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <!-- Nạp động qua JS từ exam_services -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bước 2: Chọn Ngày và Khung giờ khám -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
-                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">2</span>
-                        Chọn ngày và khung giờ khám dự kiến
-                    </h3>
-                    <span class="text-xs text-slate-500"><i class="fa-solid fa-arrow-pointer mr-1"></i>Nhấp để chọn, nhấp lại để bỏ chọn</span>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám</label>
-                        <input type="date" id="booking-date"
-                            class="w-full sm:w-72 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
-                            onchange="onDateChange()">
-                    </div>
-
-                    <!-- Chú thích quy tắc hiển thị khung giờ -->
-                    <div class="flex flex-wrap items-center gap-3 pt-2 pb-1 text-xs">
-                        <span class="text-slate-500 font-medium">Trạng thái giờ:</span>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-semibold">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Khả dụng
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-medical-500 text-white border border-medical-600 text-[11px] font-semibold shadow-2xs">
-                            <span class="w-2 h-2 rounded-full bg-white"></span> Đang chọn
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-400 border border-slate-200 text-[11px] font-semibold">
-                            <span class="w-2 h-2 rounded-full bg-slate-300"></span> Không có ca / Đã kín (Xám đi)
-                        </span>
-                    </div>
-
-                    <!-- Khung giờ khám tải theo ma trận hai chiều -->
-                    <div id="dynamic-time-slots-container" class="space-y-4 pt-1">
-                        <div class="text-center py-6 text-xs text-slate-400">
-                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải danh sách khung giờ khám...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bước 3: Danh sách Bác sĩ của khoa được chọn -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">3</span>
-                            Bác sĩ khám tiếp nhận
-                        </h3>
-                        <p class="text-[11px] text-slate-400 mt-1">Toàn bộ bác sĩ thuộc chuyên khoa. Nhấp vào bác sĩ để chọn, nhấp lại để bỏ chọn.</p>
-                    </div>
-                    <span id="current-shift-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 shrink-0">Linh hoạt</span>
-                </div>
-
-                <div class="space-y-3">
-                    <!-- Tùy chọn: Để phòng khám tự phân công bác sĩ trực -->
-                    <div id="auto-doctor-card" onclick="onAutoDoctorClick()"
-                        class="p-4 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/20 hover:border-medical-400 cursor-pointer transition-all flex items-center gap-3.5 select-none">
-                        <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
-                            <i class="fa-solid fa-user-clock"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <h4 class="font-bold text-sm text-slate-900">Để phòng khám tự phân công bác sĩ trực</h4>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold">Linh hoạt</span>
-                            </div>
-                            <span class="text-xs text-medical-700 block mt-0.5">Bác sĩ chuyên khoa đang trong ca trực tiếp nhận hoặc Ban tiếp đón điều phối</span>
-                            <span class="text-[11px] text-slate-400 mt-0.5 block">Phù hợp khi bạn cần khám nhanh hoặc chưa có bác sĩ quen thuộc</span>
-                        </div>
-                        <div id="auto-check-icon" class="text-medical-600 text-lg pr-2">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                    </div>
-
-                    <!-- Danh sách toàn bộ bác sĩ của chuyên khoa -->
-                    <div id="dynamic-doctor-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div class="col-span-2 text-center py-4 text-xs text-slate-400">
-                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang nạp danh sách bác sĩ...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bước 4: Triệu chứng và Ghi chú -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
-                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">4</span>
-                        Mô tả triệu chứng và Ghi chú y tế
-                    </h3>
-                </div>
-
-                <div class="space-y-3">
-                    <textarea id="booking-reason" rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó tiêu, đau họng...)"
-                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"></textarea>
-                    
-                    <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <i class="fa-solid fa-circle-info text-medical-500"></i>
-                        <span>Lịch khám sau khi xác nhận sẽ ở trạng thái <strong>Chờ xét duyệt</strong>. Nhân viên Lễ tân hoặc Quản trị viên sẽ duyệt và thông báo bác sĩ tiếp nhận cho bạn.</span>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Cột Phải: Tóm tắt thông tin đặt lịch và Xác nhận (1 cột) -->
-        <div class="space-y-6">
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sticky top-6">
-                <h3 class="font-bold text-base text-slate-900 pb-4 border-b border-slate-100 flex items-center gap-2">
-                    <i class="fa-solid fa-receipt text-medical-600"></i> Thông tin phiếu hẹn
-                </h3>
-
-                <div class="py-4 space-y-3.5 text-sm">
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Người khám:</span>
-                        <span class="font-semibold text-slate-800">{{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Hoàng Bảo Nam') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Mã bệnh nhân:</span>
-                        <span class="font-mono font-medium text-slate-700">{{ patient.ma_benh_nhan if patient else curr_user.get('ma_benh_nhan', 'BN2609001') }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Chuyên khoa:</span>
-                        <span id="sum-specialty" class="font-semibold text-slate-800">
-                            {%- set active_dep = (departments | selectattr('id', 'equalto', preselected_dept_id) | first) if preselected_dept_id else (departments[0] if departments else None) -%}
-                            {{ active_dep.ten_khoa if active_dep else 'Nội Tổng Quát' }}
-                        </span>
-                    </div>
-                    <div class="flex justify-between items-start" id="sum-service-row">
-                        <span class="text-slate-400 shrink-0">Loại hình khám:</span>
-                        <span id="sum-service" class="font-semibold text-medical-700 text-right text-xs max-w-[180px]">{{ preselected_service_name if preselected_service_name else "Khám Chuyên Khoa Chuẩn" }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Thời gian khám:</span>
-                        <span id="sum-time" class="font-semibold text-slate-800 text-right">08:30 • Hôm nay</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Bác sĩ khám:</span>
-                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">
-                            {%- set active_doc = (doctors | selectattr('id', 'equalto', preselected_doctor_id) | first) if preselected_doctor_id else None -%}
-                            {{ active_doc.ho_ten if active_doc else 'Để phòng khám tự phân công' }}
-                        </span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-400">Trạng thái ban đầu:</span>
-                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Chờ xét duyệt</span>
-                    </div>
-                </div>
-
-                <div class="pt-4 border-t border-slate-100 space-y-2.5">
-                    <div class="flex justify-between items-baseline">
-                        <span class="font-bold text-slate-800 text-xs">Giá khám niêm yết (Giá gốc):</span>
-                        <span id="sum-fee" class="text-xl font-black text-slate-900 font-mono">150.000 đ</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-                        <i class="fa-solid fa-shield-heart text-emerald-600 shrink-0"></i>
-                        <span>Giảm nếu có BHYT: mức giảm mô phỏng {{ "{:,.0f}".format(insurance_reduction) }} VNĐ, trừ một lần trên tổng hóa đơn, tối đa bằng tổng tiền.</span>
-                    </div>
-                    <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán tại quầy tiếp đón khi đến nơi.</p>
-                </div>
-
-                <button type="button" onclick="confirmBooking()" 
-                    class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-calendar-check"></i> Xác nhận Đặt Lịch
-                </button>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Dữ liệu dịch vụ khám chuyên khoa -->
-    <script id="exam-services-json" type="application/json">
-        {{ exam_services|tojson }}
-    </script>
-
-    <!-- Script điều khiển lọc hai chiều và đồng bộ thời gian thực -->
-    <script>
-        let matrixData = null;
-        let allExamServices = [];
-        try {
-            allExamServices = JSON.parse(document.getElementById('exam-services-json')?.textContent || '[]');
-        } catch(e) {
-            allExamServices = [];
-        }
-        let selectedSpecialtyId = 1;
-        let selectedSpecialtyName = "Nội Tổng Quát";
-        let selectedServiceId = null;
-        let selectedServiceName = "Khám Chuyên Khoa Chuẩn";
-        let selectedDoctorId = null;
-        let selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
-        let selectedDate = "";
-        let selectedTime = null;
-
-        function renderSpecializedServices(deptId) {
-            const listEl = document.getElementById('specialized-service-list');
-            if (!listEl) return;
-            const deptServices = allExamServices.filter(s => !s.chuyen_khoa_id || s.chuyen_khoa_id === deptId);
-            
-            let html = `
-                <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-medical-400 transition" onclick="selectExamService(null, 'Khám Chuyên Khoa Chuẩn', null)">
-                    <input type="radio" name="exam_service_opt" value="" class="text-medical-600 focus:ring-medical-500" ${!selectedServiceId ? 'checked' : ''}>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs font-bold text-slate-800 truncate">Khám tiêu chuẩn khoa</div>
-                        <div class="text-[10px] text-slate-400">Khám tổng quan theo chuyên khoa đã chọn</div>
-                    </div>
-                </label>
-            `;
-
-            deptServices.forEach(s => {
-                const isSelected = selectedServiceId === s.id;
-                const formattedPrice = (s.don_gia || 0).toLocaleString('vi-VN') + ' đ';
-                html += `
-                    <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border ${isSelected ? 'border-medical-500 bg-medical-50/40 shadow-xs' : 'border-slate-200 bg-white hover:border-medical-300'} transition" onclick="selectExamService(${s.id}, '${s.ten_dich_vu.replace(/'/g, "\'")}', ${s.don_gia || 0})">
-                        <input type="radio" name="exam_service_opt" value="${s.id}" class="text-medical-600 focus:ring-medical-500" ${isSelected ? 'checked' : ''}>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs font-bold text-slate-800 truncate" title="${s.ten_dich_vu}">${s.ten_dich_vu}</div>
-                            <div class="text-[10px] text-medical-600 font-semibold">${formattedPrice}</div>
-                        </div>
-                    </label>
-                `;
-            });
-
-            listEl.innerHTML = html;
-        }
-
-        function selectExamService(srvId, srvName, srvPrice) {
-            selectedServiceId = srvId;
-            selectedServiceName = srvName;
-            const sumEl = document.getElementById('sum-service');
-            if (sumEl) sumEl.textContent = srvName;
-
-            if (srvPrice && srvPrice > 0) {
-                const fee = parseFloat(srvPrice);
-                const feeEl = document.getElementById('sum-fee');
-                if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
-            } else {
-                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
-                const defaultFee = activeDeptRadio ? parseFloat(activeDeptRadio.dataset.fee || 150000) : 150000;
-                const feeEl = document.getElementById('sum-fee');
-                if (feeEl) feeEl.textContent = defaultFee.toLocaleString('vi-VN') + " đ";
-            }
-
-            document.querySelectorAll('#specialized-service-list label').forEach(lbl => {
-                const radio = lbl.querySelector('input[name="exam_service_opt"]');
-                const isThis = (radio && ((!srvId && !radio.value) || (srvId && parseInt(radio.value) === srvId)));
-                if (radio) radio.checked = isThis;
-                if (isThis) {
-                    lbl.classList.add('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
-                    lbl.classList.remove('border-slate-200', 'bg-white');
-                } else {
-                    lbl.classList.remove('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
-                    lbl.classList.add('border-slate-200', 'bg-white');
-                }
-            });
-        }
-
-        function formatDateDisplay(isoDate) {
-            if (!isoDate) return "";
-            const parts = isoDate.split('-');
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            return isoDate;
-        }
-
-        function onSpecialtyChange(el) {
-            selectedSpecialtyId = parseInt(el.value);
-            selectedSpecialtyName = el.dataset.name || "";
-            selectedDoctorId = null;
-            selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
-            selectedServiceId = null;
-            selectedServiceName = "Khám Chuyên Khoa Chuẩn";
-            
-            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
-            document.getElementById('sum-service').textContent = selectedServiceName;
-            document.getElementById('selected-dept-label').textContent = selectedSpecialtyName;
-
-            const fee = parseFloat(el.dataset.fee || 150000);
-            const feeEl = document.getElementById('sum-fee');
-            if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
-
-            renderSpecializedServices(selectedSpecialtyId);
-            loadBookingMatrix();
-        }
-
-        function onDateChange() {
-            const dateInput = document.getElementById('booking-date').value;
-            if (dateInput) {
-                selectedDate = dateInput;
-                loadBookingMatrix();
-            }
-        }
-
-        async function loadBookingMatrix() {
-            const dateInput = document.getElementById('booking-date').value;
-            if (!dateInput) return;
-            selectedDate = dateInput;
-
-            const timeContainer = document.getElementById('dynamic-time-slots-container');
-            const docContainer = document.getElementById('dynamic-doctor-list');
-
-            // Cố định chiều cao tối thiểu trước khi fetch để chống giật trang
-            if (timeContainer.offsetHeight > 100) {
-                timeContainer.style.minHeight = timeContainer.offsetHeight + 'px';
-            }
-            if (docContainer.offsetHeight > 60) {
-                docContainer.style.minHeight = docContainer.offsetHeight + 'px';
-            }
-
-            timeContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang cập nhật khung giờ...</div>`;
-            docContainer.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang nạp danh sách bác sĩ...</div>`;
-
-            try {
-                const res = await fetch(`/api/appointment/booking-matrix?date=${selectedDate}&department_id=${selectedSpecialtyId}`);
-                const data = await res.json();
-                if (!data.success) {
-                    timeContainer.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Không thể nạp dữ liệu ca khám.</div>`;
-                    docContainer.innerHTML = `<div class="col-span-2 text-xs text-rose-500 text-center py-4">Không thể nạp bác sĩ.</div>`;
-                    return;
-                }
-
-                matrixData = data;
-                renderTimeSlots();
-                renderDoctors();
-
-                if (selectedDoctorId && matrixData.doctors) {
-                    const matchedDoc = matrixData.doctors.find(d => d.id === selectedDoctorId);
-                    if (matchedDoc) {
-                        selectedDoctorName = matchedDoc.full_name || matchedDoc.ho_ten;
-                    }
-                }
-
-                // Nếu giờ đã chọn không còn khả dụng thì bỏ chọn để người dùng tự do chọn lại
-                const availSlots = matrixData.all_available_slots || [];
-                if (selectedTime && !availSlots.includes(selectedTime)) {
-                    selectedTime = null;
-                }
-
-                applyInteractiveFilter();
-            } catch (err) {
-                console.error(err);
-                timeContainer.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Lỗi kết nối khi tải khung giờ.</div>`;
-                docContainer.innerHTML = `<div class="col-span-2 text-xs text-rose-500 text-center py-4">Lỗi kết nối khi tải danh sách bác sĩ.</div>`;
-            }
-        }
-
-        function renderTimeSlots() {
-            const container = document.getElementById('dynamic-time-slots-container');
-            if (!matrixData || !matrixData.shifts) return;
-
-            let html = '';
-            matrixData.shifts.forEach(s => {
-                const iconClass = s.shift === 1 ? 'fa-sun text-amber-500' : (s.shift === 2 ? 'fa-cloud-sun text-teal-500' : 'fa-moon text-indigo-500');
-                html += `
-                    <div>
-                        <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
-                            <i class="fa-solid ${iconClass} text-xs"></i> ${s.name}
-                        </span>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                `;
-
-                s.slots.forEach(t => {
-                    html += `
-                        <div id="slot-btn-${t.replace(':', '-')}" data-time="${t}" onclick="onTimeSlotClick('${t}')"
-                            title="Khung giờ ${t} (Nhấp để chọn, nhấp lại để bỏ chọn)"
-                            class="slot-btn py-2.5 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 select-none">
-                            <span class="font-bold text-xs slot-time-text">${t}</span>
-                            <span class="slot-status-text text-[9px] font-normal">Còn trống</span>
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `
-                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 sm:gap-5 text-[11px] text-slate-500">
-                    <span class="font-bold text-slate-700">Chú thích trạng thái:</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-white border border-slate-300 inline-block shadow-2xs"></span> Còn trống</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-amber-100 border border-amber-400 inline-block"></span> Có người chờ duyệt (Có thể chọn)</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-300 inline-block"></span> Đã kín chỗ (Khóa chọn)</span>
-                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-200 inline-block"></span> Đã qua giờ</span>
-                </div>
-                <div id="pending-conflict-alert" class="hidden mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs transition-all">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
-                    <div class="flex-1">
-                        <span class="font-bold text-amber-900 block mb-0.5">Lưu ý về khung giờ đang chờ duyệt:</span>
-                        <p id="pending-conflict-alert-msg" class="text-amber-800 leading-relaxed text-[11px]"></p>
-                    </div>
-                </div>
-            `;
-
-            container.innerHTML = html;
-        }
-
-        function renderDoctors() {
-            const container = document.getElementById('dynamic-doctor-list');
-            if (!matrixData || !matrixData.doctors) return;
-
-            if (matrixData.doctors.length === 0) {
-                container.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400">Chưa có bác sĩ trong khoa này.</div>`;
-                return;
-            }
-
-            let html = '';
-            matrixData.doctors.forEach(doc => {
-                const cleanName = doc.clean_name || doc.ho_ten;
-                const initials = cleanName.split(' ').map(n => n[0]).filter(Boolean).slice(-2).join('').toUpperCase() || 'BS';
-
-                const avatarHtml = (doc.avatar && doc.avatar.trim())
-                    ? `<div class="relative w-11 h-11 shrink-0">
-                         <img loading="lazy" decoding="async" src="${doc.avatar}" alt="${cleanName}" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                         <div class="hidden w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs items-center justify-center border border-medical-200/50">${initials}</div>
-                       </div>`
-                    : `<div class="w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs flex items-center justify-center shrink-0 border border-medical-200/50">${initials}</div>`;
-
-                const escapedFullName = doc.full_name.replace(/'/g, "\\'");
-
-                html += `
-                    <div id="doctor-card-${doc.id}" data-doctor-id="${doc.id}" onclick="onDoctorClick(${doc.id}, '${escapedFullName}')"
-                        title="${escapedFullName} (Nhấp để chọn, nhấp lại để bỏ chọn)"
-                        class="doctor-item p-3.5 rounded-xl border border-slate-200 bg-white hover:border-medical-300 transition-all flex items-center gap-3 min-w-0 select-none">
-                        ${avatarHtml}
-                        <div class="overflow-hidden flex-1 min-w-0">
-                            <h4 class="font-bold text-xs text-slate-800 truncate">${doc.full_name}</h4>
-                            <span class="text-[11px] text-medical-600 block truncate mt-0.5">${doc.ten_khoa || 'Chuyên khoa'} • ${doc.ten_phong || 'Phòng khám'}</span>
-                            <span class="text-[10px] text-slate-400 block truncate mt-0.5">${doc.kinh_nghiem || 'Bác sĩ chuyên khoa trực ca'}</span>
-                            <span class="doctor-slot-hint text-[10px] text-amber-600 font-medium block truncate mt-1 hidden">
-                                <i class="fa-solid fa-clock-rotate-left mr-0.5"></i> Không có ca trực giờ này
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        // Áp dụng bộ lọc tương tác 2 chiều mượt mà không reload DOM
-        function applyInteractiveFilter() {
-            if (!matrixData) return;
-
-            // Kiểm tra thời gian thực để khóa giờ đã qua trong ngày
-            const now = new Date();
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            const isToday = (selectedDate === todayStr);
-            const isPastDate = (selectedDate < todayStr);
-
-            // 1. Lọc Khung giờ khám theo Bác sĩ đã chọn kèm trạng thái chi tiết (Đang chờ duyệt, Đã duyệt, Còn trống)
-            const doctorStatesMap = matrixData.doctor_slot_states || {};
-            const slotSummaryMap = matrixData.slot_summary || {};
-            const doctorSlotsMap = matrixData.doctor_slots || {};
-            const allowedSlots = selectedDoctorId 
-                ? (doctorSlotsMap[selectedDoctorId] || doctorSlotsMap[String(selectedDoctorId)] || [])
-                : (matrixData.all_available_slots || []);
-
-            if (selectedTime && !allowedSlots.includes(selectedTime)) {
-                selectedTime = null;
-            }
-
-            let hasPendingConflictOnSelected = false;
-
-            document.querySelectorAll('.slot-btn').forEach(btn => {
-                const t = btn.dataset.time;
-                const isSelected = (selectedTime === t);
-                const statusSpan = btn.querySelector('.slot-status-text');
-
-                // Kiểm tra khung giờ đã qua trong ngày hôm nay
-                const [slotH, slotM] = t.split(':').map(Number);
-                const slotTotalMinutes = slotH * 60 + slotM;
-                const isPastTime = isPastDate || (isToday && slotTotalMinutes <= currentMinutes);
-
-                // Lấy thông tin trạng thái khung giờ
-                let slotInfo = null;
-                if (selectedDoctorId) {
-                    const docStates = doctorStatesMap[selectedDoctorId] || doctorStatesMap[String(selectedDoctorId)] || {};
-                    slotInfo = docStates[t];
-                } else {
-                    slotInfo = slotSummaryMap[t];
-                }
-
-                let status = slotInfo ? slotInfo.status : (allowedSlots.includes(t) ? 'available' : 'off_duty');
-                if (isPastTime) {
-                    status = 'past';
-                }
-
-                btn.classList.remove(
-                    'opacity-35', 'bg-slate-100', 'text-slate-400', 'cursor-not-allowed', 'pointer-events-none',
-                    'opacity-65', 'bg-rose-50', 'text-rose-500', 'border-rose-200', 'border-rose-300',
-                    'bg-amber-50', 'bg-amber-50/70', 'text-amber-800', 'border-amber-300', 'hover:border-amber-500', 'hover:bg-amber-100/60',
-                    'bg-amber-500', 'border-amber-600', 'ring-amber-500/30',
-                    'bg-white', 'text-slate-700', 'border-slate-200', 'hover:border-medical-400', 'hover:bg-medical-50/50',
-                    'bg-medical-500', 'text-white', 'border-medical-600', 'shadow-sm', 'ring-2', 'ring-medical-500/30', 'cursor-pointer'
-                );
-
-                if (status === 'past') {
-                    // Giờ đã qua: Khóa và làm mờ
-                    btn.classList.add('opacity-35', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
-                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-[8px] mr-0.5"></i> Đã qua';
-                    if (isSelected) {
-                        selectedTime = null;
-                    }
-                } else if (status === 'booked') {
-                    // Đã kín chỗ hoặc có người đặt: làm mờ và khóa chọn
-                    btn.classList.add('opacity-40', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
-                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-lock text-[8px] mr-0.5 text-slate-400"></i> Đã kín chỗ';
-                } else if (status === 'off_duty') {
-                    // Không có ca trực hoặc ngoài giờ: làm mờ và khóa chọn
-                    btn.classList.add('opacity-40', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
-                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-ban text-[8px] mr-0.5 text-slate-400"></i> Đã kín chỗ';
-                } else if (status === 'pending') {
-                    // Đang có người chờ duyệt: màu cam/vàng, có thể chọn nhưng cảnh báo
-                    if (isSelected) {
-                        hasPendingConflictOnSelected = true;
-                        btn.classList.add('bg-amber-500', 'text-white', 'border-amber-600', 'shadow-sm', 'ring-2', 'ring-amber-500/30', 'cursor-pointer');
-                        if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-check text-[8px] mr-0.5"></i> Đã chọn';
-                    } else {
-                        btn.classList.add('bg-amber-50/70', 'text-amber-800', 'border-amber-300', 'hover:border-amber-500', 'hover:bg-amber-100/60', 'cursor-pointer');
-                        if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-[8px] mr-0.5"></i> Chờ duyệt';
-                    }
-                } else {
-                    // Còn trống (available)
-                    if (isSelected) {
-                        btn.classList.add('bg-medical-500', 'text-white', 'border-medical-600', 'shadow-sm', 'ring-2', 'ring-medical-500/30', 'cursor-pointer');
-                        if (statusSpan) statusSpan.textContent = 'Đã chọn';
-                    } else {
-                        btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200', 'hover:border-medical-400', 'hover:bg-medical-50/50', 'cursor-pointer');
-                        if (statusSpan) statusSpan.textContent = 'Còn trống';
-                    }
-                }
-            });
-
-            // Hiển thị hoặc ẩn cảnh báo nếu chọn khung giờ đang chờ duyệt
-            const alertBox = document.getElementById('pending-conflict-alert');
-            const alertMsg = document.getElementById('pending-conflict-alert-msg');
-            if (alertBox && alertMsg) {
-                if (hasPendingConflictOnSelected && selectedTime) {
-                    const docName = selectedDoctorId ? selectedDoctorName : "bác sĩ của chuyên khoa";
-                    alertMsg.innerHTML = `Khung giờ <strong>${selectedTime}</strong> hiện đang có bệnh nhân khác cùng chọn và đang chờ Lễ tân/Bác sĩ duyệt đơn cho <strong>${docName}</strong>. ` +
-                        `Phòng khám sẽ duyệt theo thời gian gửi đơn hoặc trường hợp ưu tiên. ` +
-                        `<strong>Lịch hẹn của bạn có thể sẽ bị tự động hủy</strong> nếu khung giờ này được duyệt cho bệnh nhân trước. Bạn vẫn có thể tiếp tục đặt hoặc chọn khung giờ còn trống (màu trắng) để được đảm bảo hơn.`;
-                    alertBox.classList.remove('hidden');
-                } else {
-                    alertBox.classList.add('hidden');
-                }
-            }
-
-            // 2. Lọc Danh sách Bác sĩ theo Giờ khám đã chọn
-            const slotDoctorsMap = matrixData.slot_doctors || {};
-            const allowedDoctorIds = selectedTime ? (slotDoctorsMap[selectedTime] || []) : null;
-
-            // Thẻ "Để phòng khám tự phân công": luôn khả dụng
-            const autoCard = document.getElementById('auto-doctor-card');
-            const autoCheck = document.getElementById('auto-check-icon');
-            if (autoCard) {
-                if (selectedDoctorId === null) {
-                    autoCard.className = 'p-4 rounded-xl border-2 border-medical-500 bg-medical-50/60 shadow-sm transition-all flex items-center gap-3.5 select-none cursor-pointer';
-                    if (autoCheck) autoCheck.classList.remove('hidden');
-                } else {
-                    autoCard.className = 'p-4 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/20 hover:border-medical-400 transition-all flex items-center gap-3.5 select-none cursor-pointer';
-                    if (autoCheck) autoCheck.classList.add('hidden');
-                }
-            }
-
-            // Cập nhật từng thẻ bác sĩ
-            document.querySelectorAll('.doctor-item').forEach(card => {
-                const docId = parseInt(card.dataset.doctorId);
-                const hasShift = !allowedDoctorIds || allowedDoctorIds.includes(docId);
-                const isSelected = (selectedDoctorId === docId);
-                const hint = card.querySelector('.doctor-slot-hint');
-
-                card.classList.remove(
-                    'opacity-35', 'grayscale', 'bg-slate-100/90', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none',
-                    'bg-white', 'hover:border-medical-300', 'shadow-2xs',
-                    'bg-medical-50/70', 'border-medical-500', 'shadow-sm', 'ring-1', 'ring-medical-500/30'
-                );
-
-                if (!hasShift) {
-                    // Xám đi: Bác sĩ không có ca trực giờ này
-                    card.classList.add('opacity-35', 'grayscale', 'bg-slate-100/90', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
-                    if (hint) hint.classList.remove('hidden');
-                } else if (isSelected) {
-                    // Đang chọn
-                    card.classList.add('bg-medical-50/70', 'border-medical-500', 'shadow-sm', 'ring-1', 'ring-medical-500/30', 'cursor-pointer');
-                    if (hint) hint.classList.add('hidden');
-                } else {
-                    // Khả dụng bình thường
-                    card.classList.add('bg-white', 'hover:border-medical-300', 'border-slate-200', 'shadow-2xs', 'cursor-pointer');
-                    if (hint) hint.classList.add('hidden');
-                }
-            });
-
-            // 3. Cập nhật nhãn ca trực và bảng tóm tắt
-            const shiftBadge = document.getElementById('current-shift-badge');
-            if (shiftBadge) {
-                if (selectedTime) {
-                    const hour = parseInt(selectedTime.split(':')[0]);
-                    if (hour < 12) shiftBadge.textContent = 'Ca Sáng (07:00 - 11:30)';
-                    else if (hour < 17) shiftBadge.textContent = 'Ca Chiều (13:30 - 17:00)';
-                    else shiftBadge.textContent = 'Ca Tối (17:30 - 20:30)';
-                } else {
-                    shiftBadge.textContent = 'Linh hoạt';
-                }
-            }
-
-            document.getElementById('sum-doctor').textContent = selectedDoctorId ? selectedDoctorName : "Để phòng khám tự phân công";
-            document.getElementById('sum-time').textContent = selectedTime 
-                ? `${selectedTime} • ${formatDateDisplay(selectedDate)}` 
-                : `Chưa chọn giờ • ${formatDateDisplay(selectedDate)}`;
-        }
-
-        function onDoctorClick(docId, docName) {
-            if (selectedDoctorId === docId) {
-                // Nhấp lại vào bác sĩ đang chọn sẽ hủy chọn về tự phân công
-                selectedDoctorId = null;
-                selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
-            } else {
-                selectedDoctorId = docId;
-                selectedDoctorName = docName;
-            }
-            applyInteractiveFilter();
-        }
-
-        function onAutoDoctorClick() {
-            selectedDoctorId = null;
-            selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
-            applyInteractiveFilter();
-        }
-
-        function onTimeSlotClick(time) {
-            // Chặn người dùng chọn giờ đã qua trong ngày
-            const now = new Date();
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            const [slotH, slotM] = time.split(':').map(Number);
-            const slotTotalMinutes = slotH * 60 + slotM;
-            if (selectedDate < todayStr || (selectedDate === todayStr && slotTotalMinutes <= currentMinutes)) {
-                return;
-            }
-
-            if (selectedTime === time) {
-                // Nhấp lại vào khung giờ đang chọn để bỏ chọn giờ
-                selectedTime = null;
-            } else {
-                selectedTime = time;
-            }
-            applyInteractiveFilter();
-        }
-
-        function confirmBooking() {
-            const dateInput = document.getElementById('booking-date').value;
-            if (!dateInput) {
-                showToast("Vui lòng chọn ngày khám dự kiến!", "error");
-                return;
-            }
-            if (!selectedTime) {
-                showToast("Vui lòng chọn khung giờ khám phù hợp!", "warning");
-                return;
-            }
-
-            const rawReason = document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân';
-            const finalReason = (selectedServiceName && selectedServiceName !== 'Khám Chuyên Khoa Chuẩn')
-                ? `[${selectedServiceName}] ${rawReason}`
-                : rawReason;
-
-            const data = {
-                chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
-                bac_si_id: selectedDoctorId ? parseInt(selectedDoctorId) : null,
-                ngay_hen: dateInput,
-                gio_hen: selectedTime,
-                exam_service_id: selectedServiceId || null,
-                ly_do: finalReason
-            };
-
-            fetch('/api/appointment/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.success) {
-                    if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
-                    const msg = res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở trạng thái Chờ xét duyệt.";
-                    showToast(msg, "success");
-                    setTimeout(() => {
-                        window.location.href = "{{ url_for('patient_appointments') }}";
-                    }, 1400);
-                } else {
-                    showToast(res.message || "Không thể đặt lịch hẹn!", "error");
-                }
-            })
-            .catch(err => {
-                showToast("Đã lưu lịch hẹn vào CSDL thành công!", "success");
-                setTimeout(() => {
-                    window.location.href = "{{ url_for('patient_appointments') }}";
-                }, 1400);
-            });
-        }
-
-        // Khởi tạo ngày khám mặc định (ngày mai) và nạp ma trận ca trực
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            const yyyy = tomorrow.getFullYear();
-            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-            const dd = String(tomorrow.getDate()).padStart(2, '0');
-            const tomorrowStr = `${yyyy}-${mm}-${dd}`;
-            const minStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            const datePicker = document.getElementById('booking-date');
-            if (datePicker) {
-                datePicker.value = tomorrowStr;
-                datePicker.min = minStr;
-                selectedDate = tomorrowStr;
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramDeptId = parseInt(urlParams.get('chuyen_khoa_id') || urlParams.get('department_id') || urlParams.get('dept_id') || urlParams.get('khoa_id') || '{{ preselected_dept_id or 0 }}');
-            const paramServiceId = parseInt(urlParams.get('service_id') || urlParams.get('dich_vu_id') || urlParams.get('exam_service_id') || '{{ preselected_service_id or 0 }}');
-            const paramServiceName = (urlParams.get('service_name') || urlParams.get('ten_dich_vu') || '{{ preselected_service_name or "" }}').trim();
-            const paramDoctorId = parseInt(urlParams.get('bac_si_id') || urlParams.get('doctor_id') || '{{ preselected_doctor_id or 0 }}');
-            const paramDate = (urlParams.get('date') || urlParams.get('ngay_hen') || '{{ preselected_date or "" }}').trim();
-
-            if (paramDate && datePicker) {
-                datePicker.value = paramDate;
-                selectedDate = paramDate;
-            }
-
-            let matchedDeptId = paramDeptId;
-            if (!matchedDeptId && paramServiceId > 0) {
-                const srv = allExamServices.find(s => s.id === paramServiceId);
-                if (srv && srv.chuyen_khoa_id) matchedDeptId = srv.chuyen_khoa_id;
-            }
-
-            if (matchedDeptId > 0) {
-                const targetDeptRadio = document.querySelector(`input[name="specialty"][value="${matchedDeptId}"]`);
-                if (targetDeptRadio) {
-                    document.querySelectorAll('input[name="specialty"]').forEach(r => r.checked = false);
-                    targetDeptRadio.checked = true;
-                    selectedSpecialtyId = matchedDeptId;
-                    selectedSpecialtyName = targetDeptRadio.dataset.name || "Chuyên Khoa";
-                    const fee = parseFloat(targetDeptRadio.dataset.fee || 150000);
-                    const feeEl = document.getElementById('sum-fee');
-                    if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
-                }
-            } else {
-                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
-                if (activeDeptRadio) {
-                    selectedSpecialtyId = parseInt(activeDeptRadio.value);
-                    selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
-                }
-            }
-
-            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
-            const deptLabel = document.getElementById('selected-dept-label');
-            if (deptLabel) deptLabel.textContent = selectedSpecialtyName;
-
-            if (paramDoctorId > 0) {
-                selectedDoctorId = paramDoctorId;
-            }
-
-            if (paramServiceId > 0 || paramServiceName) {
-                const targetSrv = allExamServices.find(s => 
-                    (paramServiceId > 0 && s.id === paramServiceId) ||
-                    (paramServiceName && s.ten_dich_vu && s.ten_dich_vu.toLowerCase() === paramServiceName.toLowerCase())
-                );
-                if (targetSrv) {
-                    selectedServiceId = targetSrv.id;
-                    selectedServiceName = targetSrv.ten_dich_vu;
-                    const fee = parseFloat(targetSrv.don_gia || 0);
-                    if (fee > 0) {
-                        const feeEl = document.getElementById('sum-fee');
-                        if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
-                    }
-                    const reasonInput = document.getElementById('booking-reason');
-                    if (reasonInput && !reasonInput.value.trim()) {
-                        reasonInput.value = `Đăng ký khám dịch vụ: ${selectedServiceName}`;
-                    }
-                } else if (paramServiceName) {
-                    selectedServiceName = paramServiceName;
-                }
-                const sumSrvEl = document.getElementById('sum-service');
-                if (sumSrvEl) sumSrvEl.textContent = selectedServiceName;
-            }
-
-            renderSpecializedServices(selectedSpecialtyId);
-            loadBookingMatrix();
-        });
-    </script>
-{% endblock %}
+{% extends "layouts/base.html" %}
+
+
+
+{% block title %}Đặt lịch khám bệnh - H2T Healthcare{% endblock %}
+
+
+
+{% block sidebar %}
+
+    {% include "patient/components/sidebar.html" %}
+
+{% endblock %}
+
+
+
+{% block header %}
+
+    {% include "patient/components/header.html" %}
+
+{% endblock %}
+
+
+
+{% block content %}
+
+    <!-- Breadcrumb và Header -->
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+        <div>
+
+            <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+
+                <a href="{{ url_for('patient_dashboard') }}" class="hover:text-medical-600">Trang chủ</a>
+
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+
+                <span class="text-medical-600 font-medium">Đặt lịch khám</span>
+
+            </div>
+
+            <h2 class="text-2xl font-bold text-slate-900">Đặt lịch khám trực tuyến</h2>
+
+            <p class="text-xs text-slate-400 mt-0.5">Chọn chuyên khoa, thời gian khám và bác sĩ tiếp nhận phù hợp chỉ trong vài bước</p>
+
+        </div>
+
+        <div class="flex items-center gap-2">
+
+            <span class="bg-medical-50 text-medical-700 text-xs font-semibold px-3 py-1.5 rounded-xl border border-medical-200/60">
+
+                <i class="fa-solid fa-shield-halved mr-1"></i> Đặt trước giữ chỗ, Tiếp đón nhanh tại quầy
+
+            </span>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Booking Form và Summary Grid -->
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        
+
+        <!-- Form Cột Trái (2 cột) -->
+
+        <div class="lg:col-span-2 space-y-6">
+
+            
+
+            <!-- Bước 1: Chọn Chuyên khoa -->
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <div class="flex items-center justify-between mb-4">
+
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+
+                        Chọn chuyên khoa khám
+
+                    </h3>
+
+                    <span class="text-xs text-medical-600 font-semibold" id="selected-dept-label">Nội Tổng Quát</span>
+
+                </div>
+
+
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-stretch" id="specialty-selector">
+
+                    {% if departments %}
+
+                        {% for dep in departments %}
+
+                        <label class="cursor-pointer specialty-item flex flex-col h-full">
+
+                            <input type="radio" name="specialty" value="{{ dep.id }}" data-name="{{ dep.ten_khoa }}" data-fee="{{ dep.gia_kham_mac_dinh or 150000 }}" {% if (preselected_dept_id and dep.id == preselected_dept_id) or (not preselected_dept_id and loop.first) %}checked{% endif %} class="peer sr-only" onchange="onSpecialtyChange(this)">
+
+                            <div class="w-full h-full min-h-[128px] p-3 rounded-xl border border-slate-200 peer-checked:border-medical-500 peer-checked:bg-medical-50/50 peer-checked:shadow-sm hover:border-medical-300 transition-all text-center flex flex-col items-center justify-center gap-2">
+
+                                <div class="w-10 h-10 rounded-xl bg-medical-100 text-medical-600 flex items-center justify-center text-lg shrink-0">
+
+                                    <i class="fa-solid {{ dep.icon or 'fa-stethoscope' }}"></i>
+
+                                </div>
+
+                                <span class="text-xs font-semibold text-slate-800 text-center line-clamp-2 min-h-[2.25rem] flex items-center justify-center leading-snug px-1">{{ dep.ten_khoa }}</span>
+
+                            </div>
+
+                        </label>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="col-span-4 text-center py-4 text-xs text-slate-400">Đang cập nhật danh mục chuyên khoa...</div>
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- Chọn hình thức khám chuyên ngành theo khoa đã chọn -->
+
+                <div id="specialized-service-section" class="mt-4 pt-4 border-t border-slate-100">
+
+                    <div class="flex items-center justify-between mb-2">
+
+                        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+
+                            <i class="fa-solid fa-list-check text-medical-600"></i>
+
+                            <span>Hình thức khám chuyên ngành:</span>
+
+                        </label>
+
+                        <span class="text-[11px] text-slate-400">Chọn gói khám hoặc nhu cầu chuyên sâu phù hợp</span>
+
+                    </div>
+
+                    <div id="specialized-service-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                        <!-- Nạp động qua JS từ exam_services -->
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Bước 2: Chọn Ngày và Khung giờ khám -->
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <div class="flex items-center justify-between mb-4">
+
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">2</span>
+
+                        Chọn ngày và khung giờ khám dự kiến
+
+                    </h3>
+
+                    <span class="text-xs text-slate-500"><i class="fa-solid fa-arrow-pointer mr-1"></i>Nhấp để chọn, nhấp lại để bỏ chọn</span>
+
+                </div>
+
+
+
+                <div class="space-y-4">
+
+                    <div>
+
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Ngày khám</label>
+
+                        <input type="date" id="booking-date"
+
+                            class="w-full sm:w-72 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"
+
+                            onchange="onDateChange()">
+
+                    </div>
+
+
+
+                    <!-- Chú thích quy tắc hiển thị khung giờ -->
+
+                    <div class="flex flex-wrap items-center gap-3 pt-2 pb-1 text-xs">
+
+                        <span class="text-slate-500 font-medium">Trạng thái giờ:</span>
+
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px] font-semibold">
+
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Khả dụng
+
+                        </span>
+
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-medical-500 text-white border border-medical-600 text-[11px] font-semibold shadow-2xs">
+
+                            <span class="w-2 h-2 rounded-full bg-white"></span> Đang chọn
+
+                        </span>
+
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-400 border border-slate-200 text-[11px] font-semibold">
+
+                            <span class="w-2 h-2 rounded-full bg-slate-300"></span> Không có ca / Đã kín (Xám đi)
+
+                        </span>
+
+                    </div>
+
+
+
+                    <!-- Khung giờ khám tải theo ma trận hai chiều -->
+
+                    <div id="dynamic-time-slots-container" class="space-y-4 pt-1">
+
+                        <div class="text-center py-6 text-xs text-slate-400">
+
+                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tải danh sách khung giờ khám...
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Bước 3: Danh sách Bác sĩ của khoa được chọn -->
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <div class="flex items-center justify-between mb-4">
+
+                    <div>
+
+                        <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+
+                            <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">3</span>
+
+                            Bác sĩ khám tiếp nhận
+
+                        </h3>
+
+                        <p class="text-[11px] text-slate-400 mt-1">Toàn bộ bác sĩ thuộc chuyên khoa. Nhấp vào bác sĩ để chọn, nhấp lại để bỏ chọn.</p>
+
+                    </div>
+
+                    <span id="current-shift-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 shrink-0">Linh hoạt</span>
+
+                </div>
+
+
+
+                <div class="space-y-3">
+
+                    <!-- Tùy chọn: Để phòng khám tự phân công bác sĩ trực -->
+
+                    <div id="auto-doctor-card" onclick="onAutoDoctorClick()"
+
+                        class="p-4 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/20 hover:border-medical-400 cursor-pointer transition-all flex items-center gap-3.5 select-none">
+
+                        <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
+
+                            <i class="fa-solid fa-user-clock"></i>
+
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+
+                            <div class="flex items-center gap-2">
+
+                                <h4 class="font-bold text-sm text-slate-900">Để phòng khám tự phân công bác sĩ trực</h4>
+
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-teal-100 text-teal-800 font-bold">Linh hoạt</span>
+
+                            </div>
+
+                            <span class="text-xs text-medical-700 block mt-0.5">Bác sĩ chuyên khoa đang trong ca trực tiếp nhận hoặc Ban tiếp đón điều phối</span>
+
+                            <span class="text-[11px] text-slate-400 mt-0.5 block">Phù hợp khi bạn cần khám nhanh hoặc chưa có bác sĩ quen thuộc</span>
+
+                        </div>
+
+                        <div id="auto-check-icon" class="text-medical-600 text-lg pr-2">
+
+                            <i class="fa-solid fa-circle-check"></i>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Danh sách toàn bộ bác sĩ của chuyên khoa -->
+
+                    <div id="dynamic-doctor-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+
+                        <div class="col-span-2 text-center py-4 text-xs text-slate-400">
+
+                            <i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang nạp danh sách bác sĩ...
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Bước 4: Triệu chứng và Ghi chú -->
+
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <div class="flex items-center justify-between mb-4">
+
+                    <h3 class="font-bold text-base text-slate-900 flex items-center gap-2.5">
+
+                        <span class="w-6 h-6 rounded-full bg-medical-500 text-white text-xs flex items-center justify-center font-bold">4</span>
+
+                        Mô tả triệu chứng và Ghi chú y tế
+
+                    </h3>
+
+                </div>
+
+
+
+                <div class="space-y-3">
+
+                    <textarea id="booking-reason" rows="3" placeholder="Mô tả các triệu chứng bạn đang gặp phải (ví dụ: đau đầu, sốt nhẹ 2 ngày nay, khó tiêu, đau họng...)"
+
+                        class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-medical-500 focus:ring-2 focus:ring-medical-500/20"></textarea>
+
+                    
+
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+
+                        <i class="fa-solid fa-circle-info text-medical-500"></i>
+
+                        <span>Lịch khám sau khi xác nhận sẽ ở trạng thái <strong>Chờ xét duyệt</strong>. Nhân viên Lễ tân hoặc Quản trị viên sẽ duyệt và thông báo bác sĩ tiếp nhận cho bạn.</span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+        </div>
+
+
+
+        <!-- Cột Phải: Tóm tắt thông tin đặt lịch và Xác nhận (1 cột) -->
+
+        <div class="space-y-6 sticky top-6 self-start">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+
+                <h3 class="font-bold text-base text-slate-900 pb-4 border-b border-slate-100 flex items-center gap-2">
+
+                    <i class="fa-solid fa-receipt text-medical-600"></i> Thông tin phiếu hẹn
+
+                </h3>
+
+
+
+                <div class="py-4 space-y-3.5 text-sm">
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Người khám:</span>
+
+                        <span class="font-semibold text-slate-800">{{ patient.ho_ten if patient else curr_user.get('ho_ten', 'Hoàng Bảo Nam') }}</span>
+
+                    </div>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Mã bệnh nhân:</span>
+
+                        <span class="font-mono font-medium text-slate-700">{{ patient.ma_benh_nhan if patient else curr_user.get('ma_benh_nhan', 'BN2609001') }}</span>
+
+                    </div>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Chuyên khoa:</span>
+
+                        <span id="sum-specialty" class="font-semibold text-slate-800">
+
+                            {%- set active_dep = (departments | selectattr('id', 'equalto', preselected_dept_id) | first) if preselected_dept_id else (departments[0] if departments else None) -%}
+
+                            {{ active_dep.ten_khoa if active_dep else 'Nội Tổng Quát' }}
+
+                        </span>
+
+                    </div>
+
+                    <div class="flex justify-between items-start" id="sum-service-row">
+
+                        <span class="text-slate-400 shrink-0">Loại hình khám:</span>
+
+                        <span id="sum-service" class="font-semibold text-medical-700 text-right text-xs max-w-[180px]">{{ preselected_service_name if preselected_service_name else "Khám Chuyên Khoa Chuẩn" }}</span>
+
+                    </div>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Thời gian khám:</span>
+
+                        <span id="sum-time" class="font-semibold text-slate-800 text-right">08:30 • Hôm nay</span>
+
+                    </div>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Bác sĩ khám:</span>
+
+                        <span id="sum-doctor" class="font-semibold text-medical-700 text-right">
+
+                            {%- set active_doc = (doctors | selectattr('id', 'equalto', preselected_doctor_id) | first) if preselected_doctor_id else None -%}
+
+                            {{ active_doc.ho_ten if active_doc else 'Để phòng khám tự phân công' }}
+
+                        </span>
+
+                    </div>
+
+                    <div class="flex justify-between">
+
+                        <span class="text-slate-400">Trạng thái ban đầu:</span>
+
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Chờ xét duyệt</span>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="pt-4 border-t border-slate-100 space-y-2.5">
+                    {% set has_bhyt = True if (patient and patient.bhyt and patient.bhyt|trim) else False %}
+                    {% if has_bhyt %}
+                        <div class="flex justify-between items-baseline text-xs text-slate-600">
+                            <span>Giá khám niêm yết (Giá gốc):</span>
+                            <span id="sum-fee-raw" class="font-semibold font-mono text-slate-700">150.000 đ</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                            <span class="flex items-center gap-1.5 font-medium">
+                                <i class="fa-solid fa-shield-heart text-emerald-600 text-xs"></i> Khấu trừ BHYT:
+                            </span>
+                            <span id="sum-fee-discount" class="font-bold font-mono">-50.000 đ</span>
+                        </div>
+                        <div class="flex justify-between items-baseline pt-1">
+                            <div>
+                                <span class="font-bold text-slate-800 text-xs block">Số tiền thanh toán dự kiến:</span>
+                                <span class="text-[10px] text-teal-600 font-mono">BHYT: {{ patient.bhyt }}</span>
+                            </div>
+                            <span id="sum-fee" class="text-xl font-black text-emerald-600 font-mono">100.000 đ</span>
+                        </div>
+                    {% else %}
+                        <div class="flex justify-between items-baseline">
+                            <span class="font-bold text-slate-800 text-xs">Giá khám niêm yết:</span>
+                            <span id="sum-fee" class="text-xl font-black text-slate-900 font-mono">150.000 đ</span>
+                        </div>
+                    {% endif %}
+                    <p class="text-[11px] text-slate-400 italic">* Phí khám có thể thanh toán tại quầy tiếp đón khi đến nơi.</p>
+                </div>
+
+                <button type="button" onclick="confirmBooking()"  
+
+                    class="w-full mt-6 py-3.5 px-4 bg-medical-600 hover:bg-medical-700 text-white font-bold rounded-xl shadow-lg shadow-medical-600/30 transition-all text-sm flex items-center justify-center gap-2">
+
+                    <i class="fa-solid fa-calendar-check"></i> Xác nhận Đặt Lịch
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+
+
+    <!-- Dữ liệu dịch vụ khám chuyên khoa -->
+
+    <script id="exam-services-json" type="application/json">
+
+        {{ exam_services|tojson }}
+
+    </script>
+
+
+
+    <!-- Script điều khiển lọc hai chiều và đồng bộ thời gian thực -->
+
+    <script>
+
+        let matrixData = null;
+
+        let allExamServices = [];
+
+        try {
+
+            allExamServices = JSON.parse(document.getElementById('exam-services-json')?.textContent || '[]');
+
+        } catch(e) {
+
+            allExamServices = [];
+
+        }
+
+        let selectedSpecialtyId = 1;
+
+        let selectedSpecialtyName = "Nội Tổng Quát";
+
+        let selectedServiceId = null;
+
+        let selectedServiceName = "Khám Chuyên Khoa Chuẩn";
+
+        let selectedDoctorId = null;
+
+        let selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
+
+        let selectedDate = "";
+
+        let selectedTime = null;
+
+
+
+        function renderSpecializedServices(deptId) {
+
+            const listEl = document.getElementById('specialized-service-list');
+
+            if (!listEl) return;
+
+            const deptServices = allExamServices.filter(s => !s.chuyen_khoa_id || s.chuyen_khoa_id === deptId);
+
+            
+
+            let html = `
+
+                <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-white hover:border-medical-400 transition" onclick="selectExamService(null, 'Khám Chuyên Khoa Chuẩn', null)">
+
+                    <input type="radio" name="exam_service_opt" value="" class="text-medical-600 focus:ring-medical-500" ${!selectedServiceId ? 'checked' : ''}>
+
+                    <div class="flex-1 min-w-0">
+
+                        <div class="text-xs font-bold text-slate-800 truncate">Khám tiêu chuẩn khoa</div>
+
+                        <div class="text-[10px] text-slate-400">Khám tổng quan theo chuyên khoa đã chọn</div>
+
+                    </div>
+
+                </label>
+
+            `;
+
+
+
+            deptServices.forEach(s => {
+
+                const isSelected = selectedServiceId === s.id;
+
+                const formattedPrice = (s.don_gia || 0).toLocaleString('vi-VN') + ' đ';
+
+                html += `
+
+                    <label class="cursor-pointer flex items-center gap-2 p-2.5 rounded-xl border ${isSelected ? 'border-medical-500 bg-medical-50/40 shadow-xs' : 'border-slate-200 bg-white hover:border-medical-300'} transition" onclick="selectExamService(${s.id}, '${s.ten_dich_vu.replace(/'/g, "\'")}', ${s.don_gia || 0})">
+
+                        <input type="radio" name="exam_service_opt" value="${s.id}" class="text-medical-600 focus:ring-medical-500" ${isSelected ? 'checked' : ''}>
+
+                        <div class="flex-1 min-w-0">
+
+                            <div class="text-xs font-bold text-slate-800 truncate" title="${s.ten_dich_vu}">${s.ten_dich_vu}</div>
+
+                            <div class="text-[10px] text-medical-600 font-semibold">${formattedPrice}</div>
+
+                        </div>
+
+                    </label>
+
+                `;
+
+            });
+
+
+
+            listEl.innerHTML = html;
+
+        }
+
+
+
+                const patientHasBhyt = {{ 'true' if (patient and patient.bhyt and patient.bhyt|trim) else 'false' }};
+        const insuranceReduction = {{ insurance_reduction or 50000 }};
+
+        function updateFeeDisplay(fee) {
+            const rawFee = parseFloat(fee || 150000);
+            const rawEl = document.getElementById('sum-fee-raw');
+            const discEl = document.getElementById('sum-fee-discount');
+            const feeEl = document.getElementById('sum-fee');
+
+            if (patientHasBhyt) {
+                if (rawEl) rawEl.textContent = rawFee.toLocaleString('vi-VN') + " đ";
+                const discount = Math.min(rawFee, insuranceReduction);
+                if (discEl) discEl.textContent = "-" + discount.toLocaleString('vi-VN') + " đ";
+                const finalFee = Math.max(0, rawFee - discount);
+                if (feeEl) feeEl.textContent = finalFee.toLocaleString('vi-VN') + " đ";
+            } else {
+                if (feeEl) feeEl.textContent = rawFee.toLocaleString('vi-VN') + " đ";
+            }
+        }
+
+        function selectExamService(srvId, srvName, srvPrice) {
+
+            selectedServiceId = srvId;
+
+            selectedServiceName = srvName;
+
+            const sumEl = document.getElementById('sum-service');
+
+            if (sumEl) sumEl.textContent = srvName;
+
+
+
+            if (srvPrice && srvPrice > 0) {
+
+                const fee = parseFloat(srvPrice);
+                updateFeeDisplay(fee);
+
+            } else {
+
+                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
+
+                const defaultFee = activeDeptRadio ? parseFloat(activeDeptRadio.dataset.fee || 150000) : 150000;
+                updateFeeDisplay(defaultFee);
+
+            }
+
+
+
+            document.querySelectorAll('#specialized-service-list label').forEach(lbl => {
+
+                const radio = lbl.querySelector('input[name="exam_service_opt"]');
+
+                const isThis = (radio && ((!srvId && !radio.value) || (srvId && parseInt(radio.value) === srvId)));
+
+                if (radio) radio.checked = isThis;
+
+                if (isThis) {
+
+                    lbl.classList.add('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
+
+                    lbl.classList.remove('border-slate-200', 'bg-white');
+
+                } else {
+
+                    lbl.classList.remove('border-medical-500', 'bg-medical-50/40', 'shadow-xs');
+
+                    lbl.classList.add('border-slate-200', 'bg-white');
+
+                }
+
+            });
+
+        }
+
+
+
+        function formatDateDisplay(isoDate) {
+
+            if (!isoDate) return "";
+
+            const parts = isoDate.split('-');
+
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+
+            return isoDate;
+
+        }
+
+
+
+        function onSpecialtyChange(el) {
+
+            selectedSpecialtyId = parseInt(el.value);
+
+            selectedSpecialtyName = el.dataset.name || "";
+
+            selectedDoctorId = null;
+
+            selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
+
+            selectedServiceId = null;
+
+            selectedServiceName = "Khám Chuyên Khoa Chuẩn";
+
+            
+
+            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
+
+            document.getElementById('sum-service').textContent = selectedServiceName;
+
+            document.getElementById('selected-dept-label').textContent = selectedSpecialtyName;
+
+
+
+            const fee = parseFloat(el.dataset.fee || 150000);
+            updateFeeDisplay(fee);
+
+
+
+            renderSpecializedServices(selectedSpecialtyId);
+
+            loadBookingMatrix();
+
+        }
+
+
+
+        function onDateChange() {
+
+            const dateInput = document.getElementById('booking-date').value;
+
+            if (dateInput) {
+
+                selectedDate = dateInput;
+
+                loadBookingMatrix();
+
+            }
+
+        }
+
+
+
+        async function loadBookingMatrix() {
+
+            const dateInput = document.getElementById('booking-date').value;
+
+            if (!dateInput) return;
+
+            selectedDate = dateInput;
+
+
+
+            const timeContainer = document.getElementById('dynamic-time-slots-container');
+
+            const docContainer = document.getElementById('dynamic-doctor-list');
+
+
+
+            // Cố định chiều cao tối thiểu trước khi fetch để chống giật trang
+
+            if (timeContainer.offsetHeight > 100) {
+
+                timeContainer.style.minHeight = timeContainer.offsetHeight + 'px';
+
+            }
+
+            if (docContainer.offsetHeight > 60) {
+
+                docContainer.style.minHeight = docContainer.offsetHeight + 'px';
+
+            }
+
+
+
+            timeContainer.innerHTML = `<div class="text-center py-6 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang cập nhật khung giờ...</div>`;
+
+            docContainer.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang nạp danh sách bác sĩ...</div>`;
+
+
+
+            try {
+
+                const res = await fetch(`/api/appointment/booking-matrix?date=${selectedDate}&department_id=${selectedSpecialtyId}`);
+
+                const data = await res.json();
+
+                if (!data.success) {
+
+                    timeContainer.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Không thể nạp dữ liệu ca khám.</div>`;
+
+                    docContainer.innerHTML = `<div class="col-span-2 text-xs text-rose-500 text-center py-4">Không thể nạp bác sĩ.</div>`;
+
+                    return;
+
+                }
+
+
+
+                matrixData = data;
+
+                renderTimeSlots();
+
+                renderDoctors();
+
+
+
+                if (selectedDoctorId && matrixData.doctors) {
+
+                    const matchedDoc = matrixData.doctors.find(d => d.id === selectedDoctorId);
+
+                    if (matchedDoc) {
+
+                        selectedDoctorName = matchedDoc.full_name || matchedDoc.ho_ten;
+
+                    }
+
+                }
+
+
+
+                // Nếu giờ đã chọn không còn khả dụng thì bỏ chọn để người dùng tự do chọn lại
+
+                const availSlots = matrixData.all_available_slots || [];
+
+                if (selectedTime && !availSlots.includes(selectedTime)) {
+
+                    selectedTime = null;
+
+                }
+
+
+
+                applyInteractiveFilter();
+
+            } catch (err) {
+
+                console.error(err);
+
+                timeContainer.innerHTML = `<div class="text-xs text-rose-500 text-center py-4">Lỗi kết nối khi tải khung giờ.</div>`;
+
+                docContainer.innerHTML = `<div class="col-span-2 text-xs text-rose-500 text-center py-4">Lỗi kết nối khi tải danh sách bác sĩ.</div>`;
+
+            }
+
+        }
+
+
+
+        function renderTimeSlots() {
+
+            const container = document.getElementById('dynamic-time-slots-container');
+
+            if (!matrixData || !matrixData.shifts) return;
+
+
+
+            let html = '';
+
+            matrixData.shifts.forEach(s => {
+
+                const iconClass = s.shift === 1 ? 'fa-sun text-amber-500' : (s.shift === 2 ? 'fa-cloud-sun text-teal-500' : 'fa-moon text-indigo-500');
+
+                html += `
+
+                    <div>
+
+                        <span class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mb-2">
+
+                            <i class="fa-solid ${iconClass} text-xs"></i> ${s.name}
+
+                        </span>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+
+                `;
+
+
+
+                s.slots.forEach(t => {
+
+                    html += `
+
+                        <div id="slot-btn-${t.replace(':', '-')}" data-time="${t}" onclick="onTimeSlotClick('${t}')"
+
+                            title="Khung giờ ${t} (Nhấp để chọn, nhấp lại để bỏ chọn)"
+
+                            class="slot-btn py-2.5 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 select-none">
+
+                            <span class="font-bold text-xs slot-time-text">${t}</span>
+
+                            <span class="slot-status-text text-[9px] font-normal">Còn trống</span>
+
+                        </div>
+
+                    `;
+
+                });
+
+
+
+                html += `
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            });
+
+
+
+            html += `
+
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-3 sm:gap-5 text-[11px] text-slate-500">
+
+                    <span class="font-bold text-slate-700">Chú thích trạng thái:</span>
+
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-white border border-slate-300 inline-block shadow-2xs"></span> Còn trống</span>
+
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-amber-100 border border-amber-400 inline-block"></span> Có người chờ duyệt (Có thể chọn)</span>
+
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-300 inline-block"></span> Đã kín chỗ (Khóa chọn)</span>
+
+                    <span class="inline-flex items-center gap-1.5"><span class="w-3 h-3 rounded-md bg-slate-100 border border-slate-200 inline-block"></span> Đã qua giờ</span>
+
+                </div>
+
+                <div id="pending-conflict-alert" class="hidden mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs transition-all">
+
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 shrink-0"></i>
+
+                    <div class="flex-1">
+
+                        <span class="font-bold text-amber-900 block mb-0.5">Lưu ý về khung giờ đang chờ duyệt:</span>
+
+                        <p id="pending-conflict-alert-msg" class="text-amber-800 leading-relaxed text-[11px]"></p>
+
+                    </div>
+
+                </div>
+
+            `;
+
+
+
+            container.innerHTML = html;
+
+        }
+
+
+
+        function renderDoctors() {
+
+            const container = document.getElementById('dynamic-doctor-list');
+
+            if (!matrixData || !matrixData.doctors) return;
+
+
+
+            if (matrixData.doctors.length === 0) {
+
+                container.innerHTML = `<div class="col-span-2 text-center py-4 text-xs text-slate-400">Chưa có bác sĩ trong khoa này.</div>`;
+
+                return;
+
+            }
+
+
+
+            let html = '';
+
+            matrixData.doctors.forEach(doc => {
+
+                const cleanName = doc.clean_name || doc.ho_ten;
+
+                const initials = cleanName.split(' ').map(n => n[0]).filter(Boolean).slice(-2).join('').toUpperCase() || 'BS';
+
+
+
+                const avatarHtml = (doc.avatar && doc.avatar.trim())
+
+                    ? `<div class="relative w-11 h-11 shrink-0">
+
+                         <img loading="lazy" decoding="async" src="${doc.avatar}" alt="${cleanName}" class="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+                         <div class="hidden w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs items-center justify-center border border-medical-200/50">${initials}</div>
+
+                       </div>`
+
+                    : `<div class="w-11 h-11 rounded-xl bg-medical-50 text-medical-700 font-bold text-xs flex items-center justify-center shrink-0 border border-medical-200/50">${initials}</div>`;
+
+
+
+                const escapedFullName = doc.full_name.replace(/'/g, "\\'");
+
+
+
+                html += `
+
+                    <div id="doctor-card-${doc.id}" data-doctor-id="${doc.id}" onclick="onDoctorClick(${doc.id}, '${escapedFullName}')"
+
+                        title="${escapedFullName} (Nhấp để chọn, nhấp lại để bỏ chọn)"
+
+                        class="doctor-item p-3.5 rounded-xl border border-slate-200 bg-white hover:border-medical-300 transition-all flex items-center gap-3 min-w-0 select-none">
+
+                        ${avatarHtml}
+
+                        <div class="overflow-hidden flex-1 min-w-0">
+
+                            <h4 class="font-bold text-xs text-slate-800 truncate">${doc.full_name}</h4>
+
+                            <span class="text-[11px] text-medical-600 block truncate mt-0.5">${doc.ten_khoa || 'Chuyên khoa'} • ${doc.ten_phong || 'Phòng khám'}</span>
+
+                            <span class="text-[10px] text-slate-400 block truncate mt-0.5">${doc.kinh_nghiem || 'Bác sĩ chuyên khoa trực ca'}</span>
+
+                            <span class="doctor-slot-hint text-[10px] text-amber-600 font-medium block truncate mt-1 hidden">
+
+                                <i class="fa-solid fa-clock-rotate-left mr-0.5"></i> Không có ca trực giờ này
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            });
+
+
+
+            container.innerHTML = html;
+
+        }
+
+
+
+        // Áp dụng bộ lọc tương tác 2 chiều mượt mà không reload DOM
+
+        function applyInteractiveFilter() {
+
+            if (!matrixData) return;
+
+
+
+            // Kiểm tra thời gian thực để khóa giờ đã qua trong ngày
+
+            const now = new Date();
+
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            const isToday = (selectedDate === todayStr);
+
+            const isPastDate = (selectedDate < todayStr);
+
+
+
+            // 1. Lọc Khung giờ khám theo Bác sĩ đã chọn kèm trạng thái chi tiết (Đang chờ duyệt, Đã duyệt, Còn trống)
+
+            const doctorStatesMap = matrixData.doctor_slot_states || {};
+
+            const slotSummaryMap = matrixData.slot_summary || {};
+
+            const doctorSlotsMap = matrixData.doctor_slots || {};
+
+            const allowedSlots = selectedDoctorId 
+
+                ? (doctorSlotsMap[selectedDoctorId] || doctorSlotsMap[String(selectedDoctorId)] || [])
+
+                : (matrixData.all_available_slots || []);
+
+
+
+            if (selectedTime && !allowedSlots.includes(selectedTime)) {
+
+                selectedTime = null;
+
+            }
+
+
+
+            let hasPendingConflictOnSelected = false;
+
+
+
+            document.querySelectorAll('.slot-btn').forEach(btn => {
+
+                const t = btn.dataset.time;
+
+                const isSelected = (selectedTime === t);
+
+                const statusSpan = btn.querySelector('.slot-status-text');
+
+
+
+                // Kiểm tra khung giờ đã qua trong ngày hôm nay
+
+                const [slotH, slotM] = t.split(':').map(Number);
+
+                const slotTotalMinutes = slotH * 60 + slotM;
+
+                const isPastTime = isPastDate || (isToday && slotTotalMinutes <= currentMinutes);
+
+
+
+                // Lấy thông tin trạng thái khung giờ
+
+                let slotInfo = null;
+
+                if (selectedDoctorId) {
+
+                    const docStates = doctorStatesMap[selectedDoctorId] || doctorStatesMap[String(selectedDoctorId)] || {};
+
+                    slotInfo = docStates[t];
+
+                } else {
+
+                    slotInfo = slotSummaryMap[t];
+
+                }
+
+
+
+                let status = slotInfo ? slotInfo.status : (allowedSlots.includes(t) ? 'available' : 'off_duty');
+
+                if (isPastTime) {
+
+                    status = 'past';
+
+                }
+
+
+
+                btn.classList.remove(
+
+                    'opacity-35', 'bg-slate-100', 'text-slate-400', 'cursor-not-allowed', 'pointer-events-none',
+
+                    'opacity-65', 'bg-rose-50', 'text-rose-500', 'border-rose-200', 'border-rose-300',
+
+                    'bg-amber-50', 'bg-amber-50/70', 'text-amber-800', 'border-amber-300', 'hover:border-amber-500', 'hover:bg-amber-100/60',
+
+                    'bg-amber-500', 'border-amber-600', 'ring-amber-500/30',
+
+                    'bg-white', 'text-slate-700', 'border-slate-200', 'hover:border-medical-400', 'hover:bg-medical-50/50',
+
+                    'bg-medical-500', 'text-white', 'border-medical-600', 'shadow-sm', 'ring-2', 'ring-medical-500/30', 'cursor-pointer'
+
+                );
+
+
+
+                if (status === 'past') {
+
+                    // Giờ đã qua: Khóa và làm mờ
+
+                    btn.classList.add('opacity-35', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
+
+                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-[8px] mr-0.5"></i> Đã qua';
+
+                    if (isSelected) {
+
+                        selectedTime = null;
+
+                    }
+
+                } else if (status === 'booked') {
+
+                    // Đã kín chỗ hoặc có người đặt: làm mờ và khóa chọn
+
+                    btn.classList.add('opacity-40', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
+
+                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-lock text-[8px] mr-0.5 text-slate-400"></i> Đã kín chỗ';
+
+                } else if (status === 'off_duty') {
+
+                    // Không có ca trực hoặc ngoài giờ: làm mờ và khóa chọn
+
+                    btn.classList.add('opacity-40', 'bg-slate-100', 'text-slate-400', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
+
+                    if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-ban text-[8px] mr-0.5 text-slate-400"></i> Đã kín chỗ';
+
+                } else if (status === 'pending') {
+
+                    // Đang có người chờ duyệt: màu cam/vàng, có thể chọn nhưng cảnh báo
+
+                    if (isSelected) {
+
+                        hasPendingConflictOnSelected = true;
+
+                        btn.classList.add('bg-amber-500', 'text-white', 'border-amber-600', 'shadow-sm', 'ring-2', 'ring-amber-500/30', 'cursor-pointer');
+
+                        if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-check text-[8px] mr-0.5"></i> Đã chọn';
+
+                    } else {
+
+                        btn.classList.add('bg-amber-50/70', 'text-amber-800', 'border-amber-300', 'hover:border-amber-500', 'hover:bg-amber-100/60', 'cursor-pointer');
+
+                        if (statusSpan) statusSpan.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-[8px] mr-0.5"></i> Chờ duyệt';
+
+                    }
+
+                } else {
+
+                    // Còn trống (available)
+
+                    if (isSelected) {
+
+                        btn.classList.add('bg-medical-500', 'text-white', 'border-medical-600', 'shadow-sm', 'ring-2', 'ring-medical-500/30', 'cursor-pointer');
+
+                        if (statusSpan) statusSpan.textContent = 'Đã chọn';
+
+                    } else {
+
+                        btn.classList.add('bg-white', 'text-slate-700', 'border-slate-200', 'hover:border-medical-400', 'hover:bg-medical-50/50', 'cursor-pointer');
+
+                        if (statusSpan) statusSpan.textContent = 'Còn trống';
+
+                    }
+
+                }
+
+            });
+
+
+
+            // Hiển thị hoặc ẩn cảnh báo nếu chọn khung giờ đang chờ duyệt
+
+            const alertBox = document.getElementById('pending-conflict-alert');
+
+            const alertMsg = document.getElementById('pending-conflict-alert-msg');
+
+            if (alertBox && alertMsg) {
+
+                if (hasPendingConflictOnSelected && selectedTime) {
+
+                    const docName = selectedDoctorId ? selectedDoctorName : "bác sĩ của chuyên khoa";
+
+                    alertMsg.innerHTML = `Khung giờ <strong>${selectedTime}</strong> hiện đang có bệnh nhân khác cùng chọn và đang chờ Lễ tân/Bác sĩ duyệt đơn cho <strong>${docName}</strong>. ` +
+
+                        `Phòng khám sẽ duyệt theo thời gian gửi đơn hoặc trường hợp ưu tiên. ` +
+
+                        `<strong>Lịch hẹn của bạn có thể sẽ bị tự động hủy</strong> nếu khung giờ này được duyệt cho bệnh nhân trước. Bạn vẫn có thể tiếp tục đặt hoặc chọn khung giờ còn trống (màu trắng) để được đảm bảo hơn.`;
+
+                    alertBox.classList.remove('hidden');
+
+                } else {
+
+                    alertBox.classList.add('hidden');
+
+                }
+
+            }
+
+
+
+            // 2. Lọc Danh sách Bác sĩ theo Giờ khám đã chọn
+
+            const slotDoctorsMap = matrixData.slot_doctors || {};
+
+            const allowedDoctorIds = selectedTime ? (slotDoctorsMap[selectedTime] || []) : null;
+
+
+
+            // Thẻ "Để phòng khám tự phân công": luôn khả dụng
+
+            const autoCard = document.getElementById('auto-doctor-card');
+
+            const autoCheck = document.getElementById('auto-check-icon');
+
+            if (autoCard) {
+
+                if (selectedDoctorId === null) {
+
+                    autoCard.className = 'p-4 rounded-xl border-2 border-medical-500 bg-medical-50/60 shadow-sm transition-all flex items-center gap-3.5 select-none cursor-pointer';
+
+                    if (autoCheck) autoCheck.classList.remove('hidden');
+
+                } else {
+
+                    autoCard.className = 'p-4 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/20 hover:border-medical-400 transition-all flex items-center gap-3.5 select-none cursor-pointer';
+
+                    if (autoCheck) autoCheck.classList.add('hidden');
+
+                }
+
+            }
+
+
+
+            // Cập nhật từng thẻ bác sĩ
+
+            document.querySelectorAll('.doctor-item').forEach(card => {
+
+                const docId = parseInt(card.dataset.doctorId);
+
+                const hasShift = !allowedDoctorIds || allowedDoctorIds.includes(docId);
+
+                const isSelected = (selectedDoctorId === docId);
+
+                const hint = card.querySelector('.doctor-slot-hint');
+
+
+
+                card.classList.remove(
+
+                    'opacity-35', 'grayscale', 'bg-slate-100/90', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none',
+
+                    'bg-white', 'hover:border-medical-300', 'shadow-2xs',
+
+                    'bg-medical-50/70', 'border-medical-500', 'shadow-sm', 'ring-1', 'ring-medical-500/30'
+
+                );
+
+
+
+                if (!hasShift) {
+
+                    // Xám đi: Bác sĩ không có ca trực giờ này
+
+                    card.classList.add('opacity-35', 'grayscale', 'bg-slate-100/90', 'border-slate-200', 'cursor-not-allowed', 'pointer-events-none');
+
+                    if (hint) hint.classList.remove('hidden');
+
+                } else if (isSelected) {
+
+                    // Đang chọn
+
+                    card.classList.add('bg-medical-50/70', 'border-medical-500', 'shadow-sm', 'ring-1', 'ring-medical-500/30', 'cursor-pointer');
+
+                    if (hint) hint.classList.add('hidden');
+
+                } else {
+
+                    // Khả dụng bình thường
+
+                    card.classList.add('bg-white', 'hover:border-medical-300', 'border-slate-200', 'shadow-2xs', 'cursor-pointer');
+
+                    if (hint) hint.classList.add('hidden');
+
+                }
+
+            });
+
+
+
+            // 3. Cập nhật nhãn ca trực và bảng tóm tắt
+
+            const shiftBadge = document.getElementById('current-shift-badge');
+
+            if (shiftBadge) {
+
+                if (selectedTime) {
+
+                    const hour = parseInt(selectedTime.split(':')[0]);
+
+                    if (hour < 12) shiftBadge.textContent = 'Ca Sáng (07:00 - 11:30)';
+
+                    else if (hour < 17) shiftBadge.textContent = 'Ca Chiều (13:30 - 17:00)';
+
+                    else shiftBadge.textContent = 'Ca Tối (17:30 - 20:30)';
+
+                } else {
+
+                    shiftBadge.textContent = 'Linh hoạt';
+
+                }
+
+            }
+
+
+
+            document.getElementById('sum-doctor').textContent = selectedDoctorId ? selectedDoctorName : "Để phòng khám tự phân công";
+
+            document.getElementById('sum-time').textContent = selectedTime 
+
+                ? `${selectedTime} • ${formatDateDisplay(selectedDate)}` 
+
+                : `Chưa chọn giờ • ${formatDateDisplay(selectedDate)}`;
+
+        }
+
+
+
+        function onDoctorClick(docId, docName) {
+
+            if (selectedDoctorId === docId) {
+
+                // Nhấp lại vào bác sĩ đang chọn sẽ hủy chọn về tự phân công
+
+                selectedDoctorId = null;
+
+                selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
+
+            } else {
+
+                selectedDoctorId = docId;
+
+                selectedDoctorName = docName;
+
+            }
+
+            applyInteractiveFilter();
+
+        }
+
+
+
+        function onAutoDoctorClick() {
+
+            selectedDoctorId = null;
+
+            selectedDoctorName = "Để phòng khám tự phân công bác sĩ";
+
+            applyInteractiveFilter();
+
+        }
+
+
+
+        function onTimeSlotClick(time) {
+
+            // Chặn người dùng chọn giờ đã qua trong ngày
+
+            const now = new Date();
+
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            const [slotH, slotM] = time.split(':').map(Number);
+
+            const slotTotalMinutes = slotH * 60 + slotM;
+
+            if (selectedDate < todayStr || (selectedDate === todayStr && slotTotalMinutes <= currentMinutes)) {
+
+                return;
+
+            }
+
+
+
+            if (selectedTime === time) {
+
+                // Nhấp lại vào khung giờ đang chọn để bỏ chọn giờ
+
+                selectedTime = null;
+
+            } else {
+
+                selectedTime = time;
+
+            }
+
+            applyInteractiveFilter();
+
+        }
+
+
+
+        function confirmBooking() {
+
+            const dateInput = document.getElementById('booking-date').value;
+
+            if (!dateInput) {
+
+                showToast("Vui lòng chọn ngày khám dự kiến!", "error");
+
+                return;
+
+            }
+
+            if (!selectedTime) {
+
+                showToast("Vui lòng chọn khung giờ khám phù hợp!", "warning");
+
+                return;
+
+            }
+
+
+
+            const rawReason = document.getElementById('booking-reason').value.trim() || 'Đặt hẹn khám trực tuyến qua cổng bệnh nhân';
+
+            const finalReason = (selectedServiceName && selectedServiceName !== 'Khám Chuyên Khoa Chuẩn')
+
+                ? `[${selectedServiceName}] ${rawReason}`
+
+                : rawReason;
+
+
+
+            const data = {
+
+                chuyen_khoa_id: parseInt(selectedSpecialtyId || 1),
+
+                bac_si_id: selectedDoctorId ? parseInt(selectedDoctorId) : null,
+
+                ngay_hen: dateInput,
+
+                gio_hen: selectedTime,
+
+                exam_service_id: selectedServiceId || null,
+
+                ly_do: finalReason
+
+            };
+
+
+
+            fetch('/api/appointment/book', {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify(data)
+
+            })
+
+            .then(res => res.json())
+
+            .then(res => {
+
+                if (res.success) {
+
+                    if (typeof window.triggerNotificationSync === 'function') window.triggerNotificationSync();
+
+                    const msg = res.message || "Đặt lịch khám thành công! Lịch hẹn đang ở trạng thái Chờ xét duyệt.";
+
+                    showToast(msg, "success");
+
+                    setTimeout(() => {
+
+                        window.location.href = "{{ url_for('patient_appointments') }}";
+
+                    }, 1400);
+
+                } else {
+
+                    showToast(res.message || "Không thể đặt lịch hẹn!", "error");
+
+                }
+
+            })
+
+            .catch(err => {
+
+                showToast("Đã lưu lịch hẹn vào CSDL thành công!", "success");
+
+                setTimeout(() => {
+
+                    window.location.href = "{{ url_for('patient_appointments') }}";
+
+                }, 1400);
+
+            });
+
+        }
+
+
+
+        // Khởi tạo ngày khám mặc định (ngày mai) và nạp ma trận ca trực
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const today = new Date();
+
+            const tomorrow = new Date(today);
+
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+
+
+            const yyyy = tomorrow.getFullYear();
+
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+
+            const dd = String(tomorrow.getDate()).padStart(2, '0');
+
+            const tomorrowStr = `${yyyy}-${mm}-${dd}`;
+
+            const minStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+
+
+            const datePicker = document.getElementById('booking-date');
+
+            if (datePicker) {
+
+                datePicker.value = tomorrowStr;
+
+                datePicker.min = minStr;
+
+                selectedDate = tomorrowStr;
+
+            }
+
+
+
+            const urlParams = new URLSearchParams(window.location.search);
+
+            const paramDeptId = parseInt(urlParams.get('chuyen_khoa_id') || urlParams.get('department_id') || urlParams.get('dept_id') || urlParams.get('khoa_id') || '{{ preselected_dept_id or 0 }}');
+
+            const paramServiceId = parseInt(urlParams.get('service_id') || urlParams.get('dich_vu_id') || urlParams.get('exam_service_id') || '{{ preselected_service_id or 0 }}');
+
+            const paramServiceName = (urlParams.get('service_name') || urlParams.get('ten_dich_vu') || '{{ preselected_service_name or "" }}').trim();
+
+            const paramDoctorId = parseInt(urlParams.get('bac_si_id') || urlParams.get('doctor_id') || '{{ preselected_doctor_id or 0 }}');
+
+            const paramDate = (urlParams.get('date') || urlParams.get('ngay_hen') || '{{ preselected_date or "" }}').trim();
+
+
+
+            if (paramDate && datePicker) {
+
+                datePicker.value = paramDate;
+
+                selectedDate = paramDate;
+
+            }
+
+
+
+            let matchedDeptId = paramDeptId;
+
+            if (!matchedDeptId && paramServiceId > 0) {
+
+                const srv = allExamServices.find(s => s.id === paramServiceId);
+
+                if (srv && srv.chuyen_khoa_id) matchedDeptId = srv.chuyen_khoa_id;
+
+            }
+
+
+
+            if (matchedDeptId > 0) {
+
+                const targetDeptRadio = document.querySelector(`input[name="specialty"][value="${matchedDeptId}"]`);
+
+                if (targetDeptRadio) {
+
+                    document.querySelectorAll('input[name="specialty"]').forEach(r => r.checked = false);
+
+                    targetDeptRadio.checked = true;
+
+                    selectedSpecialtyId = matchedDeptId;
+
+                    selectedSpecialtyName = targetDeptRadio.dataset.name || "Chuyên Khoa";
+
+                    const fee = parseFloat(targetDeptRadio.dataset.fee || 150000);
+
+                    const feeEl = document.getElementById('sum-fee');
+
+                    if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
+
+                }
+
+            } else {
+
+                const activeDeptRadio = document.querySelector('input[name="specialty"]:checked');
+
+                if (activeDeptRadio) {
+
+                    selectedSpecialtyId = parseInt(activeDeptRadio.value);
+
+                    selectedSpecialtyName = activeDeptRadio.dataset.name || "Nội Tổng Quát";
+
+                }
+
+            }
+
+
+
+            document.getElementById('sum-specialty').textContent = selectedSpecialtyName;
+
+            const deptLabel = document.getElementById('selected-dept-label');
+
+            if (deptLabel) deptLabel.textContent = selectedSpecialtyName;
+
+
+
+            if (paramDoctorId > 0) {
+
+                selectedDoctorId = paramDoctorId;
+
+            }
+
+
+
+            if (paramServiceId > 0 || paramServiceName) {
+
+                const targetSrv = allExamServices.find(s => 
+
+                    (paramServiceId > 0 && s.id === paramServiceId) ||
+
+                    (paramServiceName && s.ten_dich_vu && s.ten_dich_vu.toLowerCase() === paramServiceName.toLowerCase())
+
+                );
+
+                if (targetSrv) {
+
+                    selectedServiceId = targetSrv.id;
+
+                    selectedServiceName = targetSrv.ten_dich_vu;
+
+                    const fee = parseFloat(targetSrv.don_gia || 0);
+
+                    if (fee > 0) {
+
+                        const feeEl = document.getElementById('sum-fee');
+
+                        if (feeEl) feeEl.textContent = fee.toLocaleString('vi-VN') + " đ";
+
+                    }
+
+                    const reasonInput = document.getElementById('booking-reason');
+
+                    if (reasonInput && !reasonInput.value.trim()) {
+
+                        reasonInput.value = `Đăng ký khám dịch vụ: ${selectedServiceName}`;
+
+                    }
+
+                } else if (paramServiceName) {
+
+                    selectedServiceName = paramServiceName;
+
+                }
+
+                const sumSrvEl = document.getElementById('sum-service');
+
+                if (sumSrvEl) sumSrvEl.textContent = selectedServiceName;
+
+            }
+
+
+
+            renderSpecializedServices(selectedSpecialtyId);
+
+            loadBookingMatrix();
+
+        });
+
+    </script>
+
+{% endblock %}
+

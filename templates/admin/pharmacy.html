@@ -1,6 +1,180 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Quản Lý Kho Dược và Nhà Thuốc{% endblock %}
+{% block title %}H2T Healthcare - Quản Lý Kho Dược và Nhà Thuốc
+<!-- Modal Xem Chi Tiết Đơn Thuốc Điện Tử -->
+<div id="modal-prescription-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-file-prescription text-teal-600"></i> Chi Tiết Đơn Thuốc Điện Tử
+            </h3>
+            <button onclick="closePrescriptionModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Thông tin bệnh nhân và bác sĩ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+            <div>
+                <span class="text-slate-400 block">Mã đơn thuốc:</span>
+                <span class="font-mono font-bold text-teal-700 text-sm" id="pm-code">—</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Bác sĩ kê đơn:</span>
+                <span class="font-bold text-slate-800" id="pm-doctor">—</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Người bệnh tiếp nhận:</span>
+                <span class="font-bold text-slate-800" id="pm-patient">—</span>
+                <span class="text-[10px] text-slate-400 font-mono block" id="pm-patient-meta">—</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Thời gian và Trạng thái:</span>
+                <span class="font-medium text-slate-700 block" id="pm-time">—</span>
+                <span class="inline-block mt-0.5" id="pm-status-badge">—</span>
+            </div>
+            <div class="sm:col-span-2 pt-2 border-t border-slate-200/80">
+                <span class="text-slate-400 block font-medium">Lời dặn của bác sĩ:</span>
+                <span class="text-slate-800 font-semibold italic" id="pm-advice">—</span>
+            </div>
+        </div>
+
+        <!-- Bảng danh sách các loại thuốc -->
+        <div class="space-y-2">
+            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-pills text-teal-600"></i> Danh Mục Thuốc Trong Đơn
+            </h4>
+            <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-left text-xs whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px]">
+                        <tr>
+                            <th class="py-2 px-3">STT</th>
+                            <th class="py-2 px-3">Tên Thuốc / Biệt Dược</th>
+                            <th class="py-2 px-3 text-center">Số Lượng</th>
+                            <th class="py-2 px-3">Đơn Vị</th>
+                            <th class="py-2 px-3">Liều Dùng và Cách Dùng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pm-items-tbody" class="divide-y divide-slate-100 text-slate-800">
+                        <!-- JS render rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nút thao tác dưới modal -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button type="button" onclick="window.print()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer">
+                <i class="fa-solid fa-print"></i> In Toa Thuốc
+            </button>
+            <button type="button" onclick="closePrescriptionModal()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPrescriptionModal(maDon, presId) {
+        const modal = document.getElementById('modal-prescription-detail');
+        const codeEl = document.getElementById('pm-code');
+        const docEl = document.getElementById('pm-doctor');
+        const patEl = document.getElementById('pm-patient');
+        const patMetaEl = document.getElementById('pm-patient-meta');
+        const timeEl = document.getElementById('pm-time');
+        const stBadgeEl = document.getElementById('pm-status-badge');
+        const adviceEl = document.getElementById('pm-advice');
+        const tbody = document.getElementById('pm-items-tbody');
+
+        tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400">Đang tải thông tin đơn thuốc...</td></tr>';
+        modal.classList.remove('hidden');
+
+        // Tìm từ mảng cục bộ trước
+        const local = dispensingOrders.find(x => x.ma_don === maDon);
+        if (local) {
+            codeEl.innerText = local.ma_don;
+            docEl.innerText = local.bac_si;
+            patEl.innerText = local.benh_nhan;
+            patMetaEl.innerText = `Mã BN: ${local.ma_bn}`;
+            timeEl.innerText = `Giờ kê: ${local.gio}`;
+            stBadgeEl.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">${local.trang_thai}</span>`;
+            adviceEl.innerText = local.loi_dan || 'Uống thuốc đúng theo chỉ dẫn, tái khám khi có dấu hiệu bất thường.';
+        }
+
+        // Gọi API lấy đầy đủ chi tiết từng loại thuốc
+        const reqTarget = maDon || presId;
+        fetch('/api/prescription/detail/' + encodeURIComponent(reqTarget))
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.prescription) {
+                    const p = data.prescription;
+                    codeEl.innerText = p.ma_don_thuoc || maDon;
+                    docEl.innerText = p.ten_bac_si || (local ? local.bac_si : '—');
+                    patEl.innerText = p.ten_benh_nhan || (local ? local.benh_nhan : '—');
+                    patMetaEl.innerText = `Mã BN: ${p.ma_benh_nhan || (local ? local.ma_bn : '')} • SĐT: ${p.sdt_benh_nhan || '---'}`;
+                    timeEl.innerText = p.thoi_gian_ke || (local ? local.gio : '---');
+                    adviceEl.innerText = p.loi_dan || 'Uống thuốc đúng theo hướng dẫn của bác sĩ.';
+
+                    const items = p.items || [];
+                    if (items.length > 0) {
+                        let html = '';
+                        items.forEach((it, idx) => {
+                            html += `
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="py-2.5 px-3 text-slate-400 font-mono">${idx + 1}</td>
+                                    <td class="py-2.5 px-3 font-semibold text-slate-900">${it.ten_thuoc}</td>
+                                    <td class="py-2.5 px-3 text-center font-bold font-mono text-teal-700">${it.so_luong}</td>
+                                    <td class="py-2.5 px-3 text-slate-600">${it.don_vi_tinh || 'Viên'}</td>
+                                    <td class="py-2.5 px-3">
+                                        <div class="font-medium text-slate-800">${it.lieu_dung || 'Theo chỉ định'}</div>
+                                        ${it.cach_dung ? `<div class="text-[10px] text-slate-400 italic">${it.cach_dung}</div>` : ''}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        tbody.innerHTML = html;
+                    } else if (local && local.medicines_list && local.medicines_list.length > 0) {
+                        renderFallbackList(local.medicines_list, tbody);
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400">Không có dữ liệu thuốc.</td></tr>';
+                    }
+                } else if (local && local.medicines_list && local.medicines_list.length > 0) {
+                    renderFallbackList(local.medicines_list, tbody);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400">Không thể tải danh sách thuốc.</td></tr>';
+                }
+            })
+            .catch(() => {
+                if (local && local.medicines_list && local.medicines_list.length > 0) {
+                    renderFallbackList(local.medicines_list, tbody);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-rose-500">Lỗi kết nối máy chủ.</td></tr>';
+                }
+            });
+    }
+
+    function renderFallbackList(list, tbody) {
+        let html = '';
+        list.forEach((mName, idx) => {
+            html += `
+                <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 text-slate-400 font-mono">${idx + 1}</td>
+                    <td class="py-2 px-3 font-semibold text-slate-900">${mName}</td>
+                    <td class="py-2 px-3 text-center text-slate-400">—</td>
+                    <td class="py-2 px-3 text-slate-400">—</td>
+                    <td class="py-2 px-3 text-slate-600">Uống đúng liều lượng bác sĩ đã dặn</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function closePrescriptionModal() {
+        document.getElementById('modal-prescription-detail').classList.add('hidden');
+    }
+</script>
+
+{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -415,12 +589,15 @@ async function showStockHistory(id) {
 
     let rawPrescriptions = JSON.parse(document.getElementById('pharmacy-prescriptions-data').textContent || '[]');
     var dispensingOrders = rawPrescriptions.map(p => ({
+        prescription_id: p.id,
         ma_don: p.ma_don,
         benh_nhan: p.benh_nhan,
         ma_bn: p.ma_bn,
         id: p.patient_id,
         bac_si: p.bac_si,
         thuoc: p.thuoc || 'Theo đơn bác sĩ',
+        medicines_list: p.medicines_list || (p.thuoc ? p.thuoc.split(', ') : []),
+        loi_dan: p.loi_dan || '',
         gio: (p.gio || '').toString().slice(11, 16) || '09:00',
         trang_thai: p.trang_thai || 'Chờ duyệt',
         hinh_thuc_mua: p.hinh_thuc_mua || 'Chưa chọn',
@@ -539,7 +716,19 @@ async function showStockHistory(id) {
                     <span class="text-[10px] text-slate-400 font-mono">${d.ma_bn}</span>
                 </td>
                 <td class="py-3 px-4 text-slate-700">${d.bac_si}</td>
-                <td class="py-3 px-4 text-slate-800 font-medium">${d.thuoc}</td>
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-slate-800 font-medium truncate max-w-[200px]" title="${d.thuoc}">${(d.medicines_list && d.medicines_list.length > 0) ? d.medicines_list[0] : d.thuoc}</span>
+                        ${(d.medicines_list && d.medicines_list.length > 1) ? `
+                            <span onclick="openPrescriptionModal('${d.ma_don}', ${d.prescription_id || 'null'})" class="cursor-pointer px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors whitespace-nowrap">
+                                +${d.medicines_list.length - 1} loại
+                            </span>
+                        ` : ''}
+                        <button type="button" onclick="openPrescriptionModal('${d.ma_don}', ${d.prescription_id || 'null'})" class="p-1 text-teal-600 hover:text-teal-800 rounded hover:bg-teal-50 transition-colors" title="Xem chi tiết đơn thuốc">
+                            <i class="fa-solid fa-file-prescription text-xs"></i>
+                        </button>
+                    </div>
+                </td>
                 <td class="py-3 px-4 font-mono text-slate-500">${d.gio}</td>
                 <td class="py-3 px-4 text-center">${badge}</td>
                 <td class="py-3 px-4 text-center">${actionBtn}</td>

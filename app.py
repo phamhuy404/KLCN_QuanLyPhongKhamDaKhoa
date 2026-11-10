@@ -158,6 +158,13 @@ def create_app(test_config=None):
     }
 
 
+        # Đăng ký handler tự động ánh xạ alias cũ trong url_for
+    def handle_url_build_error(error, endpoint, values):
+        if endpoint in alias_map:
+            return flask_url_for(alias_map[endpoint], **values)
+        raise error
+    app.url_build_error_handlers.append(handle_url_build_error)
+
     # Đăng ký alias vào app.view_functions để url_for cấp module/route hoạt động
     with app.app_context():
         for old_ep, new_ep in alias_map.items():
@@ -427,4 +434,4 @@ if __name__ == '__main__':
     auto_backup_hours = getattr(config, 'AUTO_BACKUP_INTERVAL_HOURS', 2)
     BackupModel.start_auto_backup_scheduler(interval_hours=auto_backup_hours)
 
-    app.run(debug=True, host=os.environ.get('FLASK_HOST', '127.0.0.1'), port=5000)
+    app.run(debug=True, use_reloader=False, host=os.environ.get('FLASK_HOST', '127.0.0.1'), port=5000)

@@ -53,7 +53,9 @@ def login():
         next_target = safe_next_url(request.args.get('next'))
         if next_target and user.get('vai_tro') == 'BENHNHAN':
             return redirect(next_target)
-        # Cả bệnh nhân và nhân viên đều bắt đầu ở trang Home
+        # Riêng Quản trị viên (ADMIN) chuyển hướng vào Dashboard Admin
+        if user.get('vai_tro') == 'ADMIN':
+            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('home.home'))
 
     if request.method == 'POST':
@@ -89,7 +91,10 @@ def login():
         next_target = safe_next_url(request.args.get('next') or request.form.get('next'))
         if next_target and user.get('vai_tro') == 'BENHNHAN':
             return redirect(next_target)
-        # Cả bệnh nhân và nhân viên y tế khi đăng nhập đều bắt đầu ở trang Home
+        # Riêng Quản trị viên (ADMIN) khi đăng nhập sẽ bắt đầu ở Dashboard Admin
+        if user.get('vai_tro') == 'ADMIN':
+            return redirect(url_for('admin.dashboard'))
+        # Bệnh nhân và nhân viên y tế khi đăng nhập bắt đầu ở trang Home
         return redirect(url_for('home.home'))
 
     return render_template('auth/login.html')

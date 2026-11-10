@@ -225,26 +225,26 @@ Hệ thống thiết lập 6 vai trò người dùng chuẩn mực y tế, kiể
 
 ---
 
-## 5. TOÀN BỘ DANH SÁCH 71 TÀI KHOẢN MẪU
+## 5. TOÀN BỘ DANH SÁCH 80 TÀI KHOẢN MẪU
 
 Hệ thống hỗ trợ đăng nhập linh hoạt bằng:
 - **Tên đăng nhập (Username)**
 - **Số điện thoại (SĐT)**
 - **Mã Bệnh nhân (`BN...`) / Mã Nhân viên (`NV...`)**
 
-### 5.1 Quản Trị Viên (`ADMIN`) - 1 Tài khoản (Mật khẩu: `123456`)
-| STT | Tên đăng nhập | Số điện thoại | Họ và tên | Chức vụ |
+### 5.1 Quản Trị Viên (`ADMIN`) - 1 Tài khoản (Mật khẩu: `123456` hoặc `admin123`)
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên | Chức danh |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `admin` | `0999999999` | Quản Trị Viên Hệ Thống | Giám đốc / Trưởng ban CNTT |
+| 1 | `admin` | `0999999999` | Quản Trị Viên Hệ Thống | Giám đốc Điều hành và Quản trị Hệ thống |
 
-### 5.2 Nhân Viên Lễ Tân & Thu Ngân (`LETAN`) - 5 Tài khoản (Mật khẩu: `123`)
+### 5.2 Nhân Viên Lễ Tân và Thu Ngân (`LETAN`) - 5 Tài khoản (Mật khẩu: `123`)
 | STT | Tên đăng nhập | Số điện thoại | Họ và tên | Vị trí phân công |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `letan_1` | `0908111221` | Nguyễn Thị Lan | Quầy tiếp đón số 1 |
-| 2 | `letan_2` | `0908111222` | Trần Thu Huyền | Quầy tiếp đón số 2 |
-| 3 | `letan_3` | `0908111223` | Lê Phương Thảo | Quầy thu ngân viện phí |
-| 4 | `letan_4` | `0908111224` | Phạm Ngọc Bích | Điều phối lịch hẹn |
-| 5 | `letan_5` | `0908111225` | Đỗ Thu Hà | Quầy tiếp đón số 3 |
+| 1 | `letan_1` | `0908111221` | Nguyễn Thị Lan | Lễ tân trưởng - Quầy tiếp đón Tầng 1 |
+| 2 | `letan_2` | `0908111222` | Trần Thu Huyền | Tiếp đón và Điều phối lịch hẹn - Quầy A |
+| 3 | `letan_3` | `0908111223` | Lê Phương Thảo | Thu ngân viện phí và Tiếp nhận BHYT - Quầy B |
+| 4 | `letan_4` | `0908111224` | Phạm Ngọc Bích | Chăm sóc khách hàng và Hướng dẫn khám |
+| 5 | `letan_5` | `0908111225` | Đỗ Thu Hà | Lễ tân ca trực và Điều phối bệnh nhân cấp cứu |
 
 ### 5.3 Bác Sĩ Chuyên Khoa (`BACSI`) - 35 Tài khoản (Mật khẩu: `123`)
 Gồm 35 bác sĩ chia đều cho 7 chuyên khoa lâm sàng (mỗi khoa 5 bác sĩ trực ca):
@@ -265,7 +265,7 @@ Gồm 35 bác sĩ chia đều cho 7 chuyên khoa lâm sàng (mỗi khoa 5 bác s
 | 7 | `bs_ngoai_2` | `0912222002` | BS. Phan Thanh Phong | P.202 Ngoại Xương Khớp |
 | 8 | `bs_ngoai_3` | `0912222003` | BS. Đinh Văn Hùng | P.203 Ngoại Tiết Niệu |
 | 9 | `bs_ngoai_4` | `0912222004` | BS. Hoàng Đức Lâm | P.204 Ngoại Tiêu Hóa |
-| 10 | `bs_ngoai_5` | `0912222005` | BS. Trịnh Văn Long | P.205 Tiểu Phẫu & Vết Thương |
+| 10 | `bs_ngoai_5` | `0912222005` | BS. Trịnh Văn Long | P.205 Tiểu Phẫu và Vết Thương |
 
 #### Khoa Nhi
 | STT | Tên đăng nhập | Số điện thoại | Họ và tên bác sĩ | Phòng khám trực |
@@ -276,27 +276,70 @@ Gồm 35 bác sĩ chia đều cho 7 chuyên khoa lâm sàng (mỗi khoa 5 bác s
 | 14 | `bs_nhi_4` | `0912333004` | BS. Phạm Thúy Hằng | P.304 Tiêm Chủng Trẻ Em |
 | 15 | `bs_nhi_5` | `0912333005` | BS. Đỗ Tuấn Nghĩa | P.305 Nhi Sơ Sinh |
 
-*(Các chuyên khoa còn lại: Răng Hàm Mặt `bs_rhm_1` đến `bs_rhm_5`; Sản Phụ Khoa `bs_san_1` đến `bs_san_5`; Tai Mũi Họng `bs_tmh_1` đến `bs_tmh_5`; Mắt `bs_mat_1` đến `bs_mat_5` đều có mật khẩu mặc định là `123`).*
+#### Khoa Răng Hàm Mặt
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên bác sĩ | Phòng khám trực |
+| :---: | :--- | :--- | :--- | :--- |
+| 16 | `bs_rhm_1` | `0912444001` | BS. Hoàng Đức Duy | P.401 Nha Khoa Tổng Quát |
+| 17 | `bs_rhm_2` | `0912444002` | BS. Đoàn Minh Khang | P.402 Phục Hình Răng Sứ |
+| 18 | `bs_rhm_3` | `0912444003` | BS. Vũ Hồng Loan | P.403 Chỉnh Nha và Niềng Răng |
+| 19 | `bs_rhm_4` | `0912444004` | BS. Mai Văn Trọng | P.404 Tiểu Phẫu Răng Khôn |
+| 20 | `bs_rhm_5` | `0912444005` | BS. Nguyễn Bích Thủy | P.405 Cấy Ghép Implant |
+
+#### Khoa Sản - Phụ Khoa
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên bác sĩ | Phòng khám trực |
+| :---: | :--- | :--- | :--- | :--- |
+| 21 | `bs_san_1` | `0912555001` | BS. Đặng Thu Hương | P.501 Quản Lý Thai Kỳ |
+| 22 | `bs_san_2` | `0912555002` | BS. Trần Kiều Nga | P.502 Khám Phụ Khoa Định Kỳ |
+| 23 | `bs_san_3` | `0912555003` | BS. Nguyễn Thanh Huyền | P.503 Tầm Soát Ung Thư Phụ Khoa |
+| 24 | `bs_san_4` | `0912555004` | BS. Bùi Thị Minh Tâm | P.504 Tư Vấn Tiền Sản |
+| 25 | `bs_san_5` | `0912555005` | BS. Lê Tuyết Lan | P.505 Kế Hoạch Hóa Gia Đình |
+
+#### Khoa Tai Mũi Họng
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên bác sĩ | Phòng khám trực |
+| :---: | :--- | :--- | :--- | :--- |
+| 26 | `bs_tmh_1` | `0912666001` | BS. Võ Thanh Bình | P.601 Nội Soi Tai Mũi Họng |
+| 27 | `bs_tmh_2` | `0912666002` | BS. Hoàng Quốc Tuấn | P.602 Bệnh Lý Mũi Xoang |
+| 28 | `bs_tmh_3` | `0912666003` | BS. Nguyễn Thị Thục Anh | P.603 Bệnh Lý Họng và Thanh Quản |
+| 29 | `bs_tmh_4` | `0912666004` | BS. Trương Hoài Nam | P.604 Thính Lực và Tiền Đình |
+| 30 | `bs_tmh_5` | `0912666005` | BS. Chu Đức Cảnh | P.605 Khám Tai Mũi Họng Nhi |
+
+#### Khoa Mắt
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên bác sĩ | Phòng khám trực |
+| :---: | :--- | :--- | :--- | :--- |
+| 31 | `bs_mat_1` | `0912777001` | BS. Đỗ Viết Thắng | P.701 Đo Khúc Xạ và Đáy Mắt |
+| 32 | `bs_mat_2` | `0912777002` | BS. Lê Khánh Linh | P.702 Khám Mắt Tổng Quát |
+| 33 | `bs_mat_3` | `0912777003` | BS. Nguyễn Hữu Đạt | P.703 Bệnh Lý Giác Mạc và Thể Thủy Tinh |
+| 34 | `bs_mat_4` | `0912777004` | BS. Phạm Hồng Nhung | P.704 Nhược Thị và Tật Khúc Xạ Học Đường |
+| 35 | `bs_mat_5` | `0912777005` | BS. Vũ Văn Hải | P.705 Glaucoma và Bệnh Nhãn Áp |
 
 ### 5.4 Dược Sĩ Quản Lý Kho Dược (`DUOCSI`) - 5 Tài khoản (Mật khẩu: `123`)
 | STT | Tên đăng nhập | Số điện thoại | Họ và tên | Chức năng phụ trách |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `duocsi_1` | `0908222331` | Dược sĩ Phạm Hoàng Minh | Quầy phát thuốc BHYT |
-| 2 | `duocsi_2` | `0908222332` | Dược sĩ Nguyễn Thị Kim Oanh | Quầy thuốc dịch vụ |
-| 3 | `duocsi_3` | `0908222333` | Dược sĩ Vũ Đình Trọng | Quản lý kho chẵn |
-| 4 | `duocsi_4` | `0908222334` | Dược sĩ Hoàng Thanh Trúc | Kiểm định hạn dùng |
-| 5 | `duocsi_5` | `0908222335` | Dược sĩ Trần Văn Phúc | Báo cáo xuất nhập tồn |
+| 1 | `duocsi_1` | `0908222331` | Dược sĩ Phạm Hoàng Minh | Dược sĩ trưởng - Trưởng kho Dược chính |
+| 2 | `duocsi_2` | `0908222332` | Dược sĩ Nguyễn Thị Kim Oanh | Dược sĩ cấp phát thuốc ngoại trú và BHYT |
+| 3 | `duocsi_3` | `0908222333` | Dược sĩ Vũ Đình Trọng | Dược sĩ quản lý tồn kho và Kiểm kê định kỳ |
+| 4 | `duocsi_4` | `0908222334` | Dược sĩ Hoàng Thanh Trúc | Dược sĩ tư vấn sử dụng thuốc và tương tác thuốc |
+| 5 | `duocsi_5` | `0908222335` | Dược sĩ Trần Văn Phúc | Dược sĩ phụ trách nhà thuốc bệnh viện |
 
-### 5.5 Kỹ Thuật Viên Cận Lâm Sàng (`KTV`) - 5 Tài khoản (Mật khẩu: `123`)
-| STT | Tên đăng nhập | Số điện thoại | Họ và tên | Bộ phận chuyên môn |
+### 5.5 Kỹ Thuật Viên Cận Lâm Sàng (`KTV`) - 14 Tài khoản (Mật khẩu: `123`)
+| STT | Tên đăng nhập | Số điện thoại | Họ và tên | Bộ phận chuyên môn phụ trách |
 | :---: | :--- | :--- | :--- | :--- |
-| 1 | `ktv_1` | `0908333441` | KTV. Võ Anh Đức | Phòng Xét nghiệm Huyết học |
-| 2 | `ktv_2` | `0908333442` | KTV. Hoàng Văn Cường | Phòng Chụp X-Quang kỹ thuật số |
-| 3 | `ktv_3` | `0908333443` | KTV. Đặng Mỹ Linh | Phòng Siêu âm 4D |
-| 4 | `ktv_4` | `0908333444` | KTV. Bùi Quốc Tuấn | Phòng Đo Điện tim & Điện não |
-| 5 | `ktv_5` | `0908333445` | KTV. Lê Thùy Trang | Phòng Xét nghiệm Sinh hóa |
+| 1 | `ktv_1` | `0908333441` | KTV. Võ Anh Đức | KTV Trưởng Xét nghiệm Huyết học - Hóa sinh |
+| 2 | `ktv_2` | `0908333442` | KTV. Hoàng Văn Cường | KTV Chẩn đoán hình ảnh - Chụp X-Quang kỹ thuật số |
+| 3 | `ktv_3` | `0908333443` | KTV. Đặng Mỹ Linh | KTV Siêu âm tổng quát và Doppler mạch máu |
+| 4 | `ktv_4` | `0908333444` | KTV. Bùi Quốc Tuấn | KTV Thăm dò chức năng và Điện tâm đồ ECG |
+| 5 | `ktv_5` | `0908333445` | KTV. Lê Thùy Trang | KTV Xét nghiệm Vi sinh - Nước tiểu |
+| 6 | `ktv_6` | `0908333446` | KTV. Nguyễn Minh Khôi | KTV Thủ thuật Ngoại khoa, Bó bột và Chăm sóc vết mổ |
+| 7 | `ktv_7` | `0908333447` | KTV. Phan Thanh Trúc | KTV Siêu âm Cơ xương khớp và Mô mềm Ngoại khoa |
+| 8 | `ktv_8` | `0908333448` | KTV. Trần Bảo Vy | KTV Xét nghiệm Vi mẫu và Phun khí dung Nhi khoa |
+| 9 | `ktv_9` | `0908333449` | KTV. Trương Gia Huy | KTV Thăm dò chức năng và Test dị ứng Nhi khoa |
+| 10 | `ktv_10` | `0908333450` | KTV. Vũ Ngọc Diệp | KTV Chụp X-Quang Răng Panorama toàn cảnh và Cận chóp |
+| 11 | `ktv_11` | `0908333451` | KTV. Lý Hữu Nghĩa | KTV Cạo vôi siêu âm, Lấy dấu chỉnh nha và Scan hàm 3D |
+| 12 | `ktv_12` | `0908333452` | KTV. Huỳnh Mai Phương | KTV Monitoring Sản khoa và Lấy mẫu Pap Smear |
+| 13 | `ktv_13` | `0908333453` | KTV. Đỗ Quang Khải | KTV Đo Thính lực đơn âm và Nội soi Tai Mũi Họng |
+| 14 | `ktv_14` | `0908333454` | KTV. Mai Xuân Nhi | KTV Đo Khúc xạ tự động, Bản đồ Giác mạc và Nhãn áp |
 
-### 5.6 Khách Hàng / Bệnh Nhân (`BENHNHAN`) - 20 Tài khoản (Mật khẩu: `123`)
+### 5.6 Khách Hàng / Bệnh Nhân (`BENHNHAN`) - 20 Tài khoản mẫu (Mật khẩu: `123` hoặc `123456`)
 | STT | Tên đăng nhập / Mã BN | Số điện thoại | Họ và tên | Tình trạng thẻ BHYT |
 | :---: | :--- | :--- | :--- | :--- |
 | 1 | `hoangbaonam` | `0901234561` | Hoàng Bảo Nam | **Đã có BHYT** (`DN4790123456789`) |
@@ -326,33 +369,33 @@ Gồm 35 bác sĩ chia đều cho 7 chuyên khoa lâm sàng (mỗi khoa 5 bác s
 
 Cơ sở dữ liệu Microsoft SQL Server `quan_ly_phong_kham` gồm **28 bảng** chuẩn hóa:
 
-| Bảng CSDL | Số Bản Ghi | Mục Đích Nghiệp Vụ & Quan Hệ Chính |
+| Bảng CSDL | Số Bản Ghi | Mục Đích Nghiệp Vụ và Quan Hệ Chính |
 | :--- | :---: | :--- |
 | `lich_lam_viec` | **5,598** | Số hóa ca trực (Sáng/Chiều/Tối) của 35 bác sĩ. Khóa ngoại tới `bac_si`, `nhan_vien`, `phong_kham`. |
-| `thong_bao` | **1,263** | Thông báo tức thời thời gian thực (SSE + In-app). Khóa ngoại tới `tai_khoan`. |
-| `audit_log` | **505** | Nhật ký giám sát an ninh (Tài khoản, hành vi, IP, thời gian). |
+| `thong_bao` | **1,327** | Thông báo tức thời thời gian thực (SSE + In-app). Khóa ngoại tới `tai_khoan`. |
+| `audit_log` | **511** | Nhật ký giám sát an ninh (Tài khoản, hành vi, IP, thời gian). |
 | `chi_tiet_hoa_don` | **238** | Bóc tách từng hạng mục chi phí: Tiền khám, Tiền CLS, Tiền thuốc. Khóa ngoại `hoa_don_id`. |
-| `lich_hen` | **163** | Phiếu hẹn khám trực tuyến và tại quầy. Khóa ngoại tới `benh_nhan`, `chuyen_khoa`, `bac_si`. |
+| `lich_hen` | **164** | Phiếu hẹn khám trực tuyến và tại quầy. Khóa ngoại tới `benh_nhan`, `chuyen_khoa`, `bac_si`. |
 | `hoa_don` | **154** | Hóa đơn viện phí, lưu tổng giá gốc, tiền BHYT chi trả, tiền thực thu. Khóa ngoại `phieu_kham_id`. |
 | `phieu_kham` | **132** | Bệnh án điện tử EMR, triệu chứng, chẩn đoán ICD-10, hướng điều trị, ngày tái khám. |
-| `tai_khoan` | **71** | Tài khoản định danh đăng nhập toàn hệ thống, mã hóa mật khẩu, cờ đổi mật khẩu. |
+| `tai_khoan` | **80** | Tài khoản định danh đăng nhập toàn hệ thống, mã hóa mật khẩu, cờ đổi mật khẩu. |
+| `lich_su_nhac_nho` | **70** | Nhật ký thông báo nhắc nhở lịch hẹn và nhắc tái khám gửi cho người bệnh. |
 | `chi_tiet_don_thuoc`| **67** | Từng loại thuốc trong đơn, liều dùng (Sáng-Trưa-Chiều-Tối), số ngày. Khóa ngoại `don_thuoc_id`. |
 | `phan_hoi` | **67** | Đánh giá sao (1-5) và bình luận trải nghiệm của bệnh nhân sau khám. |
 | `dich_vu` | **66** | Biểu giá niêm yết 66 dịch vụ kỹ thuật, khám và xét nghiệm; tỷ lệ quỹ BHYT chi trả. |
-| `lich_su_nhac_nho` | **55** | Nhật ký thông báo nhắc nhở lịch hẹn và nhắc tái khám gửi cho người bệnh. |
-| `nhan_vien` | **51** | Hồ sơ cán bộ nhân viên y tế, hành chính. Khóa ngoại `tai_khoan_id`, `chuyen_khoa_id`. |
+| `phong_kham` | **61** | Danh bạ 61 buồng khám vật lý phân bổ theo 8 chuyên khoa. |
+| `nhan_vien` | **60** | Hồ sơ 60 cán bộ nhân viên y tế, hành chính. Khóa ngoại `tai_khoan_id`, `chuyen_khoa_id`. |
 | `chi_tiet_chi_dinh`| **49** | Từng mục cận lâm sàng, kết quả đo lường, kết luận và file ảnh y tế đính kèm. |
 | `don_thuoc` | **42** | Đơn thuốc điện tử do bác sĩ kê đơn trong phiên khám. Khóa ngoại `phieu_kham_id`. |
-| `phong_kham` | **40** | Danh bạ 40 buồng khám vật lý phân bổ theo 8 chuyên khoa. |
 | `bac_si` | **35** | Học vị, chuyên môn, kinh nghiệm, giá khám của 35 bác sĩ. Khóa ngoại `nhan_vien_id`. |
 | `phieu_chi_dinh` | **34** | Phiếu tổng hợp các chỉ định CLS phát sinh từ phiên khám bệnh EMR. |
-| `lich_su_sao_luu` | **27** | Lịch sử các bản sao lưu CSDL SQL Server (.bak) kèm dung lượng và trạng thái. |
+| `lich_su_sao_luu` | **29** | Lịch sử các bản sao lưu CSDL SQL Server (.bak) kèm dung lượng và trạng thái. |
 | `chi_so_sinh_ton` | **22** | Mạch, nhiệt độ, huyết áp tâm thu/tâm trương, SpO2, cân nặng, chiều cao, chỉ số BMI. |
+| `benh_nhan` | **21** | Hồ sơ bệnh nhân: Mã BN, CCCD, mã thẻ BHYT, tiền sử bệnh, dị ứng. |
 | `thuoc` | **21** | Kho dược: Mã thuốc, biệt dược, hoạt chất, tồn kho, hạn dùng, chống chỉ định. |
-| `benh_nhan` | **20** | Hồ sơ bệnh nhân: Mã BN, CCCD, mã thẻ BHYT, tiền sử bệnh, dị ứng. |
 | `hom_thu_gop_y` | **12** | Ý kiến phản ánh của người dân gửi qua hòm thư điện tử. |
+| `cai_dat_he_thong` | **8** | Cấu hình bảo trì độc lập (`maintenance_patient`, `maintenance_staff`), tên cơ sở y tế. |
 | `chuyen_khoa` | **8** | 8 khoa chuyên môn (Nội, Ngoại, Nhi, Răng Hàm Mặt, Sản, Tai Mũi Họng, Mắt, Cận Lâm Sàng). |
-| `cai_dat_he_thong` | **6** | Cấu hình bảo trì độc lập (`maintenance_patient`, `maintenance_staff`), tên cơ sở y tế. |
 | `vai_tro` | **6** | 6 vai trò người dùng chuẩn: `ADMIN`, `BACSI`, `LETAN`, `DUOCSI`, `KTV`, `BENHNHAN`. |
 | `bai_viet` | **3** | Cẩm nang y khoa và tin tức phòng bệnh cộng đồng. |
 | `banner` | **3** | Banner slider truyền thông tại trang chủ. |

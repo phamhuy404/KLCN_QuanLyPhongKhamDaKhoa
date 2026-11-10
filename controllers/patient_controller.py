@@ -31,9 +31,7 @@ def invoice_preview(invoice_id):
 
 
 @patient_bp.before_request
-
-@roles_required('BENHNHAN')
-
+@roles_required('BENHNHAN', 'ADMIN')
 def check_patient_profile_completion():
 
     """Kiểm tra bệnh nhân đã hoàn thiện thông tin cá nhân chưa trước khi truy cập các tính năng."""
@@ -268,6 +266,9 @@ def booking():
                 preselected_dept_id = doc.get('chuyen_khoa_id')
                 break
 
+    from core.billing_policy import insurance_reduction
+    reduction_val = float(insurance_reduction())
+
     return render_template(
         'patient/booking.html',
         active_page='booking',
@@ -279,7 +280,8 @@ def booking():
         preselected_service_id=preselected_service_id,
         preselected_service_name=preselected_service_name,
         preselected_doctor_id=preselected_doctor_id,
-        preselected_date=preselected_date
+        preselected_date=preselected_date,
+        insurance_reduction=reduction_val
     )
 
 

@@ -1,6 +1,116 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}H2T Healthcare - Báo Cáo và Thống Kê Phân Tích{% endblock %}
+{% block title %}H2T Healthcare - Báo Cáo và Thống Kê Phân Tích
+<!-- Modal Xem Chi Tiết Ca Khám Hoàn Thành và Bệnh Án EMR -->
+<div id="modal-exam-detail" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-file-waveform text-teal-600"></i> Chi Tiết Hồ Sơ Khám Bệnh và Quyết Toán
+            </h3>
+            <button onclick="closeExamDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Khối Thông Tin Ca Khám -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+            <div>
+                <span class="text-slate-400 block">Mã phiếu khám:</span>
+                <span class="font-mono font-bold text-teal-700 text-sm" id="em-code">—</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5" id="em-time">—</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Bác sĩ phụ trách:</span>
+                <span class="font-bold text-slate-800" id="em-doctor">—</span>
+                <span class="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded font-medium inline-block mt-0.5" id="em-dept">—</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Người bệnh:</span>
+                <span class="font-bold text-slate-800" id="em-patient">—</span>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5" id="em-patient-meta">—</div>
+            </div>
+            <div>
+                <span class="text-slate-400 block">Mã thẻ BHYT:</span>
+                <span class="font-bold text-slate-800 font-mono" id="em-bhyt">Chưa đăng ký</span>
+            </div>
+        </div>
+
+        <!-- Khối Kết Luận Chẩn Đoán Lâm Sàng -->
+        <div class="space-y-2 bg-white p-4 rounded-2xl border border-slate-200/80 text-xs">
+            <h4 class="font-bold text-slate-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <i class="fa-solid fa-stethoscope text-medical-600"></i> Chẩn Đoán Y Khoa
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <div class="sm:col-span-1">
+                    <span class="text-slate-400 block text-[10px]">Mã bệnh ICD-10:</span>
+                    <span class="font-mono font-bold px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded inline-block mt-0.5" id="em-icd">—</span>
+                </div>
+                <div class="sm:col-span-2">
+                    <span class="text-slate-400 block text-[10px]">Chẩn đoán xác định / sơ bộ:</span>
+                    <span class="font-semibold text-slate-800 block mt-0.5" id="em-diagnosis">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khối Viện Phí và Hóa Đơn -->
+        <div class="bg-gradient-to-br from-slate-50 to-teal-50/40 p-4 rounded-2xl border border-teal-100/80 text-xs space-y-2">
+            <h4 class="font-bold text-slate-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <i class="fa-solid fa-receipt text-teal-600"></i> Thông Tin Thanh Toán Viện Phí
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Số hóa đơn:</span>
+                    <span class="font-mono font-bold text-slate-800" id="em-invoice-code">—</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Kênh thanh toán:</span>
+                    <span class="font-semibold text-slate-800" id="em-payment-method">—</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block text-[10px]">Tổng tiền thực thu:</span>
+                    <span class="font-mono font-black text-sm text-teal-700" id="em-final-amount">— đ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nút thao tác dưới modal -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button type="button" onclick="closeExamDetailModal()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openExamDetailModal(exam) {
+    if (!exam) return;
+    document.getElementById('em-code').innerText = exam.ma_phieu || '---';
+    document.getElementById('em-time').innerText = exam.thoi_gian_kham || '---';
+    document.getElementById('em-doctor').innerText = (exam.hoc_vi ? exam.hoc_vi + ' ' : 'BS. ') + (exam.ten_bac_si || 'Chưa phân công');
+    document.getElementById('em-dept').innerText = exam.ten_khoa || 'Khoa Khám Bệnh';
+    document.getElementById('em-patient').innerText = exam.ten_benh_nhan || '---';
+    document.getElementById('em-patient-meta').innerText = `Mã BN: ${exam.ma_benh_nhan || '---'} • SĐT: ${exam.sdt_benh_nhan || '---'}`;
+    document.getElementById('em-bhyt').innerText = exam.bhyt ? `${exam.bhyt} (Hưởng chế độ BHYT)` : 'Chưa đăng ký thẻ BHYT';
+    
+    document.getElementById('em-icd').innerText = exam.chan_doan_icd || 'ICD-10';
+    document.getElementById('em-diagnosis').innerText = exam.chan_doan_so_bo || 'Khám lâm sàng tổng quát';
+    
+    document.getElementById('em-invoice-code').innerText = exam.ma_hoa_don || 'HD-PK';
+    document.getElementById('em-payment-method').innerText = exam.hinh_thuc_thanh_toan || 'Tiền mặt';
+    const amount = Number(exam.thanh_tien || 0);
+    document.getElementById('em-final-amount').innerText = amount.toLocaleString('vi-VN') + ' đ';
+
+    document.getElementById('modal-exam-detail').classList.remove('hidden');
+}
+
+function closeExamDetailModal() {
+    document.getElementById('modal-exam-detail').classList.add('hidden');
+}
+</script>
+
+{% endblock %}
 
 {% block sidebar %}
     {% include "admin/components/sidebar.html" %}
@@ -223,13 +333,14 @@
             <table class="w-full text-left text-xs whitespace-nowrap" id="completed-exams-table">
                 <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
                     <tr>
-                        <th class="py-3.5 px-4">Mã Phiếu & Thời Gian</th>
+                        <th class="py-3.5 px-4">Mã Phiếu và Thời Gian</th>
                         <th class="py-3.5 px-4">Bệnh Nhân</th>
                         <th class="py-3.5 px-4">Bác Sĩ Phụ Trách</th>
                         <th class="py-3.5 px-4">Chẩn Đoán / Mã ICD</th>
-                        <th class="py-3.5 px-4">Hóa Đơn & Nguồn Tiền</th>
+                        <th class="py-3.5 px-4">Hóa Đơn và Nguồn Tiền</th>
                         <th class="py-3.5 px-4 text-right">Viện Phí</th>
                         <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                        <th class="py-3.5 px-4 text-center">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100" id="completed-exams-tbody">
@@ -292,11 +403,16 @@
                                     {{ exam.trang_thai or 'Đã hoàn thành' }}
                                 </span>
                             </td>
+                            <td class="py-3 px-4 text-center">
+                                <button type="button" onclick='openExamDetailModal({{ exam | tojson | safe }})' class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-semibold text-xs inline-flex items-center gap-1 transition-colors cursor-pointer" title="Xem chi tiết ca khám và viện phí">
+                                    <i class="fa-solid fa-eye"></i> Chi tiết
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                            <td colspan="8" class="py-8 text-center text-slate-400 text-xs">
                                 Chưa có đơn khám nào ở trạng thái hoàn thành.
                             </td>
                         </tr>

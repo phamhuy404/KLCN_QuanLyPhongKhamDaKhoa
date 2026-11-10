@@ -683,116 +683,75 @@
 
 
             <!-- 5. Hàng đợi bệnh nhân tiếp nhận tại phòng -->
-
-
-
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-
-
-
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-
-
-
                     <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
-
-
-
                         <i class="fa-solid fa-users-line text-medical-600"></i> Hàng Đợi (<span id="waiting-count">{{ patients|length }}</span>)
-
-
-
                     </h3>
-
-
-
                     <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">Trực tiếp</span>
-
-
-
                 </div>
 
-
-
-
-
-
+                <!-- BỘ LỌC HÀNG ĐỢI: TRONG NGÀY VÀ TẤT CẢ -->
+                <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-semibold select-none">
+                    <button type="button" id="btn-queue-filter-today" onclick="setQueueFilter('today')" class="flex-1 py-1.5 px-2 rounded-lg bg-white text-medical-700 shadow-2xs font-bold text-center transition-all cursor-pointer">
+                        Trong ngày (<span id="queue-count-today">0</span>)
+                    </button>
+                    <button type="button" id="btn-queue-filter-all" onclick="setQueueFilter('all')" class="flex-1 py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 font-medium text-center transition-all cursor-pointer">
+                        Tất cả (<span id="queue-count-all">{{ patients|length }}</span>)
+                    </button>
+                </div>
 
                 <div class="space-y-2 max-h-56 overflow-y-auto pr-1" id="emr-queue-list">
-
-
-
                     {% for p in patients %}
-
-
-
                     <div onclick="selectEmrPatient('{{ p.id }}')" id="patient-card-{{ p.id }}" 
-
-
-
-                         class="p-2.5 rounded-xl border {% if loop.first %}border-medical-500 bg-medical-50/50{% else %}border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50{% endif %} cursor-pointer transition-all space-y-1.5">
-
-
-
+                         data-is-today="{{ '1' if p.is_today else '0' }}"
+                         data-date="{{ p.appointment_date or '' }}"
+                         data-dept-id="{{ p.chuyen_khoa_id or current_doctor_dept_id or 1 }}"
+                         class="patient-queue-card p-2.5 rounded-xl border {% if loop.first %}border-medical-500 bg-medical-50/50{% else %}border-slate-100 hover:border-medical-200 bg-white hover:bg-slate-50/50{% endif %} cursor-pointer transition-all space-y-1.5">
                         <div class="flex items-center justify-between">
-
-
-
                             <span class="px-2 py-0.5 rounded-lg {% if loop.first %}bg-medical-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %} font-mono font-bold text-[11px]">STT #{{ "%03d"|format(loop.index) }}</span>
-
-
-
-                            <span class="text-[10px] text-slate-400 font-mono">{{ p.sdt or '0901234567' }}</span>
-
-
-
+                            <div class="flex items-center gap-1">
+                                {% if p.is_unavailable %}
+                                <span class="px-2 py-0.2 rounded-md bg-rose-50 text-rose-700 font-bold text-[10px] border border-rose-200">Không khả dụng</span>
+                                {% elif p.appointment_status %}
+                                <span class="px-1.5 py-0.2 rounded-md bg-slate-100 text-slate-600 text-[10px]">{{ p.appointment_status }}</span>
+                                {% endif %}
+                                <span class="text-[10px] text-slate-400 font-mono">{{ p.sdt or '0901234567' }}</span>
+                            </div>
                         </div>
-
-
-
                         <div>
-
-
-
                             <h4 class="font-bold text-slate-900 text-xs">{{ p.ho_ten }}</h4>
-
-
-
                             <div class="text-[10px] text-slate-500 font-mono">{{ p.ma_benh_nhan }} • {{ p.gioi_tinh }} • {{ p.nhom_mau or 'Chưa rõ' }}</div>
-
-
-
                         </div>
 
+                        <!-- Dòng hiển thị ngày của ca đợi (khi lọc 'Tất cả') -->
+                        <div class="queue-date-badge text-[10px] text-slate-600 font-mono mt-1 hidden flex items-center justify-between pt-1 border-t border-slate-100">
+                            <span class="flex items-center gap-1 text-teal-700 font-semibold">
+                                <i class="fa-regular fa-calendar"></i>
+                                <span>{{ p.appointment_date_fmt or p.appointment_date or 'Hôm nay' }}</span>
+                                {% if p.appointment_time %}
+                                <span class="font-bold">({{ p.appointment_time }})</span>
+                                {% endif %}
+                            </span>
+                            {% if p.is_today %}
+                            <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">Hôm nay</span>
+                            {% endif %}
+                        </div>
 
-
+                        <!-- Nút Gọi vào khám trước (chỉ dành cho ca khám hôm nay có giờ hẹn sau hiện tại) -->
+                        {% if p.can_call_early and p.appointment_id %}
+                        <div class="pt-1 border-t border-slate-100 flex items-center justify-end">
+                            <button type="button" onclick="event.stopPropagation(); callPatientEarly({{ p.appointment_id }}, '{{ p.ho_ten }}')" class="text-[10px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2 py-0.5 rounded-md flex items-center gap-1 cursor-pointer transition-all">
+                                <i class="fa-solid fa-bullhorn text-teal-600"></i> Gọi vào khám trước
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
-
-
-
                     {% endfor %}
-
-
-
                 </div>
-
-
-
             </div>
 
-
-
-
-
-
-
         </div>
-
-
-
-
-
-
 
         <!-- CỘT BÊN PHẢI CUỘN LIÊN TỤC (SPLIT VIEW RIGHT PANEL - 8 COLS) -->
 
@@ -814,7 +773,7 @@
 
 
 
-                <div id="step-btn-1" onclick="scrollToEmrSection(1)" class="flex-1 p-2.5 rounded-xl bg-medical-50 text-medical-700 font-bold border border-medical-200 transition-all flex items-center gap-2 cursor-pointer hover:bg-medical-100/60 shadow-2xs">
+                <div id="step-btn-1" onclick="switchEmrStep(1)" class="flex-1 p-2.5 rounded-xl bg-medical-50 text-medical-700 font-bold border border-medical-200 transition-all flex items-center gap-2 cursor-pointer hover:bg-medical-100/60 shadow-2xs">
 
 
 
@@ -846,7 +805,7 @@
 
 
 
-                <div id="step-btn-2" onclick="scrollToEmrSection(2)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
+                <div id="step-btn-2" onclick="switchEmrStep(2)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
 
 
 
@@ -878,7 +837,7 @@
 
 
 
-                <div id="step-btn-3" onclick="scrollToEmrSection(3)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
+                <div id="step-btn-3" onclick="switchEmrStep(3)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
 
 
 
@@ -910,7 +869,7 @@
 
 
 
-                <div id="step-btn-4" onclick="scrollToEmrSection(4)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
+                <div id="step-btn-4" onclick="switchEmrStep(4)" class="flex-1 p-2.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200/80 transition-all flex items-center gap-2 cursor-pointer hover:bg-slate-100">
 
 
 
@@ -1330,7 +1289,7 @@
 
 
 
-                        <button type="button" onclick="scrollToEmrSection(3)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                        <button type="button" onclick="switchEmrStep(3)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -1342,7 +1301,7 @@
 
 
 
-                        <button type="button" onclick="scrollToEmrSection(2)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                        <button type="button" onclick="switchEmrStep(2)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -1374,7 +1333,7 @@
 
 
 
-            <div id="tab-cls" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs">
+            <div id="tab-cls" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs hidden">
 
 
 
@@ -1746,15 +1705,7 @@
 
 
 
-                                            {% if insurance_reduction > 0 %}
-
-
-
-                                                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
-
-
-
-                                            {% endif %}
+                                            
 
 
 
@@ -1906,15 +1857,7 @@
 
 
 
-                                            {% if insurance_reduction > 0 %}
-
-
-
-                                                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium">Giảm nếu có BHYT</span>
-
-
-
-                                            {% endif %}
+                                            
 
 
 
@@ -2470,7 +2413,7 @@
 
 
 
-                    <button type="button" onclick="scrollToEmrSection(1)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" onclick="switchEmrStep(1)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -2482,7 +2425,7 @@
 
 
 
-                    <button type="button" onclick="scrollToEmrSection(3)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" onclick="switchEmrStep(3)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -2510,7 +2453,7 @@
 
 
 
-            <div id="tab-thuoc" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs">
+            <div id="tab-thuoc" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs hidden">
 
 
 
@@ -3086,7 +3029,7 @@
 
 
 
-                    <button type="button" onclick="scrollToEmrSection(2)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" onclick="switchEmrStep(2)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -3098,7 +3041,7 @@
 
 
 
-                    <button type="button" onclick="scrollToEmrSection(4)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" onclick="switchEmrStep(4)" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-bold shadow-md shadow-medical-600/20 flex items-center gap-1.5 cursor-pointer">
 
 
 
@@ -3126,7 +3069,7 @@
 
 
 
-            <div id="tab-ket-luan" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs">
+            <div id="tab-ket-luan" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4 text-xs hidden">
 
 
 
@@ -3526,11 +3469,11 @@
 
 
 
-                    <button type="button" onclick="scrollToEmrSection(3)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
+                    <button type="button" onclick="switchEmrStep(3)" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center gap-1.5 cursor-pointer">
 
 
 
-                        <i class="fa-solid fa-chevron-up"></i> Quay Lại Phần 3 (Thuốc)
+                        <i class="fa-solid fa-chevron-left"></i> Quay Lại Phần 3 (Thuốc)
 
 
 
@@ -4139,6 +4082,10 @@
 
 
             if (!appointment) return;
+
+            if (appointment.chuyen_khoa_id && typeof filterDoctorServicesByDept === 'function') {
+                filterDoctorServicesByDept(appointment.chuyen_khoa_id);
+            }
 
 
 
@@ -5454,29 +5401,16 @@
 
 
 
+    
+        // Tự động đồng bộ dịch vụ theo chuyên khoa của bệnh nhân và mở Tab 1
+        const targetDept = p.chuyen_khoa_id || currentDoctorActiveDept || 1;
+        if (typeof filterDoctorServicesByDept === 'function') {
+            filterDoctorServicesByDept(targetDept);
+        }
+        if (typeof switchEmrStep === 'function') {
+            switchEmrStep(1);
+        }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-    
-
-
 
     let emrAllergyTagSelector = null;
 
@@ -5594,10 +5528,16 @@
 
 
 
-    document.addEventListener('DOMContentLoaded', () => {
-
-
-
+        document.addEventListener('DOMContentLoaded', () => {
+        if (typeof setQueueFilter === 'function') {
+            setQueueFilter('today');
+        }
+        if (typeof filterDoctorServicesByDept === 'function') {
+            filterDoctorServicesByDept('{{ current_doctor_dept_id or 1 }}');
+        }
+        if (typeof switchEmrStep === 'function') {
+            switchEmrStep(1);
+        }
         if (!rawPatients.length) return;
 
 
@@ -5906,126 +5846,145 @@
 
 
 
-    // Cuộn mượt đến từng phần EMR tương ứng trong Split View
-
-
-
-    function scrollToEmrSection(step) {
-
-
-
+        // Chuyển đổi giữa các tab khám bệnh riêng biệt độc lập (ẩn/hiện từng tab rõ ràng)
+    function switchEmrStep(step) {
         currentEmrStep = step;
-
-
-
         updateStepperUI(step);
 
-
-
-        const targets = {
-
-
-
+        const tabIds = {
             1: 'tab-kham',
-
-
-
             2: 'tab-cls',
-
-
-
             3: 'tab-thuoc',
-
-
-
             4: 'tab-ket-luan'
-
-
-
         };
 
-
-
-        const el = document.getElementById(targets[step]);
-
-
-
-        if (el) {
-
-
-
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-
-
+        for (let s = 1; s <= 4; s++) {
+            const pane = document.getElementById(tabIds[s]);
+            if (pane) {
+                if (s === step) {
+                    pane.classList.remove('hidden');
+                } else {
+                    pane.classList.add('hidden');
+                }
+            }
         }
 
-
-
+        const workspace = document.getElementById('emr-workspace-card');
+        if (workspace) {
+            workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
+    function scrollToEmrSection(step) {
+        switchEmrStep(step);
+    }
 
+    // Lọc dịch vụ: Chỉ hiện Chuyên khoa của ca khám/bác sĩ và Khoa Cận Lâm Sàng và CĐHA (Khoa 8)
+    let currentDoctorActiveDept = '{{ current_doctor_dept_id or 1 }}';
 
-
-
-
-
-    // Chuyển đổi giữa các bước khám (giữ toàn bộ 4 phần liên tục và cuộn mượt đến mục cần xem)
-
-
-
-    function switchEmrStep(step, smoothScroll = true) {
-
-
-
-        currentEmrStep = step;
-
-
-
-        updateStepperUI(step);
-
-
-
-        const stepPanes = {
-
-
-
-            1: 'tab-kham',
-
-
-
-            2: 'tab-cls',
-
-
-
-            3: 'tab-view-cls',
-
-
-
-            4: 'tab-thuoc'
-
-
-
-        };
-
-
-
-        const targetPane = document.getElementById(stepPanes[step]);
-
-
-
-        if (targetPane && smoothScroll) {
-
-
-
-            targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-
-
+    function filterDoctorServicesByDept(deptId) {
+        if (deptId) {
+            currentDoctorActiveDept = String(deptId);
         }
+        const activeDept = String(currentDoctorActiveDept || '1');
+        const CLS_DEPT_ID = '8'; // Khoa Cận Lâm Sàng và CĐHA dùng chung
 
+        // 1. Lọc các thẻ card chuyên khoa
+        document.querySelectorAll('.dept-service-card').forEach(card => {
+            const cardDeptId = String(card.getAttribute('data-dept-id') || '');
+            if (cardDeptId === activeDept || cardDeptId === CLS_DEPT_ID) {
+                card.dataset.allowedByDoctor = '1';
+                card.style.display = 'block';
+            } else {
+                card.dataset.allowedByDoctor = '0';
+                card.style.display = 'none';
+            }
+        });
 
+        // 2. Lọc các nút bấm bộ lọc chuyên khoa ở thanh công cụ
+        document.querySelectorAll('#cls-dept-filters .cls-dept-btn').forEach(btn => {
+            const btnDept = String(btn.getAttribute('data-dept') || '');
+            if (btnDept === 'all' || btnDept === activeDept || btnDept === CLS_DEPT_ID) {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
 
+        // Áp dụng lại bộ lọc tìm kiếm và loại hình
+        filterEmrServices();
+    }
+
+    // Bộ lọc Hàng đợi EMR: Trong ngày (mặc định) và Tất cả
+    let currentQueueFilter = 'today';
+
+    function setQueueFilter(mode) {
+        currentQueueFilter = mode;
+        const btnToday = document.getElementById('btn-queue-filter-today');
+        const btnAll = document.getElementById('btn-queue-filter-all');
+        const cards = document.querySelectorAll('.patient-queue-card');
+        let countToday = 0;
+        let countAll = cards.length;
+
+        cards.forEach(card => {
+            const isToday = (card.getAttribute('data-is-today') === '1');
+            const dateBadge = card.querySelector('.queue-date-badge');
+            if (isToday) countToday++;
+
+            if (mode === 'today') {
+                if (isToday) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+                if (dateBadge) {
+                    dateBadge.classList.add('hidden');
+                    dateBadge.classList.remove('flex');
+                }
+            } else {
+                card.style.display = 'block';
+                if (dateBadge) {
+                    dateBadge.classList.remove('hidden');
+                    dateBadge.classList.add('flex');
+                }
+            }
+        });
+
+        const elToday = document.getElementById('queue-count-today');
+        const elAll = document.getElementById('queue-count-all');
+        const elWaiting = document.getElementById('waiting-count');
+        if (elToday) elToday.innerText = countToday;
+        if (elAll) elAll.innerText = countAll;
+        if (elWaiting) elWaiting.innerText = (mode === 'today') ? countToday : countAll;
+
+        if (btnToday && btnAll) {
+            if (mode === 'today') {
+                btnToday.className = "flex-1 py-1.5 px-2 rounded-lg bg-white text-medical-700 shadow-2xs font-bold text-center transition-all cursor-pointer";
+                btnAll.className = "flex-1 py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 font-medium text-center transition-all cursor-pointer";
+            } else {
+                btnAll.className = "flex-1 py-1.5 px-2 rounded-lg bg-white text-medical-700 shadow-2xs font-bold text-center transition-all cursor-pointer";
+                btnToday.className = "flex-1 py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 font-medium text-center transition-all cursor-pointer";
+            }
+        }
+    }
+
+    // Bác sĩ / Tiếp tân chủ động gọi bệnh nhân ca sau vào khám trước
+    async function callPatientEarly(appointmentId, patientName) {
+        if (!confirm(`Xác nhận gọi bệnh nhân ${patientName || ''} (ca sau trong ngày hôm nay) vào phòng khám ngay bây giờ?`)) {
+            return;
+        }
+        try {
+            const res = await fetch(`/api/appointments/${appointmentId}/call-early`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ ${data.message || 'Đã gọi bệnh nhân vào phòng khám thành công!'}`);
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert(`❌ Không thể gọi khám: ${data.message || 'Lỗi xử lý'}`);
+            }
+        } catch (e) {
+            alert('❌ Có lỗi kết nối khi thực hiện gọi ca khám!');
+        }
     }
 
 
@@ -7379,29 +7338,14 @@ Xác nhận lưu chỉ định?`;
 
 
     function filterEmrServices() {
-
-
-
         const query = (document.getElementById('cls-service-search')?.value || '').trim().toLowerCase();
-
-
-
-        const items = document.querySelectorAll('.emr-service-item');
-
-
-
         const deptCards = document.querySelectorAll('.dept-service-card');
 
-
-
-
-
-
-
         deptCards.forEach(card => {
-
-
-
+            if (card.dataset.allowedByDoctor === '0') {
+                card.style.display = 'none';
+                return;
+            }
             const cardDeptId = card.getAttribute('data-dept-id');
 
 

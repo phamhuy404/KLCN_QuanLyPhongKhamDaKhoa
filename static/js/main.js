@@ -937,6 +937,21 @@ window.handleChimeAlertClick = function(notifId, targetUrl) {
         fetch(`/api/notifications/read/${notifId}`, { method: 'POST' }).catch(() => {});
     }
     if (targetUrl) {
+        if (window.location.pathname.includes('/patient/appointments') && targetUrl.includes('/patient/appointments')) {
+            try {
+                const urlObj = new URL(targetUrl, window.location.origin);
+                const hlId = urlObj.searchParams.get('highlight');
+                if (hlId && typeof showAppointmentDetail === 'function') {
+                    showAppointmentDetail(hlId);
+                    const card = document.getElementById('appt-card-' + hlId) || document.querySelector(`.appointment-card[data-id="${hlId}"]`);
+                    if (card) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.classList.add('ring-2', 'ring-teal-500', 'bg-teal-50/30');
+                    }
+                    return;
+                }
+            } catch (e) {}
+        }
         window.location.href = targetUrl;
     }
 };

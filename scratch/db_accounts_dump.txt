@@ -1,0 +1,80 @@
+ID=1 | user=admin | role=ADMIN | name=Quản Trị Viên Hệ Thống | phone=0999999999 | code=NV001 | pos=Giám đốc Điều hành và Quản trị Hệ thống
+ID=2 | user=letan_1 | role=LETAN | name=Nguyễn Thị Lan | phone=0908111221 | code=NV_LT01 | pos=Lễ tân trưởng - Quầy tiếp đón Tầng 1
+ID=3 | user=letan_2 | role=LETAN | name=Trần Thu Huyền | phone=0908111222 | code=NV_LT02 | pos=Tiếp đón và Điều phối lịch hẹn - Quầy A
+ID=4 | user=letan_3 | role=LETAN | name=Lê Phương Thảo | phone=0908111223 | code=NV_LT03 | pos=Thu ngân viện phí và Tiếp nhận BHYT - Quầy B
+ID=5 | user=letan_4 | role=LETAN | name=Phạm Ngọc Bích | phone=0908111224 | code=NV_LT04 | pos=Chăm sóc khách hàng và Hướng dẫn khám
+ID=6 | user=letan_5 | role=LETAN | name=Đỗ Thu Hà | phone=0908111225 | code=NV_LT05 | pos=Lễ tân ca trực và Điều phối bệnh nhân cấp cứu
+ID=17 | user=bs_noi_1 | role=BACSI | name=BS. Trần Minh Quân | phone=0912111001 | code=BS001 | pos=Bác sĩ chuyên khoa - Khoa Nội Tổng Quát
+ID=18 | user=bs_noi_2 | role=BACSI | name=BS. Phạm Anh Tuấn | phone=0912111002 | code=BS002 | pos=Bác sĩ chuyên khoa - Khoa Nội Tổng Quát
+ID=19 | user=bs_noi_3 | role=BACSI | name=BS. Nguyễn Thu Trang | phone=0912111003 | code=BS003 | pos=Bác sĩ chuyên khoa - Khoa Nội Tổng Quát
+ID=20 | user=bs_noi_4 | role=BACSI | name=BS. Vũ Quốc Hưng | phone=0912111004 | code=BS004 | pos=Bác sĩ chuyên khoa - Khoa Nội Tổng Quát
+ID=21 | user=bs_noi_5 | role=BACSI | name=BS. Lê Hoài An | phone=0912111005 | code=BS005 | pos=Bác sĩ chuyên khoa - Khoa Nội Tổng Quát
+ID=22 | user=bs_ngoai_1 | role=BACSI | name=BS. Nguyễn Hoàng Nam | phone=0912222001 | code=BS006 | pos=Bác sĩ chuyên khoa - Khoa Ngoại Tổng Quát
+ID=23 | user=bs_ngoai_2 | role=BACSI | name=BS. Phan Thanh Phong | phone=0912222002 | code=BS007 | pos=Bác sĩ chuyên khoa - Khoa Ngoại Tổng Quát
+ID=24 | user=bs_ngoai_3 | role=BACSI | name=BS. Đinh Văn Hùng | phone=0912222003 | code=BS008 | pos=Bác sĩ chuyên khoa - Khoa Ngoại Tổng Quát
+ID=25 | user=bs_ngoai_4 | role=BACSI | name=BS. Hoàng Đức Lâm | phone=0912222004 | code=BS009 | pos=Bác sĩ chuyên khoa - Khoa Ngoại Tổng Quát
+ID=26 | user=bs_ngoai_5 | role=BACSI | name=BS. Trịnh Văn Long | phone=0912222005 | code=BS010 | pos=Bác sĩ chuyên khoa - Khoa Ngoại Tổng Quát
+ID=27 | user=bs_nhi_1 | role=BACSI | name=BS. Lê Thị Mai | phone=0912333001 | code=BS011 | pos=Bác sĩ chuyên khoa - Khoa Nhi
+ID=28 | user=bs_nhi_2 | role=BACSI | name=BS. Dương Diệu Linh | phone=0912333002 | code=BS012 | pos=Bác sĩ chuyên khoa - Khoa Nhi
+ID=29 | user=bs_nhi_3 | role=BACSI | name=BS. Ngô Đình Quân | phone=0912333003 | code=BS013 | pos=Bác sĩ chuyên khoa - Khoa Nhi
+ID=30 | user=bs_nhi_4 | role=BACSI | name=BS. Phạm Thúy Hằng | phone=0912333004 | code=BS014 | pos=Bác sĩ chuyên khoa - Khoa Nhi
+ID=31 | user=bs_nhi_5 | role=BACSI | name=BS. Đỗ Tuấn Nghĩa | phone=0912333005 | code=BS015 | pos=Bác sĩ chuyên khoa - Khoa Nhi
+ID=32 | user=bs_rhm_1 | role=BACSI | name=BS. Hoàng Đức Duy | phone=0912444001 | code=BS016 | pos=Bác sĩ chuyên khoa - Khoa Răng Hàm Mặt
+ID=33 | user=bs_rhm_2 | role=BACSI | name=BS. Đoàn Minh Khang | phone=0912444002 | code=BS017 | pos=Bác sĩ chuyên khoa - Khoa Răng Hàm Mặt
+ID=34 | user=bs_rhm_3 | role=BACSI | name=BS. Vũ Hồng Loan | phone=0912444003 | code=BS018 | pos=Bác sĩ chuyên khoa - Khoa Răng Hàm Mặt
+ID=35 | user=bs_rhm_4 | role=BACSI | name=BS. Mai Văn Trọng | phone=0912444004 | code=BS019 | pos=Bác sĩ chuyên khoa - Khoa Răng Hàm Mặt
+ID=36 | user=bs_rhm_5 | role=BACSI | name=BS. Nguyễn Bích Thủy | phone=0912444005 | code=BS020 | pos=Bác sĩ chuyên khoa - Khoa Răng Hàm Mặt
+ID=37 | user=bs_san_1 | role=BACSI | name=BS. Đặng Thu Hương | phone=0912555001 | code=BS021 | pos=Bác sĩ chuyên khoa - Khoa Sản - Phụ Khoa
+ID=38 | user=bs_san_2 | role=BACSI | name=BS. Trần Kiều Nga | phone=0912555002 | code=BS022 | pos=Bác sĩ chuyên khoa - Khoa Sản - Phụ Khoa
+ID=39 | user=bs_san_3 | role=BACSI | name=BS. Nguyễn Thanh Huyền | phone=0912555003 | code=BS023 | pos=Bác sĩ chuyên khoa - Khoa Sản - Phụ Khoa
+ID=40 | user=bs_san_4 | role=BACSI | name=BS. Bùi Thị Minh Tâm | phone=0912555004 | code=BS024 | pos=Bác sĩ chuyên khoa - Khoa Sản - Phụ Khoa
+ID=41 | user=bs_san_5 | role=BACSI | name=BS. Lê Tuyết Lan | phone=0912555005 | code=BS025 | pos=Bác sĩ chuyên khoa - Khoa Sản - Phụ Khoa
+ID=42 | user=bs_tmh_1 | role=BACSI | name=BS. Võ Thanh Bình | phone=0912666001 | code=BS026 | pos=Bác sĩ chuyên khoa - Khoa Tai Mũi Họng
+ID=43 | user=bs_tmh_2 | role=BACSI | name=BS. Hoàng Quốc Tuấn | phone=0912666002 | code=BS027 | pos=Bác sĩ chuyên khoa - Khoa Tai Mũi Họng
+ID=44 | user=bs_tmh_3 | role=BACSI | name=BS. Nguyễn Thị Thục Anh | phone=0912666003 | code=BS028 | pos=Bác sĩ chuyên khoa - Khoa Tai Mũi Họng
+ID=45 | user=bs_tmh_4 | role=BACSI | name=BS. Trương Hoài Nam | phone=0912666004 | code=BS029 | pos=Bác sĩ chuyên khoa - Khoa Tai Mũi Họng
+ID=46 | user=bs_tmh_5 | role=BACSI | name=BS. Chu Đức Cảnh | phone=0912666005 | code=BS030 | pos=Bác sĩ chuyên khoa - Khoa Tai Mũi Họng
+ID=47 | user=bs_mat_1 | role=BACSI | name=BS. Đỗ Viết Thắng | phone=0912777001 | code=BS031 | pos=Bác sĩ chuyên khoa - Khoa Mắt
+ID=48 | user=bs_mat_2 | role=BACSI | name=BS. Lê Khánh Linh | phone=0912777002 | code=BS032 | pos=Bác sĩ chuyên khoa - Khoa Mắt
+ID=49 | user=bs_mat_3 | role=BACSI | name=BS. Nguyễn Hữu Đạt | phone=0912777003 | code=BS033 | pos=Bác sĩ chuyên khoa - Khoa Mắt
+ID=50 | user=bs_mat_4 | role=BACSI | name=BS. Phạm Hồng Nhung | phone=0912777004 | code=BS034 | pos=Bác sĩ chuyên khoa - Khoa Mắt
+ID=51 | user=bs_mat_5 | role=BACSI | name=BS. Vũ Văn Hải | phone=0912777005 | code=BS035 | pos=Bác sĩ chuyên khoa - Khoa Mắt
+ID=7 | user=duocsi_1 | role=DUOCSI | name=Dược sĩ Phạm Hoàng Minh | phone=0908222331 | code=NV_DS01 | pos=Dược sĩ trưởng - Trưởng kho Dược chính
+ID=8 | user=duocsi_2 | role=DUOCSI | name=Dược sĩ Nguyễn Thị Kim Oanh | phone=0908222332 | code=NV_DS02 | pos=Dược sĩ cấp phát thuốc ngoại trú và BHYT
+ID=9 | user=duocsi_3 | role=DUOCSI | name=Dược sĩ Vũ Đình Trọng | phone=0908222333 | code=NV_DS03 | pos=Dược sĩ quản lý tồn kho và Kiểm kê định kỳ
+ID=10 | user=duocsi_4 | role=DUOCSI | name=Dược sĩ Hoàng Thanh Trúc | phone=0908222334 | code=NV_DS04 | pos=Dược sĩ tư vấn sử dụng thuốc và tương tác thuốc
+ID=11 | user=duocsi_5 | role=DUOCSI | name=Dược sĩ Trần Văn Phúc | phone=0908222335 | code=NV_DS05 | pos=Dược sĩ phụ trách nhà thuốc bệnh viện
+ID=12 | user=ktv_1 | role=KTV | name=KTV. Võ Anh Đức | phone=0908333441 | code=NV_KTV01 | pos=KTV Trưởng Xét nghiệm Huyết học - Hóa sinh
+ID=13 | user=ktv_2 | role=KTV | name=KTV. Hoàng Văn Cường | phone=0908333442 | code=NV_KTV02 | pos=KTV Chẩn đoán hình ảnh - Chụp X-Quang kỹ thuật số
+ID=14 | user=ktv_3 | role=KTV | name=KTV. Đặng Mỹ Linh | phone=0908333443 | code=NV_KTV03 | pos=KTV Siêu âm tổng quát và Doppler mạch máu
+ID=15 | user=ktv_4 | role=KTV | name=KTV. Bùi Quốc Tuấn | phone=0908333444 | code=NV_KTV04 | pos=KTV Thăm dò chức năng và Điện tâm đồ ECG
+ID=16 | user=ktv_5 | role=KTV | name=KTV. Lê Thùy Trang | phone=0908333445 | code=NV_KTV05 | pos=KTV Xét nghiệm Vi sinh - Nước tiểu
+ID=164 | user=ktv_6 | role=KTV | name=KTV. Nguyễn Minh Khôi | phone=0908333446 | code=NV_KTV06 | pos=KTV Thủ thuật Ngoại khoa, Bó bột và Chăm sóc vết mổ
+ID=165 | user=ktv_7 | role=KTV | name=KTV. Phan Thanh Trúc | phone=0908333447 | code=NV_KTV07 | pos=KTV Siêu âm Cơ xương khớp và Mô mềm Ngoại khoa
+ID=166 | user=ktv_8 | role=KTV | name=KTV. Trần Bảo Vy | phone=0908333448 | code=NV_KTV08 | pos=KTV Xét nghiệm Vi mẫu và Phun khí dung Nhi khoa
+ID=167 | user=ktv_9 | role=KTV | name=KTV. Trương Gia Huy | phone=0908333449 | code=NV_KTV09 | pos=KTV Thăm dò chức năng và Test dị ứng Nhi khoa
+ID=168 | user=ktv_10 | role=KTV | name=KTV. Vũ Ngọc Diệp | phone=0908333450 | code=NV_KTV10 | pos=KTV Chụp X-Quang Răng Panorama toàn cảnh và Cận chóp
+ID=169 | user=ktv_11 | role=KTV | name=KTV. Lý Hữu Nghĩa | phone=0908333451 | code=NV_KTV11 | pos=KTV Cạo vôi siêu âm, Lấy dấu chỉnh nha và Scan hàm 3D
+ID=170 | user=ktv_12 | role=KTV | name=KTV. Huỳnh Mai Phương | phone=0908333452 | code=NV_KTV12 | pos=KTV Monitoring Sản khoa và Lấy mẫu Pap Smear
+ID=171 | user=ktv_13 | role=KTV | name=KTV. Đỗ Quang Khải | phone=0908333453 | code=NV_KTV13 | pos=KTV Đo Thính lực đơn âm và Nội soi Tai Mũi Họng
+ID=172 | user=ktv_14 | role=KTV | name=KTV. Mai Xuân Nhi | phone=0908333454 | code=NV_KTV14 | pos=KTV Đo Khúc xạ tự động, Bản đồ Giác mạc và Nhãn áp
+ID=52 | user=hoangbaonam | role=BENHNHAN | name=Hoàng Bảo Nam | phone=0901234561 | code=BN0001 | pos=Nguoi dung
+ID=53 | user=0901234562 | role=BENHNHAN | name=Trần Thị Thu Hà | phone=0901234562 | code=BN0002 | pos=Nguoi dung
+ID=54 | user=0901234563 | role=BENHNHAN | name=Nguyễn Văn Hùng | phone=0901234563 | code=BN0003 | pos=Nguoi dung
+ID=55 | user=0901234564 | role=BENHNHAN | name=Lê Minh Anh | phone=0901234564 | code=BN0004 | pos=Nguoi dung
+ID=56 | user=0901234565 | role=BENHNHAN | name=Phạm Đức Trọng | phone=0901234565 | code=BN0005 | pos=Nguoi dung
+ID=57 | user=0901234566 | role=BENHNHAN | name=Đỗ Thị Bích Ngân | phone=0901234566 | code=BN0006 | pos=Nguoi dung
+ID=58 | user=0901234567 | role=BENHNHAN | name=Vũ Đình Khang | phone=0901234567 | code=BN0007 | pos=Nguoi dung
+ID=59 | user=0901234568 | role=BENHNHAN | name=Bùi Tuyết Mai | phone=0901234568 | code=BN0008 | pos=Nguoi dung
+ID=60 | user=0901234569 | role=BENHNHAN | name=Đặng Quốc Bảo | phone=0901234569 | code=BN0009 | pos=Nguoi dung
+ID=61 | user=0901234570 | role=BENHNHAN | name=Phan Mỹ Duyên | phone=0901234570 | code=BN0010 | pos=Nguoi dung
+ID=154 | user=0981122334 | role=BENHNHAN | name=Lê Hoàng Long | phone=0981122334 | code=BN2609024 | pos=Nguoi dung
+ID=155 | user=0972233445 | role=BENHNHAN | name=Vũ Thị Bích Ngọc | phone=0972233445 | code=BN2609025 | pos=Nguoi dung
+ID=156 | user=0963344556 | role=BENHNHAN | name=Đặng Quốc Bảo | phone=0963344556 | code=BN2609026 | pos=Nguoi dung
+ID=157 | user=0944455667 | role=BENHNHAN | name=Phạm Thanh Thảo | phone=0944455667 | code=BN2609027 | pos=Nguoi dung
+ID=158 | user=0935566778 | role=BENHNHAN | name=Trịnh Đình Trọng | phone=0935566778 | code=BN2609028 | pos=Nguoi dung
+ID=159 | user=0926677889 | role=BENHNHAN | name=Hoàng Mỹ Duyên | phone=0926677889 | code=BN2609029 | pos=Nguoi dung
+ID=160 | user=0917788990 | role=BENHNHAN | name=Bùi Hải Đăng | phone=0917788990 | code=BN2609030 | pos=Nguoi dung
+ID=161 | user=0908899001 | role=BENHNHAN | name=Nguyễn Khánh Vy | phone=0908899001 | code=BN2609031 | pos=Nguoi dung
+ID=162 | user=0989900112 | role=BENHNHAN | name=Mai Văn Khiêm | phone=0989900112 | code=BN2609032 | pos=Nguoi dung
+ID=163 | user=0970011223 | role=BENHNHAN | name=Đỗ Thị Kim Chi | phone=0970011223 | code=BN2609033 | pos=Nguoi dung

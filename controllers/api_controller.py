@@ -3397,7 +3397,7 @@ def get_emr_history(record_id=None):
 
 
 
-@api_bp.route('/prescription/detail/<int:prescription_id>', methods=['GET'])
+@api_bp.route('/prescription/detail/<prescription_id>', methods=['GET'])
 
 @login_required
 
@@ -4263,16 +4263,21 @@ def update_maintenance_api():
 
 
 @api_bp.route('/queue/auto-call', methods=['GET', 'POST'])
-
 def auto_call_queue_api():
-
     """API tự động quét hàng đợi hôm nay và kích hoạt gọi số khám theo giờ hẹn."""
-
     from models.appointment_model import AppointmentModel
-
     called_count = AppointmentModel.trigger_auto_call_queue()
-
     return jsonify({'success': True, 'called_count': called_count})
+
+
+@api_bp.route('/appointments/<int:appt_id>/call-early', methods=['POST'])
+def call_appointment_early_api(appt_id):
+    """API gọi ca khám vào trước lượt (chỉ áp dụng ca trong ngày)."""
+    from models.appointment_model import AppointmentModel
+    success, msg = AppointmentModel.call_appointment_early(appt_id)
+    if success:
+        return jsonify({'success': True, 'message': msg})
+    return jsonify({'success': False, 'message': msg}), 400
 
 
 

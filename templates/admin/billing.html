@@ -387,7 +387,7 @@
         if (metaEl) metaEl.innerText = `${inv.ma_bn || ''}${inv.sdt ? ' • SĐT: ' + inv.sdt : ''}`;
         document.getElementById('pay-code').innerText = inv.ma_hd;
         
-        const hasBhyt = Boolean(inv.has_bhyt || (inv.ma_the_bhyt && inv.bhyt > 0));
+        const hasBhyt = Boolean(inv.has_bhyt && inv.bhyt > 0);
         const bhytCode = inv.ma_the_bhyt || '';
         document.getElementById('pay-patient-bhyt').innerText = bhytCode ? `${bhytCode} (Đã đăng ký thẻ BHYT)` : 'Chưa đăng ký thẻ BHYT';
 
